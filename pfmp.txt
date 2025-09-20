@@ -1,0 +1,305 @@
+# Personal Financial Management Platform (PFMP)
+
+## Project Description
+A comprehensive AI-powered personal financial management platform designed to provide intelligent investment advice, portfolio management, and market analysis. This system serves as a digital financial advisor that can analyze markets, track portfolios, provide daily summaries, and engage in conversational financial planning with persistent memory capabilities.
+
+## Goals & Objectives
+- **Primary Goal**: Create an AI financial advisor that can provide daily market analysis and investment recommendations
+- **Portfolio Management**: Real-time tracking and analysis of investment performance across multiple asset classes including crypto
+- **Market Intelligence**: Automated collection and analysis of market news, trends, and economic indicators
+- **Conversational AI**: Memory-enabled AI that learns preferences and provides personalized advice over time
+- **Risk Management**: Intelligent assessment of portfolio risk and recommendations for optimization
+- **Tax Optimization**: Analysis and recommendations for tax-efficient investment strategies
+- **Mobile Access**: Progressive Web App (PWA) capabilities for mobile usage and eventual text alerts
+- **Scalability**: Start as personal tool with architecture that can scale without complete rewrites
+
+## Target Audience
+Initially designed for personal use only, avoiding regulatory and licensing requirements. Single-user system focused on individual investment management and financial planning.
+
+## Technology Stack
+
+### Frontend: React with TypeScript
+- **Framework**: React 18 with TypeScript
+- **Build Tool**: Vite for fast development and building
+- **UI Library**: Material-UI or Ant Design for professional components
+- **Charting**: TradingView widgets for advanced charts, Chart.js for portfolio charts
+- **State Management**: React Query for API state management
+- **Real-time**: SignalR client for live market data
+- **PWA**: Progressive Web App capabilities for mobile-like experience
+- **Deployment**: Azure Static Web Apps
+
+### Backend: .NET 9 Web API
+- **Framework**: .NET 9 Web API with C#
+- **Database**: Entity Framework Core with PostgreSQL
+- **Background Services**: .NET Background Services + Hangfire for scheduling
+- **Real-time**: SignalR hubs for push notifications
+- **AI Integration**: Azure OpenAI SDK for GPT-4 integration
+- **API Integrations**: Yahoo Finance, Alpha Vantage, News APIs
+- **Deployment**: Azure App Service (Linux)
+- **Upgrade Path**: Migrate to .NET 10 when it reaches stable/LTS status
+
+### Database Strategy
+- **Primary**: Azure PostgreSQL Flexible Server for structured financial data (production)
+- **Development**: PostgreSQL 15 on Synology NAS via Docker Container
+  - **Host**: 192.168.1.108:5433
+  - **Database**: pfmp_dev
+  - **Container**: pfmp-postgresql (official postgres:15 image)
+  - **Volume**: Docker-managed persistent storage
+  - **Network**: Local network access via synobridge mode
+- **Caching**: Azure Redis Cache for session storage and real-time data
+- **Vector Storage**: Azure Cognitive Search or Pinecone for AI memory
+- **Backup**: Synology NAS for local backups during development
+
+### AI & Memory Architecture
+- **Primary AI**: OpenAI GPT-4 via Azure OpenAI Service (daily summaries, data processing, Azure integration)
+- **Secondary AI**: Anthropic Claude 3.5 Sonnet (complex analysis, risk assessment, validation)
+- **AI Strategy**: Hybrid approach leveraging each model's strengths for optimal financial advice
+- **Memory System**: Vector database for conversation history and preferences
+- **Context Loading**: Automatic injection of portfolio state, market conditions, and user preferences
+- **Persona**: Persistent financial advisor personality with memory of past conversations
+- **Learning**: Track recommendation outcomes and user preferences over time
+- **Validation Layer**: Cross-reference critical recommendations between AI providers
+
+## Infrastructure & Hosting
+
+### Development Environment
+- **Local Development**: Windows laptop for primary development
+- **Database**: PostgreSQL on Synology NAS (192.168.1.108:5433)
+- **Container Management**: Synology Container Manager with Docker Compose
+- **External Access**: FQDN configured for external testing
+- **Version Control**: Git with GitHub repository
+- **IDE**: Visual Studio 2022 for .NET development
+
+### Production Hosting (Azure)
+- **API Hosting**: Azure App Service (Linux)
+- **Frontend Hosting**: Azure Static Web Apps
+- **Database**: Azure PostgreSQL Flexible Server
+- **Scheduling**: Azure Functions for daily market updates
+- **Monitoring**: Azure Application Insights
+- **Security**: Azure Key Vault for secrets management
+- **Alerts**: Azure Communication Services for SMS/email notifications
+
+### Hybrid Approach
+- **Development**: Windows laptop + PostgreSQL on Synology NAS
+- **Staging**: Ubuntu server for integration testing (future)
+- **Production**: Azure cloud services
+- **Backup**: Maintain local backups on Synology
+- **Scaling**: Cloud-first with ability to scale up/out as needed
+
+## Development Phases
+
+### Phase 1: MVP Foundation (2-4 weeks) - 95% COMPLETE
+**Backend Development:**
+- ✅ Set up .NET 9 Web API project structure (Visual Studio 2022)
+- ✅ Implement Entity Framework with PostgreSQL (EF Core 9.0.9 + Npgsql)
+- ✅ Create basic ApplicationDbContext and database configuration
+- ✅ Configure network accessibility (API on 0.0.0.0:5052)
+- ✅ Verify PostgreSQL connectivity to Synology NAS (192.168.1.108:5433)
+- Ready for: Entity Framework migrations and financial data models
+- ✅ Deploy to Azure App Service (when ready for cloud deployment)
+
+#### Development Environment Status (CURRENT)
+✅ **PostgreSQL 15**: Deployed on Synology NAS (192.168.1.108:5433)
+✅ **.NET 9 API**: Configured and network accessible (0.0.0.0:5052)
+✅ **Entity Framework**: Installed and configured with Npgsql provider
+🟡 **Git Repository**: In progress - needs initialization
+⏳ **React Frontend**: Pending - needs Node.js and project setup
+⏳ **API Models**: Pending - needs financial data entity classes
+
+#### Next Development Steps
+1. Initialize Git repository for version control
+2. Install Node.js and create React TypeScript project
+3. Create Entity Framework models for financial data
+4. Implement basic API endpoints for portfolio data
+5. Build React dashboard with API integration
+
+**Frontend Development:**
+- Set up React with TypeScript and Vite
+- Create basic dashboard with portfolio overview
+- Implement basic charting with Chart.js
+- Build responsive UI with Material-UI
+- Deploy to Azure Static Web Apps
+
+**Database Setup:**
+- ✅ PostgreSQL 15 deployed on Synology NAS via Docker Container
+- ✅ Database pfmp_dev created with user pfmp_user
+- ✅ Container configured with persistent storage and health monitoring
+- ✅ Network access verified from development environment (192.168.1.108:5433)
+- ✅ Entity Framework connection configured and tested
+- Ready for: Entity Framework migrations for financial schema
+
+### Phase 2: AI Integration (2-3 weeks)
+**AI Service Layer:**
+- Integrate Azure OpenAI Service with .NET API for primary AI functions
+- Add Anthropic Claude API integration for advanced analysis
+- Design conversation context and memory system
+- Implement vector storage for AI memory
+- Create AI service for generating daily summaries (OpenAI)
+- Build sophisticated analysis system (Claude for validation)
+- Build chat interface in React frontend with AI provider selection
+
+**Memory Implementation:**
+- Design user preference and history storage
+- Implement conversation context loading
+- Create semantic search for past interactions
+- Build learning system for recommendation tracking
+
+**Scheduled Services:**
+- Implement daily market data collection
+- Create AI-powered daily summary generation
+- Set up background job scheduling with Hangfire
+- Configure email notifications for daily updates
+
+### Phase 3: Advanced Features (3-4 weeks)
+**Real-time Capabilities:**
+- Implement SignalR for real-time market updates
+- Create live dashboard with streaming data
+- Build notification system for price alerts
+- Add real-time portfolio performance tracking
+
+**Enhanced Analytics:**
+- Advanced portfolio analytics and risk metrics
+- Tax-loss harvesting analysis
+- Sector allocation and rebalancing recommendations
+- Performance attribution and benchmarking
+
+**Mobile Experience:**
+- Convert to Progressive Web App (PWA)
+- Implement offline capabilities for basic features
+- Add push notification support
+- Optimize UI for mobile devices
+
+### Phase 4: Scale & Optimize (2-3 weeks)
+**Performance Optimization:**
+- Implement Redis caching for frequently accessed data
+- Optimize database queries and indexes
+- Add CDN for static assets
+- Implement auto-scaling policies
+
+**Advanced AI Features:**
+- Fine-tune AI models based on user interactions
+- Implement predictive analytics for market trends
+- Add sentiment analysis for news processing
+- Create automated trading signal generation (advisory only)
+- Cross-validation system using both OpenAI and Claude for critical decisions
+- AI recommendation scoring and confidence levels
+
+**Monitoring & Alerting:**
+- Comprehensive logging with Application Insights
+- Performance monitoring and alerting
+- Error tracking and automated notifications
+- Cost monitoring and optimization
+
+## Data Sources & APIs
+
+### Market Data
+- **Yahoo Finance API**: Primary source for stock prices and basic data
+- **Alpha Vantage**: Advanced technical indicators and fundamental data
+- **Polygon.io**: Real-time market data (if budget allows)
+- **CoinGecko**: Cryptocurrency prices and market data
+
+### News & Analysis
+- **NewsAPI**: General financial news aggregation
+- **Alpha Vantage News**: Financial news with sentiment analysis
+- **Reddit API**: Social sentiment from investment subreddits
+- **Twitter/X API**: Market sentiment and trending topics
+
+### Economic Data
+- **FRED API**: Federal Reserve economic data
+- **Treasury.gov**: Bond yields and rates
+- **SEC EDGAR**: Company filings and fundamental data
+
+## Security & Compliance
+
+### Data Protection
+- All sensitive data encrypted at rest and in transit
+- Azure Key Vault for API keys and connection strings
+- Personal financial data remains private and secure
+- Regular security audits and updates
+
+### Authentication & Authorization
+- Azure AD B2C for user authentication (even for personal use)
+- Role-based access control for different features
+- Secure API endpoints with JWT tokens
+- Multi-factor authentication support
+
+### Privacy
+- No third-party data sharing
+- Local backup options for data sovereignty
+- Clear data retention policies
+- GDPR-compliant data handling (even for personal use)
+
+## Success Metrics
+
+### Technical Metrics
+- **Uptime**: 99.9% availability target
+- **Performance**: API response times under 200ms
+- **Accuracy**: Market data freshness within 15 minutes
+- **Reliability**: Zero data loss with proper backup strategies
+
+### Functional Metrics
+- **AI Quality**: Relevant and actionable daily summaries
+- **Memory Effectiveness**: AI remembers preferences and context
+- **Portfolio Tracking**: Accurate performance calculations
+- **User Experience**: Intuitive and responsive interface
+
+### Business Metrics
+- **Cost Efficiency**: Keep monthly Azure costs under $100 initially
+- **Scalability**: Handle portfolio growth without performance degradation
+- **Feature Adoption**: Regular use of all major features
+- **Decision Support**: Improved investment decision making
+
+## Risk Mitigation
+
+### Technical Risks
+- **API Limitations**: Multiple data source redundancy
+- **AI Costs**: Implement usage monitoring and optimization
+- **Scalability**: Cloud-native architecture for easy scaling
+- **Data Loss**: Multiple backup strategies and disaster recovery
+
+### Financial Risks
+- **Investment Liability**: Clear disclaimers that AI provides information, not advice
+- **Market Data Accuracy**: Multiple source verification for critical decisions
+- **Cost Overruns**: Monitoring and alerting for cloud resource usage
+
+### Operational Risks
+- **Single Point of Failure**: Distributed architecture with redundancy
+- **Maintenance Windows**: Blue-green deployment for zero-downtime updates
+- **Knowledge Transfer**: Comprehensive documentation and code comments
+
+## Future Enhancements
+
+### Potential Extensions
+- **Tax Integration**: Connect to tax software for optimization
+- **Brokerage Integration**: Direct API connections to trading platforms
+- **Advanced Analytics**: Machine learning for market prediction
+- **Multi-User Support**: Architecture ready for family or advisor use
+- **Mobile Apps**: Native iOS/Android applications
+- **Voice Interface**: Integration with Alexa or Google Assistant
+
+### Monetization Options (Future)
+- **SaaS Platform**: Multi-tenant version for other individuals
+- **Advisor Tools**: White-label solution for financial advisors
+- **API Licensing**: Sell AI-powered financial analysis APIs
+- **Premium Features**: Advanced analytics and faster updates
+
+## Getting Started
+
+### Prerequisites
+- Azure subscription with credits or budget allocated
+- Development environment (Ubuntu server, Synology NAS)
+- Domain name configured for external access
+- API keys for financial data providers
+- Azure OpenAI Service access
+- Anthropic Claude API access
+- OpenAI API access (fallback/development)
+
+### Initial Setup Steps
+1. **Environment Setup**: Configure local development environment
+2. **Azure Resources**: Provision initial Azure services
+3. **Repository**: Set up Git repository with CI/CD pipeline
+4. **API Keys**: Obtain and securely store all required API keys
+5. **Database**: Set up PostgreSQL and design initial schema
+6. **MVP Development**: Begin Phase 1 development following the plan
+
+This comprehensive plan provides a roadmap for building a sophisticated, AI-powered personal financial management platform that can grow and evolve with changing needs while maintaining professional-grade architecture and security standards.
