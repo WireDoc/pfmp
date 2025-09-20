@@ -219,20 +219,144 @@ This file tracks daily progress on the Personal Financial Management Platform (P
 - Files tracked: All essential project files (.NET API, documentation, configuration)
 
 ### Next Steps (Next Session)
-1. **Frontend Development**:
-   - Install Node.js LTS for React development
-   - Create React TypeScript project with Vite build tool
-   - Configure frontend to communicate with .NET API
+1. **Entity Framework Models & Database Design**:
+   - User management and authentication
+   - Portfolio aggregation data models (accounts, holdings, transactions)
+   - API integration tracking (connection status, last sync, credentials)
+   - Goals and targets (retirement goals, risk tolerance, timeline)
 
-2. **API Enhancement**:
-   - Create Entity Framework models for financial data (Portfolio, Transaction, User)
-   - Add database migrations and initial schema
-   - Build first financial API endpoints for portfolio management
+2. **API Integration Architecture**:
+   - Trading platform APIs (Binance, Coinbase, TD Ameritrade, E*TRADE, Schwab)
+   - Banking/investment account APIs where available
+   - Real estate valuation APIs (Zillow, property tracking)
+   - News and market data APIs (NewsAPI, Alpha Vantage)
 
-3. **Development Workflow**:
-   - Set up GitHub Actions for CI/CD pipeline
-   - Configure branch protection rules
-   - Establish development and deployment workflows
+3. **Manual Data Entry Systems**:
+   - TSP (Thrift Savings Plan) balance and contribution tracking
+   - Bank accounts without API access
+   - Insurance and property values
+   - Income sources (including VA disability)
+
+## Session 4: Enhanced Requirements and Architecture Planning (September 20, 2025 - Continued)
+
+## Session 4: Enhanced Requirements and Architecture Planning (September 20, 2025 - Continued)
+
+### Comprehensive Feature Requirements - FINALIZED
+
+**Portfolio Management & Integration:**
+- **Multi-Platform API Integration**: Binance (crypto), TD Ameritrade, E*TRADE, Schwab, Fidelity APIs with encrypted credential storage
+- **Manual Entry Systems**: TSP (Thrift Savings Plan) with contribution tracking and balance updates, bank accounts without APIs, insurance values
+- **Real-Time Balance Aggregation**: Asynchronous data pulling with scheduled updates, user-controlled refresh frequencies
+- **Account Type Classification**: Taxable, tax-deferred (401k, IRA, TSP), tax-free (Roth), HSA with separate tax tracking and optimization
+
+**Goal Setting & Retirement Planning:**
+- **Flexible Goal Setting**: Specific dollar amount emergency fund, monthly passive income retirement targets
+- **VA Disability Integration**: Treated as guaranteed income for retirement planning calculations
+- **Timeline Planning**: Target retirement dates with milestone tracking, Monte Carlo probability modeling
+- **TSP Optimization**: Holistic allocation recommendations considering complete portfolio, manual balance/contribution updates
+- **Gap Analysis**: Investment income needed beyond guaranteed sources (VA disability, Social Security)
+
+**Rebalancing & Risk Management:**
+- **Drift-Triggered Alerts**: User-customizable thresholds (default 5-10%) with immediate notifications
+- **Configurable Rebalancing**: User-controlled alert frequency with option to disable
+- **Smart Suggestions**: Specific rebalancing recommendations with rationale and tax implications
+- **Risk Assessment**: Comprehensive questionnaire during setup with periodic re-assessment
+- **Critical Alerts**: Immediate notifications for significant portfolio drift or market events
+
+**Tax Optimization & Analysis:**
+- **Q4-Focused Tax Planning**: September-December intensive tax loss harvesting identification
+- **Year-Round Monitoring**: Track opportunities with intensified Q4 recommendations
+- **Account Type Optimization**: Strategic recommendations for investment placement by account type
+- **Tax-Adjusted Performance**: Show returns after tax drag for accurate planning
+- **Separate Tax Tracking**: Clear visualization of taxable vs. tax-advantaged account performance
+
+**Comprehensive Insurance Tracking:**
+- **Life Insurance**: Coverage amounts, premiums, cash value tracking
+- **Disability Insurance**: Coverage levels, premiums (in addition to VA disability)
+- **Auto Insurance**: Coverage, premiums, deductibles with optimization recommendations
+- **Property Insurance**: Home, rental properties with coverage adequacy analysis
+- **Health Insurance**: Premium tracking, HSA integration where applicable
+
+**Advanced Crypto & Staking:**
+- **Staking Reward Tracking**: Automatic calculation of effective yields from crypto staking
+- **DeFi Protocol Integration**: Track yields from various decentralized finance protocols
+- **Crypto Performance Analysis**: Compare staking returns vs. traditional dividend strategies
+- **Risk-Adjusted Crypto Allocation**: Recommendations based on overall risk tolerance
+
+**Intelligent Benchmarking:**
+- **Market Index Comparisons**: S&P 500, Total Stock Market, appropriate bond indices
+- **Strategy-Based Benchmarking**: Performance vs. Bogleheads, Ray Dalio All Weather, other expert strategies
+- **Current Conditions Adjustment**: Benchmark recommendations adapted for current market environment
+- **Personal Historical Performance**: Track progress against own historical returns
+- **Risk-Adjusted Comparisons**: Sharpe ratio, alpha, beta calculations vs. benchmarks
+
+**Enhanced Dashboard & Analytics:**
+- **Real-Time Net Worth**: Complete financial picture with last-updated timestamps
+- **Emergency Fund Progress**: Specific dollar target with visual progress tracking
+- **Tax Loss Opportunities**: Real-time identification with Q4 intensification
+- **Staking Yield Dashboard**: Crypto staking performance vs. traditional dividends
+- **TSP Integration View**: Current balance, contributions, allocation recommendations
+- **Insurance Coverage Analysis**: Adequate coverage assessment vs. net worth
+
+### Technical Implementation Priorities
+
+**Phase 2 (Immediate - Next 3-4 weeks):**
+1. **Database Design**: User profiles, account integration, goal tracking, TSP management
+2. **API Integration**: Major trading platforms with secure credential storage
+3. **Manual Entry**: TSP balance/contribution interfaces, emergency fund tracking
+4. **Basic Dashboard**: Account aggregation, net worth tracking, goal progress
+5. **Risk Assessment**: Initial questionnaire and portfolio drift monitoring
+
+**Phase 3 (Advanced Features - Following 3-4 weeks):**
+1. **Tax Analysis**: Q4 tax loss harvesting, account optimization recommendations
+2. **Insurance Tracking**: Comprehensive coverage analysis and optimization
+3. **Advanced Benchmarking**: Expert strategy comparisons, market-adjusted recommendations
+4. **Staking Integration**: Crypto yield tracking and performance analysis
+5. **Monte Carlo Modeling**: Retirement probability projections with guaranteed income
+
+**Phase 4 (AI & Automation - Future):**
+1. **Statement Upload**: PDF parsing for TSP and other account statements
+2. **Advanced AI Analysis**: News sentiment, expert strategy integration
+3. **Automated Notifications**: Smart alerts for rebalancing, tax opportunities
+4. **DeFi Integration**: Complex crypto protocol yield tracking
+
+This comprehensive approach transforms PFMP into a sophisticated wealth management platform specifically tailored for a government employee with VA benefits, diverse investment portfolios, and a focus on achieving financial independence through optimized passive income strategies.
+
+### Technical Architecture Considerations
+
+**Database Design Requirements:**
+- **User Management**: Authentication, preferences, risk profiles
+- **Account Integration**: API credentials (encrypted), connection status, sync history
+- **Portfolio Data**: Holdings, transactions, historical values, performance metrics
+- **Goals & Planning**: Target amounts, timelines, progress tracking
+- **News & Analysis**: Sentiment data, recommendation history, AI analysis logs
+
+**Security & Privacy:**
+- **API Credential Encryption**: Secure storage of trading platform API keys
+- **Data Privacy**: GDPR-compliant data handling, user data control
+- **Financial Data Security**: Industry-standard encryption for sensitive financial information
+- **Audit Trails**: Complete transaction and recommendation history
+
+**Integration Complexity Levels:**
+1. **Level 1 (Phase 2)**: Major trading platforms with robust APIs
+2. **Level 2 (Phase 3)**: Banking APIs, real estate APIs, news services
+3. **Level 3 (Phase 4)**: Advanced AI analysis, transaction execution, complex integrations
+
+### Development Priority Recommendations
+
+**Immediate Next Steps (Phase 2):**
+1. Design comprehensive Entity Framework models for portfolio aggregation
+2. Implement secure API credential storage and management
+3. Create manual data entry interfaces for accounts without APIs
+4. Build basic portfolio aggregation and dashboard display
+
+**Phase 2 Focus:**
+- Core portfolio tracking functionality
+- Basic goal setting and progress tracking
+- Manual entry systems for TSP and bank accounts
+- Simple AI analysis using existing GPT-4 integration
+
+This enhanced vision transforms PFMP from a basic financial tracker into a comprehensive wealth management and retirement planning platform. The approach is methodical and achievable with the current technology stack.
 
 ### Architecture Status
 - **Backend**: .NET 9 Web API with Entity Framework Core ✅
