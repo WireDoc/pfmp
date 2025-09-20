@@ -1,20 +1,24 @@
 # Personal Financial Management Platform (PFMP)
 
+# Personal Financial Management Platform (PFMP)
+
 ## Project Description
-A comprehensive AI-powered personal financial management platform designed to provide intelligent investment advice, portfolio management, and market analysis. This system serves as a digital financial advisor that can analyze markets, track portfolios, provide daily summaries, and engage in conversational financial planning with persistent memory capabilities.
+A comprehensive AI-powered wealth management and retirement planning platform that aggregates all financial accounts, provides intelligent analysis, and creates personalized strategies for achieving financial independence through optimized passive income generation. This system serves as a unified financial command center that tracks your complete financial picture, leverages advanced AI for holistic recommendations, and guides strategic decision-making toward retirement goals.
 
-## Goals & Objectives
-- **Primary Goal**: Create an AI financial advisor that can provide daily market analysis and investment recommendations
-- **Portfolio Management**: Real-time tracking and analysis of investment performance across multiple asset classes including crypto
-- **Market Intelligence**: Automated collection and analysis of market news, trends, and economic indicators
-- **Conversational AI**: Memory-enabled AI that learns preferences and provides personalized advice over time
-- **Risk Management**: Intelligent assessment of portfolio risk and recommendations for optimization
-- **Tax Optimization**: Analysis and recommendations for tax-efficient investment strategies
-- **Mobile Access**: Progressive Web App (PWA) capabilities for mobile usage and eventual text alerts
-- **Scalability**: Start as personal tool with architecture that can scale without complete rewrites
+## Enhanced Goals & Objectives
+- **Comprehensive Portfolio Aggregation**: Connect to trading platforms (Binance, TD Ameritrade, E*TRADE, Schwab) via APIs plus manual entry for accounts without API access (TSP, traditional banks)
+- **Retirement Planning Focus**: Set dollar amount OR monthly passive income targets with timeline-based milestone tracking and Monte Carlo probability modeling
+- **Multi-Asset Tracking**: Stocks, bonds, crypto, real estate, precious metals, collectibles with automated valuation updates
+- **Income Source Management**: Track all income streams including employment, VA disability, dividends, rental income, business income
+- **Real Estate Integration**: Home value tracking vs. mortgage balance, rental property management, equity calculations
+- **AI-Powered Holistic Analysis**: Complete financial picture analysis incorporating news sentiment, modern investment strategies, and risk tolerance
+- **Smart Automation**: Scheduled data pulls, rebalancing alerts, tax loss harvesting opportunities, dividend calendars
+- **Goal-Oriented Recommendations**: AI suggestions based on available capital, current allocations, risk tolerance, and retirement timeline
+- **Advanced Dashboard**: Real-time net worth tracking, interactive charts, performance attribution, custom views
+- **Intelligent Alerts**: Push notifications and email alerts for rebalancing opportunities, market events, goal milestones
 
-## Target Audience
-Initially designed for personal use only, avoiding regulatory and licensing requirements. Single-user system focused on individual investment management and financial planning.
+## Target Use Case
+Personal comprehensive wealth management system designed for an individual investor focused on achieving financial independence through optimized passive income strategies. Tracks complete financial picture across all account types and asset classes, providing AI-driven guidance for retirement planning and investment optimization.
 
 ## Technology Stack
 
@@ -130,25 +134,79 @@ Initially designed for personal use only, avoiding regulatory and licensing requ
 - ✅ Entity Framework connection configured and tested
 - Ready for: Entity Framework migrations for financial schema
 
-### Phase 2: AI Integration (2-3 weeks)
+### Phase 2: Core Portfolio Management & API Integration (3-4 weeks)
+**Entity Framework & Database Design:**
+- Create comprehensive financial data models (User, Account, Portfolio, Transaction, Goal)
+- Design API integration tracking (ConnectionStatus, SyncHistory, EncryptedCredentials)
+- Implement goal and risk tolerance management models
+- Build income source and cash flow tracking models
+- Create real estate and property tracking models
+- Add database migrations for complete financial schema
+
+**API Integration Architecture:**
+- **Trading Platform APIs**: Binance, Coinbase Pro, TD Ameritrade, E*TRADE, Charles Schwab
+- **Secure Credential Management**: Encrypted API key storage with Azure Key Vault
+- **Scheduled Data Sync**: Background jobs for real-time balance and transaction updates
+- **Error Handling & Retry Logic**: Robust API failure management and reconnection
+- **Rate Limiting**: Respect API limits while maintaining data freshness
+
+**Manual Data Entry Systems:**
+- TSP (Thrift Savings Plan) balance and contribution tracking interfaces
+- Bank account manual entry with category classification
+- Real estate property management (value, mortgage, rental income)
+- Insurance and other asset manual tracking
+- Income source management (VA disability, salary, dividends, rental)
+
+**Basic Portfolio Dashboard:**
+- Account aggregation view with real-time balances
+- Asset allocation charts and performance metrics
+- Goal progress tracking with timeline visualization
+- Net worth tracking and historical performance
+- Manual data entry interfaces with validation
+
+### Phase 3: AI Integration & Advanced Analysis (3-4 weeks)
 **AI Service Layer:**
-- Integrate Azure OpenAI Service with .NET API for primary AI functions
-- Add Anthropic Claude API integration for advanced analysis
-- Design conversation context and memory system
-- Implement vector storage for AI memory
-- Create AI service for generating daily summaries (OpenAI)
-- Build sophisticated analysis system (Claude for validation)
-- Build chat interface in React frontend with AI provider selection
+- Integrate Azure OpenAI Service with comprehensive financial context
+- Add Anthropic Claude API for complex portfolio analysis and validation
+- Design holistic portfolio analysis system incorporating all account types
+- Implement news sentiment analysis integration (NewsAPI, Financial Modeling Prep)
+- Create AI recommendation engine for spare capital allocation
+- Build risk assessment and rebalancing recommendation system
 
-**Memory Implementation:**
-- Design user preference and history storage
-- Implement conversation context loading
-- Create semantic search for past interactions
-- Build learning system for recommendation tracking
+**News & Market Intelligence:**
+- Real-time news feed integration with portfolio relevance filtering
+- Market sentiment analysis affecting user's specific holdings
+- Economic indicator tracking and impact assessment
+- Integration of modern investment strategies from thought leaders
+- Automated research compilation for investment opportunities
 
-**Scheduled Services:**
-- Implement daily market data collection
-- Create AI-powered daily summary generation
+**Advanced Analytics:**
+- Monte Carlo retirement projections incorporating VA disability as guaranteed income
+- Q4-focused tax loss harvesting with year-round opportunity monitoring
+- Comprehensive insurance coverage analysis and optimization recommendations
+- TSP allocation recommendations based on holistic portfolio analysis
+- Crypto staking yield tracking and performance vs. traditional dividends
+- Emergency fund progress tracking with specific dollar amount targets
+
+**Intelligent Benchmarking & Performance:**
+- Market index comparisons (S&P 500, Total Stock Market, bond indices)
+- Expert strategy benchmarking (Bogleheads, Ray Dalio All Weather, others)
+- Current market conditions adjustment for benchmark recommendations
+- Risk-adjusted performance metrics (Sharpe ratio, alpha, beta)
+- Personal historical performance tracking and trend analysis
+
+**Smart Alerts & Automation:**
+- Drift-triggered rebalancing alerts with user-customizable thresholds (default 5-10%)
+- Configurable alert frequency with option to disable specific alert types
+- Critical alerts for significant portfolio drift (>10%) or market events
+- Q4 tax optimization intensive alerts (September-December)
+- Emergency fund progress milestones and target achievement notifications
+- Insurance coverage adequacy alerts based on net worth changes
+- Portfolio rebalancing alerts when allocations drift
+- Tax loss harvesting opportunity notifications
+- Dividend payment and ex-dividend date reminders
+- Goal milestone achievement notifications
+- Market volatility alerts relevant to portfolio holdings
 - Set up background job scheduling with Hangfire
 - Configure email notifications for daily updates
 
