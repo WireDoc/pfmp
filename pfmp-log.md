@@ -245,7 +245,9 @@ This file tracks daily progress on the Personal Financial Management Platform (P
 
 **Portfolio Management & Integration:**
 - **Multi-Platform API Integration**: Binance (crypto), TD Ameritrade, E*TRADE, Schwab, Fidelity APIs with encrypted credential storage
-- **Manual Entry Systems**: TSP (Thrift Savings Plan) with contribution tracking and balance updates, bank accounts without APIs, insurance values
+- **Enhanced Manual Entry Systems**: TSP with contribution tracking, bank accounts with APR/APY tracking for yield optimization
+- **Cash Account Management**: Savings, checking, CDs, money market accounts with interest rate monitoring and yield comparison
+- **Liquidity Optimization**: Emergency fund liquidity analysis vs. yield maximization recommendations
 - **Real-Time Balance Aggregation**: Asynchronous data pulling with scheduled updates, user-controlled refresh frequencies
 - **Account Type Classification**: Taxable, tax-deferred (401k, IRA, TSP), tax-free (Roth), HSA with separate tax tracking and optimization
 
@@ -290,11 +292,21 @@ This file tracks daily progress on the Personal Financial Management Platform (P
 - **Personal Historical Performance**: Track progress against own historical returns
 - **Risk-Adjusted Comparisons**: Sharpe ratio, alpha, beta calculations vs. benchmarks
 
+**Cash Management & Yield Optimization:**
+- **APR/APY Tracking**: All cash accounts (savings, checking, CDs, money market) with current interest rates
+- **Market Rate Comparison**: Real-time comparison with available rates from major banks and credit unions
+- **Liquidity Analysis**: Balance emergency fund requirements with yield maximization opportunities
+- **Excess Cash Identification**: Alert when cash exceeds emergency fund target + reasonable buffer
+- **CD Ladder Optimization**: Suggest CD ladder strategies for portion of emergency fund earning higher yields
+- **Yield Opportunity Alerts**: Notifications when significantly better rates become available
+- **Cash Allocation Recommendations**: AI suggestions for optimal cash distribution across account types
+
 **Enhanced Dashboard & Analytics:**
 - **Real-Time Net Worth**: Complete financial picture with last-updated timestamps
 - **Emergency Fund Progress**: Specific dollar target with visual progress tracking
 - **Tax Loss Opportunities**: Real-time identification with Q4 intensification
 - **Staking Yield Dashboard**: Crypto staking performance vs. traditional dividends
+- **Cash Yield Analysis**: Current vs. optimal cash account yields with improvement recommendations
 - **TSP Integration View**: Current balance, contributions, allocation recommendations
 - **Insurance Coverage Analysis**: Adequate coverage assessment vs. net worth
 

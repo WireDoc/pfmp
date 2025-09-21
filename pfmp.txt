@@ -152,10 +152,20 @@ Personal comprehensive wealth management system designed for an individual inves
 
 **Manual Data Entry Systems:**
 - TSP (Thrift Savings Plan) balance and contribution tracking interfaces
-- Bank account manual entry with category classification
+- **Enhanced Cash Account Management**: Savings, checking, CDs, money market with APR/APY tracking
+- **Yield Optimization**: Interest rate monitoring and comparison with market rates for cash accounts
+- **Liquidity Analysis**: Emergency fund vs. excess cash classification with yield maximization recommendations
 - Real estate property management (value, mortgage, rental income)
 - Insurance and other asset manual tracking
 - Income source management (VA disability, salary, dividends, rental)
+
+**Cash Management & Yield Optimization:**
+- APR/APY tracking for all cash-based accounts (savings, checking, CDs, money market)
+- Real-time market rate comparison for identifying better yield opportunities
+- Emergency fund liquidity requirements vs. yield optimization balance
+- Excess cash identification when balances exceed emergency fund targets
+- CD ladder strategy recommendations for maximizing returns on emergency fund portion
+- AI-powered cash allocation recommendations based on liquidity needs and available rates
 
 **Basic Portfolio Dashboard:**
 - Account aggregation view with real-time balances
