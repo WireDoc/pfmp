@@ -736,5 +736,124 @@ This session completed the core API development and TSP integration, establishin
 
 ---
 
+## 2025-09-21 - Terminal Management & Environment Resolution
+
+### Accomplishments
+- ✅ Verified all development tools working after computer restart (Git, npm, Node.js, .NET)
+- ✅ Resolved PowerShell terminal management issues for service isolation
+- ✅ Successfully started .NET 9 API server in isolated terminal window
+- ✅ Verified API connectivity and database integration working properly
+- ✅ Documented PowerShell development guidelines in README.md
+- ✅ Established proper workflow for running background services
+
+### Key Technical Solutions
+**PowerShell Terminal Isolation:**
+- **Issue**: Running multiple commands in same terminal session caused service interruption
+- **Solution**: Use `Start-Process powershell` to launch services in dedicated windows
+- **Command**: `Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd W:\pfmp\PFMP-API; dotnet run --launch-profile http" -WindowStyle Normal`
+
+**Development Best Practices Established:**
+- Always use fully qualified paths with `dotnet` commands in PowerShell
+- Isolate long-running services (API servers) in separate terminal windows
+- Use dedicated terminals for testing to avoid service disruption
+- Document operational procedures in README.md for future reference
+
+### Environment Status
+- ✅ **Git**: Version 2.51.0 - Working properly in PowerShell PATH
+- ✅ **Node.js**: Version 22.19.0 - Working properly in PowerShell PATH  
+- ✅ **npm**: Version 10.9.3 - Working properly in PowerShell PATH
+- ✅ **dotnet**: Version 9.0.305 - Working properly in PowerShell PATH
+- ✅ **API Server**: Running successfully on http://0.0.0.0:5052
+- ✅ **Database**: PostgreSQL connection verified (192.168.1.108:5433)
+
+### Current Project Status
+- **Phase**: Phase 2 - Core Portfolio Management (98% Complete)
+- **API Status**: Running and responding to requests
+- **Database**: Connected and migrations applied
+- **Next Steps**: Start React frontend and complete end-to-end testing
+
+### Challenges Resolved
+- **Terminal Conflicts**: Learned to isolate services in dedicated PowerShell windows
+- **Path Issues**: Established fully qualified path requirements for PowerShell
+- **Service Management**: Proper workflow for starting and managing background services
+- **Documentation**: Added operational guidelines to README.md
+
+### Next Steps (Continuation of Session)
+1. ✅ **Start React Frontend Server**: Launch development server in isolated terminal
+2. ✅ **Test API-Frontend Integration**: Verify communication between services
+3. ✅ **End-to-End Testing**: Complete data flow validation
+4. ✅ **Update Documentation**: Mark Phase 2 as 100% complete
+
+### Session Results - PHASE 2 COMPLETE! 🎉
+- ✅ **Complete End-to-End Stack Working**: Frontend ↔ API ↔ Database
+- ✅ **CRUD Operations Verified**: User creation and retrieval through all layers
+- ✅ **Database Schema Updated**: Applied migrations with complete 16-fund TSP system
+- ✅ **Proxy Integration**: Frontend-to-API communication working perfectly
+- ✅ **File Management**: Resolved terminal isolation and process management issues
+
+### Key Lessons Learned - Service Management
+**Terminal Isolation Requirements:**
+- Services MUST run in separate PowerShell windows to avoid conflicts
+- Manual window closure is the most reliable method to stop services
+- `Get-Process -Name "ServiceName" | Stop-Process -Force` can be used as backup
+- Always verify process termination before rebuilding or restarting services
+
+**Development Workflow Established:**
+1. Stop all running services (close PowerShell windows)
+2. Build project: `dotnet build`
+3. Apply any pending migrations: `dotnet ef database update`
+4. Start services in isolated windows using `Start-Process powershell`
+5. Test endpoints and verify functionality
+
+**API Route Consistency:**
+- All API controllers must use `[Route("api/[controller]")]` pattern
+- Frontend proxy expects `/api` prefix for all API calls
+- Fixed WeatherForecastController routing to match pattern
+
+### Technical Achievements
+**Database Integration:**
+- PostgreSQL schema fully deployed with 11 tables
+- All 16 TSP funds implemented in Account model
+- Migration system working correctly with Npgsql provider
+- CRUD operations tested and verified
+
+**API Development:**
+- Complete REST API with proper error handling
+- Entity Framework relationships configured correctly
+- User model validation working properly
+- API responding correctly to all test scenarios
+
+**Frontend Integration:**
+- React development server running on port 3000
+- Vite proxy configuration routing `/api` requests to port 5052
+- Material-UI framework integrated and ready for development
+- End-to-end data flow verified through browser/proxy layer
+
+### Current Project Status - PHASE 2 COMPLETE! ✅
+- **Phase**: Phase 2 - Core Portfolio Management (100% Complete)
+- **Infrastructure**: All services running and integrated
+- **Database**: Fully migrated and operational
+- **API**: Complete CRUD operations working
+- **Frontend**: Integrated and communicating with API
+- **Next Phase**: Ready for Phase 3 - AI Integration & Advanced Analysis
+
+---
+
+## Next Session Planning - Phase 3 Preparation
+
+### Immediate Priorities for Phase 3:
+1. **AI Service Integration**: Azure OpenAI Service setup and configuration
+2. **Advanced Analytics**: Portfolio analysis and recommendation engine
+3. **Real-time Features**: SignalR implementation for live data
+4. **Enhanced UI Components**: Advanced dashboard with charts and analytics
+
+### Session Management Best Practices Established:
+- Always document service management procedures
+- Use isolated terminal windows for all long-running processes
+- Verify process termination before builds
+- Test complete data flow after any infrastructure changes
+
+---
+
 <!-- Future sessions will be added below this line -->
 <!-- Format: ## YYYY-MM-DD - Session Title -->

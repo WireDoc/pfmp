@@ -37,14 +37,15 @@ An AI-powered financial advisor platform that provides daily market analysis, in
 - ✅ Git repository setup and GitHub integration
 - ✅ React 19.1.1 + TypeScript frontend framework setup
 
-### Phase 2: Core Portfolio Management (95% Complete)
+### Phase 2: Core Portfolio Management (✅ 100% Complete)
 - ✅ **Entity Framework Models**: Complete financial data models (11 tables)
 - ✅ **Database Schema**: Applied migrations, full PostgreSQL schema deployed
 - ✅ **API Controllers**: CRUD operations for Users, Accounts, Goals, Income Sources
 - ✅ **TSP Integration**: Complete 16-fund TSP allocation system
 - ✅ **Manual Data Entry**: Government employee focused forms and interfaces
 - ✅ **Frontend Components**: TSP allocation form with Material-UI, validation, preset strategies
-- ⏳ **End-to-End Testing**: Pending Node.js environment fix (requires computer restart)
+- ✅ **End-to-End Testing**: Complete data flow verified from frontend to database
+- ✅ **API-Frontend Integration**: Proxy configuration working, all endpoints accessible
 
 ### Complete TSP Fund Coverage
 **16 Total Funds Implemented:**
@@ -67,6 +68,40 @@ An AI-powered financial advisor platform that provides daily market analysis, in
 - PostgreSQL 15
 - Git
 
+### PowerShell Development Guidelines
+**Important**: When working with PowerShell, follow these guidelines to avoid terminal conflicts:
+
+#### .NET Commands
+- Always use fully qualified paths with `dotnet` commands in PowerShell
+- Example: `dotnet run --project W:\pfmp\PFMP-API\PFMP-API.csproj --launch-profile http`
+
+#### Running API Server in Isolated Terminal
+To avoid terminal conflicts, start the API server in a separate PowerShell window:
+```powershell
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd W:\pfmp\PFMP-API; dotnet run --launch-profile http" -WindowStyle Normal
+```
+
+**Important**: Before starting a new server instance:
+- Manually close any existing PowerShell windows running the API server, OR
+- Stop the process: `Get-Process -Name "PFMP-API" | Stop-Process -Force`
+
+#### Running React Frontend in Isolated Terminal
+```powershell
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd W:\pfmp\pfmp-frontend; npm run dev" -WindowStyle Normal
+```
+
+#### Service Management Best Practices
+1. **Before rebuilding**: Always stop running services to avoid file locks
+2. **Process termination**: Either close terminal windows manually or use PowerShell to stop processes
+3. **Build verification**: Run `dotnet build` to confirm no file locks before starting services
+4. **Migration workflow**: Stop services → Build → Apply migrations → Restart services
+
+This command:
+- Opens a new PowerShell window (`Start-Process powershell`)
+- Keeps the window open after execution (`-NoExit`)
+- Changes to the API directory and runs the server
+- Uses normal window style for easy monitoring
+
 ### Backend Setup (.NET API)
 ```bash
 cd PFMP-API
@@ -82,12 +117,21 @@ PostgreSQL database is running on Synology NAS:
 - Database: pfmp_dev
 - User: pfmp_user
 
-### Frontend Setup (Coming Soon)
+### Frontend Setup (✅ Complete)
 ```bash
 cd pfmp-frontend
 npm install
 npm run dev
 ```
+React development server runs on: http://localhost:3000  
+API proxy configured for `/api` requests → http://localhost:5052
+
+### End-to-End Testing
+The complete stack has been tested and verified:
+- ✅ Frontend (React) ↔ API (ASP.NET Core) ↔ Database (PostgreSQL)
+- ✅ User CRUD operations working through all layers
+- ✅ Proxy configuration routing requests correctly
+- ✅ Database migrations applied successfully
 
 ## 📝 Project Documentation
 
@@ -106,5 +150,5 @@ Private project - All rights reserved
 ---
 
 **Last Updated**: September 21, 2025  
-**Current Version**: v0.2.0-alpha  
-**Development Phase**: Phase 2 - Core Portfolio Management (95% Complete)
+**Current Version**: v0.3.0-alpha  
+**Development Phase**: Phase 2 - Core Portfolio Management (✅ 100% Complete)
