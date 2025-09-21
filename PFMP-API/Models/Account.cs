@@ -122,6 +122,7 @@ namespace PFMP_API.Models
 
     public class TSPAllocation
     {
+        // Individual Funds
         [Column(TypeName = "decimal(5,2)")]
         public decimal GFundPercentage { get; set; } // Government Securities
 
@@ -136,6 +137,40 @@ namespace PFMP_API.Models
 
         [Column(TypeName = "decimal(5,2)")]
         public decimal IFundPercentage { get; set; } // International Stock
+
+        // Lifecycle Funds
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal LIncomeFundPercentage { get; set; } // L Income (for retirees)
+
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal L2030FundPercentage { get; set; } // L 2030
+
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal L2035FundPercentage { get; set; } // L 2035
+
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal L2040FundPercentage { get; set; } // L 2040
+
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal L2045FundPercentage { get; set; } // L 2045
+
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal L2050FundPercentage { get; set; } // L 2050
+
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal L2055FundPercentage { get; set; } // L 2055
+
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal L2060FundPercentage { get; set; } // L 2060
+
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal L2065FundPercentage { get; set; } // L 2065
+
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal L2070FundPercentage { get; set; } // L 2070
+
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal L2075FundPercentage { get; set; } // L 2075
         
         public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
     }
