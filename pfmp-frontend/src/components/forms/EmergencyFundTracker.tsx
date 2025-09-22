@@ -24,7 +24,8 @@ import {
   Warning,
   CheckCircle,
 } from '@mui/icons-material';
-import { Account, Goal, accountService, goalService, userService } from '../../services/api';
+import type { Account, Goal } from '../../services/api';
+import { accountService, goalService, userService } from '../../services/api';
 
 interface EmergencyFundTrackerProps {
   userId: number;
@@ -315,7 +316,7 @@ export const EmergencyFundTracker: React.FC<EmergencyFundTrackerProps> = ({ user
           ) : (
             <Grid container spacing={1}>
               {data.emergencyAccounts.map((account) => (
-                <Grid item xs={12} sm={6} key={account.accountId}>
+                <Grid size={{ xs: 12, sm: 6 }} key={account.accountId}>
                   <Box
                     border={1}
                     borderColor="grey.300"
@@ -347,7 +348,7 @@ export const EmergencyFundTracker: React.FC<EmergencyFundTrackerProps> = ({ user
             Update Account Balance:
           </Typography>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>Account</InputLabel>
                 <Select
@@ -364,7 +365,7 @@ export const EmergencyFundTracker: React.FC<EmergencyFundTrackerProps> = ({ user
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <TextField
                 fullWidth
                 label="New Balance"
@@ -380,7 +381,7 @@ export const EmergencyFundTracker: React.FC<EmergencyFundTrackerProps> = ({ user
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={2}>
+            <Grid size={{ xs: 12, sm: 2 }}>
               <Button
                 fullWidth
                 variant="contained"
@@ -404,7 +405,7 @@ export const EmergencyFundTracker: React.FC<EmergencyFundTrackerProps> = ({ user
                 Create Emergency Fund Goal:
               </Typography>
               <Grid container spacing={2} alignItems="end">
-                <Grid item xs={12} sm={4}>
+                <Grid size={{ xs: 12, sm: 4 }}>
                   <TextField
                     fullWidth
                     label="Monthly Expenses"
@@ -420,7 +421,7 @@ export const EmergencyFundTracker: React.FC<EmergencyFundTrackerProps> = ({ user
                     }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={3}>
+                <Grid size={{ xs: 12, sm: 3 }}>
                   <TextField
                     fullWidth
                     label="Target Months"
@@ -433,12 +434,12 @@ export const EmergencyFundTracker: React.FC<EmergencyFundTrackerProps> = ({ user
                     }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={3}>
+                <Grid size={{ xs: 12, sm: 3 }}>
                   <Typography variant="body2" color="text.secondary">
-                    Target: ${(parseFloat(monthlyExpenses) || 0) * targetMonths}
+                    Target: ${((parseFloat(monthlyExpenses) || 0) * targetMonths).toLocaleString()}
                   </Typography>
                 </Grid>
-                <Grid item xs={12} sm={2}>
+                <Grid size={{ xs: 12, sm: 2 }}>
                   <Button
                     fullWidth
                     variant="outlined"

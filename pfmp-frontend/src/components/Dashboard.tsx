@@ -21,11 +21,15 @@ import {
   MoreVert,
   Person,
   Dashboard as DashboardIcon,
+  Assignment,
+  NotificationImportant,
 } from '@mui/icons-material';
 import { TSPAllocationForm } from './forms/TSPAllocationForm';
 import { EmergencyFundTracker } from './forms/EmergencyFundTracker';
 import { CashAccountManager } from './forms/CashAccountManager';
 import { VADisabilityTracker } from './forms/VADisabilityTracker';
+import { TaskDashboard } from './TaskDashboard';
+import { AlertsDashboard } from './AlertsDashboard';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -106,6 +110,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId = 1 }) => {
       label: 'VA Disability',
       icon: <LocalHospital />,
       component: <VADisabilityTracker userId={userId} key={`va-${refreshKey}`} onUpdate={handleRefreshData} />
+    },
+    {
+      label: 'Tasks',
+      icon: <Assignment />,
+      component: <TaskDashboard userId={userId} key={`tasks-${refreshKey}`} />
+    },
+    {
+      label: 'Alerts',
+      icon: <NotificationImportant />,
+      component: <AlertsDashboard userId={userId} key={`alerts-${refreshKey}`} />
     }
   ];
 
@@ -195,7 +209,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId = 1 }) => {
             Quick Overview
           </Typography>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Paper elevation={1} sx={{ p: 2, textAlign: 'center' }}>
                 <TrendingUp color="primary" fontSize="large" />
                 <Typography variant="h6" color="primary">
@@ -206,7 +220,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId = 1 }) => {
                 </Typography>
               </Paper>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Paper elevation={1} sx={{ p: 2, textAlign: 'center' }}>
                 <Savings color="success" fontSize="large" />
                 <Typography variant="h6" color="success.main">
@@ -217,7 +231,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId = 1 }) => {
                 </Typography>
               </Paper>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Paper elevation={1} sx={{ p: 2, textAlign: 'center' }}>
                 <AccountBalance color="info" fontSize="large" />
                 <Typography variant="h6" color="info.main">
@@ -228,7 +242,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId = 1 }) => {
                 </Typography>
               </Paper>
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Paper elevation={1} sx={{ p: 2, textAlign: 'center' }}>
                 <LocalHospital color="warning" fontSize="large" />
                 <Typography variant="h6" color="warning.main">
@@ -248,7 +262,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId = 1 }) => {
             Platform Features
           </Typography>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Typography variant="subtitle2" gutterBottom color="primary">
                 Government Employee Focus:
               </Typography>
@@ -260,7 +274,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId = 1 }) => {
                 • Federal employee benefit integration
               </Typography>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Typography variant="subtitle2" gutterBottom color="success.main">
                 Cash Optimization:
               </Typography>

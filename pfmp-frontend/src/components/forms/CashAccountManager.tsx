@@ -36,7 +36,8 @@ import {
   TrendingDown,
   AccountBalance,
 } from '@mui/icons-material';
-import { Account, AccountType, AccountCategory, accountService } from '../../services/api';
+import type { Account } from '../../services/api';
+import { AccountType, AccountCategory, accountService } from '../../services/api';
 
 interface CashAccountManagerProps {
   userId: number;
@@ -283,7 +284,7 @@ export const CashAccountManager: React.FC<CashAccountManagerProps> = ({ userId, 
     <Card>
       <CardHeader
         title="Cash Account Manager"
-        subheader={`${cashAccounts.length} accounts | Total: $${optimizationData?.totalCash.toLocaleString() || '0'}`}
+        subheader={`${cashAccounts.length} accounts | Total: $${optimizationData?.totalCash?.toLocaleString() || '0'}`}
         action={
           <Button
             variant="contained"
@@ -317,30 +318,30 @@ export const CashAccountManager: React.FC<CashAccountManagerProps> = ({ userId, 
               Cash Optimization Summary:
             </Typography>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={4}>
+              <Grid size={{ xs: 12, sm: 4 }}>
                 <Box textAlign="center" p={2} bgcolor="primary.50" borderRadius={1}>
                   <Typography variant="h4" color="primary">
-                    ${optimizationData.totalCash.toLocaleString()}
+                    ${optimizationData?.totalCash?.toLocaleString() || '0'}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Total Cash
                   </Typography>
                 </Box>
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid size={{ xs: 12, sm: 4 }}>
                 <Box textAlign="center" p={2} bgcolor="success.50" borderRadius={1}>
                   <Typography variant="h4" color="success.main">
-                    {optimizationData.averageAPR.toFixed(2)}%
+                    {optimizationData?.averageAPR?.toFixed(2) || '0'}%
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Average APR
                   </Typography>
                 </Box>
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid size={{ xs: 12, sm: 4 }}>
                 <Box textAlign="center" p={2} bgcolor="info.50" borderRadius={1}>
                   <Typography variant="h4" color="info.main">
-                    {optimizationData.bestAPRAccount?.interestRate?.toFixed(2) || '0'}%
+                    {optimizationData?.bestAPRAccount?.interestRate?.toFixed(2) || '0'}%
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Best APR
@@ -460,7 +461,7 @@ export const CashAccountManager: React.FC<CashAccountManagerProps> = ({ userId, 
           </DialogTitle>
           <DialogContent>
             <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   label="Account Name"
@@ -469,7 +470,7 @@ export const CashAccountManager: React.FC<CashAccountManagerProps> = ({ userId, 
                   required
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>Account Type</InputLabel>
                   <Select
@@ -485,7 +486,7 @@ export const CashAccountManager: React.FC<CashAccountManagerProps> = ({ userId, 
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   label="Institution"
@@ -493,7 +494,7 @@ export const CashAccountManager: React.FC<CashAccountManagerProps> = ({ userId, 
                   onChange={(e) => setAccountForm(prev => ({ ...prev, institution: e.target.value }))}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   label="Current Balance"
@@ -510,7 +511,7 @@ export const CashAccountManager: React.FC<CashAccountManagerProps> = ({ userId, 
                   required
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   label="Interest Rate (APR)"
@@ -527,7 +528,7 @@ export const CashAccountManager: React.FC<CashAccountManagerProps> = ({ userId, 
                   }}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <FormControl>
                   <Select
                     value={accountForm.isEmergencyFund ? 'yes' : 'no'}

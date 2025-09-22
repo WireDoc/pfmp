@@ -352,7 +352,7 @@ export const VADisabilityTracker: React.FC<VADisabilityTrackerProps> = ({ userId
             Update Your VA Disability Information:
           </Typography>
           <Grid container spacing={2} alignItems="end">
-            <Grid item xs={12} sm={3}>
+            <Grid size={{ xs: 12, sm: 3 }}>
               <FormControl fullWidth>
                 <InputLabel>Disability Rating</InputLabel>
                 <Select
@@ -377,7 +377,7 @@ export const VADisabilityTracker: React.FC<VADisabilityTrackerProps> = ({ userId
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={3}>
+            <Grid size={{ xs: 12, sm: 3 }}>
               <TextField
                 fullWidth
                 label="Monthly Amount"
@@ -393,14 +393,14 @@ export const VADisabilityTracker: React.FC<VADisabilityTrackerProps> = ({ userId
                 }}
               />
             </Grid>
-            <Grid item xs={12} sm={3}>
+            <Grid size={{ xs: 12, sm: 3 }}>
               {userUpdateForm.vaDisabilityPercentage && (
                 <Typography variant="body2" color="text.secondary">
                   Expected: ${getDisabilityRateForPercentage(parseInt(userUpdateForm.vaDisabilityPercentage))}
                 </Typography>
               )}
             </Grid>
-            <Grid item xs={12} sm={3}>
+            <Grid size={{ xs: 12, sm: 3 }}>
               <Button
                 fullWidth
                 variant="outlined"
@@ -421,37 +421,37 @@ export const VADisabilityTracker: React.FC<VADisabilityTrackerProps> = ({ userId
               VA Disability Summary:
             </Typography>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={3}>
+              <Grid size={{ xs: 12, sm: 3 }}>
                 <Box textAlign="center" p={2} bgcolor="primary.50" borderRadius={1}>
                   <Typography variant="h4" color="primary">
-                    ${vaData.totalMonthlyAmount.toLocaleString()}
+                    ${vaData?.totalMonthlyAmount?.toLocaleString() || '0'}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Monthly Amount
                   </Typography>
                 </Box>
               </Grid>
-              <Grid item xs={12} sm={3}>
+              <Grid size={{ xs: 12, sm: 3 }}>
                 <Box textAlign="center" p={2} bgcolor="success.50" borderRadius={1}>
                   <Typography variant="h4" color="success.main">
-                    ${vaData.estimatedAnnualAmount.toLocaleString()}
+                    ${vaData?.estimatedAnnualAmount?.toLocaleString() || '0'}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Annual Amount
                   </Typography>
                 </Box>
               </Grid>
-              <Grid item xs={12} sm={3}>
+              <Grid size={{ xs: 12, sm: 3 }}>
                 <Box textAlign="center" p={2} bgcolor="info.50" borderRadius={1}>
                   <Typography variant="h4" color="info.main">
-                    {vaData.combinedRating}%
+                    {vaData?.combinedRating || '0'}%
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Combined Rating
                   </Typography>
                 </Box>
               </Grid>
-              <Grid item xs={12} sm={3}>
+              <Grid size={{ xs: 12, sm: 3 }}>
                 <Box textAlign="center" p={2} bgcolor="warning.50" borderRadius={1}>
                   <Typography variant="h6" color="warning.main">
                     {vaData.nextPaymentDate 
@@ -549,7 +549,7 @@ export const VADisabilityTracker: React.FC<VADisabilityTrackerProps> = ({ userId
           </Typography>
           <Grid container spacing={1}>
             {Object.entries(VA_DISABILITY_RATES).map(([rating, amount]) => (
-              <Grid item xs={6} sm={3} key={rating}>
+              <Grid size={{ xs: 6, sm: 3 }} key={rating}>
                 <Box 
                   p={1} 
                   border={1} 
@@ -585,7 +585,7 @@ export const VADisabilityTracker: React.FC<VADisabilityTrackerProps> = ({ userId
           </DialogTitle>
           <DialogContent>
             <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   label="Income Source Name"
@@ -595,7 +595,7 @@ export const VADisabilityTracker: React.FC<VADisabilityTrackerProps> = ({ userId
                   required
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextField
                   fullWidth
                   label="Amount"
@@ -612,7 +612,7 @@ export const VADisabilityTracker: React.FC<VADisabilityTrackerProps> = ({ userId
                   required
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel>Frequency</InputLabel>
                   <Select
@@ -628,7 +628,7 @@ export const VADisabilityTracker: React.FC<VADisabilityTrackerProps> = ({ userId
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   label="Description"
@@ -639,7 +639,7 @@ export const VADisabilityTracker: React.FC<VADisabilityTrackerProps> = ({ userId
                   placeholder="Additional details about this income source"
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <FormControl fullWidth>
                   <InputLabel>Status</InputLabel>
                   <Select
