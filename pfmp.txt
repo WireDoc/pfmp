@@ -55,9 +55,10 @@ Personal comprehensive wealth management system designed for an individual inves
 - **Backup**: Synology NAS for local backups during development
 
 ### AI & Memory Architecture
-- **Primary AI**: OpenAI GPT-4 via Azure OpenAI Service (daily summaries, data processing, Azure integration)
-- **Secondary AI**: Anthropic Claude 3.5 Sonnet (complex analysis, risk assessment, validation)
+- **Primary AI**: OpenAI GPT-5 via Azure OpenAI Service (daily summaries, data processing, Azure integration)
+- **Secondary AI**: Anthropic Claude 4 Sonnet (complex analysis, risk assessment, validation)
 - **AI Strategy**: Hybrid approach leveraging each model's strengths for optimal financial advice
+- **Upgrade Rationale**: Latest models provide superior financial reasoning, market analysis, and risk assessment capabilities
 - **Memory System**: Vector database for conversation history and preferences
 - **Context Loading**: Automatic injection of portfolio state, market conditions, and user preferences
 - **Persona**: Persistent financial advisor personality with memory of past conversations
