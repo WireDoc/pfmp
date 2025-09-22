@@ -4,7 +4,7 @@ An AI-powered financial advisor platform that provides daily market analysis, in
 
 ## 🚀 Features
 
-- **AI-Powered Analysis**: Hybrid AI approach using OpenAI GPT-4 and Anthropic Claude 3.5 Sonnet
+- **AI-Powered Analysis**: Hybrid AI approach using OpenAI GPT-5 and Anthropic Claude 4 Sonnet
 - **Portfolio Management**: Track investments, analyze performance, and get personalized recommendations
 - **Market Intelligence**: Real-time market data integration with technical analysis
 - **Risk Management**: Advanced risk assessment and portfolio optimization
@@ -18,7 +18,7 @@ An AI-powered financial advisor platform that provides daily market analysis, in
 - **Frontend**: React 18 + TypeScript, Vite, Material-UI
 - **Backend**: .NET 9 Web API, Entity Framework Core, SignalR
 - **Database**: PostgreSQL 15 with Redis caching
-- **AI Services**: Azure OpenAI Service (GPT-4) + Anthropic Claude API
+- **AI Services**: Azure OpenAI Service (GPT-5) + Anthropic Claude API
 - **Infrastructure**: Azure App Service, Static Web Apps, Key Vault
 - **Development**: Windows + Synology NAS for local development
 
