@@ -15,6 +15,17 @@ namespace PFMP_API
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+            // Add CORS
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowFrontend", policy =>
+                {
+                    policy.WithOrigins("http://localhost:3000", "http://localhost:3001", "http://localhost:5173")
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                });
+            });
+
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
@@ -26,6 +37,9 @@ namespace PFMP_API
             {
                 app.MapOpenApi();
             }
+
+            // Use CORS
+            app.UseCors("AllowFrontend");
 
             app.UseHttpsRedirection();
 

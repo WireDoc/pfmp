@@ -12,7 +12,8 @@ import {
   Divider,
   CircularProgress,
 } from '@mui/material';
-import { Account, TSPAllocation, accountService } from '../../services/api';
+import type { Account, TSPAllocation } from '../../services/api';
+import { accountService } from '../../services/api';
 
 interface TSPAllocationFormProps {
   userId: number;
@@ -297,7 +298,7 @@ export const TSPAllocationForm: React.FC<TSPAllocationFormProps> = ({ userId, on
             Quick Allocation Presets:
           </Typography>
           <Grid container spacing={1} mb={2}>
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                 Individual Fund Strategies:
               </Typography>
@@ -333,7 +334,7 @@ export const TSPAllocationForm: React.FC<TSPAllocationFormProps> = ({ userId, on
             </Grid>
           </Grid>
           <Grid container spacing={1} mb={1}>
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                 Lifecycle Fund Strategies:
               </Typography>
@@ -392,7 +393,7 @@ export const TSPAllocationForm: React.FC<TSPAllocationFormProps> = ({ userId, on
           </Typography>
           <Grid container spacing={2}>
             {TSP_FUNDS.filter(fund => fund.category === 'individual').map(({ key, label, description }) => (
-              <Grid item xs={12} sm={6} key={key}>
+              <Grid size={{ xs: 12, sm: 6 }} key={key}>
                 <TextField
                   fullWidth
                   label={label}
@@ -423,7 +424,7 @@ export const TSPAllocationForm: React.FC<TSPAllocationFormProps> = ({ userId, on
           </Typography>
           <Grid container spacing={2}>
             {TSP_FUNDS.filter(fund => fund.category === 'lifecycle').map(({ key, label, description }) => (
-              <Grid item xs={12} sm={6} md={4} key={key}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={key}>
                 <TextField
                   fullWidth
                   label={label}

@@ -28,6 +28,9 @@ namespace PFMP_API
         // Notifications
         public DbSet<Alert> Alerts { get; set; }
 
+        // Task Management
+        public DbSet<UserTask> Tasks { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -164,6 +167,28 @@ namespace PFMP_API
                 
                 entity.HasIndex(e => e.CreatedAt);
                 entity.HasIndex(e => new { e.UserId, e.IsRead });
+            });
+
+            // Task Configuration
+            modelBuilder.Entity<UserTask>(entity =>
+            {
+                entity.HasKey(e => e.TaskId);
+                entity.HasOne(e => e.User)
+                    .WithMany(u => u.Tasks)
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                
+                entity.HasOne(e => e.SourceAlert)
+                    .WithMany()
+                    .HasForeignKey(e => e.SourceAlertId)
+                    .OnDelete(DeleteBehavior.SetNull);
+                
+                entity.HasIndex(e => e.CreatedDate);
+                entity.HasIndex(e => new { e.UserId, e.Status });
+                entity.HasIndex(e => e.DueDate);
+                
+                entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.Description).IsRequired();
             });
 
             // Configure decimal precision globally

@@ -1,4 +1,6 @@
 import axios from 'axios';
+import type { Task, CreateTaskRequest, UpdateTaskRequest, CompleteTaskRequest } from '../types/Task';
+import { TaskStatus } from '../types/Task';
 
 // Use environment variable or fallback to localhost for development
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api';
@@ -69,31 +71,35 @@ export interface TSPAllocation {
   lastUpdated: string;
 }
 
-export enum AccountType {
-  Brokerage = 'Brokerage',
-  RetirementAccount401k = 'RetirementAccount401k',
-  RetirementAccountIRA = 'RetirementAccountIRA',
-  RetirementAccountRoth = 'RetirementAccountRoth',
-  TSP = 'TSP',
-  HSA = 'HSA',
-  Checking = 'Checking',
-  Savings = 'Savings',
-  MoneyMarket = 'MoneyMarket',
-  CertificateOfDeposit = 'CertificateOfDeposit',
-  CryptoCustodial = 'CryptoCustodial',
-  CryptoNonCustodial = 'CryptoNonCustodial',
-}
+export const AccountType = {
+  Brokerage: 'Brokerage',
+  RetirementAccount401k: 'RetirementAccount401k',
+  RetirementAccountIRA: 'RetirementAccountIRA',
+  RetirementAccountRoth: 'RetirementAccountRoth',
+  TSP: 'TSP',
+  HSA: 'HSA',
+  Checking: 'Checking',
+  Savings: 'Savings',
+  MoneyMarket: 'MoneyMarket',
+  CertificateOfDeposit: 'CertificateOfDeposit',
+  CryptoCustodial: 'CryptoCustodial',
+  CryptoNonCustodial: 'CryptoNonCustodial',
+} as const;
 
-export enum AccountCategory {
-  Taxable = 'Taxable',
-  TaxDeferred = 'TaxDeferred',
-  TaxFree = 'TaxFree',
-  TaxAdvantaged = 'TaxAdvantaged',
-  Cash = 'Cash',
-  Cryptocurrency = 'Cryptocurrency',
-  RealEstate = 'RealEstate',
-  Alternative = 'Alternative',
-}
+export type AccountType = typeof AccountType[keyof typeof AccountType];
+
+export const AccountCategory = {
+  Taxable: 'Taxable',
+  TaxDeferred: 'TaxDeferred',
+  TaxFree: 'TaxFree',
+  TaxAdvantaged: 'TaxAdvantaged',
+  Cash: 'Cash',
+  Cryptocurrency: 'Cryptocurrency',
+  RealEstate: 'RealEstate',
+  Alternative: 'Alternative',
+} as const;
+
+export type AccountCategory = typeof AccountCategory[keyof typeof AccountCategory];
 
 // Goal types
 export interface Goal {
@@ -114,37 +120,43 @@ export interface Goal {
   updatedAt: string;
 }
 
-export enum GoalType {
-  EmergencyFund = 'EmergencyFund',
-  Retirement = 'Retirement',
-  Education = 'Education',
-  HouseDownPayment = 'HouseDownPayment',
-  VacationTravel = 'VacationTravel',
-  DebtPayoff = 'DebtPayoff',
-  CarPurchase = 'CarPurchase',
-  HomeImprovement = 'HomeImprovement',
-  Investment = 'Investment',
-  Business = 'Business',
-  Custom = 'Custom',
-}
+export const GoalType = {
+  EmergencyFund: 'EmergencyFund',
+  Retirement: 'Retirement',
+  Education: 'Education',
+  HouseDownPayment: 'HouseDownPayment',
+  VacationTravel: 'VacationTravel',
+  DebtPayoff: 'DebtPayoff',
+  CarPurchase: 'CarPurchase',
+  HomeImprovement: 'HomeImprovement',
+  Investment: 'Investment',
+  Business: 'Business',
+  Custom: 'Custom',
+} as const;
 
-export enum GoalCategory {
-  ShortTerm = 'ShortTerm',
-  MediumTerm = 'MediumTerm',
-  LongTerm = 'LongTerm',
-  Ongoing = 'Ongoing',
-}
+export type GoalType = typeof GoalType[keyof typeof GoalType];
 
-export enum GoalStatus {
-  Planning = 'Planning',
-  Active = 'Active',
-  OnTrack = 'OnTrack',
-  BehindTarget = 'BehindTarget',
-  AheadOfTarget = 'AheadOfTarget',
-  Paused = 'Paused',
-  Completed = 'Completed',
-  Cancelled = 'Cancelled',
-}
+export const GoalCategory = {
+  ShortTerm: 'ShortTerm',
+  MediumTerm: 'MediumTerm',
+  LongTerm: 'LongTerm',
+  Ongoing: 'Ongoing',
+} as const;
+
+export type GoalCategory = typeof GoalCategory[keyof typeof GoalCategory];
+
+export const GoalStatus = {
+  Planning: 'Planning',
+  Active: 'Active',
+  OnTrack: 'OnTrack',
+  BehindTarget: 'BehindTarget',
+  AheadOfTarget: 'AheadOfTarget',
+  Paused: 'Paused',
+  Completed: 'Completed',
+  Cancelled: 'Cancelled',
+} as const;
+
+export type GoalStatus = typeof GoalStatus[keyof typeof GoalStatus];
 
 // API Services
 export const userService = {
@@ -190,6 +202,20 @@ export const incomeSourceService = {
   create: (incomeSource: any) => apiClient.post('/IncomeSources', incomeSource),
   update: (id: number, incomeSource: any) => apiClient.put(`/IncomeSources/${id}`, incomeSource),
   delete: (id: number) => apiClient.delete(`/IncomeSources/${id}`),
+};
+
+export const taskService = {
+  getByUser: (userId: number, status?: TaskStatus) => {
+    const params = status ? `?status=${status}` : '';
+    return apiClient.get<Task[]>(`/Tasks/user/${userId}${params}`);
+  },
+  getById: (id: number) => apiClient.get<Task>(`/Tasks/${id}`),
+  create: (task: CreateTaskRequest) => apiClient.post<Task>('/Tasks', task),
+  update: (id: number, task: UpdateTaskRequest) => apiClient.put<Task>(`/Tasks/${id}`, task),
+  markAsCompleted: (id: number, request: CompleteTaskRequest) => 
+    apiClient.post<Task>(`/Tasks/${id}/complete`, request),
+  dismiss: (id: number) => apiClient.post<Task>(`/Tasks/${id}/dismiss`),
+  delete: (id: number) => apiClient.delete(`/Tasks/${id}`),
 };
 
 export default apiClient;

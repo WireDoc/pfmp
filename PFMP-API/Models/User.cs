@@ -75,5 +75,6 @@ namespace PFMP_API.Models
         public virtual ICollection<Insurance> InsurancePolicies { get; set; } = new List<Insurance>();
         public virtual ICollection<RealEstate> RealEstateProperties { get; set; } = new List<RealEstate>();
         public virtual ICollection<Alert> Alerts { get; set; } = new List<Alert>();
+        public virtual ICollection<UserTask> Tasks { get; set; } = new List<UserTask>();
     }
 }
