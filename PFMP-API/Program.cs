@@ -36,12 +36,16 @@ namespace PFMP_API
             if (app.Environment.IsDevelopment())
             {
                 app.MapOpenApi();
+                // Disable HTTPS redirection in development
+                // app.UseHttpsRedirection();
+            }
+            else
+            {
+                app.UseHttpsRedirection();
             }
 
             // Use CORS
             app.UseCors("AllowFrontend");
-
-            app.UseHttpsRedirection();
 
             app.UseAuthorization();
 

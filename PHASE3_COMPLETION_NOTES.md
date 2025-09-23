@@ -188,11 +188,43 @@ Frontend at localhost:3001 → API at localhost:5052 ✅ No CORS errors
 
 ---
 
+## 2025-09-23 - Task Management Debugging Session
+
+### Critical Issues Resolved
+1. **Task Creation Failures**: Fixed DTO validation and error handling
+2. **Task Retrieval 500 Errors**: Added `[JsonIgnore]` attributes to prevent JSON circular references
+3. **Task Dismissal Failed**: Fixed HTTP method mismatch (POST → PATCH)
+4. **Task Acceptance Failed**: Created dedicated `PATCH /api/tasks/{id}/status` endpoint
+5. **Task Completion Failed**: Implemented `CompleteTaskRequest` DTO and updated controller
+
+### Service Management Protocol Established
+⚠️ **Critical Service Restart Requirements**:
+- Controller method signature changes → **Restart Required**
+- New DTO classes or model classes → **Restart Required**
+- Entity Framework model attributes → **Restart Required**
+- API endpoint changes → **Restart Required**
+
+### Final Task Management System Status
+All operations **fully functional** and tested:
+- ✅ Create Task: `POST /api/tasks` → Status 200
+- ✅ Accept Task: `PATCH /api/tasks/{id}/status` → Status 200
+- ✅ Dismiss Task: `PATCH /api/tasks/{id}/dismiss` → Status 200
+- ✅ Complete Task: `PATCH /api/tasks/{id}/complete` → Status 200
+- ✅ Retrieve Tasks: `GET /api/tasks?userId=1` → Status 200, clean JSON
+
+### Technical Implementation Updates
+- **New Classes**: `CompleteTaskRequest` DTO in Models folder
+- **Enhanced API**: Added status update endpoint for simpler operations
+- **Fixed JSON Serialization**: Navigation properties use `[JsonIgnore]`
+- **Service Layer**: Updated frontend service methods for HTTP consistency
+
+---
+
 ## Development Environment
 - **API:** .NET 9, Entity Framework Core 9.0, PostgreSQL 15
 - **Frontend:** React 19.1.1, TypeScript 5.7, Vite 7.1.6, Material-UI v6
 - **Database:** PostgreSQL 15 with 12 tables
-- **Services:** Running on localhost:5052 (API), localhost:3001 (Frontend)
+- **Services:** Running on localhost:5052 (API), localhost:3000 (Frontend)
 
 ## Commit Summary
-This commit represents the **complete implementation of Phase 3 Task Management System** with modern library compliance, strict TypeScript configuration, and comprehensive error handling.
+This commit represents the **complete implementation and debugging of Phase 3 Task Management System** with all CRUD operations working, service restart protocol established, and comprehensive error handling.

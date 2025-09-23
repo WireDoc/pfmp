@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace PFMP_API.Models
 {
@@ -85,7 +86,9 @@ namespace PFMP_API.Models
         public decimal? ConfidenceScore { get; set; } // 0.00-1.00
 
         // Navigation Properties
+        [JsonIgnore]
         public virtual User User { get; set; } = null!;
+        [JsonIgnore]
         public virtual Alert? SourceAlert { get; set; }
     }
 }

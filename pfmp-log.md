@@ -855,5 +855,77 @@ This session completed the core API development and TSP integration, establishin
 
 ---
 
+## 2025-09-23 - Task Management System Debugging & Fixes
+
+### Accomplishments
+- ✅ Identified and resolved "failed to create task" frontend errors
+- ✅ Fixed JSON circular reference issues causing 500 errors in task retrieval
+- ✅ Resolved HTTP method mismatches between frontend and backend
+- ✅ Implemented proper task dismissal functionality (POST → PATCH fix)
+- ✅ Created dedicated task status update endpoint for simpler operations
+- ✅ Fixed task acceptance workflow with new `/tasks/{id}/status` endpoint
+- ✅ Resolved task completion issues with `CompleteTaskRequest` DTO creation
+- ✅ Established reliable terminal workflow for service debugging
+- ✅ Verified end-to-end task management system functionality
+
+### Issues Resolved
+1. **Task Creation Failures**: Frontend was sending raw objects, backend expected specific DTO structure
+   - Solution: Enhanced `CreateTaskRequest` DTO usage and validation
+
+2. **Task Retrieval 500 Errors**: EF Core navigation properties caused JSON serialization loops
+   - Solution: Added `[JsonIgnore]` attributes to `User` and `SourceAlert` properties in `UserTask.cs`
+
+3. **Task Dismissal Failed**: HTTP method mismatch (POST frontend vs PATCH backend)
+   - Solution: Updated `taskService.dismiss()` to use PATCH method in `api.ts`
+
+4. **Task Acceptance Failed**: Frontend sent partial `{ status }` object, backend expected full `UserTask`
+   - Solution: Created new `[HttpPatch("{id}/status")]` endpoint and `taskService.updateStatus()` method
+
+5. **Task Completion Failed**: Backend expected `string` parameter, frontend sent `CompleteTaskRequest` object
+   - Solution: Created `CompleteTaskRequest` class and updated controller method signature
+
+### Technical Implementation Details
+- **New API Endpoints**:
+  - `PATCH /api/tasks/{id}/status` - Simple status updates
+  - Enhanced `PATCH /api/tasks/{id}/complete` - Accepts CompleteTaskRequest object
+
+- **Enhanced DTOs**:
+  - `CompleteTaskRequest` class in `Models/CreateTaskRequest.cs`
+  - Improved `CreateTaskRequest` validation and error handling
+
+- **Frontend Service Layer Updates**:
+  - Added `taskService.updateStatus()` method
+  - Fixed HTTP method consistency (PATCH for all update operations)
+  - Enhanced error handling in `TaskDashboard.tsx`
+
+- **Database Model Improvements**:
+  - `[JsonIgnore]` attributes prevent serialization circular references
+  - Proper timestamp handling for completion/dismissal operations
+
+### Service Management Critical Note
+⚠️ **SERVICE RESTART REQUIRED**: Any changes to controller method signatures, DTO classes, or model attributes require full backend service restart to take effect. Always restart services when making these types of changes.
+
+### Testing Results
+All task management operations now working:
+- ✅ Create Task: Status 200, returns taskId
+- ✅ Accept Task: Status 200, updates to Accepted status
+- ✅ Dismiss Task: Status 200, updates to Dismissed status with timestamp
+- ✅ Complete Task: Status 200, updates to Completed with optional notes and 100% progress
+- ✅ Retrieve Tasks: Status 200, returns clean JSON without circular references
+
+### Debugging Workflow Established
+1. Use external service terminal windows (avoid VS Code terminal targeting)
+2. Monitor backend logs in real-time during frontend operations
+3. Test API endpoints directly with PowerShell before frontend testing
+4. Always restart services after model/controller changes
+5. Verify JSON responses for circular reference issues
+
+### Next Steps
+- Continue Phase 3 feature testing and validation
+- Begin Phase 4 AI integration planning
+- Consider implementing query splitting for EF Core performance warnings
+
+---
+
 <!-- Future sessions will be added below this line -->
 <!-- Format: ## YYYY-MM-DD - Session Title -->

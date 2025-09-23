@@ -206,16 +206,21 @@ export const incomeSourceService = {
 
 export const taskService = {
   getByUser: (userId: number, status?: TaskStatus) => {
-    const params = status ? `?status=${status}` : '';
-    return apiClient.get<Task[]>(`/Tasks/user/${userId}${params}`);
+    const params = new URLSearchParams();
+    params.append('userId', userId.toString());
+    if (status) {
+      params.append('status', status.toString());
+    }
+    return apiClient.get<Task[]>(`/tasks?${params.toString()}`);
   },
-  getById: (id: number) => apiClient.get<Task>(`/Tasks/${id}`),
-  create: (task: CreateTaskRequest) => apiClient.post<Task>('/Tasks', task),
-  update: (id: number, task: UpdateTaskRequest) => apiClient.put<Task>(`/Tasks/${id}`, task),
+  getById: (id: number) => apiClient.get<Task>(`/tasks/${id}`),
+  create: (task: CreateTaskRequest) => apiClient.post<Task>('/tasks', task),
+  update: (id: number, task: UpdateTaskRequest) => apiClient.put<Task>(`/tasks/${id}`, task),
+  updateStatus: (id: number, status: TaskStatus) => apiClient.patch<Task>(`/tasks/${id}/status`, status),
   markAsCompleted: (id: number, request: CompleteTaskRequest) => 
-    apiClient.post<Task>(`/Tasks/${id}/complete`, request),
-  dismiss: (id: number) => apiClient.post<Task>(`/Tasks/${id}/dismiss`),
-  delete: (id: number) => apiClient.delete(`/Tasks/${id}`),
+    apiClient.patch<Task>(`/tasks/${id}/complete`, request),
+  dismiss: (id: number) => apiClient.patch<Task>(`/tasks/${id}/dismiss`),
+  delete: (id: number) => apiClient.delete(`/tasks/${id}`),
 };
 
 export default apiClient;
