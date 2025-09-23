@@ -106,7 +106,7 @@ export const TaskDashboard: React.FC<TaskDashboardProps> = ({ userId }) => {
       } else if (status === TaskStatus.Dismissed) {
         await taskService.dismiss(taskId);
       } else {
-        await taskService.update(taskId, { status });
+        await taskService.updateStatus(taskId, status);
       }
       await loadTasks();
     } catch (err) {

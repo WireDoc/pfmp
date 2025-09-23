@@ -91,6 +91,23 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd W:\pfmp\pfmp-f
 ```
 
 #### Service Management Best Practices
+- Use isolated terminal windows to prevent targeting conflicts
+- Always terminate existing services before starting new instances
+- Monitor both frontend (port 3000) and API (port 5052) during development
+- Use the batch file for reliable service startup
+- **CRITICAL**: Restart backend service after any controller/model/DTO changes
+
+### ⚠️ Service Restart Requirements
+The following changes require a **complete backend service restart** to take effect:
+- Controller method signature changes
+- New DTO classes or model classes
+- Entity Framework model changes (adding `[JsonIgnore]`, navigation properties)
+- Program.cs configuration changes
+- New API endpoints or route changes
+
+**Always restart services using your batch file when making these types of changes!**
+
+### Development Workflow
 1. **Before rebuilding**: Always stop running services to avoid file locks
 2. **Process termination**: Either close terminal windows manually or use PowerShell to stop processes
 3. **Build verification**: Run `dotnet build` to confirm no file locks before starting services

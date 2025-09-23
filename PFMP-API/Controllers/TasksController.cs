@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
+using System.Linq;
 
 namespace PFMP_API.Controllers
 {
@@ -35,8 +36,6 @@ namespace PFMP_API.Controllers
             try
             {
                 var query = _context.Tasks
-                    .Include(t => t.User)
-                    .Include(t => t.SourceAlert)
                     .Where(t => t.UserId == userId);
 
                 if (status.HasValue)
@@ -75,8 +74,6 @@ namespace PFMP_API.Controllers
             try
             {
                 var task = await _context.Tasks
-                    .Include(t => t.User)
-                    .Include(t => t.SourceAlert)
                     .FirstOrDefaultAsync(t => t.TaskId == id);
 
                 if (task == null)
@@ -97,54 +94,76 @@ namespace PFMP_API.Controllers
         /// <summary>
         /// Creates a new task
         /// </summary>
-        /// <param name="task">Task to create</param>
+        /// <param name="request">Task creation request</param>
         /// <returns>Created task</returns>
         [HttpPost]
-        public async Task<ActionResult<UserTask>> CreateTask(UserTask task)
+        public async Task<ActionResult<UserTask>> CreateTask(CreateTaskRequest request)
         {
             try
             {
+                _logger.LogInformation("Attempting to create task for user {UserId}: {Title}", request.UserId, request.Title);
+                
                 if (!ModelState.IsValid)
                 {
+                    _logger.LogWarning("Invalid model state for task creation: {Errors}", 
+                        string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
                     return BadRequest(ModelState);
                 }
 
                 // Verify user exists
-                var userExists = await _context.Users.AnyAsync(u => u.UserId == task.UserId);
+                var userExists = await _context.Users.AnyAsync(u => u.UserId == request.UserId);
                 if (!userExists)
                 {
-                    return BadRequest($"User with ID {task.UserId} does not exist");
+                    _logger.LogWarning("User {UserId} does not exist", request.UserId);
+                    return BadRequest($"User with ID {request.UserId} does not exist");
                 }
 
                 // Verify source alert exists if provided
-                if (task.SourceAlertId.HasValue)
+                if (request.SourceAlertId.HasValue)
                 {
-                    var alertExists = await _context.Alerts.AnyAsync(a => a.AlertId == task.SourceAlertId.Value);
+                    var alertExists = await _context.Alerts.AnyAsync(a => a.AlertId == request.SourceAlertId.Value);
                     if (!alertExists)
                     {
-                        return BadRequest($"Alert with ID {task.SourceAlertId.Value} does not exist");
+                        _logger.LogWarning("Alert {AlertId} does not exist", request.SourceAlertId.Value);
+                        return BadRequest($"Alert with ID {request.SourceAlertId.Value} does not exist");
                     }
                 }
 
-                task.CreatedDate = DateTime.UtcNow;
+                // Create UserTask from request
+                var task = new UserTask
+                {
+                    UserId = request.UserId,
+                    Type = request.Type,
+                    Title = request.Title,
+                    Description = request.Description,
+                    Priority = request.Priority,
+                    Status = Models.TaskStatus.Pending,
+                    CreatedDate = DateTime.UtcNow,
+                    DueDate = request.DueDate,
+                    SourceAlertId = request.SourceAlertId,
+                    EstimatedImpact = request.EstimatedImpact,
+                    ImpactDescription = request.ImpactDescription,
+                    ProgressPercentage = 0,
+                    ConfidenceScore = request.ConfidenceScore
+                };
+
+                _logger.LogDebug("Adding task to context: UserId={UserId}, Type={Type}, Priority={Priority}", 
+                    task.UserId, task.Type, task.Priority);
+                
                 _context.Tasks.Add(task);
                 await _context.SaveChangesAsync();
 
-                // Return the task with navigation properties loaded
-                var createdTask = await _context.Tasks
-                    .Include(t => t.User)
-                    .Include(t => t.SourceAlert)
-                    .FirstOrDefaultAsync(t => t.TaskId == task.TaskId);
-
-                _logger.LogInformation("Created new task {TaskId} for user {UserId}: {Title}", 
+                _logger.LogInformation("Successfully created task {TaskId} for user {UserId}: {Title}", 
                     task.TaskId, task.UserId, task.Title);
 
-                return CreatedAtAction(nameof(GetTask), new { id = task.TaskId }, createdTask);
+                // Return a simple response to avoid circular reference issues
+                return Ok(new { taskId = task.TaskId, message = "Task created successfully" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating task for user {UserId}", task.UserId);
-                return StatusCode(500, "An error occurred while creating the task");
+                _logger.LogError(ex, "Error creating task for user {UserId}. Task details: Title={TaskTitle}, Type={TaskType}, Priority={TaskPriority}", 
+                    request?.UserId, request?.Title, request?.Type, request?.Priority);
+                return StatusCode(500, $"An error occurred while creating the task: {ex.Message}");
             }
         }
 
@@ -211,10 +230,10 @@ namespace PFMP_API.Controllers
         /// Marks a task as completed
         /// </summary>
         /// <param name="id">Task ID</param>
-        /// <param name="completionNotes">Optional completion notes</param>
+        /// <param name="request">Completion request with optional notes</param>
         /// <returns>Updated task</returns>
         [HttpPatch("{id}/complete")]
-        public async Task<ActionResult<UserTask>> MarkAsCompleted(int id, [FromBody] string? completionNotes = null)
+        public async Task<ActionResult<UserTask>> MarkAsCompleted(int id, [FromBody] CompleteTaskRequest? request = null)
         {
             try
             {
@@ -227,9 +246,9 @@ namespace PFMP_API.Controllers
                 task.Status = Models.TaskStatus.Completed;
                 task.CompletedDate = DateTime.UtcNow;
                 task.ProgressPercentage = 100;
-                if (!string.IsNullOrEmpty(completionNotes))
+                if (!string.IsNullOrEmpty(request?.CompletionNotes))
                 {
-                    task.CompletionNotes = completionNotes;
+                    task.CompletionNotes = request.CompletionNotes;
                 }
 
                 await _context.SaveChangesAsync();
@@ -335,8 +354,6 @@ namespace PFMP_API.Controllers
 
                 // Return the updated task with navigation properties
                 var updatedTask = await _context.Tasks
-                    .Include(t => t.User)
-                    .Include(t => t.SourceAlert)
                     .FirstOrDefaultAsync(t => t.TaskId == id);
 
                 _logger.LogInformation("Updated progress for task {TaskId} to {Progress}%", id, progressPercentage);
@@ -346,6 +363,56 @@ namespace PFMP_API.Controllers
             {
                 _logger.LogError(ex, "Error updating progress for task {TaskId}", id);
                 return StatusCode(500, "An error occurred while updating task progress");
+            }
+        }
+
+        /// <summary>
+        /// Updates task status only
+        /// </summary>
+        /// <param name="id">Task ID</param>
+        /// <param name="request">Status update request</param>
+        /// <returns>Updated task</returns>
+        [HttpPatch("{id}/status")]
+        public async Task<ActionResult<UserTask>> UpdateStatus(int id, [FromBody] Models.TaskStatus status)
+        {
+            try
+            {
+                var task = await _context.Tasks.FindAsync(id);
+                if (task == null)
+                {
+                    return NotFound($"Task with ID {id} not found");
+                }
+
+                task.Status = status;
+
+                // Update relevant timestamps based on status
+                if (status == Models.TaskStatus.InProgress && !task.Status.Equals(Models.TaskStatus.InProgress))
+                {
+                    // Task started
+                }
+                else if (status == Models.TaskStatus.Completed)
+                {
+                    task.CompletedDate = DateTime.UtcNow;
+                    task.ProgressPercentage = 100;
+                }
+                else if (status == Models.TaskStatus.Dismissed)
+                {
+                    task.DismissedDate = DateTime.UtcNow;
+                }
+
+                await _context.SaveChangesAsync();
+
+                // Return the updated task without navigation properties to avoid circular reference
+                var updatedTask = await _context.Tasks
+                    .FirstOrDefaultAsync(t => t.TaskId == id);
+
+                _logger.LogInformation("Updated status for task {TaskId} to {Status}", id, status);
+                return Ok(updatedTask);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating status for task {TaskId}", id);
+                return StatusCode(500, "An error occurred while updating task status");
             }
         }
 
