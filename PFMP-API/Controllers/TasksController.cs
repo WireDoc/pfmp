@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
+using PFMP_API.Services;
 using System.Linq;
 
 namespace PFMP_API.Controllers
@@ -11,11 +12,13 @@ namespace PFMP_API.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<TasksController> _logger;
+        private readonly IAIService _aiService;
 
-        public TasksController(ApplicationDbContext context, ILogger<TasksController> logger)
+        public TasksController(ApplicationDbContext context, ILogger<TasksController> logger, IAIService aiService)
         {
             _context = context;
             _logger = logger;
+            _aiService = aiService;
         }
 
         /// <summary>
@@ -457,6 +460,123 @@ namespace PFMP_API.Controllers
             {
                 _logger.LogError(ex, "Error retrieving task analytics for user {UserId}", userId);
                 return StatusCode(500, "An error occurred while retrieving task analytics");
+            }
+        }
+
+        // AI-Powered Task Management Endpoints
+
+        /// <summary>
+        /// Generates AI-powered task recommendations for a user
+        /// </summary>
+        /// <param name="userId">User ID</param>
+        /// <returns>List of recommended tasks</returns>
+        [HttpGet("ai/recommendations")]
+        public async Task<ActionResult<IEnumerable<CreateTaskRequest>>> GetTaskRecommendations([FromQuery] int userId)
+        {
+            try
+            {
+                _logger.LogInformation("Generating AI task recommendations for user {UserId}", userId);
+                var recommendations = await _aiService.GenerateTaskRecommendationsAsync(userId);
+                return Ok(recommendations);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating task recommendations for user {UserId}", userId);
+                return StatusCode(500, "An error occurred while generating task recommendations");
+            }
+        }
+
+        /// <summary>
+        /// Gets AI-recommended priority for a task based on title and description
+        /// </summary>
+        /// <param name="request">Task information for analysis</param>
+        /// <returns>Recommended priority</returns>
+        [HttpPost("ai/priority")]
+        public async Task<ActionResult<Models.TaskPriority>> GetRecommendedTaskPriority([FromBody] CreateTaskRequest request)
+        {
+            try
+            {
+                if (request == null)
+                {
+                    return BadRequest("Task request is required");
+                }
+
+                _logger.LogInformation("Getting AI priority recommendation for task: {Title}", request.Title);
+                var priority = await _aiService.RecommendTaskPriorityAsync(request);
+                return Ok(priority);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting priority recommendation for task: {Title}", request?.Title);
+                return StatusCode(500, "An error occurred while getting priority recommendation");
+            }
+        }
+
+        /// <summary>
+        /// Gets AI-suggested category for a task based on title and description
+        /// </summary>
+        /// <param name="request">Task information for categorization</param>
+        /// <returns>Recommended task type/category</returns>
+        [HttpPost("ai/category")]
+        public async Task<ActionResult<Models.TaskType>> GetRecommendedTaskCategory([FromBody] CreateTaskRequest request)
+        {
+            try
+            {
+                if (request == null)
+                {
+                    return BadRequest("Task request is required");
+                }
+
+                _logger.LogInformation("Getting AI category recommendation for task: {Title}", request.Title);
+                var category = await _aiService.CategorizeTaskAsync(request.Title, request.Description ?? "");
+                return Ok(category);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting category recommendation for task: {Title}", request?.Title);
+                return StatusCode(500, "An error occurred while getting category recommendation");
+            }
+        }
+
+        /// <summary>
+        /// Gets AI-powered portfolio analysis for a user
+        /// </summary>
+        /// <param name="userId">User ID</param>
+        /// <returns>Portfolio analysis text</returns>
+        [HttpGet("ai/portfolio-analysis")]
+        public async Task<ActionResult<string>> GetPortfolioAnalysis([FromQuery] int userId)
+        {
+            try
+            {
+                _logger.LogInformation("Generating AI portfolio analysis for user {UserId}", userId);
+                var analysis = await _aiService.AnalyzePortfolioAsync(userId);
+                return Ok(new { analysis });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating portfolio analysis for user {UserId}", userId);
+                return StatusCode(500, "An error occurred while generating portfolio analysis");
+            }
+        }
+
+        /// <summary>
+        /// Gets AI-generated market alerts for a user
+        /// </summary>
+        /// <param name="userId">User ID</param>
+        /// <returns>List of market alerts</returns>
+        [HttpGet("ai/market-alerts")]
+        public async Task<ActionResult<IEnumerable<Alert>>> GetMarketAlerts([FromQuery] int userId)
+        {
+            try
+            {
+                _logger.LogInformation("Generating AI market alerts for user {UserId}", userId);
+                var alerts = await _aiService.GenerateMarketAlertsAsync(userId);
+                return Ok(alerts);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating market alerts for user {UserId}", userId);
+                return StatusCode(500, "An error occurred while generating market alerts");
             }
         }
     }
