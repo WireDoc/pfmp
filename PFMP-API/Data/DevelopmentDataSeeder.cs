@@ -110,6 +110,250 @@ namespace PFMP_API
 
             context.Users.AddRange(testUsers);
             await context.SaveChangesAsync();
+
+            // Seed sample accounts for realistic AI testing
+            await SeedSampleAccounts(context);
+            
+            // Seed sample goals
+            await SeedSampleGoals(context);
+        }
+
+        private static async Task SeedSampleAccounts(ApplicationDbContext context)
+        {
+            // Only seed if no accounts exist
+            if (await context.Accounts.AnyAsync())
+                return;
+
+            var sampleAccounts = new List<Account>
+            {
+                // Sarah Johnson (ID: 1) - Young employee accounts
+                new Account
+                {
+                    UserId = 1,
+                    AccountName = "Sarah's TSP",
+                    AccountType = AccountType.TSP,
+                    Category = AccountCategory.TaxDeferred,
+                    Institution = "Thrift Savings Plan",
+                    AccountNumber = "1234",
+                    CurrentBalance = 25000m,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    LastBalanceUpdate = DateTime.UtcNow
+                },
+                new Account
+                {
+                    UserId = 1,
+                    AccountName = "Roth IRA",
+                    AccountType = AccountType.RetirementAccountRoth,
+                    Category = AccountCategory.TaxFree,
+                    Institution = "Vanguard",
+                    AccountNumber = "5678",
+                    CurrentBalance = 15000m,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    LastBalanceUpdate = DateTime.UtcNow
+                },
+                new Account
+                {
+                    UserId = 1,
+                    AccountName = "Emergency Savings",
+                    AccountType = AccountType.Savings,
+                    Category = AccountCategory.Cash,
+                    Institution = "USAA",
+                    AccountNumber = "9012",
+                    CurrentBalance = 5000m,
+                    IsEmergencyFund = true,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    LastBalanceUpdate = DateTime.UtcNow
+                },
+
+                // Michael Smith (ID: 2) - Mid-career employee accounts
+                new Account
+                {
+                    UserId = 2,
+                    AccountName = "Michael's TSP",
+                    AccountType = AccountType.TSP,
+                    Category = AccountCategory.TaxDeferred,
+                    Institution = "Thrift Savings Plan",
+                    AccountNumber = "2468",
+                    CurrentBalance = 185000m,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    LastBalanceUpdate = DateTime.UtcNow
+                },
+                new Account
+                {
+                    UserId = 2,
+                    AccountName = "Traditional IRA",
+                    AccountType = AccountType.RetirementAccountIRA,
+                    Category = AccountCategory.TaxDeferred,
+                    Institution = "Fidelity",
+                    AccountNumber = "1357",
+                    CurrentBalance = 45000m,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    LastBalanceUpdate = DateTime.UtcNow
+                },
+                new Account
+                {
+                    UserId = 2,
+                    AccountName = "Emergency Fund",
+                    AccountType = AccountType.Savings,
+                    Category = AccountCategory.Cash,
+                    Institution = "Navy Federal",
+                    AccountNumber = "2468",
+                    CurrentBalance = 30000m,
+                    IsEmergencyFund = true,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    LastBalanceUpdate = DateTime.UtcNow
+                },
+
+                // Jessica Rodriguez (ID: 3) - Military member accounts
+                new Account
+                {
+                    UserId = 3,
+                    AccountName = "Military TSP",
+                    AccountType = AccountType.TSP,
+                    Category = AccountCategory.TaxDeferred,
+                    Institution = "Thrift Savings Plan",
+                    AccountNumber = "3691",
+                    CurrentBalance = 85000m,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    LastBalanceUpdate = DateTime.UtcNow
+                },
+                new Account
+                {
+                    UserId = 3,
+                    AccountName = "Roth TSP",
+                    AccountType = AccountType.TSP,
+                    Category = AccountCategory.TaxFree,
+                    Institution = "Thrift Savings Plan",
+                    AccountNumber = "3692",
+                    CurrentBalance = 25000m,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    LastBalanceUpdate = DateTime.UtcNow
+                }
+            };
+
+            context.Accounts.AddRange(sampleAccounts);
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task SeedSampleGoals(ApplicationDbContext context)
+        {
+            // Only seed if no goals exist
+            if (await context.Goals.AnyAsync())
+                return;
+
+            var sampleGoals = new List<Goal>
+            {
+                // Sarah's goals
+                new Goal
+                {
+                    UserId = 1,
+                    Name = "Emergency Fund (6 months)",
+                    Description = "Build emergency fund to cover 6 months of expenses",
+                    Type = GoalType.EmergencyFund,
+                    Category = GoalCategory.ShortTerm,
+                    TargetAmount = 15000m,
+                    CurrentAmount = 5000m,
+                    TargetDate = DateTime.UtcNow.AddMonths(18),
+                    Priority = 5, // High priority
+                    Status = GoalStatus.Active,
+                    MonthsOfExpenses = 6,
+                    MonthlyExpenses = 2500m,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                },
+                new Goal
+                {
+                    UserId = 1,
+                    Name = "House Down Payment",
+                    Description = "Save for 20% down payment on first home",
+                    Type = GoalType.HouseDownPayment,
+                    Category = GoalCategory.MediumTerm,
+                    TargetAmount = 50000m,
+                    CurrentAmount = 8000m,
+                    TargetDate = DateTime.UtcNow.AddYears(4),
+                    Priority = 3, // Medium priority
+                    Status = GoalStatus.Active,
+                    Strategy = GoalStrategy.Growth,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                },
+
+                // Michael's goals
+                new Goal
+                {
+                    UserId = 2,
+                    Name = "Retirement at 60",
+                    Description = "Achieve financial independence by age 60",
+                    Type = GoalType.Retirement,
+                    Category = GoalCategory.LongTerm,
+                    TargetAmount = 2200000m,
+                    CurrentAmount = 230000m,
+                    TargetDate = DateTime.UtcNow.AddYears(17),
+                    Priority = 5, // High priority
+                    Status = GoalStatus.OnTrack,
+                    Strategy = GoalStrategy.Balanced,
+                    RetirementAgeTarget = 60,
+                    TargetMonthlyIncome = 7500m,
+                    ExpectedAnnualReturn = 0.07m,
+                    WithdrawalRate = 0.04m,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                },
+                new Goal
+                {
+                    UserId = 2,
+                    Name = "Daughter's College Fund",
+                    Description = "Save for daughter's college education",
+                    Type = GoalType.Education,
+                    Category = GoalCategory.MediumTerm,
+                    TargetAmount = 100000m,
+                    CurrentAmount = 25000m,
+                    TargetDate = DateTime.UtcNow.AddYears(10),
+                    Priority = 4, // High priority
+                    Status = GoalStatus.Active,
+                    Strategy = GoalStrategy.Growth,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                },
+
+                // Jessica's goals
+                new Goal
+                {
+                    UserId = 3,
+                    Name = "Military Retirement Bridge",
+                    Description = "Bridge fund from military retirement to full retirement",
+                    Type = GoalType.Retirement,
+                    Category = GoalCategory.LongTerm,
+                    TargetAmount = 500000m,
+                    CurrentAmount = 110000m,
+                    TargetDate = DateTime.UtcNow.AddYears(12),
+                    Priority = 5, // High priority
+                    Status = GoalStatus.OnTrack,
+                    Strategy = GoalStrategy.Balanced,
+                    RetirementAgeTarget = 40, // Military retirement at 20 years
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                }
+            };
+
+            context.Goals.AddRange(sampleGoals);
+            await context.SaveChangesAsync();
         }
     }
 }
