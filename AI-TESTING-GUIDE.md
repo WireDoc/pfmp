@@ -34,6 +34,8 @@ cd W:\pfmp
 .\start-dev-servers.bat
 ```
 
+**🗄️ DATABASE TOOLS AVAILABLE**: PostgreSQL client tools (psql) and pgAdmin 4 are now installed. See `DATABASE-TOOLS-SETUP.md` for post-restart setup and validation queries. Use these for rapid data validation and AI logic debugging.
+
 #### Test Users Available
 - **Sarah Johnson (ID: 1)**: Age 22, GS-07, high risk tolerance
 - **Michael Smith (ID: 2)**: Age 43, GS-13, 15yr service, VA disability  
