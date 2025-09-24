@@ -1,11 +1,12 @@
 
 using Microsoft.EntityFrameworkCore;
+using PFMP_API.Services;
 
 namespace PFMP_API
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +15,9 @@ namespace PFMP_API
             // Add Entity Framework
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+            // Add AI Service
+            builder.Services.AddScoped<IAIService, AIService>();
 
             // Add CORS
             builder.Services.AddCors(options =>
@@ -50,6 +54,20 @@ namespace PFMP_API
             app.UseAuthorization();
 
             app.MapControllers();
+
+            // Seed development data if enabled
+            if (app.Environment.IsDevelopment())
+            {
+                using var scope = app.Services.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+                
+                if (config.GetValue<bool>("Development:SeedTestData", false))
+                {
+                    context.Database.EnsureCreated();
+                    await DevelopmentDataSeeder.SeedDevelopmentData(context);
+                }
+            }
 
             app.Run();
         }

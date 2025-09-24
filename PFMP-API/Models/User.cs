@@ -61,6 +61,25 @@ namespace PFMP_API.Models
         public bool IsGovernmentEmployee { get; set; } = true;
         public string? GovernmentAgency { get; set; }
 
+        // Profile & Demographics (NEW FIELDS)
+        public DateTime? DateOfBirth { get; set; }
+        public string? EmploymentType { get; set; } // Federal, Military, Contractor, Private
+        public DateTime? ServiceComputationDate { get; set; } // OPM SCD for retirement eligibility
+        public string? PayGrade { get; set; } // GS-12, O-4, E-6, etc.
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? AnnualIncome { get; set; }
+        public string? RetirementSystem { get; set; } // FERS, CSRS, Military
+
+        // Setup Workflow Status
+        public bool ProfileSetupComplete { get; set; } = false;
+        public DateTime? ProfileCompletedAt { get; set; }
+        public string? SetupStepsCompleted { get; set; } // JSON array of completed steps
+        public int SetupProgressPercentage { get; set; } = 0;
+
+        // Development/Testing Features
+        public bool IsTestAccount { get; set; } = false; // Flag for development accounts
+        public bool BypassAuthentication { get; set; } = false; // Allow dev access without auth
+
         // Preferences
         public bool EnableRebalancingAlerts { get; set; } = true;
         public decimal RebalancingThreshold { get; set; } = 5.0m; // Default 5% drift
