@@ -24,9 +24,26 @@
 # Test psql is in PATH (after restart)
 psql --version
 
-# Connect to PFMP database 
-psql -h 192.168.1.108 -p 5433 -U pfmp_user -d pfmp_dev
-# Enter password when prompted
+# Connect to PFMP database (with password)
+$env:PGPASSWORD='MediaPword.1'; psql -h 192.168.1.108 -p 5433 -U pfmp_user -d pfmp_dev
+
+# Connect with NO PAGINATION (recommended for long output)
+$env:PGPASSWORD='MediaPword.1'; psql -h 192.168.1.108 -p 5433 -U pfmp_user -d pfmp_dev -P pager=off
+```
+
+### Disable Pagination (Important!)
+To avoid having to press through pages of output, always use one of these methods:
+
+**Option 1: Command Line Flag (Recommended)**
+```powershell
+# Add -P pager=off to any psql command
+$env:PGPASSWORD='MediaPword.1'; psql -h 192.168.1.108 -p 5433 -U pfmp_user -d pfmp_dev -P pager=off -c '\dt'
+```
+
+**Option 2: Set in Session**
+```sql
+-- Once connected to psql, run:
+\pset pager off
 ```
 
 ### PFMP Database Validation Queries
@@ -145,11 +162,11 @@ HAVING SUM(a."CurrentBalance") > 10000;
 
 ### Quick Data Validation After API Changes
 ```powershell
-# One-liner to check test users exist
-psql -h 192.168.1.108 -p 5433 -U pfmp_user -d pfmp_dev -c "SELECT COUNT(*) as test_users FROM \"Users\" WHERE \"IsTestAccount\" = true;"
+# One-liner to check test users exist (with no pagination)
+$env:PGPASSWORD='MediaPword.1'; psql -h 192.168.1.108 -p 5433 -U pfmp_user -d pfmp_dev -P pager=off -c "SELECT COUNT(*) as test_users FROM \"Users\" WHERE \"IsTestAccount\" = true;"
 
 # Check if accounts were seeded
-psql -h 192.168.1.108 -p 5433 -U pfmp_user -d pfmp_dev -c "SELECT COUNT(*) as accounts FROM \"Accounts\";"
+$env:PGPASSWORD='MediaPword.1'; psql -h 192.168.1.108 -p 5433 -U pfmp_user -d pfmp_dev -P pager=off -c "SELECT COUNT(*) as accounts FROM \"Accounts\";"
 
 # Verify goals exist
 psql -h 192.168.1.108 -p 5433 -U pfmp_user -d pfmp_dev -c "SELECT COUNT(*) as goals FROM \"Goals\";"
