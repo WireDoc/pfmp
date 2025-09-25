@@ -277,8 +277,49 @@ GET /api/profile/setup/progress?userId=4
 
 **Production Transition**: Set `Development:BypassAuthentication: false` in configuration to enable real authentication. Test accounts will be filtered out by `IsTestAccount = true`.
 
+## 👤 ProfileController API
+
+### Profile Management Endpoints
+```bash
+# Get complete user profile with calculated demographics
+GET /api/profile/{userId}
+
+# Update user profile information
+PUT /api/profile/{userId}
+```
+
+### Setup Wizard Endpoints
+```bash
+# Get setup progress and next steps
+GET /api/profile/setup/progress/{userId}
+
+# Complete a setup step
+POST /api/profile/setup/complete-step/{userId}
+Body: { "stepName": "employment" }
+
+# Reset setup progress (testing/support)
+POST /api/profile/setup/reset/{userId}
+```
+
+### Example Profile Response
+```json
+{
+  "userId": 1,
+  "firstName": "Sarah",
+  "lastName": "Johnson", 
+  "age": 22,
+  "employmentType": "Federal",
+  "payGrade": "GS-07",
+  "annualIncome": 42000.00,
+  "yearsOfService": "1.0",
+  "profileSetupComplete": true,
+  "setupProgressPercentage": 100,
+  "setupStepsCompleted": ["demographics", "tsp", "goals", "risk-assessment"]
+}
+```
+
 ---
 
 **Last Updated**: September 24, 2025  
-**Current Version**: v0.4.0-alpha  
-**Development Phase**: Phase 4 - AI Integration & Enhanced Profiles (✅ 95% Complete)
+**Current Version**: v0.5.0-alpha  
+**Development Phase**: Phase 4 - AI Integration & Enhanced Profiles (✅ **100% COMPLETE**)
