@@ -249,9 +249,97 @@ namespace PFMP_API.Services
         {
             var recommendations = new List<CreateTaskRequest>();
 
-            // Basic rule-based recommendations
+            // Get user demographics for enhanced recommendations
+            var user = _context.Users.Find(userId);
+            
+            // Calculate age for age-specific recommendations
+            int? age = null;
+            if (user?.DateOfBirth.HasValue == true)
+            {
+                var today = DateTime.UtcNow;
+                age = today.Year - user.DateOfBirth.Value.Year;
+                if (user.DateOfBirth.Value.Date > today.AddYears(-age.Value).Date)
+                    age--;
+            }
+
             var totalBalance = accounts.Sum(a => a.CurrentBalance);
             
+            // Age-based investment recommendations
+            if (age.HasValue && totalBalance > 5000)
+            {
+                if (age < 30)
+                {
+                    recommendations.Add(new CreateTaskRequest
+                    {
+                        UserId = userId,
+                        Type = TaskType.TSPAllocationChange,
+                        Title = "Maximize Aggressive Growth Investments",
+                        Description = $"At age {age}, prioritize high-growth investments like C Fund and S Fund in TSP. Consider 80-90% stocks for long-term wealth building.",
+                        Priority = TaskPriority.High
+                    });
+                }
+                else if (age < 45)
+                {
+                    recommendations.Add(new CreateTaskRequest
+                    {
+                        UserId = userId,
+                        Type = TaskType.TSPAllocationChange,
+                        Title = "Balanced Growth Strategy",
+                        Description = $"At age {age}, balance growth with stability. Consider 70-80% stocks with some bond allocation for risk management.",
+                        Priority = TaskPriority.Medium
+                    });
+                }
+                else
+                {
+                    recommendations.Add(new CreateTaskRequest
+                    {
+                        UserId = userId,
+                        Type = TaskType.TSPAllocationChange,
+                        Title = "Pre-Retirement Asset Allocation",
+                        Description = $"At age {age}, focus on capital preservation. Consider 50-60% stocks with increased bond allocation and income-generating investments.",
+                        Priority = TaskPriority.High
+                    });
+                }
+            }
+
+            // TSP-specific recommendations for government employees
+            if (user?.IsGovernmentEmployee == true)
+            {
+                var tspAccount = accounts.FirstOrDefault(a => a.AccountType.ToString().Contains("TSP"));
+                if (tspAccount != null && user.AnnualIncome.HasValue)
+                {
+                    var maxTSPContribution = user.AnnualIncome.Value * 0.05m; // 5% for full match
+                    var currentMonthlyTSP = tspAccount.TSPMonthlyContribution ?? 0;
+                    var currentAnnualTSP = currentMonthlyTSP * 12;
+
+                    if (currentAnnualTSP < maxTSPContribution)
+                    {
+                        recommendations.Add(new CreateTaskRequest
+                        {
+                            UserId = userId,
+                            Type = TaskType.TSPAllocationChange,
+                            Title = "Maximize TSP Employer Match",
+                            Description = $"Increase TSP contribution to at least 5% (${maxTSPContribution:N0}/year) to get full employer match. Currently contributing ${currentAnnualTSP:N0}/year.",
+                            Priority = TaskPriority.High
+                        });
+                    }
+                }
+            }
+
+            // VA Disability optimization
+            if (user?.VADisabilityPercentage > 0 && user?.VADisabilityMonthlyAmount > 0)
+            {
+                recommendations.Add(new CreateTaskRequest
+                {
+                    UserId = userId,
+                    Type = TaskType.TaxLossHarvesting,
+                    Title = "Leverage Tax-Free VA Disability Income",
+                    Description = $"Your ${user.VADisabilityMonthlyAmount:N0}/month VA disability income is tax-free. Consider higher-risk investments in taxable accounts since you have stable tax-free income.",
+                    Priority = TaskPriority.Medium
+                });
+            }
+
+            // Portfolio rebalancing (enhanced with demographics)
             if (totalBalance > 10000)
             {
                 recommendations.Add(new CreateTaskRequest
@@ -259,20 +347,26 @@ namespace PFMP_API.Services
                     UserId = userId,
                     Type = TaskType.Rebalancing,
                     Title = "Portfolio Rebalancing Review",
-                    Description = "Review and rebalance your portfolio allocation to maintain optimal risk/return profile.",
+                    Description = age.HasValue 
+                        ? $"Review and rebalance portfolio for age {age} optimal allocation. Consider your {user?.RiskTolerance ?? 5}/10 risk tolerance."
+                        : "Review and rebalance your portfolio allocation to maintain optimal risk/return profile.",
                     Priority = TaskPriority.Medium
                 });
             }
 
+            // Emergency fund (enhanced with income data)
             var emergencyFund = accounts.FirstOrDefault(a => a.IsEmergencyFund);
-            if (emergencyFund == null || emergencyFund.CurrentBalance < 5000)
+            var emergencyTarget = user?.EmergencyFundTarget ?? 5000m;
+            if (emergencyFund == null || emergencyFund.CurrentBalance < emergencyTarget)
             {
                 recommendations.Add(new CreateTaskRequest
                 {
                     UserId = userId,
                     Type = TaskType.EmergencyFundContribution,
                     Title = "Build Emergency Fund",
-                    Description = "Establish or increase emergency fund to cover 3-6 months of expenses.",
+                    Description = (user?.AnnualIncome.HasValue == true) 
+                        ? $"Build emergency fund to ${emergencyTarget:N0}. With ${user.AnnualIncome.Value:N0} annual income, aim for 3-6 months expenses."
+                        : "Establish or increase emergency fund to cover 3-6 months of expenses.",
                     Priority = TaskPriority.High
                 });
             }
@@ -283,6 +377,67 @@ namespace PFMP_API.Services
         private string BuildPortfolioAnalysisPrompt(User? user, List<Account> accounts, List<Goal>? goals)
         {
             var prompt = "Analyze this portfolio:\n\n";
+            
+            // Calculate age and years of service for use throughout method
+            int? age = null;
+            double? yearsOfService = null;
+            
+            if (user?.DateOfBirth.HasValue == true)
+            {
+                var today = DateTime.UtcNow;
+                age = today.Year - user.DateOfBirth.Value.Year;
+                if (user.DateOfBirth.Value.Date > today.AddYears(-age.Value).Date)
+                    age--;
+            }
+
+            if (user?.ServiceComputationDate.HasValue == true)
+            {
+                yearsOfService = (DateTime.UtcNow - user.ServiceComputationDate.Value).TotalDays / 365.25;
+            }
+            
+            // Add comprehensive user demographics for personalized recommendations
+            if (user != null)
+            {
+                prompt += "User Profile:\n";
+
+                if (age.HasValue) 
+                    prompt += $"- Age: {age} years old\n";
+                if (!string.IsNullOrEmpty(user.EmploymentType))
+                    prompt += $"- Employment: {user.EmploymentType}";
+                if (!string.IsNullOrEmpty(user.PayGrade))
+                    prompt += $" ({user.PayGrade})";
+                prompt += "\n";
+
+                if (user.AnnualIncome.HasValue)
+                    prompt += $"- Annual Income: ${user.AnnualIncome:N0}\n";
+                if (yearsOfService.HasValue)
+                    prompt += $"- Years of Service: {yearsOfService:F1} years\n";
+                if (!string.IsNullOrEmpty(user.RetirementSystem))
+                    prompt += $"- Retirement System: {user.RetirementSystem}\n";
+                
+                // Government benefits
+                if (user.VADisabilityPercentage.HasValue && user.VADisabilityPercentage > 0)
+                {
+                    prompt += $"- VA Disability: {user.VADisabilityPercentage}%";
+                    if (user.VADisabilityMonthlyAmount.HasValue)
+                        prompt += $" (${user.VADisabilityMonthlyAmount:N0}/month)";
+                    prompt += "\n";
+                }
+
+                // Risk profile and goals
+                prompt += $"- Risk Tolerance: {user.RiskTolerance}/10\n";
+                if (user.EmergencyFundTarget > 0)
+                    prompt += $"- Emergency Fund Target: ${user.EmergencyFundTarget:N0}\n";
+                if (user.RetirementGoalAmount.HasValue)
+                    prompt += $"- Retirement Goal: ${user.RetirementGoalAmount:N0}\n";
+                if (user.TargetRetirementDate.HasValue)
+                {
+                    var yearsToRetirement = (user.TargetRetirementDate.Value - DateTime.UtcNow).TotalDays / 365.25;
+                    prompt += $"- Target Retirement: {user.TargetRetirementDate.Value:yyyy-MM-dd} ({yearsToRetirement:F0} years away)\n";
+                }
+
+                prompt += "\n";
+            }
             
             prompt += "Accounts:\n";
             foreach (var account in accounts)
@@ -304,6 +459,30 @@ namespace PFMP_API.Services
                 {
                     prompt += $"- {goal.Name}: ${goal.CurrentAmount:N2} / ${goal.TargetAmount:N2} by {goal.TargetDate:yyyy-MM-dd}\n";
                 }
+            }
+
+            // Add demographic-specific guidance for AI
+            if (user != null)
+            {
+                prompt += "\nProvide recommendations considering:\n";
+                if (age.HasValue)
+                {
+                    if (age < 30)
+                        prompt += "- Young professional: Focus on aggressive growth, TSP maximization, and long-term wealth building\n";
+                    else if (age < 45)
+                        prompt += "- Mid-career professional: Balance growth with risk management, catch-up contributions\n";
+                    else
+                        prompt += "- Pre-retirement: Focus on capital preservation, income generation, and retirement readiness\n";
+                }
+
+                if (!string.IsNullOrEmpty(user.EmploymentType))
+                {
+                    if (user.EmploymentType.Contains("Military") || user.EmploymentType.Contains("Federal"))
+                        prompt += "- Government employee: Consider TSP benefits, FERS/CSRS implications, and federal-specific advantages\n";
+                }
+
+                if (user.VADisabilityPercentage.HasValue && user.VADisabilityPercentage > 0)
+                    prompt += "- Military veteran: Factor in VA disability income stability for risk tolerance\n";
             }
 
             return prompt;
