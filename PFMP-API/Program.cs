@@ -19,6 +19,13 @@ namespace PFMP_API
             // Add AI Service
             builder.Services.AddScoped<IAIService, AIService>();
 
+            // Add Market Data Service
+            builder.Services.AddHttpClient<IMarketDataService, MarketDataService>();
+            builder.Services.AddScoped<IMarketDataService, MarketDataService>();
+
+            // Add Portfolio Valuation Service
+            builder.Services.AddScoped<IPortfolioValuationService, PortfolioValuationService>();
+
             // Add CORS
             builder.Services.AddCors(options =>
             {
