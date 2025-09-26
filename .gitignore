@@ -47,6 +47,10 @@ secrets.json
 *.pfx
 *.p12
 
+# Azure AD configuration (contains client secrets)
+azure-ad-config.json
+guest-user-info.json
+
 # Node.js and React
 node_modules/
 npm-debug.log*

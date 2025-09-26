@@ -1,6 +1,11 @@
 
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using PFMP_API.Services;
+using System.Text;
+using System.Text.Json.Serialization;
 
 namespace PFMP_API
 {
@@ -26,6 +31,58 @@ namespace PFMP_API
             // Add Portfolio Valuation Service
             builder.Services.AddScoped<IPortfolioValuationService, PortfolioValuationService>();
 
+            // Add Authentication Services
+            builder.Services.AddScoped<IPasswordHashService, PasswordHashService>();
+            builder.Services.AddHttpClient<IAuthenticationService, AuthenticationService>();
+            builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+
+            // Add Authentication & Authorization
+            var authBuilder = builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+            {
+                var jwtKey = builder.Configuration["JWT:SecretKey"] ?? "PFMP-Dev-Secret-Key-Change-In-Production-2025";
+                var issuer = builder.Configuration["JWT:Issuer"] ?? "PFMP-API";
+                var audience = builder.Configuration["JWT:Audience"] ?? "PFMP-Frontend";
+
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = issuer,
+                    ValidateAudience = true,
+                    ValidAudience = audience,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+                    ClockSkew = TimeSpan.Zero
+                };
+            });
+
+            // Only add Azure AD OIDC if configuration is provided
+            var tenantId = builder.Configuration["AzureAD:TenantId"];
+            var clientId = builder.Configuration["AzureAD:ClientId"];
+            var clientSecret = builder.Configuration["AzureAD:ClientSecret"];
+
+            if (!string.IsNullOrEmpty(tenantId) && !string.IsNullOrEmpty(clientId))
+            {
+                authBuilder.AddOpenIdConnect("AzureAD", options =>
+                {
+                    options.Authority = $"https://login.microsoftonline.com/{tenantId}/v2.0";
+                    options.ClientId = clientId;
+                    options.ClientSecret = clientSecret;
+                    options.ResponseType = "code";
+                    options.SaveTokens = true;
+                    options.Scope.Add("openid");
+                    options.Scope.Add("profile");
+                    options.Scope.Add("email");
+                });
+            }
+
+            builder.Services.AddAuthorization();
+
             // Add CORS
             builder.Services.AddCors(options =>
             {
@@ -37,7 +94,12 @@ namespace PFMP_API
                 });
             });
 
-            builder.Services.AddControllers();
+            builder.Services.AddControllers()
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+                    options.JsonSerializerOptions.WriteIndented = true;
+                });
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
 
@@ -58,6 +120,7 @@ namespace PFMP_API
             // Use CORS
             app.UseCors("AllowFrontend");
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllers();

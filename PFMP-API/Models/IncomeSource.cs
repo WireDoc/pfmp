@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace PFMP_API.Models
 {
@@ -79,6 +80,7 @@ namespace PFMP_API.Models
 
         // Navigation Properties
         [ForeignKey("UserId")]
+        [JsonIgnore] // Prevent circular reference in JSON serialization
         public virtual User User { get; set; } = null!;
 
         private decimal CalculateMonthlyAmount()

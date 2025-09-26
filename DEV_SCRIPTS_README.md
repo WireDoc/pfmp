@@ -29,8 +29,12 @@ This directory contains convenient scripts for starting both the backend API and
 - No PowerShell execution policy concerns
 
 **Usage:**
-- Double-click the `start-dev-servers.bat` file
-- Both servers will start in separate windows
+```powershell
+# From PowerShell terminal (RECOMMENDED)
+cd W:\pfmp; .\start-dev-servers.bat
+
+# Or double-click the file (alternative method)
+```
 
 ## 🖥️ What Each Script Does
 
