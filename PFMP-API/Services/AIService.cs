@@ -16,12 +16,14 @@ namespace PFMP_API.Services
         private readonly AzureOpenAIClient? _openAIClient;
         private readonly ChatClient? _chatClient;
         private readonly IConfiguration _configuration;
+        private readonly IMarketDataService _marketDataService;
 
-        public AIService(ApplicationDbContext context, ILogger<AIService> logger, IConfiguration configuration)
+        public AIService(ApplicationDbContext context, ILogger<AIService> logger, IConfiguration configuration, IMarketDataService marketDataService)
         {
             _context = context;
             _logger = logger;
             _configuration = configuration;
+            _marketDataService = marketDataService;
 
             // Initialize Azure OpenAI client
             var endpoint = _configuration["AzureOpenAI:Endpoint"];
@@ -177,21 +179,34 @@ namespace PFMP_API.Services
         {
             try
             {
+                var user = await _context.Users.FindAsync(userId);
                 var accounts = await _context.Accounts
                     .Where(a => a.UserId == userId)
                     .Include(a => a.Holdings)
                     .ToListAsync();
 
-                if (_chatClient == null)
+                // Get current market data for enhanced analysis
+                var marketIndices = await _marketDataService.GetMarketIndicesAsync();
+                var economicIndicators = await _marketDataService.GetEconomicIndicatorsAsync();
+                
+                // Get TSP fund prices if user has TSP accounts
+                Dictionary<string, MarketPrice>? tspFunds = null;
+                var hasTSPAccounts = accounts.Any(a => a.AccountType == AccountType.TSP);
+                if (hasTSPAccounts)
                 {
-                    return GenerateFallbackAnalysis(accounts);
+                    tspFunds = await _marketDataService.GetTSPFundPricesAsync();
                 }
 
-                var prompt = BuildPortfolioAnalysisPrompt(null, accounts, null);
+                if (_chatClient == null)
+                {
+                    return GenerateFallbackAnalysisWithMarketData(accounts, marketIndices, economicIndicators, tspFunds);
+                }
+
+                var prompt = BuildMarketAwarePortfolioPrompt(user, accounts, null, marketIndices, economicIndicators, tspFunds);
                 
                 var messages = new List<ChatMessage>
                 {
-                    new SystemChatMessage("You are a financial advisor. Provide a comprehensive but concise portfolio analysis with specific recommendations."),
+                    new SystemChatMessage("You are a financial advisor with real-time market data. Provide comprehensive portfolio analysis incorporating current market conditions, economic indicators, and actionable recommendations based on market trends."),
                     new UserChatMessage(prompt)
                 };
 
@@ -205,18 +220,137 @@ namespace PFMP_API.Services
             }
         }
 
-        public Task<List<Alert>> GenerateMarketAlertsAsync(int userId)
+        public async Task<List<Alert>> GenerateMarketAlertsAsync(int userId)
         {
             try
             {
-                // This would integrate with market data APIs in a full implementation
-                // For now, return basic alerts based on portfolio analysis
-                return Task.FromResult(new List<Alert>());
+                var alerts = new List<Alert>();
+                var user = await _context.Users.FindAsync(userId);
+                var accounts = await _context.Accounts
+                    .Where(a => a.UserId == userId)
+                    .Include(a => a.Holdings)
+                    .ToListAsync();
+
+                if (user == null || !accounts.Any())
+                    return alerts;
+
+                // Get current market data
+                var marketIndices = await _marketDataService.GetMarketIndicesAsync();
+                var economicIndicators = await _marketDataService.GetEconomicIndicatorsAsync();
+
+                // High volatility alert
+                if (marketIndices.VIX.Price > 30)
+                {
+                    alerts.Add(new Alert
+                    {
+                        UserId = userId,
+                        Category = AlertCategory.Portfolio,
+                        Title = "High Market Volatility Detected",
+                        Message = $"VIX is currently at {marketIndices.VIX.Price:F2}, indicating elevated market fear. Consider reviewing your portfolio allocation and avoiding major changes during this period.",
+                        Severity = AlertSeverity.High,
+                        IsRead = false,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+                else if (marketIndices.VIX.Price < 12)
+                {
+                    alerts.Add(new Alert
+                    {
+                        UserId = userId,
+                        Category = AlertCategory.Rebalancing,
+                        Title = "Low Volatility - Rebalancing Opportunity",
+                        Message = $"VIX is low at {marketIndices.VIX.Price:F2}, indicating market complacency. This may be a good time to rebalance or take profits.",
+                        Severity = AlertSeverity.Medium,
+                        IsRead = false,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+
+                // Interest rate alerts
+                if (economicIndicators.TreasuryYield10Year > 5.0m)
+                {
+                    alerts.Add(new Alert
+                    {
+                        UserId = userId,
+                        Category = AlertCategory.Portfolio,
+                        Title = "High Bond Yields Available",
+                        Message = $"10-year Treasury yields are at {economicIndicators.TreasuryYield10Year:F2}%, offering attractive fixed-income opportunities. Consider increasing bond allocation.",
+                        Severity = AlertSeverity.Medium,
+                        IsRead = false,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+
+                // Market performance alerts
+                var majorIndicesDown = new[] { marketIndices.SP500, marketIndices.NASDAQ, marketIndices.DowJones }
+                    .Count(idx => idx.ChangePercent < -2.0m);
+
+                if (majorIndicesDown >= 2)
+                {
+                    alerts.Add(new Alert
+                    {
+                        UserId = userId,
+                        Category = AlertCategory.Portfolio,
+                        Title = "Broad Market Decline",
+                        Message = $"Multiple major indices are down over 2% today. Stay disciplined with your long-term investment strategy and avoid emotional decisions.",
+                        Severity = AlertSeverity.Medium,
+                        IsRead = false,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+
+                // TSP-specific alerts for government employees
+                var hasTSPAccounts = accounts.Any(a => a.AccountType == AccountType.TSP);
+                if (hasTSPAccounts && (user.EmploymentType?.Contains("Federal") == true || user.EmploymentType?.Contains("Military") == true))
+                {
+                    var tspFunds = await _marketDataService.GetTSPFundPricesAsync();
+                    var cFundPerformance = tspFunds.GetValueOrDefault("C_FUND")?.ChangePercent ?? 0;
+                    
+                    if (Math.Abs(cFundPerformance) > 3.0m)
+                    {
+                        var direction = cFundPerformance > 0 ? "up" : "down";
+                        alerts.Add(new Alert
+                        {
+                            UserId = userId,
+                            Category = AlertCategory.Portfolio,
+                            Title = $"TSP C Fund Significant Movement",
+                            Message = $"TSP C Fund is {direction} {Math.Abs(cFundPerformance):F1}% today. Review your TSP allocation and contribution strategy.",
+                            Severity = AlertSeverity.Medium,
+                            IsRead = false,
+                            CreatedAt = DateTime.UtcNow
+                        });
+                    }
+                }
+
+                // Age-based alerts
+                if (user.DateOfBirth.HasValue)
+                {
+                    var age = DateTime.UtcNow.Year - user.DateOfBirth.Value.Year;
+                    if (user.DateOfBirth.Value.Date > DateTime.UtcNow.AddYears(-age).Date)
+                        age--;
+
+                    // Near retirement alerts during market stress
+                    if (age >= 55 && marketIndices.VIX.Price > 25)
+                    {
+                        alerts.Add(new Alert
+                        {
+                            UserId = userId,
+                            Category = AlertCategory.Portfolio,
+                            Title = "Pre-Retirement Market Stress Review",
+                            Message = "With elevated market volatility and your proximity to retirement, consider reviewing your asset allocation to ensure appropriate risk management.",
+                            Severity = AlertSeverity.High,
+                            IsRead = false,
+                            CreatedAt = DateTime.UtcNow
+                        });
+                    }
+                }
+
+                return alerts;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error generating market alerts for user {UserId}", userId);
-                return Task.FromResult(new List<Alert>());
+                return new List<Alert>();
             }
         }
 
@@ -515,6 +649,106 @@ namespace PFMP_API.Services
                    $"- Total Portfolio Value: ${totalBalance:N2}\n" +
                    $"- Number of Accounts: {accountCount}\n" +
                    $"- Recommendation: Regular portfolio review recommended to ensure optimal allocation.";
+        }
+
+        private string GenerateFallbackAnalysisWithMarketData(List<Account> accounts, MarketIndices marketIndices, EconomicIndicators economicIndicators, Dictionary<string, MarketPrice>? tspFunds)
+        {
+            var totalBalance = accounts.Sum(a => a.CurrentBalance);
+            var accountCount = accounts.Count;
+            
+            var analysis = $"Portfolio Summary with Current Market Conditions:\n\n";
+            analysis += $"Portfolio Overview:\n";
+            analysis += $"- Total Portfolio Value: ${totalBalance:N2}\n";
+            analysis += $"- Number of Accounts: {accountCount}\n\n";
+            
+            analysis += $"Current Market Conditions ({marketIndices.LastUpdated:yyyy-MM-dd HH:mm}):\n";
+            analysis += $"- S&P 500: {marketIndices.SP500.Price:F2} ({marketIndices.SP500.ChangePercent:+0.00;-0.00}%)\n";
+            analysis += $"- NASDAQ: {marketIndices.NASDAQ.Price:F2} ({marketIndices.NASDAQ.ChangePercent:+0.00;-0.00}%)\n";
+            analysis += $"- VIX (Fear Index): {marketIndices.VIX.Price:F2}\n";
+            analysis += $"- Market Status: {marketIndices.MarketStatus}\n\n";
+            
+            analysis += $"Economic Indicators:\n";
+            analysis += $"- 10-Year Treasury: {economicIndicators.TreasuryYield10Year:F2}%\n";
+            analysis += $"- Fed Funds Rate: {economicIndicators.FedFundsRate}\n";
+            analysis += $"- Gold Price: ${economicIndicators.GoldPrice:F2}\n\n";
+            
+            if (tspFunds?.Any() == true)
+            {
+                analysis += $"TSP Fund Performance:\n";
+                foreach (var fund in tspFunds.Take(5)) // Show top 5 funds
+                {
+                    analysis += $"- {fund.Value.CompanyName}: {fund.Value.Price:F2} ({fund.Value.ChangePercent:+0.00;-0.00}%)\n";
+                }
+                analysis += "\n";
+            }
+            
+            // Market-based recommendations
+            var volatilityLevel = marketIndices.VIX.Price > 25 ? "High" : marketIndices.VIX.Price > 15 ? "Moderate" : "Low";
+            analysis += $"Market-Based Recommendations:\n";
+            analysis += $"- Current market volatility: {volatilityLevel}\n";
+            if (marketIndices.VIX.Price > 25)
+                analysis += $"- Consider defensive positioning during high volatility periods\n";
+            else if (marketIndices.VIX.Price < 15)
+                analysis += $"- Market complacency detected - consider rebalancing opportunities\n";
+            
+            if (economicIndicators.TreasuryYield10Year > 4.5m)
+                analysis += $"- High bond yields present attractive fixed-income opportunities\n";
+            
+            analysis += $"- Regular portfolio review recommended based on current market conditions";
+            
+            return analysis;
+        }
+
+        private string BuildMarketAwarePortfolioPrompt(User? user, List<Account> accounts, List<Goal>? goals, MarketIndices marketIndices, EconomicIndicators economicIndicators, Dictionary<string, MarketPrice>? tspFunds)
+        {
+            var prompt = BuildPortfolioAnalysisPrompt(user, accounts, goals);
+            
+            // Add current market context
+            prompt += $"\n=== CURRENT MARKET CONDITIONS ({marketIndices.LastUpdated:yyyy-MM-dd HH:mm}) ===\n";
+            prompt += $"Market Indices:\n";
+            prompt += $"- S&P 500: {marketIndices.SP500.Price:F2} ({marketIndices.SP500.ChangePercent:+0.00;-0.00}%, Volume: {marketIndices.SP500.Volume:N0})\n";
+            prompt += $"- NASDAQ: {marketIndices.NASDAQ.Price:F2} ({marketIndices.NASDAQ.ChangePercent:+0.00;-0.00}%, Volume: {marketIndices.NASDAQ.Volume:N0})\n";
+            prompt += $"- Dow Jones: {marketIndices.DowJones.Price:F2} ({marketIndices.DowJones.ChangePercent:+0.00;-0.00}%)\n";
+            prompt += $"- Russell 2000: {marketIndices.Russell2000.Price:F2} ({marketIndices.Russell2000.ChangePercent:+0.00;-0.00}%)\n";
+            prompt += $"- VIX (Volatility): {marketIndices.VIX.Price:F2}\n";
+            prompt += $"- Market Status: {marketIndices.MarketStatus}\n\n";
+            
+            prompt += $"Economic Indicators:\n";
+            prompt += $"- 10-Year Treasury Yield: {economicIndicators.TreasuryYield10Year:F2}%\n";
+            prompt += $"- 2-Year Treasury Yield: {economicIndicators.TreasuryYield2Year:F2}%\n";
+            prompt += $"- Federal Funds Rate: {economicIndicators.FedFundsRate}\n";
+            prompt += $"- US Dollar Index: {economicIndicators.DollarIndex:F2}\n";
+            prompt += $"- Crude Oil: ${economicIndicators.CrudeOilPrice:F2}\n";
+            prompt += $"- Gold: ${economicIndicators.GoldPrice:F2}\n";
+            prompt += $"- Bitcoin: ${economicIndicators.BitcoinPrice:F2}\n\n";
+            
+            if (tspFunds?.Any() == true)
+            {
+                prompt += $"Current TSP Fund Prices:\n";
+                foreach (var fund in tspFunds)
+                {
+                    prompt += $"- {fund.Key} ({fund.Value.CompanyName}): {fund.Value.Price:F2} ({fund.Value.ChangePercent:+0.00;-0.00}%)\n";
+                }
+                prompt += "\n";
+            }
+            
+            // Add market-specific analysis instructions
+            prompt += "=== ANALYSIS REQUIREMENTS ===\n";
+            prompt += "Provide comprehensive investment advice that incorporates:\n";
+            prompt += "1. Current market conditions and their impact on this specific portfolio\n";
+            prompt += "2. Economic indicators analysis and positioning recommendations\n";
+            prompt += "3. Volatility assessment (VIX) and appropriate risk adjustments\n";
+            prompt += "4. Sector rotation opportunities based on current market trends\n";
+            prompt += "5. TSP fund recommendations if applicable, considering current performance\n";
+            prompt += "6. Interest rate environment impact on bond vs equity allocation\n";
+            prompt += "7. Specific action items with timeline (immediate, 30-day, quarterly)\n";
+            prompt += "8. Market timing considerations vs dollar-cost averaging strategies\n";
+            prompt += "9. Rebalancing recommendations based on current valuations\n";
+            prompt += "10. Risk management strategies for current market environment\n\n";
+            
+            prompt += "Focus on actionable, specific recommendations that this investor can implement given their profile and current market conditions.";
+            
+            return prompt;
         }
     }
 }
