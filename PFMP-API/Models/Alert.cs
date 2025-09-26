@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace PFMP_API.Models
 {
@@ -55,6 +57,7 @@ namespace PFMP_API.Models
         public bool TaskGenerated { get; set; } = false; // Track if task was created
 
         // Navigation properties
+        [JsonIgnore] // Prevent circular reference in JSON serialization
         public virtual User User { get; set; } = null!;
         public virtual UserTask? GeneratedTask { get; set; }
     }

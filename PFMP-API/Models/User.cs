@@ -76,6 +76,14 @@ namespace PFMP_API.Models
         public string? SetupStepsCompleted { get; set; } // JSON array of completed steps
         public int SetupProgressPercentage { get; set; } = 0;
 
+        // Authentication & Security
+        public string? PasswordHash { get; set; } // BCrypt hashed password for local authentication
+        public string? AzureObjectId { get; set; } // Azure EntraID Object ID for SSO
+        public bool IsActive { get; set; } = true; // Account status
+        public DateTime? LastLoginAt { get; set; }
+        public int FailedLoginAttempts { get; set; } = 0;
+        public DateTime? AccountLockedUntil { get; set; }
+
         // Development/Testing Features
         public bool IsTestAccount { get; set; } = false; // Flag for development accounts
         public bool BypassAuthentication { get; set; } = false; // Allow dev access without auth
