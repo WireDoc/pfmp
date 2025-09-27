@@ -4,12 +4,8 @@ import {
   Typography,
   Card,
   CardContent,
-  Button,
   Alert,
 } from '@mui/material';
-import {
-  Add as AddIcon,
-} from '@mui/icons-material';
 import { AlertCard } from './AlertCard';
 
 interface AlertsDashboardProps {
@@ -53,7 +49,7 @@ const sampleAlerts = [
   },
 ];
 
-export const AlertsDashboard: React.FC<AlertsDashboardProps> = ({ userId }) => {
+export const AlertsDashboard: React.FC<AlertsDashboardProps> = ({ userId: _userId }) => {
   const [alerts, setAlerts] = useState(sampleAlerts);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 

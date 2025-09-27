@@ -34,7 +34,6 @@ import {
   Edit,
   LocalHospital,
   AttachMoney,
-  TrendingUp,
 } from '@mui/icons-material';
 import { incomeSourceService, userService } from '../../services/api';
 
@@ -236,10 +235,10 @@ export const VADisabilityTracker: React.FC<VADisabilityTrackerProps> = ({ userId
         ...userData,
         vaDisabilityPercentage: userUpdateForm.vaDisabilityPercentage 
           ? parseInt(userUpdateForm.vaDisabilityPercentage) 
-          : null,
+          : undefined,
         vaDisabilityMonthlyAmount: userUpdateForm.vaDisabilityMonthlyAmount 
           ? parseFloat(userUpdateForm.vaDisabilityMonthlyAmount) 
-          : null,
+          : undefined,
         updatedAt: new Date().toISOString(),
       };
       
