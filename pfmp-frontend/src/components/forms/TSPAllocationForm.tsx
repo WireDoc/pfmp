@@ -305,7 +305,7 @@ export const TSPAllocationForm: React.FC<TSPAllocationFormProps> = ({ userId, on
             </Grid>
           </Grid>
           <Grid container spacing={1} mb={2}>
-            <Grid item>
+            <Grid>
               <Button
                 size="small"
                 variant="outlined"
@@ -314,7 +314,7 @@ export const TSPAllocationForm: React.FC<TSPAllocationFormProps> = ({ userId, on
                 Conservative
               </Button>
             </Grid>
-            <Grid item>
+            <Grid>
               <Button
                 size="small"
                 variant="outlined"
@@ -323,7 +323,7 @@ export const TSPAllocationForm: React.FC<TSPAllocationFormProps> = ({ userId, on
                 Moderate
               </Button>
             </Grid>
-            <Grid item>
+            <Grid>
               <Button
                 size="small"
                 variant="outlined"
@@ -341,7 +341,7 @@ export const TSPAllocationForm: React.FC<TSPAllocationFormProps> = ({ userId, on
             </Grid>
           </Grid>
           <Grid container spacing={1}>
-            <Grid item>
+            <Grid>
               <Button
                 size="small"
                 variant="outlined"
@@ -351,7 +351,7 @@ export const TSPAllocationForm: React.FC<TSPAllocationFormProps> = ({ userId, on
                 L Income (100%)
               </Button>
             </Grid>
-            <Grid item>
+            <Grid>
               <Button
                 size="small"
                 variant="outlined"
@@ -361,7 +361,7 @@ export const TSPAllocationForm: React.FC<TSPAllocationFormProps> = ({ userId, on
                 L 2040 (100%)
               </Button>
             </Grid>
-            <Grid item>
+            <Grid>
               <Button
                 size="small"
                 variant="outlined"
@@ -371,7 +371,7 @@ export const TSPAllocationForm: React.FC<TSPAllocationFormProps> = ({ userId, on
                 L 2050 (100%)
               </Button>
             </Grid>
-            <Grid item>
+            <Grid>
               <Button
                 size="small"
                 variant="outlined"

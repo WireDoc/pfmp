@@ -6,7 +6,6 @@ import {
   Typography,
   TextField,
   Button,
-  Grid,
   Alert,
   Box,
   Divider,
@@ -28,13 +27,13 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Grid,
 } from '@mui/material';
 import {
   Add,
   Edit,
   TrendingUp,
   TrendingDown,
-  AccountBalance,
 } from '@mui/icons-material';
 import type { Account } from '../../services/api';
 import { AccountType, AccountCategory, accountService } from '../../services/api';
