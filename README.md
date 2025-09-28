@@ -49,6 +49,56 @@ An AI-powered financial advisor platform designed for government employees and m
 - **Infra Path**: Hybrid local dev → Azure (unchanged strategic direction)
 - **Build Perf**: Manual Rollup `manualChunks` + selective lazy boundaries
 
+### Frontend Layout Standard: MUI Grid v2 ✅
+We enforce a single, consistent layout system using the **stable MUI Grid v2 API**.
+
+Rationale:
+- Removes legacy Grid / `Grid2` ambiguity
+- Stronger typing via `size` prop object form
+- Cleaner responsive intent (`size={{ xs: 12, md: 6 }}` vs scattered `item xs={12} md={6}`)
+- Prevents regression to deprecated `item` + breakpoint prop usage
+
+Allowed Pattern (Grid v2):
+```tsx
+import { Grid } from '@mui/material'
+
+<Grid container spacing={3}>
+  <Grid size={{ xs: 12, md: 6 }}>
+    <AccountSummary />
+  </Grid>
+  <Grid size={{ xs: 12, md: 6 }}>
+    <PerformancePanel />
+  </Grid>
+</Grid>
+```
+
+Forbidden (will fail ESLint):
+```tsx
+<Grid container>
+  <Grid item xs={12} md={6}> ... </Grid>
+</Grid>
+
+<Grid2 container> ... </Grid2>
+```
+
+Migration Notes:
+- All existing components have been normalized (2025-09-28)
+- Any new code must use `size` (number or object). Acceptable: `size={12}` or `size={{ xs: 12, sm: 6 }}`
+- Do NOT mix legacy `item` API with `size` in the same file
+
+Enforcement:
+- Custom ESLint rule (`eslint-plugin-local-grid-rules` inline config) blocks `<Grid item ...>` and direct breakpoint props (`xs=`, `md=`, etc.) on `Grid`
+- Build pipeline updated so `npm run build` fails on violation
+
+Exception Process:
+- NONE. If a limitation arises (e.g., third-party snippet), refactor or wrap with compliant component
+
+Future Enhancements:
+- Add codemod script if external contributions introduce legacy patterns
+- Consider storybook examples enforcing standard in visual docs
+
+Last Validated: 2025-09-28 (no legacy patterns present)
+
 ### Development Environment
 - **API**: .NET 9 Web API running on http://0.0.0.0:5052
 - **Database**: PostgreSQL 15 on Synology NAS (192.168.1.108:5433)

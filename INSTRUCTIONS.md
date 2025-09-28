@@ -251,6 +251,26 @@ npm run dev
 - use `npm run build` for production bundle (runs `tsc -b && vite build`)
 - large bundle warning (>500 kB) currently acceptable; future step: add code-splitting
 
+### Frontend Layout Standard (MANDATORY)
+We use **MUI Grid v2** only. All layout items must use the `size` prop.
+
+Allowed:
+```tsx
+<Grid container spacing={2}>
+	<Grid size={{ xs: 12, md: 4 }}>...</Grid>
+	<Grid size={{ xs: 12, md: 8 }}>...</Grid>
+</Grid>
+```
+Forbidden (build will fail):
+```tsx
+<Grid item xs={12} md={4}>...</Grid>
+<Grid2 container>...</Grid2>
+```
+Rule Enforcement:
+- Custom ESLint rule blocks `<Grid item>` and direct breakpoint props (`xs=`, `sm=`, etc.) on `Grid`.
+- Violations surface during `npm run lint` and cause `npm run build` to fail.
+No exceptions. Refactor any legacy snippet before committing.
+
 ### Dependency Policy
 - upgrade to latest stable frequently (React, MUI, TypeScript, Vite, ESLint, msal packages)
 - after upgrades: run `npm install`, then `npm run build` and fix regressions

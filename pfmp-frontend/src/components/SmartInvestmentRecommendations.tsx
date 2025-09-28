@@ -219,7 +219,7 @@ export const SmartInvestmentRecommendations: React.FC = () => {
         </AccordionSummary>
         <AccordionDetails>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
                 <Typography variant="subtitle1" gutterBottom>Investment Summary</Typography>
                 <Typography variant="body2">
@@ -243,18 +243,18 @@ export const SmartInvestmentRecommendations: React.FC = () => {
               </Paper>
             </Grid>
             
-            <Grid item xs={12} md={8}>
+            <Grid size={{ xs: 12, md: 8 }}>
               <Typography variant="subtitle1" gutterBottom>Recommended Allocation</Typography>
               <Grid container spacing={2}>
                 {recommendation.allocations.map((allocation, idx) => (
-                  <Grid item xs={12} sm={6} md={4} key={idx}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }} key={idx}>
                     <AllocationCard allocation={allocation} />
                   </Grid>
                 ))}
               </Grid>
             </Grid>
             
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="h6" gutterBottom>Analysis & Insights</Typography>
               <Typography variant="body1" paragraph>
                 {recommendation.reasoning}
