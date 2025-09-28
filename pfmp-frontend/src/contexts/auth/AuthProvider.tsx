@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 // Using only msal-browser to avoid peer dependency mismatch of @azure/msal-react with React 19.
 import { InteractionRequiredAuthError } from '@azure/msal-browser';
 import type { AuthenticationResult, AccountInfo, SilentRequest } from '@azure/msal-browser';
 import { msalConfig, loginRequest, pfmpApiScopes } from '../../config/authConfig';
+import { AuthContext } from './AuthContextObject';
 import { msalInstance } from './msalInstance';
 import { SIMULATED_USERS } from './simulatedUsers';
 import type { AuthContextType, AuthProviderProps } from './types';
@@ -10,7 +11,7 @@ import type { AuthContextType, AuthProviderProps } from './types';
 // Vite dev flag (true for `npm run dev` / local development server)
 const DEV_MODE = import.meta.env.DEV;
 
-const AuthContext = createContext<AuthContextType | null>(null);
+// AuthContext now defined in AuthContextObject.ts
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -67,9 +68,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setLoading(true);
             setError(null);
             await msalInstance.loginRedirect(loginRequest);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Login error:', err);
-            setError(`Login failed: ${err.message || 'Unknown error'}`);
+            const message = (err && typeof err === 'object' && 'message' in err) ? (err as { message?: string }).message : undefined;
+            setError(`Login failed: ${message || 'Unknown error'}`);
             setIsAuthenticated(false);
             setUser(null);
         } finally {
@@ -86,9 +88,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setIsAuthenticated(false);
             setUser(null);
             setError(null);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Logout error:', err);
-            setError(`Logout failed: ${err.message || 'Unknown error'}`);
+            const message = (err && typeof err === 'object' && 'message' in err) ? (err as { message?: string }).message : undefined;
+            setError(`Logout failed: ${message || 'Unknown error'}`);
         } finally {
             setLoading(false);
         }
@@ -145,32 +148,4 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 };
 
-export const useAuth = (): AuthContextType => {
-    const context = useContext(AuthContext);
-    if (!context) throw new Error('useAuth must be used within an AuthProvider');
-    return context;
-};
-
-export const withAuth = <P extends object>(Component: React.ComponentType<P>): React.FC<P> => {
-    return (props: P) => {
-        const { isAuthenticated, loading } = useAuth();
-        if (loading) {
-            return (
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '18px' }}>
-                    Loading authentication...
-                </div>
-            );
-        }
-        if (!isAuthenticated) {
-            return (
-                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', gap: '20px' }}>
-                    <h2>Authentication Required</h2>
-                    <p>Please sign in to access the PFMP Dashboard</p>
-                </div>
-            );
-        }
-        return <Component {...props} />;
-    };
-};
-
-// Export AuthContext itself only if needed for advanced patterns (omitted intentionally to keep surface small)
+// useAuth hook moved to separate file to satisfy react-refresh rule (component-only exports here)

@@ -61,7 +61,7 @@ export class FinancialDataService {
   // private readonly fredBaseUrl = 'https://api.stlouisfed.org/fred/series/observations';
   
   // Cache to avoid excessive API calls
-  private cache = new Map<string, { data: any; timestamp: number }>();
+  private cache = new Map<string, { data: unknown; timestamp: number }>();
   private readonly cacheTimeout = 60000; // 1 minute
 
 
@@ -73,8 +73,7 @@ export class FinancialDataService {
     
     for (const symbol of symbols) {
       const cacheKey = `stock_${symbol}`;
-      const cached = this.getCachedData(cacheKey);
-      
+      const cached = this.getCachedData<MarketDataResponse>(cacheKey);
       if (cached) {
         results.push(cached);
         continue;
@@ -132,9 +131,8 @@ export class FinancialDataService {
    */
   async getCryptoData(symbols: string[] = ['bitcoin', 'ethereum']): Promise<CryptoData[]> {
     const cacheKey = `crypto_${symbols.join(',')}`;
-    const cached = this.getCachedData(cacheKey);
-    
-    if (cached) return cached;
+  const cached = this.getCachedData<CryptoData[]>(cacheKey);
+  if (cached) return cached;
 
     try {
       const ids = symbols.join(',');
@@ -180,9 +178,8 @@ export class FinancialDataService {
    */
   async getEconomicIndicators(): Promise<EconomicIndicators> {
     const cacheKey = 'economic_indicators';
-    const cached = this.getCachedData(cacheKey);
-    
-    if (cached) return cached;
+  const cached = this.getCachedData<EconomicIndicators>(cacheKey);
+  if (cached) return cached;
 
     try {
       // For demo purposes, return realistic current values
@@ -198,7 +195,7 @@ export class FinancialDataService {
         lastUpdated: new Date().toISOString()
       };
 
-      this.setCachedData(cacheKey, indicators, 300000); // 5-minute cache
+  this.setCachedData(cacheKey, indicators); // cached
       return indicators;
       
     } catch (error) {
@@ -212,9 +209,8 @@ export class FinancialDataService {
    */
   async getBankRates(): Promise<BankRates[]> {
     const cacheKey = 'bank_rates';
-    const cached = this.getCachedData(cacheKey);
-    
-    if (cached) return cached;
+  const cached = this.getCachedData<BankRates[]>(cacheKey);
+  if (cached) return cached;
 
     // In production, integrate with Bankrate API, RateWatch, or scrape bank websites
     const rates: BankRates[] = [
@@ -265,7 +261,7 @@ export class FinancialDataService {
       }
     ];
 
-    this.setCachedData(cacheKey, rates, 3600000); // 1-hour cache
+  this.setCachedData(cacheKey, rates); // cached
     return rates;
   }
 
@@ -289,15 +285,15 @@ export class FinancialDataService {
   }
 
   // Helper methods
-  private getCachedData(key: string): any | null {
+  private getCachedData<T>(key: string): T | null {
     const cached = this.cache.get(key);
     if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-      return cached.data;
+      return cached.data as T;
     }
     return null;
   }
 
-  private setCachedData(key: string, data: any, _timeout: number = this.cacheTimeout): void {
+  private setCachedData<T>(key: string, data: T): void {
     this.cache.set(key, { data, timestamp: Date.now() });
   }
 

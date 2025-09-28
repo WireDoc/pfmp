@@ -4,6 +4,7 @@
  */
 
 import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
+import type { PlaidAccount, PlaidTransaction } from '../types/plaid';
 
 export interface BankAccount {
   id: string;
@@ -120,19 +121,20 @@ export class PlaidBankingService {
         access_token: accessToken,
       });
 
-  const accounts: BankAccount[] = response.data.accounts.map((account: any) => ({
-        id: account.account_id,
-        name: account.name,
-        officialName: account.official_name || account.name,
-        type: account.type as any,
-        subtype: account.subtype as any,
+      const accounts: BankAccount[] = response.data.accounts.map((account: PlaidAccount) => ({
+        id: account.account_id || 'unknown',
+        name: account.name || 'Account',
+        officialName: account.official_name || account.name || 'Account',
+        // Keep original union types; if value outside our set, fall back to 'other'
+        type: (account.type as BankAccount['type']) || 'other',
+        subtype: (account.subtype as BankAccount['subtype']) || 'checking',
         balance: {
-          available: account.balances.available,
-          current: account.balances.current || 0,
-          isoCurrencyCode: account.balances.iso_currency_code || 'USD',
+          available: account.balances?.available ?? null,
+          current: account.balances?.current ?? 0,
+          isoCurrencyCode: account.balances?.iso_currency_code || 'USD',
         },
         institution: {
-          id: 'temp', // Would get from separate API call
+          id: 'temp', // Placeholder until institution lookup implemented
           name: 'Connected Bank',
         },
         mask: account.mask || '0000',
@@ -167,16 +169,16 @@ export class PlaidBankingService {
         },
       });
 
-  const transactions: Transaction[] = response.data.transactions.map((tx: any) => ({
-        id: tx.transaction_id,
-        accountId: tx.account_id,
-        amount: tx.amount,
-        date: tx.date,
-        name: tx.name,
+      const transactions: Transaction[] = response.data.transactions.map((tx: PlaidTransaction) => ({
+        id: tx.transaction_id || 'unknown',
+        accountId: tx.account_id || 'unknown',
+        amount: tx.amount ?? 0,
+        date: tx.date || new Date().toISOString().split('T')[0],
+        name: tx.name || 'Transaction',
         merchantName: tx.merchant_name || undefined,
         category: tx.category || [],
-        pending: tx.pending,
-        paymentChannel: tx.payment_channel as any,
+        pending: !!tx.pending,
+        paymentChannel: (tx.payment_channel as Transaction['paymentChannel']) || 'other',
         location: tx.location ? {
           address: tx.location.address || undefined,
           city: tx.location.city || undefined,

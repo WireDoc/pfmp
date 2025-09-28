@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -46,9 +46,23 @@ interface VADisabilityData {
   totalMonthlyAmount: number;
   combinedRating: number;
   isReceiving: boolean;
-  incomeSources: any[];
+  incomeSources: IncomeSource[];
   estimatedAnnualAmount: number;
   nextPaymentDate: string | null;
+}
+
+interface IncomeSource {
+  incomeSourceId: number;
+  sourceName: string;
+  amount: number;
+  frequency: string;
+  description?: string;
+  isTaxable: boolean;
+  isActive: boolean;
+  nextPaymentDate?: string | null;
+  // allow additional backend-provided fields without strict typing yet
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
 }
 
 interface IncomeSourceForm {
@@ -84,7 +98,7 @@ const FREQUENCY_OPTIONS = [
 export const VADisabilityTracker: React.FC<VADisabilityTrackerProps> = ({ userId, onUpdate }) => {
   const [vaData, setVAData] = useState<VADisabilityData | null>(null);
   const [userVAInfo, setUserVAInfo] = useState<{ percentage: number; monthlyAmount: number } | null>(null);
-  const [editingSource, setEditingSource] = useState<any>(null);
+  const [editingSource, setEditingSource] = useState<IncomeSource | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -106,11 +120,7 @@ export const VADisabilityTracker: React.FC<VADisabilityTrackerProps> = ({ userId
     vaDisabilityMonthlyAmount: '',
   });
 
-  useEffect(() => {
-    loadVADisabilityData();
-  }, [userId]);
-
-  const loadVADisabilityData = async () => {
+  const loadVADisabilityData = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -140,7 +150,11 @@ export const VADisabilityTracker: React.FC<VADisabilityTrackerProps> = ({ userId
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    loadVADisabilityData();
+  }, [loadVADisabilityData]);
 
   const handleCreateIncomeSource = async () => {
     if (!sourceForm.sourceName || !sourceForm.amount) {
@@ -154,10 +168,10 @@ export const VADisabilityTracker: React.FC<VADisabilityTrackerProps> = ({ userId
     try {
       const newSource = {
         userId,
+        sourceType: sourceForm.category, // map category to expected sourceType
         sourceName: sourceForm.sourceName,
         amount: sourceForm.amount,
         frequency: sourceForm.frequency,
-        category: sourceForm.category,
         description: sourceForm.description,
         isTaxable: sourceForm.isTaxable,
         isActive: sourceForm.isActive,
@@ -194,10 +208,10 @@ export const VADisabilityTracker: React.FC<VADisabilityTrackerProps> = ({ userId
     try {
       const updatedSource = {
         ...editingSource,
+        sourceType: sourceForm.category,
         sourceName: sourceForm.sourceName,
         amount: sourceForm.amount,
         frequency: sourceForm.frequency,
-        category: sourceForm.category,
         description: sourceForm.description,
         isTaxable: sourceForm.isTaxable,
         isActive: sourceForm.isActive,
@@ -261,22 +275,25 @@ export const VADisabilityTracker: React.FC<VADisabilityTrackerProps> = ({ userId
   const calculateNextPaymentDate = (frequency: string): string => {
     const now = new Date();
     switch (frequency) {
-      case 'Monthly':
+      case 'Monthly': {
         // VA typically pays on the 1st of the month
         const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
         return nextMonth.toISOString();
-      case 'Annual':
+      }
+      case 'Annual': {
         const nextYear = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
         return nextYear.toISOString();
-      case 'Quarterly':
+      }
+      case 'Quarterly': {
         const nextQuarter = new Date(now.getFullYear(), now.getMonth() + 3, now.getDate());
         return nextQuarter.toISOString();
+      }
       default:
         return now.toISOString();
     }
   };
 
-  const startEditing = (source: any) => {
+  const startEditing = (source: IncomeSource) => {
     setEditingSource(source);
     setSourceForm({
       sourceName: source.sourceName,

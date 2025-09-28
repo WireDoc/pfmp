@@ -199,8 +199,26 @@ export const incomeSourceService = {
   getVADisabilityInfo: (userId: number) => apiClient.get(`/IncomeSources/va-disability/user/${userId}`),
   getSummary: (userId: number) => apiClient.get(`/IncomeSources/summary/user/${userId}`),
   getById: (id: number) => apiClient.get(`/IncomeSources/${id}`),
-  create: (incomeSource: any) => apiClient.post('/IncomeSources', incomeSource),
-  update: (id: number, incomeSource: any) => apiClient.put(`/IncomeSources/${id}`, incomeSource),
+  // Minimal IncomeSource shape; extend as fields are actually consumed in UI
+  create: (incomeSource: {
+    userId: number;
+    sourceType: string;
+    amount: number;
+    description?: string;
+    frequency?: string;
+    // index signature to remain flexible during transition
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: any;
+  }) => apiClient.post('/IncomeSources', incomeSource),
+  update: (id: number, incomeSource: Partial<{
+    userId: number;
+    sourceType: string;
+    amount: number;
+    description?: string;
+    frequency?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: any;
+  }>) => apiClient.put(`/IncomeSources/${id}`, incomeSource),
   delete: (id: number) => apiClient.delete(`/IncomeSources/${id}`),
 };
 
