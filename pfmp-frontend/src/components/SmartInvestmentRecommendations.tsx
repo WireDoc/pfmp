@@ -17,7 +17,7 @@ import {
   ListItemText,
   Divider
 } from '@mui/material';
-import Grid2 from '@mui/material/Grid2';
+import { Grid } from '@mui/material';
 import {
   ExpandMore,
   TrendingUp,
@@ -218,8 +218,8 @@ export const SmartInvestmentRecommendations: React.FC = () => {
           </Box>
         </AccordionSummary>
         <AccordionDetails>
-          <Grid2 container spacing={3}>
-            <Grid2 size={{ xs: 12, md: 4 }}>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={4}>
               <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
                 <Typography variant="subtitle1" gutterBottom>Investment Summary</Typography>
                 <Typography variant="body2">
@@ -241,20 +241,20 @@ export const SmartInvestmentRecommendations: React.FC = () => {
                   color={recommendation.riskScore > 70 ? 'warning' : recommendation.riskScore > 40 ? 'primary' : 'success'}
                 />
               </Paper>
-            </Grid2>
+            </Grid>
             
-            <Grid2 size={{ xs: 12, md: 8 }}>
+            <Grid item xs={12} md={8}>
               <Typography variant="subtitle1" gutterBottom>Recommended Allocation</Typography>
-              <Grid2 container spacing={2}>
+              <Grid container spacing={2}>
                 {recommendation.allocations.map((allocation, idx) => (
-                  <Grid2 size={{ xs: 12, sm: 6, md: 4 }} key={idx}>
+                  <Grid item xs={12} sm={6} md={4} key={idx}>
                     <AllocationCard allocation={allocation} />
-                  </Grid2>
+                  </Grid>
                 ))}
-              </Grid2>
-            </Grid2>
+              </Grid>
+            </Grid>
             
-            <Grid2 size={{ xs: 12 }}>
+            <Grid item xs={12}>
               <Typography variant="h6" gutterBottom>Analysis & Insights</Typography>
               <Typography variant="body1" paragraph>
                 {recommendation.reasoning}
@@ -285,8 +285,8 @@ export const SmartInvestmentRecommendations: React.FC = () => {
                   </List>
                 </Box>
               )}
-            </Grid2>
-          </Grid2>
+            </Grid>
+          </Grid>
         </AccordionDetails>
       </Accordion>
     );

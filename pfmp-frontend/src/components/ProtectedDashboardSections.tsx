@@ -32,8 +32,8 @@ export const ProtectedPortfolioOverview: React.FC = () => {
           Portfolio Overview
         </Typography>
         
-        <Grid2 container spacing={3}>
-          <Grid2 size={{ xs: 12, md: 3 }}>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={3}>
             <Card sx={{ bgcolor: 'primary.50', border: '1px solid', borderColor: 'primary.200' }}>
               <CardContent>
                 <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -56,9 +56,9 @@ export const ProtectedPortfolioOverview: React.FC = () => {
                 </Box>
               </CardContent>
             </Card>
-          </Grid2>
+          </Grid>
           
-          <Grid2 size={{ xs: 12, md: 3 }}>
+          <Grid item xs={12} md={3}>
             <Card sx={{ bgcolor: 'success.50', border: '1px solid', borderColor: 'success.200' }}>
               <CardContent>
                 <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -81,9 +81,9 @@ export const ProtectedPortfolioOverview: React.FC = () => {
                 </Box>
               </CardContent>
             </Card>
-          </Grid2>
+          </Grid>
           
-          <Grid2 size={{ xs: 12, md: 3 }}>
+          <Grid item xs={12} md={3}>
             <Card sx={{ bgcolor: 'info.50', border: '1px solid', borderColor: 'info.200' }}>
               <CardContent>
                 <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -106,9 +106,9 @@ export const ProtectedPortfolioOverview: React.FC = () => {
                 </Box>
               </CardContent>
             </Card>
-          </Grid2>
+          </Grid>
           
-          <Grid2 size={{ xs: 12, md: 3 }}>
+          <Grid item xs={12} md={3}>
             <Card sx={{ bgcolor: 'warning.50', border: '1px solid', borderColor: 'warning.200' }}>
               <CardContent>
                 <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -131,8 +131,8 @@ export const ProtectedPortfolioOverview: React.FC = () => {
                 </Box>
               </CardContent>
             </Card>
-          </Grid2>
-        </Grid2>
+          </Grid>
+        </Grid>
       </Paper>
     </ProtectedRoute>
   );
@@ -157,9 +157,9 @@ export const ProtectedAccountList: React.FC = () => {
           Your Accounts
         </Typography>
         
-        <Grid2 container spacing={2}>
+  <Grid container spacing={2}>
           {accounts.map((account, index) => (
-            <Grid2 size={{ xs: 12, md: 6 }} key={index}>
+            <Grid item xs={12} md={6} key={index}>
               <Card sx={{ height: '100%' }}>
                 <CardContent>
                   <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
@@ -204,9 +204,9 @@ export const ProtectedAccountList: React.FC = () => {
                   )}
                 </CardContent>
               </Card>
-            </Grid2>
+            </Grid>
           ))}
-        </Grid2>
+        </Grid>
       </Paper>
     </ProtectedRoute>
   );
@@ -230,9 +230,9 @@ export const ProtectedGoalsSection: React.FC = () => {
           Financial Goals
         </Typography>
         
-        <Grid2 container spacing={3}>
+  <Grid container spacing={3}>
           {goals.map((goal, index) => (
-            <Grid2 size={{ xs: 12, md: 4 }} key={index}>
+            <Grid item xs={12} md={4} key={index}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
@@ -266,9 +266,9 @@ export const ProtectedGoalsSection: React.FC = () => {
                   />
                 </CardContent>
               </Card>
-            </Grid2>
+            </Grid>
           ))}
-        </Grid2>
+        </Grid>
       </Paper>
     </ProtectedRoute>
   );

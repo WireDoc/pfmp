@@ -12,9 +12,9 @@ import {
   ListItem,
   ListItemText,
   Divider,
-  CircularProgress
+  CircularProgress,
+  Grid,
 } from '@mui/material';
-import Grid2 from '@mui/material/Grid2';
 import {
   AccountBalance,
   CreditCard,
@@ -252,13 +252,13 @@ export const RealBankAccountDashboard: React.FC = () => {
             <Typography variant="h5" gutterBottom sx={{ mt: 3 }}>
               Connected Accounts
             </Typography>
-            <Grid2 container spacing={3} sx={{ mb: 4 }}>
+            <Grid container spacing={3} sx={{ mb: 4 }}>
               {accounts.map((account) => (
-                <Grid2 size={{ xs: 12, md: 6, lg: 4 }} key={account.id}>
+                <Grid item xs={12} md={6} lg={4} key={account.id}>
                   <AccountCard account={account} />
-                </Grid2>
+                </Grid>
               ))}
-            </Grid2>
+            </Grid>
           </>
         )}
 
@@ -271,8 +271,8 @@ export const RealBankAccountDashboard: React.FC = () => {
               Cash Flow Analysis (Last 6 Months)
             </Typography>
             
-            <Grid2 container spacing={3} sx={{ mb: 3 }}>
-              <Grid2 size={{ xs: 12, md: 4 }}>
+            <Grid container spacing={3} sx={{ mb: 3 }}>
+              <Grid item xs={12} md={4}>
                 <Card sx={{ bgcolor: 'success.50', border: '1px solid', borderColor: 'success.200' }}>
                   <CardContent>
                     <Box display="flex" alignItems="center" gap={1} mb={1}>
@@ -284,9 +284,9 @@ export const RealBankAccountDashboard: React.FC = () => {
                     </Typography>
                   </CardContent>
                 </Card>
-              </Grid2>
+              </Grid>
               
-              <Grid2 size={{ xs: 12, md: 4 }}>
+              <Grid item xs={12} md={4}>
                 <Card sx={{ bgcolor: 'warning.50', border: '1px solid', borderColor: 'warning.200' }}>
                   <CardContent>
                     <Box display="flex" alignItems="center" gap={1} mb={1}>
@@ -298,9 +298,9 @@ export const RealBankAccountDashboard: React.FC = () => {
                     </Typography>
                   </CardContent>
                 </Card>
-              </Grid2>
+              </Grid>
               
-              <Grid2 size={{ xs: 12, md: 4 }}>
+              <Grid item xs={12} md={4}>
                 <Card sx={{ 
                   bgcolor: spendingAnalysis.netCashFlow > 0 ? 'primary.50' : 'error.50', 
                   border: '1px solid', 
@@ -320,8 +320,8 @@ export const RealBankAccountDashboard: React.FC = () => {
                     </Typography>
                   </CardContent>
                 </Card>
-              </Grid2>
-            </Grid2>
+              </Grid>
+            </Grid>
 
             {/* Spending Categories */}
             <Card sx={{ mb: 3 }}>
