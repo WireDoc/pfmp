@@ -1806,3 +1806,89 @@ Fix TypeScript compilation errors after MUI Grid v1 to v2 migration, restore cor
 
 <!-- Future sessions will be added below this line -->
 <!-- Format: ## YYYY-MM-DD - Session Title -->
+
+## 2025-09-27 - Rebuild Wave Initiation & Component Recovery Plan
+
+### Context / Why This Session Matters
+After stabilizing TypeScript builds, refactoring authentication (removing `@azure/msal-react` in favor of direct `@azure/msal-browser` usage), and validating a minimal runtime shell, we discovered that a large set of previously implemented advanced frontend orchestration components (onboarding flow, protected routing shell, intelligence dashboards, alerts UI, setup context) were no longer present. Core leaf feature components (e.g., `SmartInvestmentRecommendations`, `RealBankAccountDashboard`, `ProtectedDashboardSections`) still exist, but the higher-order wiring, routing, and multi-step setup logic were missing. This session formalizes the recovery and forward strategy before recreating code to preserve historical traceability.
+
+### Incident Summary
+- Observed a minimal dashboard rendering without expected onboarding & intelligence layers.
+- Repository searches confirmed absence of multiple orchestration & UI shell components referenced in legacy backup (`App-Complex.tsx.backup`).
+- Determined safer to document & rebuild deliberately rather than attempt speculative resurrection of potentially divergent historical code.
+
+### Gap Analysis (Frontend)
+| Category | Still Present | Missing / To Recreate |
+|----------|---------------|------------------------|
+| Auth Core | AuthProvider (custom), dev bypass | AuthHeader, SignInPrompt, AuthDebugPanel |
+| Routing & Guards | (Basic App shell only) | ProtectedRoute, Nested layout shell |
+| Onboarding / Setup | (none) | UserSetupContext, WelcomeOnboardingFlow, SetupProgressTracker |
+| Intelligence Dashboards | SmartInvestmentRecommendations (leaf), RealBankAccountDashboard | MarketIntelligencePanel, LiveMarketDashboard, FinancialIntelligenceCenter |
+| Alerts & Tasks | Backend alert/task endpoints intact | SmartAlertsSystem (UI), alert → task conversion UI layer |
+| Debug / Dev Tools | (basic console logs) | DebugComponent (state inspector) |
+| AI Pipelines | Placeholder investment rec component | Dual-AI (Recommend + Verify) abstraction layer |
+
+### Confirmed Existing Artifacts to Integrate (Do NOT delete)
+- `SmartInvestmentRecommendations.tsx`
+- `RealBankAccountDashboard.tsx`
+- `ProtectedDashboardSections.tsx`
+- Backend controllers & models for Users, Accounts, Goals, IncomeSources, Alerts, Tasks
+
+### Strategic Pivot
+Move from ad hoc incremental UI additions to a structured "Rebuild Wave" approach. This ensures each layer (routing, context, onboarding, intelligence, AI orchestration) is reconstructed with clear acceptance criteria and testability before layering complexity.
+
+### Rebuild Waves Plan (High-Level)
+1. Wave 0: Documentation Alignment (CURRENT) – Update README, log (this entry), add `REBUILD-WAVE-PLAN.md`, annotate migration status.
+2. Wave 1: Foundation – React Router v6+ integration, ProtectedRoute, layout shell, navigation skeleton, feature flag scaffolding.
+3. Wave 2: User Setup & State – `UserSetupContext`, onboarding wizard (demographics, risk, TSP, income), progress tracker, resumable steps, persistence hooks to backend.
+4. Wave 3: Auth & Profile UX – AuthHeader, SignInPrompt (dev bypass aware), UserProfileCard, Debug panels (AuthDebugPanel + general DebugComponent).
+5. Wave 4: Intelligence & Dashboards – Market dashboards (live & historical placeholders), FinancialIntelligenceCenter aggregation hub, SmartAlertsSystem UI tying alerts ↔ tasks.
+6. Wave 5: Dual-AI Pipeline Scaffold – Abstraction: `PrimaryAdvisor (GPT-X placeholder)` + `ValidationAdvisor (Claude)` with consensus strategy + pluggable policy checks; integrate with recommendations + alerts.
+7. Wave 6 (Progressive Enhancement) – Performance pass (code splitting validation, suspense boundaries), accessibility & UX refinements, test harness expansion.
+
+### Key Decisions This Session
+- Treat missing components as intentional rebuild targets—not silent regressions to patch blindly.
+- Preserve existing leaf components to avoid re-writing validated financial logic prematurely.
+- Introduce dual-AI abstraction early (Wave 5) but mock underlying model calls until credentials & cost controls formalized.
+- Maintain dev auth bypass until onboarding wizard stable (reduces friction during reconstruction).
+
+### Risks & Mitigations
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Scope Creep in Rebuild | Delayed functional recovery | Strict wave acceptance criteria & freeze once a wave starts |
+| Reintroducing Tech Debt | Hidden complexity returns | Code review checklist per wave (routing clarity, context isolation, test hooks) |
+| AI Cost Escalation Later | Budget overruns | Early mock interfaces & cost guard design in Wave 5 |
+| User State Fragmentation | Inconsistent onboarding progress | Central `UserSetupContext` with backend sync + idempotent steps |
+| Over-optimizing Performance Too Soon | Slowed feature delivery | Defer perf wave until after functional parity (Wave 6) |
+
+### Immediate Accomplishments
+- Cataloged existing vs missing orchestration components.
+- Defined multi-wave rebuild roadmap with sequencing rationale.
+- Logged strategic pivot & rationale prior to any recreations (audit trail maintained).
+- Added documentation tasks to internal TODO system (foundation for Wave 0 completion).
+
+### Outstanding Documentation Tasks (Wave 0)
+- Update README with: current minimal state, rebuild rationale, dual-AI vision snapshot.
+- Append `pfmp.txt` with "Rebuild Interlude" section summarizing pivot.
+- Create `REBUILD-WAVE-PLAN.md` with detailed acceptance criteria per wave.
+- Annotate `MIGRATION_STATUS.md` with note: frontend entering rebuild; backend phases unaffected.
+
+### Next Engineering Actions
+1. Finalize README rewrite (vision + current state disclosure).
+2. Add `REBUILD-WAVE-PLAN.md` (detailed scope & DONE definitions per wave).
+3. Update `pfmp.txt` (insert interlude + adjust phase numbering for resumed feature build).
+4. Commit documentation (single commit: "docs: rebuild wave plan & component recovery log").
+5. Begin Wave 1 implementation branch scaffolding (router + guard + layout shell).
+
+### Acceptance Criteria for Closing Wave 0
+- All docs updated & committed (README, log, rebuild plan, pfmp.txt, migration note).
+- Clear published wave sequence & goals.
+- No ambiguity about which components are intentionally missing vs pending.
+
+### Meta / Traceability
+This entry ensures that future diffs showing large component additions are contextualized as planned reconstruction rather than unexplained scope creep. Serves as canonical reference for when the platform transitioned from stabilization mode back into feature build-out.
+
+### Status
+Wave 0 IN PROGRESS – Log entry complete; proceeding to README & supporting document updates.
+
+---

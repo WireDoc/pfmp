@@ -15,113 +15,115 @@ Starting Services
 
 - **Frontend**: http://localhost:3000 (React + Vite)- Any service startup in terminal tools
 
-- **Database**: localhost:5432 (PostgreSQL)
+3. **Port conflicts**: Ensure ports 5052 and 3000 are available├── docs\                    # Documentation```powershell# In another terminal - Start Frontend  
+## PFMP Development Instructions
 
-The project uses Microsoft Azure AD for authentication:
+### Core Principles
+- use PowerShell (not CMD)
+- chain commands with `;` (PowerShell does not use `&&`)
+- run backend and frontend in separate external windows
+- keep dependencies at latest stable versions
+- group related changes into larger commits during current cleanup phase
 
-- **Client ID**: `efe3c2da-c4bb-45ff-b85b-e965de54f910`
+### Endpoints / Services
+- api backend: http://localhost:5052
+- frontend dev: http://localhost:3000 (alt: 5173)
+- postgres (dev remote): 192.168.1.108:5433 (alt local: localhost:5432)
+- azure ad:
+	- client id: efe3c2da-c4bb-45ff-b85b-e965de54f910
+	- tenant id: 90c3ba91-a0c4-4816-9f8f-beeefbfc33d2
 
-- **Tenant ID**: `90c3ba91-a0c4-4816-9f8f-beeefbfc33d2`
+### Start (Preferred)
+```
+cd W:\pfmp; ./start-dev-servers.bat
+```
+Creates two external windows (backend + frontend) preserving service isolation.
 
-- **Supported Accounts**: Personal and work Microsoft accounts
-
-# Test API health
-
-cd W:\pfmp; Invoke-WebRequest -Uri "http://localhost:5052/weatherforecast"
-
-# Test authentication config#
-
-cd W:\pfmp; Invoke-WebRequest -Uri "http://localhost:5052/api/auth/config"
-
-# Test frontend availability
-
-cd W:\pfmp; Invoke-WebRequest -Uri "http://localhost:3000"
-
-
-# Multiple operations
-
-cd W:\pfmp; git status; git log --oneline -5``````cd W:\pfmp\PFMP-API
-
-
-
-# Web requestsW:\pfmp\
-
-Invoke-WebRequest -Uri "http://localhost:5052/api/endpoint"
-
-Invoke-RestMethod -Uri "http://localhost:5052/api/endpoint" -Method GET├── scripts\                 # PowerShell automation scriptsdotnet run --urls=http://localhost:5052
-
+### Manual Start (Fallback)
+Backend:
+```
+cd W:\pfmp\PFMP-API; dotnet run --launch-profile http
+```
+Frontend:
+```
+cd W:\pfmp\pfmp-frontend; npm run dev
 ```
 
-│   ├── start-dev-servers.ps1 # Main development server launcher
+### Health Checks
+```
+cd W:\pfmp; Invoke-WebRequest -Uri "http://localhost:5052/weatherforecast"
+cd W:\pfmp; Invoke-WebRequest -Uri "http://localhost:5052/api/auth/config"
+cd W:\pfmp; Invoke-WebRequest -Uri "http://localhost:3000"
+```
 
-## Troubleshooting
+### Auth (Dev Mode)
+- dev bypass active in `import.meta.env.DEV`
+- simulated users auto-loaded
+- production: run full build & real Azure login flow
 
-│   ├── Azure-Config-Instructions.ps1 # Azure AD setup guide### ✅ CORRECT PowerShell syntax:
+### Build
+```
+cd W:\pfmp\pfmp-frontend; npm run build
+```
+Runs TypeScript project build then Vite bundle.
 
-### Common Issues:
+### When Backend Restart Is Required
+- controller / DTO signature changes
+- EF model updates
+- Program.cs or auth configuration changes
 
-1. **`&&` syntax error**: Replace with `;` - `&&` does NOT exist in PowerShell│   └── Setup-AzureAD.ps1    # Azure AD app registration
-
-2. **Service interruption**: Never run commands in service terminal windows
-
-3. **Port conflicts**: Ensure ports 5052 and 3000 are available├── docs\                    # Documentation```powershell# In another terminal - Start Frontend  
-
-4. **CORS errors**: Verify frontend URL matches CORS configuration
-
-5. **Authentication errors**: Check Azure AD app registration settings│   ├── notes\               # Development notes and completion logs
-
-
-
-### Process Management:│   ├── API-DOCUMENTATION.md # API endpoint documentationcd W:\pfmp; .\scripts\start-dev-servers.ps1cd W:\pfmp\pfmp-frontend
-
-```powershell
-
-# Check running processes│   └── DATABASE-TOOLS-SETUP.md # Database setup guide
-
-Get-Process | Where-Object {$_.ProcessName -match "(dotnet|node)"}
-
-├── PFMP-API\               # .NET Core backend API```npm run dev
-
-# Kill specific processes if needed (use cautiously)
-
-Stop-Process -Name "dotnet" -Force -ErrorAction SilentlyContinue├── pfmp-frontend\          # React + TypeScript frontend
-
+### Port / Process Recovery
+```
+Get-Process | Where-Object { $_.ProcessName -match "(dotnet|node)" }
+Stop-Process -Name "dotnet" -Force -ErrorAction SilentlyContinue
 Stop-Process -Name "node" -Force -ErrorAction SilentlyContinue
+```
 
-```└── INSTRUCTIONS.md         # This file```
+### Typical Workflow
+1. `cd W:\pfmp; git pull`
+2. start services (batch)
+3. edit frontend (hot reload)
+4. test API endpoints
+5. restart backend only if server-side changes
+6. `npm run build` before large refactors
+7. commit grouped logical changes
 
+### Dependency Policy
+- upgrade React, MUI, TypeScript, Vite, ESLint, msal regularly
+- after upgrade: install → build → smoke test
 
+### Planned Hardening (Later)
+- re-enable `noUnusedLocals`, then `noUnusedParameters`
+- add route/code splitting for large dashboard chunks
+- introduce test suite (Jest/Vitest)
+- expand ESLint rule coverage (imports/order/accessibility)
 
-### Log Monitoring:```
+### Troubleshooting Quick Reference
+- 404 API: backend not running / port conflict
+- CORS: verify proxy in `vite.config.ts`
+- Auth issues: check redirect URIs + dev mode flag
+- Build hang: run `npx tsc -b` to isolate TypeScript
+- Stale dashboard: use "Refresh Data" button
 
-- **API Logs**: Check the external PowerShell window running the API
+### File Map
+- backend: `W:\pfmp\PFMP-API`
+- frontend: `W:\pfmp\pfmp-frontend`
+- docs: `W:\pfmp\docs`
+- log: `W:\pfmp\docs\notes\pfmp-log.md`
+- migration: `W:\pfmp\MIGRATION_STATUS.md`
 
-- **Frontend Logs**: Check the external PowerShell window running the frontend**Use semicolon (`;`) to separate commands in PowerShell, NOT `&&`**
+### Security Notes
+- never commit secrets; dev tokens are mock placeholders
 
-- **Browser Console**: F12 Developer Tools for frontend debugging
+### Bundle Status
+- current single JS bundle ~590 kB (gzipped ~182 kB) → acceptable pre-splitting
 
-## Server Configuration
+### Phase Goal
+- stable builds + incremental refactors, prep for stricter lint re-enable
 
-## File Organization
-
-## Common PowerShell Syntax Rules
-
-### Scripts (`/scripts/`):
-
-- `start-dev-servers.ps1` - Main launcher- **API Backend**: http://localhost:5052 (.NET Core)
-
-- `Azure-Config-Instructions.ps1` - Azure AD setup guide
-
-- `Setup-AzureAD.ps1` - Azure app registration- **Frontend**: http://localhost:3000 (React + Vite)## Starting PFMP Development
-
-- `Check-RedirectUris.ps1` - Verify redirect URI configuration
-
-- **Database**: localhost:5432 (PostgreSQL)
-
-### Documentation (`/docs/`):
-
-- `API-DOCUMENTATION.md` - Backend API reference1. **Command Separation**: Use `;` not `&&`
-
+---
+backup of corrupted original: `INSTRUCTIONS_OLD.md`
+last updated: dedup cleanup
 - `DATABASE-TOOLS-SETUP.md` - Database configuration
 
 - `notes/` - Development notes and completion logs## Authentication Setup
@@ -199,35 +201,133 @@ npm run dev
 
 ## Common PowerShell Patterns
 
-``````powershell
+## PFMP Development Instructions (Clean Rewrite)
 
-```powershell
+- always use PowerShell on Windows (not CMD)
+- use semicolon `;` to chain commands (PowerShell does NOT use `&&`)
+- keep backend and frontend running in their OWN external windows (terminal isolation)
+- prefer latest stable versions of Node, npm, TypeScript, MUI, React, etc. (policy: keep dependencies current)
+- branch strategy: active work continues on current feature branch, merge to `main` once stable
 
-# Command chaining (correct)# Test API health
+### Core Services
+- api backend: http://localhost:5052
+- frontend dev server: http://localhost:3000 (or 5173 if Vite default is used elsewhere)
+- database (PostgreSQL dev): 192.168.1.108:5433 (remote Synology) or localhost:5432 if running local
+- azure ad auth (entra id)
+	- client id: efe3c2da-c4bb-45ff-b85b-e965de54f910
+	- tenant id: 90c3ba91-a0c4-4816-9f8f-beeefbfc33d2
+	- supported accounts: personal + work
 
-cd path; command1; command2
+### Startup (Preferred: Batch Script)
+- navigate to project root: `cd W:\pfmp`
+- run combined launcher: `./start-dev-servers.bat`
+- batch invokes PowerShell script to start:
+	- backend (.NET) → port 5052
+	- frontend (Vite) → port 3000
+- each opens in a separate external window to avoid accidental interruption
 
-## Project StructureInvoke-RestMethod http://localhost:5052/weatherforecast
+### Manual Startup (If Needed)
+- backend:
+	- `cd W:\pfmp\PFMP-API`
+	- `dotnet run --launch-profile http`
+- frontend:
+	- `cd W:\pfmp\pfmp-frontend`
+	- `npm run dev`
 
-# Multiple operations
+### Health / Quick Tests
+- api weather test: `cd W:\pfmp; Invoke-WebRequest -Uri "http://localhost:5052/weatherforecast"`
+- auth config: `cd W:\pfmp; Invoke-WebRequest -Uri "http://localhost:5052/api/auth/config"`
+- frontend check: `cd W:\pfmp; Invoke-WebRequest -Uri "http://localhost:3000"`
+- combined git ops: `cd W:\pfmp; git status; git log --oneline -5`
 
-cd W:\pfmp; git status; git log --oneline -5
+### Development Auth Mode
+- the frontend AuthContext supports a dev/bypass mode when `import.meta.env.DEV` is true
+- simulated accounts are auto-loaded; no Microsoft sign-in required during rapid iteration
+- switch to real login by building in production mode (disable dev bypass) or adjusting the flag
 
+### TypeScript & Build Strategy
+- strict mode enabled except unused locals/parameters (temporarily relaxed for iterative design)
+- incremental cleanups will re-enable unused checks before production hardening
+- use `npm run build` for production bundle (runs `tsc -b && vite build`)
+- large bundle warning (>500 kB) currently acceptable; future step: add code-splitting
 
+### Dependency Policy
+- upgrade to latest stable frequently (React, MUI, TypeScript, Vite, ESLint, msal packages)
+- after upgrades: run `npm install`, then `npm run build` and fix regressions
+- document any pinned version (none required now)
 
-# Web requests```# Test auth config
+### Process / Ports / Conflicts
+- if a port is stuck:
+	- list processes: `Get-Process | Where-Object { $_.ProcessName -match "(dotnet|node)" }`
+	- terminate (careful): `Stop-Process -Name "dotnet" -Force -ErrorAction SilentlyContinue`
+	- terminate (frontend): `Stop-Process -Name "node" -Force -ErrorAction SilentlyContinue`
+- restart services only from fresh terminals (never inside running service windows)
 
-Invoke-WebRequest -Uri "http://localhost:5052/api/endpoint"
+### Common PowerShell Patterns
+- change dir + run: `cd W:\pfmp; git pull; npm -v`
+- multiple ops: `cd W:\pfmp; git status; git log --oneline -5`
+- web request sample: `Invoke-WebRequest -Uri "http://localhost:5052/api/endpoint"`
 
-Invoke-RestMethod -Uri "http://localhost:5052/api/endpoint" -Method GETW:\pfmp\Invoke-RestMethod http://localhost:5052/api/auth/config
+### Typical Workflow
+1. update repo: `cd W:\pfmp; git pull`
+2. start services: `./start-dev-servers.bat`
+3. frontend iteration (hot reload)
+4. run targeted API tests (PowerShell Invoke-WebRequest)
+5. adjust models/controllers → restart backend window
+6. build validation before major refactors: `cd W:\pfmp\pfmp-frontend; npm run build`
+7. commit when multiple related fixes complete (grouped commit style)
 
-```
+### When to Restart Backend
+- added/changed: controllers, DTOs, Entity Framework models, Program.cs wiring, authentication config
+- not needed for: pure frontend changes, static docs edits, CSS/theme tweaks
 
-├── scripts\                 # PowerShell automation scripts
+### Planned Future Hardening (Not Yet Applied)
+- re-enable `noUnusedLocals` and `noUnusedParameters`
+- add ESLint rule set expansion (import/order, accessibility, unused imports)
+- implement route-based code splitting for dashboard modules
+- integrate unit tests (Jest + React Testing Library) and service tests
 
-## Troubleshooting
+### Troubleshooting Quick Table
+- api 404: confirm backend window running and port 5052 free
+- cors error: check proxy config in `vite.config.ts`
+- auth stuck: ensure dev mode or real Azure redirect configuration matches portal
+- build hang: run `npx tsc -b` separately to isolate TypeScript vs bundler issue
+- stale data: refresh dashboard menu → "Refresh Data" action
 
-│   ├── start-dev-servers.ps1 # Main development server launcher# Test auth endpoints (bypass mode)
+### Azure AD Reference
+- post logout redirect: matches value in `msalConfig.auth.postLogoutRedirectUri`
+- ensure redirect URIs include: `http://localhost:3000` and `http://localhost:5173` (if used)
+- scopes stored in `pfmp-frontend/src/config/authConfig` (adjust there, not inline)
+
+### File Locations (Key)
+- backend root: `W:\pfmp\PFMP-API`
+- frontend root: `W:\pfmp\pfmp-frontend`
+- docs: `W:\pfmp\docs`
+- notes log: `W:\pfmp\docs\notes\pfmp-log.md`
+- migration status: `W:\pfmp\MIGRATION_STATUS.md`
+- instructions (this): `W:\pfmp\INSTRUCTIONS.md`
+
+### Commit Guidance
+- group multiple small related fixes (e.g. type-only import sweep + tsconfig tweak)
+- reference scope in message: `build(frontend): stabilize ts build and auth imports`
+- avoid committing partial auth refactors without build passing
+
+### Security Notes
+- never commit real secrets (use environment variables / Azure Key Vault for production)
+- mock tokens used only in dev bypass mode
+
+### Performance (Current State)
+- single bundle ~590 kB (gzipped ~182 kB) → acceptable short term
+- future: manualChunks or dynamic import for rarely visited dashboards
+
+### End Goal of This Phase
+- stable builds (no blocking TS errors)
+- clean incremental refactors
+- ready to re-enable strict unused checks before production
+
+---
+last updated: (auto) rewrite session for cleanup and clarity
+backup of previous corrupted file: `INSTRUCTIONS_OLD.md`
 
 ### Common Issues:
 

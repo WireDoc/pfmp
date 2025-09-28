@@ -13,5 +13,21 @@ export default defineConfig({
         secure: false
       }
     }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('@mui')) return 'mui';
+            if (id.includes('chart.js') || id.includes('react-chartjs-2')) return 'charts';
+            if (id.includes('date-fns')) return 'date';
+            if (id.includes('plaid')) return 'plaid';
+            return 'vendor';
+          }
+        }
+      }
+    },
+    chunkSizeWarningLimit: 600
   }
 })

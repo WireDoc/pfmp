@@ -13,10 +13,11 @@
     "moduleDetection": "force",
     "noEmit": true,
 
-    /* Linting */
+    /* Linting / Strictness */
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+  // Matching app tsconfig: enforce unused locals; keep parameters relaxed.
+  "noUnusedLocals": true,
+  "noUnusedParameters": false,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true

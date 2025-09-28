@@ -1,4 +1,4 @@
-import type { Configuration, PopupRequest } from '@azure/msal-browser';
+import type { Configuration, PopupRequest, LogLevel } from '@azure/msal-browser';
 
 /**
  * Configuration object to be passed to MSAL instance on creation.
@@ -24,7 +24,7 @@ export const msalConfig: Configuration = {
         windowHashTimeout: 60000, // Increase timeout for popup window
         iframeHashTimeout: 60000, // Increase timeout for iframe
         loggerOptions: {
-            loggerCallback: (level, message, containsPii) => {
+            loggerCallback: (level: LogLevel, message: string, containsPii: boolean) => {
                 if (containsPii) {
                     return;
                 }
