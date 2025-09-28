@@ -33,7 +33,7 @@ export const ProtectedPortfolioOverview: React.FC = () => {
         </Typography>
         
         <Grid container spacing={3}>
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Card sx={{ bgcolor: 'primary.50', border: '1px solid', borderColor: 'primary.200' }}>
               <CardContent>
                 <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -58,7 +58,7 @@ export const ProtectedPortfolioOverview: React.FC = () => {
             </Card>
           </Grid>
           
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Card sx={{ bgcolor: 'success.50', border: '1px solid', borderColor: 'success.200' }}>
               <CardContent>
                 <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -83,7 +83,7 @@ export const ProtectedPortfolioOverview: React.FC = () => {
             </Card>
           </Grid>
           
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Card sx={{ bgcolor: 'info.50', border: '1px solid', borderColor: 'info.200' }}>
               <CardContent>
                 <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -108,7 +108,7 @@ export const ProtectedPortfolioOverview: React.FC = () => {
             </Card>
           </Grid>
           
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <Card sx={{ bgcolor: 'warning.50', border: '1px solid', borderColor: 'warning.200' }}>
               <CardContent>
                 <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -159,7 +159,7 @@ export const ProtectedAccountList: React.FC = () => {
         
   <Grid container spacing={2}>
           {accounts.map((account, index) => (
-            <Grid item xs={12} md={6} key={index}>
+            <Grid size={{ xs: 12, md: 6 }} key={index}>
               <Card sx={{ height: '100%' }}>
                 <CardContent>
                   <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
@@ -232,7 +232,7 @@ export const ProtectedGoalsSection: React.FC = () => {
         
   <Grid container spacing={3}>
           {goals.map((goal, index) => (
-            <Grid item xs={12} md={4} key={index}>
+            <Grid size={{ xs: 12, md: 4 }} key={index}>
               <Card>
                 <CardContent>
                   <Typography variant="h6" gutterBottom>
