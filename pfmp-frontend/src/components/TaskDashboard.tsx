@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -81,11 +81,7 @@ export const TaskDashboard: React.FC<TaskDashboardProps> = ({ userId }) => {
     description: '',
   });
 
-  useEffect(() => {
-    loadTasks();
-  }, [userId]);
-
-  const loadTasks = async () => {
+  const loadTasks = useCallback(async () => {
     try {
       setLoading(true);
       const response = await taskService.getByUser(userId);
@@ -97,7 +93,11 @@ export const TaskDashboard: React.FC<TaskDashboardProps> = ({ userId }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    loadTasks();
+  }, [loadTasks]);
 
   const handleStatusChange = async (taskId: number, status: TaskStatus, notes?: string) => {
     try {

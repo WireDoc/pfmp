@@ -108,7 +108,7 @@ export interface MarketConditions {
  * Investment Analysis Engine Interface
  */
 export interface IInvestmentAnalyzer {
-  analyzePortfolio(userProfile: UserProfile, goals: FinancialGoal[], currentHoldings: any[]): Promise<InvestmentRecommendation[]>;
+  analyzePortfolio(userProfile: UserProfile, goals: FinancialGoal[], currentHoldings: unknown[]): Promise<InvestmentRecommendation[]>;
   getMarketData(symbols: string[]): Promise<MarketData[]>;
   getInvestmentOptions(filters: { assetClass?: AssetClass; riskLevel?: RiskTolerance; minYield?: number }): Promise<InvestmentOption[]>;
   getMarketConditions(): Promise<MarketConditions>;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Paper,
@@ -27,9 +27,9 @@ import {
   Savings,
   Assessment
 } from '@mui/icons-material';
-import { ProtectedRoute } from './ProtectedRoute';
+import { ProtectedRoute } from '../components/ProtectedRoute';
 import { InvestmentAnalyzer } from '../services/InvestmentAnalyzer';
-import { FinancialDataService } from '../services/FinancialDataService';
+import { FinancialDataService, type MarketDataResponse, type CryptoData, type EconomicIndicators, type BankRates } from '../services/FinancialDataService';
 import type { 
   InvestmentRecommendation, 
   UserProfile, 
@@ -41,97 +41,99 @@ import type {
 /**
  * Smart Investment Recommendations Component
  */
+// Static mock data lifted outside component to stabilize references for hook deps
+const MOCK_USER_PROFILE: UserProfile = {
+  age: 35,
+  riskTolerance: 'moderate',
+  investmentExperience: 'intermediate',
+  annualIncome: 95000,
+  currentSavings: 45000,
+  monthlyInvestmentCapacity: 2500,
+  taxBracket: 22,
+  hasEmergencyFund: true,
+  retirementGoalAge: 65
+};
+
+const MOCK_GOALS: FinancialGoal[] = [
+  {
+    id: 'emergency',
+    type: 'emergency_fund',
+    name: 'Emergency Fund',
+    targetAmount: 30000,
+    currentAmount: 25000,
+    targetDate: new Date('2024-12-31'),
+    timeHorizon: 'short',
+    priority: 'high',
+    riskTolerance: 'conservative'
+  },
+  {
+    id: 'house',
+    type: 'house_down_payment',
+    name: 'House Down Payment',
+    targetAmount: 100000,
+    currentAmount: 35000,
+    targetDate: new Date('2026-06-01'),
+    timeHorizon: 'medium',
+    priority: 'high',
+    riskTolerance: 'moderate'
+  },
+  {
+    id: 'retirement',
+    type: 'retirement',
+    name: 'Retirement Savings',
+    targetAmount: 1500000,
+    currentAmount: 125000,
+    targetDate: new Date('2054-12-31'),
+    timeHorizon: 'long',
+    priority: 'medium',
+    riskTolerance: 'aggressive'
+  }
+];
+
 export const SmartInvestmentRecommendations: React.FC = () => {
   const [analyzer] = useState(new InvestmentAnalyzer());
   const [dataService] = useState(new FinancialDataService());
   const [recommendations, setRecommendations] = useState<InvestmentRecommendation[]>([]);
   const [availableOptions, setAvailableOptions] = useState<InvestmentOption[]>([]);
-  const [marketData, setMarketData] = useState<any>(null);
+  interface ComprehensiveMarketData {
+    stocks: MarketDataResponse[];
+    crypto: CryptoData[];
+    economicIndicators: EconomicIndicators;
+    bankRates: BankRates[];
+  }
+  const [marketData, setMarketData] = useState<ComprehensiveMarketData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Mock user profile and goals
-  const mockUserProfile: UserProfile = {
-    age: 35,
-    riskTolerance: 'moderate',
-    investmentExperience: 'intermediate',
-    annualIncome: 95000,
-    currentSavings: 45000,
-    monthlyInvestmentCapacity: 2500,
-    taxBracket: 22,
-    hasEmergencyFund: true,
-    retirementGoalAge: 65
-  };
+  // (Mocks moved outside component)
 
-  const mockGoals: FinancialGoal[] = [
-    {
-      id: 'emergency',
-      type: 'emergency_fund',
-      name: 'Emergency Fund',
-      targetAmount: 30000,
-      currentAmount: 25000,
-      targetDate: new Date('2024-12-31'),
-      timeHorizon: 'short',
-      priority: 'high',
-      riskTolerance: 'conservative'
-    },
-    {
-      id: 'house',
-      type: 'house_down_payment',
-      name: 'House Down Payment',
-      targetAmount: 100000,
-      currentAmount: 35000,
-      targetDate: new Date('2026-06-01'),
-      timeHorizon: 'medium',
-      priority: 'high',
-      riskTolerance: 'moderate'
-    },
-    {
-      id: 'retirement',
-      type: 'retirement',
-      name: 'Retirement Savings',
-      targetAmount: 1500000,
-      currentAmount: 125000,
-      targetDate: new Date('2054-12-31'),
-      timeHorizon: 'long',
-      priority: 'medium',
-      riskTolerance: 'aggressive'
-    }
-  ];
-
-  useEffect(() => {
-    const loadRecommendations = async () => {
-      try {
-        setLoading(true);
+  const loadRecommendations = useCallback(async () => {
+    try {
+      setLoading(true);
         
         // Fetch live market data
         console.log('🔄 Fetching live market data...');
-        const liveMarketData = await dataService.getComprehensiveMarketData();
-        setMarketData(liveMarketData);
-        console.log('📊 Live market data received:', liveMarketData);
+      const liveMarketData = await dataService.getComprehensiveMarketData();
+      setMarketData(liveMarketData);
+      console.log('📊 Live market data received:', liveMarketData);
         
         // Generate AI recommendations with real data
-        const recs = await analyzer.analyzePortfolio(mockUserProfile, mockGoals, []);
-        const options = await analyzer.getInvestmentOptions();
-        
-        setRecommendations(recs);
-        setAvailableOptions(options);
-        
-        console.log('🤖 AI recommendations generated:', recs);
-        
-      } catch (error) {
-        console.error('❌ Failed to load recommendations:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    const recs = await analyzer.analyzePortfolio(MOCK_USER_PROFILE, MOCK_GOALS);
+      const options = await analyzer.getInvestmentOptions();
+      setRecommendations(recs);
+      setAvailableOptions(options);
+      console.log('🤖 AI recommendations generated:', recs);
+    } catch (error) {
+      console.error('❌ Failed to load recommendations:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [analyzer, dataService]);
 
+  useEffect(() => {
     loadRecommendations();
-    
-    // Set up periodic updates every 5 minutes
     const interval = setInterval(loadRecommendations, 300000);
     return () => clearInterval(interval);
-    
-  }, [analyzer, dataService]);
+  }, [loadRecommendations]);
 
   const getAssetClassIcon = (assetClass: string) => {
     switch (assetClass) {
@@ -144,7 +146,8 @@ export const SmartInvestmentRecommendations: React.FC = () => {
     }
   };
 
-  const getAssetClassColor = (assetClass: string) => {
+  type AssetClassColor = 'default' | 'primary' | 'secondary' | 'success' | 'info' | 'warning';
+  const getAssetClassColor = (assetClass: string): AssetClassColor => {
     switch (assetClass) {
       case 'cash': return 'success';
       case 'bonds': return 'info';
@@ -165,7 +168,7 @@ export const SmartInvestmentRecommendations: React.FC = () => {
           </Typography>
           <Chip 
             label={`${allocation.percentage}%`} 
-            color={getAssetClassColor(allocation.assetClass) as any}
+            color={getAssetClassColor(allocation.assetClass)}
             size="small"
           />
         </Box>
@@ -196,7 +199,7 @@ export const SmartInvestmentRecommendations: React.FC = () => {
   );
 
   const RecommendationPanel: React.FC<{ recommendation: InvestmentRecommendation }> = ({ recommendation }) => {
-    const goal = mockGoals.find(g => g.id === recommendation.goalId);
+  const goal = MOCK_GOALS.find(g => g.id === recommendation.goalId);
     
     return (
       <Accordion>

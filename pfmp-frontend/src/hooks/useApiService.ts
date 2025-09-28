@@ -1,6 +1,17 @@
 import { useAuth } from '../contexts/AuthContext';
 import { pfmpApiConfig } from '../config/authConfig';
 
+// Lightweight goal shape (expand when backend fields become concrete)
+interface GoalDraft {
+  id?: string;
+  name?: string;
+  targetAmount?: number;
+  targetDate?: string | Date;
+  [key: string]: unknown; // allow incremental expansion
+}
+
+type Json = unknown; // Transitional alias for places we previously used any
+
 /**
  * Custom hook for making authenticated API calls to the PFMP backend
  */
@@ -10,7 +21,7 @@ export const useApiService = () => {
   /**
    * Makes an authenticated HTTP request to the PFMP API
    */
-  const apiRequest = async <T = any>(
+  const apiRequest = async <T = Json>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> => {
@@ -41,10 +52,10 @@ export const useApiService = () => {
       // Handle empty responses
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
-        return response.text() as Promise<T>;
+        return response.text() as unknown as Promise<T>;
       }
 
-      return response.json();
+      return response.json() as Promise<T>;
     } catch (error) {
       console.error('API Request Error:', error);
       throw error;
@@ -54,13 +65,13 @@ export const useApiService = () => {
   /**
    * GET request helper
    */
-  const get = <T = any>(endpoint: string): Promise<T> => 
+  const get = <T = Json>(endpoint: string): Promise<T> => 
     apiRequest<T>(endpoint, { method: 'GET' });
 
   /**
    * POST request helper
    */
-  const post = <T = any>(endpoint: string, data?: any): Promise<T> => 
+  const post = <T = Json, B = unknown>(endpoint: string, data?: B): Promise<T> => 
     apiRequest<T>(endpoint, {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
@@ -69,7 +80,7 @@ export const useApiService = () => {
   /**
    * PUT request helper
    */
-  const put = <T = any>(endpoint: string, data?: any): Promise<T> => 
+  const put = <T = Json, B = unknown>(endpoint: string, data?: B): Promise<T> => 
     apiRequest<T>(endpoint, {
       method: 'PUT',
       body: data ? JSON.stringify(data) : undefined,
@@ -78,7 +89,7 @@ export const useApiService = () => {
   /**
    * DELETE request helper
    */
-  const del = <T = any>(endpoint: string): Promise<T> => 
+  const del = <T = Json>(endpoint: string): Promise<T> => 
     apiRequest<T>(endpoint, { method: 'DELETE' });
 
   /**
@@ -178,12 +189,12 @@ export const useUserGoals = () => {
     }
   };
 
-  const createGoal = async (goalData: any) => {
+  const createGoal = async (goalData: GoalDraft) => {
     const endpoints = getUserEndpoints();
     return await post(endpoints.goals, goalData);
   };
 
-  const updateGoal = async (goalId: string, goalData: any) => {
+  const updateGoal = async (goalId: string, goalData: GoalDraft) => {
     const endpoints = getUserEndpoints();
     return await put(`${endpoints.goals}/${goalId}`, goalData);
   };

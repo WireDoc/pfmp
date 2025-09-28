@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -73,11 +73,7 @@ export const TSPAllocationForm: React.FC<TSPAllocationFormProps> = ({ userId, on
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    loadTspAccounts();
-  }, [userId]);
-
-  const loadTspAccounts = async () => {
+  const loadTspAccounts = useCallback(async () => {
     try {
       const response = await accountService.getByUser(userId);
       const tspAccounts = response.data.filter(account => account.accountType === 'TSP');
@@ -90,12 +86,16 @@ export const TSPAllocationForm: React.FC<TSPAllocationFormProps> = ({ userId, on
           setAllocation(account.tspAllocation);
         }
       }
-    } catch (err) {
+  } catch {
       setError('Failed to load TSP accounts');
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    loadTspAccounts();
+  }, [loadTspAccounts]);
 
   const handleAllocationChange = (fundKey: keyof TSPAllocation, value: string) => {
     if (fundKey === 'lastUpdated') return;
@@ -155,7 +155,7 @@ export const TSPAllocationForm: React.FC<TSPAllocationFormProps> = ({ userId, on
       if (onUpdate) onUpdate();
       
       setTimeout(() => setSuccess(false), 3000);
-    } catch (err) {
+  } catch {
       setError('Failed to update TSP allocation');
     } finally {
       setSaving(false);

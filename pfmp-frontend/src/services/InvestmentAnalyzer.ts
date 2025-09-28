@@ -180,18 +180,19 @@ export class InvestmentAnalyzer implements IInvestmentAnalyzer {
    * Optimize allocation based on user profile and goals
    */
   async optimizeAllocation(amount: number, goal: FinancialGoal, userProfile: UserProfile): Promise<AllocationRecommendation[]> {
-    const marketConditions = await this.getMarketConditions();
-    const availableOptions = await this.getInvestmentOptions();
+  // market conditions currently not directly influencing allocation list; fetched for future use
+  await this.getMarketConditions();
+  const availableOptions = await this.getInvestmentOptions();
     
     // Determine allocation strategy based on goal and risk tolerance
-    let allocationStrategy = this.determineAllocationStrategy(goal, userProfile, marketConditions);
+  const allocationStrategy = this.determineAllocationStrategy(goal);
     
     return allocationStrategy.map(allocation => ({
       ...allocation,
       amount: (allocation.percentage / 100) * amount,
       specificOptions: availableOptions.filter(option => 
-        option.assetClass === allocation.assetClass &&
-        this.isOptionSuitableForProfile(option, userProfile, goal)
+    option.assetClass === allocation.assetClass &&
+  this.isOptionSuitableForProfile(option, userProfile, goal)
       ).slice(0, 3) // Top 3 options per asset class
     }));
   }
@@ -199,7 +200,7 @@ export class InvestmentAnalyzer implements IInvestmentAnalyzer {
   /**
    * Determine allocation strategy based on multiple factors
    */
-  private determineAllocationStrategy(goal: FinancialGoal, userProfile: UserProfile, marketConditions: MarketConditions): Omit<AllocationRecommendation, 'amount' | 'specificOptions'>[] {
+  private determineAllocationStrategy(goal: FinancialGoal): Omit<AllocationRecommendation, 'amount' | 'specificOptions'>[] {
     const timeHorizon = goal.timeHorizon;
     const riskTolerance = goal.riskTolerance;
     const goalType = goal.type;
@@ -279,7 +280,7 @@ export class InvestmentAnalyzer implements IInvestmentAnalyzer {
   /**
    * Analyze complete portfolio and provide recommendations
    */
-  async analyzePortfolio(userProfile: UserProfile, goals: FinancialGoal[], currentHoldings: any[]): Promise<InvestmentRecommendation[]> {
+  async analyzePortfolio(userProfile: UserProfile, goals: FinancialGoal[]): Promise<InvestmentRecommendation[]> {
     const recommendations: InvestmentRecommendation[] = [];
     
     for (const goal of goals) {
@@ -306,7 +307,7 @@ export class InvestmentAnalyzer implements IInvestmentAnalyzer {
         confidence: this.assessConfidence(allocations, yearsToGoal),
         reasoning: this.generateRecommendationReasoning(goal, userProfile, allocations),
         warnings: this.generateWarnings(goal, userProfile, allocations),
-        alternatives: this.generateAlternatives(goal, userProfile)
+  alternatives: this.generateAlternatives(goal)
       });
     }
 
@@ -396,7 +397,7 @@ export class InvestmentAnalyzer implements IInvestmentAnalyzer {
   /**
    * Generate alternative strategies
    */
-  private generateAlternatives(goal: FinancialGoal, userProfile: UserProfile): string[] {
+  private generateAlternatives(goal: FinancialGoal): string[] {
     const alternatives: string[] = [];
     
     if (goal.timeHorizon === 'medium') {

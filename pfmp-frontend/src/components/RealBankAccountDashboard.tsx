@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -30,6 +30,7 @@ import { usePlaidLink } from 'react-plaid-link';
 import { ProtectedRoute } from './ProtectedRoute';
 import { PlaidBankingService } from '../services/PlaidBankingService';
 import type { BankAccount, SpendingAnalysis } from '../services/PlaidBankingService';
+import type { InvestmentCapacitySummary } from '../types/components';
 import { useAuth } from '../contexts/AuthContext';
 
 /**
@@ -41,9 +42,35 @@ export const RealBankAccountDashboard: React.FC = () => {
   const [bankingService] = useState(new PlaidBankingService());
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [spendingAnalysis, setSpendingAnalysis] = useState<SpendingAnalysis | null>(null);
-  const [investmentCapacity, setInvestmentCapacity] = useState<any>(null);
+  const [investmentCapacity, setInvestmentCapacity] = useState<InvestmentCapacitySummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+
+  // Load account data and analysis (defined early so it can be a dependency of Plaid onSuccess)
+  const loadAccountData = useCallback(async (userId: string) => {
+    try {
+      setLoading(true);
+      const [accountsData, spendingData, capacityData] = await Promise.all([
+        bankingService.getUserAccounts(userId),
+        bankingService.analyzeSpending(userId),
+        bankingService.getInvestmentCapacity(userId)
+      ]);
+
+      setAccounts(accountsData);
+      setSpendingAnalysis(spendingData);
+      setInvestmentCapacity(capacityData);
+
+      console.log('📊 Account analysis complete:', {
+        accounts: accountsData.length,
+        netCashFlow: spendingData.netCashFlow,
+        investmentCapacity: capacityData.monthlyInvestableAmount
+      });
+    } catch (error) {
+      console.error('❌ Failed to load account data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [bankingService]);
 
   // Plaid Link configuration
   const plaidLinkConfig = {
@@ -67,55 +94,26 @@ export const RealBankAccountDashboard: React.FC = () => {
       } finally {
         setLoading(false);
       }
-    }, [bankingService, user]),
+    }, [bankingService, user, loadAccountData]),
     
-    onExit: useCallback((err: any, metadata: any) => {
+    onExit: useCallback((err: unknown, metadata: unknown) => {
       console.log('Plaid Link exit:', err, metadata);
     }, [])
   };
 
   const { open: openPlaidLink, ready: plaidReady } = usePlaidLink(plaidLinkConfig);
 
-  // Load account data and analysis
-  const loadAccountData = async (userId: string) => {
-    try {
-      setLoading(true);
-      
-      // Fetch accounts and analysis in parallel
-      const [accountsData, spendingData, capacityData] = await Promise.all([
-        bankingService.getUserAccounts(userId),
-        bankingService.analyzeSpending(userId),
-        bankingService.getInvestmentCapacity(userId)
-      ]);
-
-      setAccounts(accountsData);
-      setSpendingAnalysis(spendingData);
-      setInvestmentCapacity(capacityData);
-      
-      console.log('📊 Account analysis complete:', {
-        accounts: accountsData.length,
-        netCashFlow: spendingData.netCashFlow,
-        investmentCapacity: capacityData.monthlyInvestableAmount
-      });
-      
-    } catch (error) {
-      console.error('❌ Failed to load account data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Load demo data for testing
-  const loadDemoData = async () => {
+  const loadDemoData = useCallback(async () => {
     const userId = 'demo_user';
     await loadAccountData(userId);
     setIsConnected(true);
-  };
+  }, [loadAccountData]);
 
-  React.useEffect(() => {
-    // Load demo data automatically for development
+  useEffect(() => {
     loadDemoData();
-  }, []);
+  }, [loadDemoData]);
 
   const getAccountIcon = (account: BankAccount) => {
     if (account.type === 'credit') return <CreditCard />;
@@ -150,7 +148,7 @@ export const RealBankAccountDashboard: React.FC = () => {
           <Chip 
             label={account.subtype} 
             size="small" 
-            color={getAccountColor(account) as any}
+            color={getAccountColor(account) as 'primary' | 'success' | 'warning'}
           />
         </Box>
         
