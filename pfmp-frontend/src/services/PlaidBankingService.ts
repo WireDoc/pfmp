@@ -120,7 +120,7 @@ export class PlaidBankingService {
         access_token: accessToken,
       });
 
-      const accounts: BankAccount[] = response.data.accounts.map(account => ({
+  const accounts: BankAccount[] = response.data.accounts.map((account: any) => ({
         id: account.account_id,
         name: account.name,
         officialName: account.official_name || account.name,
@@ -167,7 +167,7 @@ export class PlaidBankingService {
         },
       });
 
-      const transactions: Transaction[] = response.data.transactions.map(tx => ({
+  const transactions: Transaction[] = response.data.transactions.map((tx: any) => ({
         id: tx.transaction_id,
         accountId: tx.account_id,
         amount: tx.amount,

@@ -52,13 +52,18 @@ export interface BankRates {
  */
 export class FinancialDataService {
   private readonly alphaVantageKey: string = 'demo';
-  private readonly _finnhubKey: string = 'demo';
+  // Reserved for future Finnhub integration
+  // Future: Finnhub API key integration (removed until implemented to keep build clean)
+  // private readonly finnhubKey: string = 'demo';
   private readonly coinGeckoBaseUrl = 'https://api.coingecko.com/api/v3';
-  private readonly _fredBaseUrl = 'https://api.stlouisfed.org/fred/series/observations';
+  // Reserved for future FRED API integration
+  // Future: FRED API base URL (removed until implemented)
+  // private readonly fredBaseUrl = 'https://api.stlouisfed.org/fred/series/observations';
   
   // Cache to avoid excessive API calls
   private cache = new Map<string, { data: any; timestamp: number }>();
   private readonly cacheTimeout = 60000; // 1 minute
+
 
   /**
    * Get real-time stock data from Alpha Vantage

@@ -1,5 +1,7 @@
 # MUI Grid Migration & Build Error Status
 
+> Rebuild Context (Added 2025-09-27): Frontend higher-order orchestration (routing, onboarding, intelligence dashboards, alerts UI) entered a structured rebuild phase (Wave 0) after completion of Grid v2 migration & auth refactor. Migration details below remain accurate; any previously implied full intelligence/dashboard UI is temporarily absent by design and will return in Waves 1–4 per `REBUILD-WAVE-PLAN.md`.
+
 ## Migration Completion Summary
 **Date**: September 27, 2025  
 **Branch**: `mui-grid-migration-fixes`  

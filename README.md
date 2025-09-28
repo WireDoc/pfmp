@@ -1,38 +1,53 @@
 # PFMP - Personal Financial Management Platform
 
+> ⚠️ **REBUILD NOTICE (Wave 0 – Documentation Alignment)**  
+> Frontend orchestration layers (routing shell, onboarding wizard, protected layout, intelligence dashboards, alert UI) are currently being **reconstructed** after discovering higher-order components were missing. Backend APIs, data models, and several advanced leaf components (e.g., `SmartInvestmentRecommendations`, `RealBankAccountDashboard`) remain intact. This README now reflects the *current minimal runtime* plus the structured rebuild plan.
+
 An AI-powered financial advisor platform designed for government employees and military members, providing personalized investment recommendations, portfolio management, and retirement planning with specialized TSP and government benefit integration.
 
-## 🚀 Features
+## 🚀 Feature Snapshot (Current vs Rebuild)
 
-### AI-Powered Intelligence
-- **Azure OpenAI Integration**: GPT-4 powered recommendations and analysis
-- **Age-Based Recommendations**: Tailored advice for different career stages (21-year-old vs 43-year-old scenarios)
-- **Demographics-Aware**: Considers employment type, service computation date, and retirement timeline
-- **Smart Task Generation**: Converts actionable alerts into trackable financial tasks
-- **Portfolio Analysis**: AI-driven insights based on individual user profiles
+### Currently Active (Verified 2025-09-27)
+- .NET 9 backend: Users, Accounts, Goals, Income Sources, Alerts, Tasks, AI endpoints
+- TSP allocation: Full 16-fund system with preset strategies
+- Alerts backend lifecycle (Read / Dismissed / Active) + alert → task linkage
+- Task management backend + status transitions
+- Auth: Custom `AuthProvider` + development bypass (MSAL wrapper removed; direct `@azure/msal-browser` retained)
+- Leaf frontend components still present: `SmartInvestmentRecommendations`, `RealBankAccountDashboard`, `ProtectedDashboardSections`
 
-### Government Employee Focused
-- **Complete TSP Management**: All 16 funds (G, F, C, S, I + 11 Lifecycle funds)
-- **Service Computation Date**: OPM retirement eligibility calculations
-- **VA Disability Integration**: Guaranteed income tracking for disabled veterans
-- **Federal/Military Support**: Specialized features for FERS, CSRS, and military retirement systems
-- **Pay Grade Integration**: GS, O, E, and other federal pay systems
+### Missing During Rebuild (To Be Recreated)
+- Protected routing guard & routed layout shell
+- Onboarding wizard (`WelcomeOnboardingFlow`) + `UserSetupContext`
+- Setup progress tracker & resumable onboarding state UI
+- Market dashboards (`LiveMarketDashboard`, `MarketIntelligencePanel`)
+- `FinancialIntelligenceCenter` aggregation hub UI
+- Frontend `SmartAlertsSystem` (visual + interaction layer)
+- Auth UI suite: AuthHeader, SignInPrompt, UserProfileCard, AuthDebugPanel
+- Dual-AI consensus pipeline surface (advisor + validator)
+- Developer diagnostics / debug panel
 
-### Intelligent Alert System
-- **Granular Alert Lifecycle**: Created → Read → Dismissed (reversible) → Expired
-- **Task Integration**: Convert actionable alerts directly into trackable tasks
-- **Category System**: Portfolio, Goal, Transaction, Performance, Security, Tax, Rebalancing
-- **Severity Levels**: Low, Medium, High, Critical with appropriate task prioritization
+### Strategic Additions Planned
+- Dual-AI advisor abstraction (Primary: GPT-X future | Validator: Claude Sonnet) with consensus & policy rule evaluation
+- Formal Wave-based modular reconstruction for auditability & controlled scope
+- Feature flags for cost-bearing AI calls & experimental intelligence modules
+
+### Rebuild Guiding Principles
+1. Preserve validated backend + leaf logic; rebuild orchestration only
+2. Narrow-scoped waves with explicit acceptance criteria
+3. Introduce dual-AI abstraction before scaling AI usage costs
+4. Defer heavy performance work (beyond existing chunks) to final wave
+5. Maintain dev auth bypass until onboarding wizard stabilizes
 
 ## 🏗️ Architecture
 
-### Technology Stack
-- **Frontend**: React 18 + TypeScript, Vite, Material-UI
-- **Backend**: .NET 9 Web API, Entity Framework Core, SignalR
-- **Database**: PostgreSQL 15 with Redis caching
-- **AI Services**: Azure OpenAI Service (GPT-5) + Anthropic Claude API
-- **Infrastructure**: Azure App Service, Static Web Apps, Key Vault
-- **Development**: Windows + Synology NAS for local development
+### Technology Stack (Practical Current State)
+- **Frontend Runtime**: React 19 + TypeScript + Vite (minimal shell while rebuilding)
+- **UI Library**: MUI v7 (Grid v2 migration complete)
+- **Backend**: .NET 9 Web API (stable multi-domain controllers)
+- **Database**: PostgreSQL 15 (Synology NAS) – full schema intact
+- **AI Architecture**: Prepared for Azure OpenAI + Anthropic; dual-AI validator pattern scheduled Wave 5
+- **Infra Path**: Hybrid local dev → Azure (unchanged strategic direction)
+- **Build Perf**: Manual Rollup `manualChunks` + selective lazy boundaries
 
 ### Development Environment
 - **API**: .NET 9 Web API running on http://0.0.0.0:5052
@@ -351,8 +366,22 @@ POST /api/profile/setup/reset/{userId}
 
 ---
 
-**Last Updated**: September 26, 2025  
-**Current Version**: v0.6.0-alpha  
-**Development Phase**: Phase 5 - Market Data Integration & Real-Time Portfolio Valuation (✅ **100% COMPLETE**)
+## 🧭 Rebuild Waves Overview
 
-**🎯 Next Development Focus**: Enhanced Frontend Dashboard with MSAL Authentication Integration
+| Wave | Focus | Key Deliverables |
+|------|-------|------------------|
+| 0 | Documentation Alignment | Updated README, log entry, wave plan doc, migration addendum |
+| 1 | Routing & Protection | React Router setup, `ProtectedRoute`, layout frame, nav skeleton, suspense boundaries |
+| 2 | User Setup Layer | `UserSetupContext`, multi-step onboarding wizard, progress persistence, resumable steps |
+| 3 | Auth & Profile UX | AuthHeader, SignInPrompt, ProfileCard, AuthDebugPanel, Dev diagnostics panel |
+| 4 | Intelligence Dashboards | Market dashboards, FinancialIntelligenceCenter, SmartAlertsSystem UI, alert-task UX integration |
+| 5 | Dual-AI Pipeline | Advisor + Validator abstraction, consensus scoring, policy rule evaluation hooks |
+| 6 | Performance & A11y | Bundle audit, deeper code splitting, accessibility pass, test harness expansion |
+
+Status: Wave 0 in progress – implementation code changes deliberately deferred until documentation and planning artifacts are committed for traceability.
+
+**Last Updated**: September 27, 2025  
+**Current Version**: v0.6.1-alpha (Rebuild Wave 0)  
+**Rebuild Mode**: Frontend orchestration reconstruction (backend stable)
+
+**🎯 Immediate Focus**: Complete Wave 0 docs → start Wave 1 (routing & shell reintroduction)

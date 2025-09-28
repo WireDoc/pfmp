@@ -1,6 +1,7 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
-import { Dashboard } from './components/Dashboard';
+import { Suspense, lazy } from 'react';
+const Dashboard = lazy(() => import('./components/Dashboard'));
 
 const theme = createTheme({
   palette: {
@@ -38,7 +39,9 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Dashboard userId={1} />
+      <Suspense fallback={<div style={{padding:40}}>Loading dashboard...</div>}>
+        <Dashboard userId={1} />
+      </Suspense>
     </ThemeProvider>
   );
 }

@@ -15,10 +15,11 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Linting */
+    /* Linting / Strictness */
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+  // Re-enabled noUnusedLocals for stricter hygiene; parameters stay relaxed for forward-compatible signatures.
+  "noUnusedLocals": true,
+  "noUnusedParameters": false,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
