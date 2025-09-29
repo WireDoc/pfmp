@@ -3,7 +3,6 @@ import {
   Container,
   Typography,
   Box,
-  Grid,
   Paper,
   Tabs,
   Tab,
@@ -23,6 +22,7 @@ import {
   Dashboard as DashboardIcon,
   Assignment,
   NotificationImportant,
+  PsychologyAlt,
 } from '@mui/icons-material';
 import { TSPAllocationForm } from './forms/TSPAllocationForm';
 import { EmergencyFundTracker } from './forms/EmergencyFundTracker';
@@ -30,6 +30,7 @@ import { CashAccountManager } from './forms/CashAccountManager';
 import { VADisabilityTracker } from './forms/VADisabilityTracker';
 import { TaskDashboard } from './TaskDashboard';
 import { AlertsDashboard } from './AlertsDashboard';
+import AdvicePanel from './AdvicePanel';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -73,7 +74,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId = 1 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setCurrentTab(newValue);
   };
 
@@ -120,6 +121,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId = 1 }) => {
       label: 'Alerts',
       icon: <NotificationImportant />,
       component: <AlertsDashboard userId={userId} key={`alerts-${refreshKey}`} />
+    },
+    // Temporary Wave 1 Advice tab (can be removed later)
+    {
+      label: 'Advice (Temp)',
+      icon: <PsychologyAlt />,
+      component: <AdvicePanel userId={userId} key={`advice-${refreshKey}`} />
     }
   ];
 
@@ -208,8 +215,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId = 1 }) => {
           <Typography variant="h6" gutterBottom>
             Quick Overview
           </Typography>
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Box sx={{
+            display: 'grid',
+            gap: 2,
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: 'repeat(2, 1fr)',
+              md: 'repeat(4, 1fr)'
+            }
+          }}>
+            <Box>
               <Paper elevation={1} sx={{ p: 2, textAlign: 'center' }}>
                 <TrendingUp color="primary" fontSize="large" />
                 <Typography variant="h6" color="primary">
@@ -219,8 +234,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId = 1 }) => {
                   Manage your Thrift Savings Plan fund allocation for optimal retirement growth
                 </Typography>
               </Paper>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            </Box>
+            <Box>
               <Paper elevation={1} sx={{ p: 2, textAlign: 'center' }}>
                 <Savings color="success" fontSize="large" />
                 <Typography variant="h6" color="success.main">
@@ -230,8 +245,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId = 1 }) => {
                   Track progress toward your emergency fund target and optimize cash placement
                 </Typography>
               </Paper>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            </Box>
+            <Box>
               <Paper elevation={1} sx={{ p: 2, textAlign: 'center' }}>
                 <AccountBalance color="info" fontSize="large" />
                 <Typography variant="h6" color="info.main">
@@ -241,8 +256,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId = 1 }) => {
                   Optimize your cash accounts with APR tracking and yield recommendations
                 </Typography>
               </Paper>
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            </Box>
+            <Box>
               <Paper elevation={1} sx={{ p: 2, textAlign: 'center' }}>
                 <LocalHospital color="warning" fontSize="large" />
                 <Typography variant="h6" color="warning.main">
@@ -252,8 +267,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId = 1 }) => {
                   Track VA disability compensation and other veteran benefits
                 </Typography>
               </Paper>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Box>
 
         {/* Key Features */}
@@ -261,8 +276,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId = 1 }) => {
           <Typography variant="h6" gutterBottom>
             Platform Features
           </Typography>
-          <Grid container spacing={2}>
-            <Grid size={{ xs: 12, md: 6 }}>
+          <Box sx={{
+            display: 'grid',
+            gap: 2,
+            gridTemplateColumns: {
+              xs: '1fr',
+              md: '1fr 1fr'
+            }
+          }}>
+            <Box>
               <Typography variant="subtitle2" gutterBottom color="primary">
                 Government Employee Focus:
               </Typography>
@@ -273,8 +295,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId = 1 }) => {
                 <br />
                 • Federal employee benefit integration
               </Typography>
-            </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
+            </Box>
+            <Box>
               <Typography variant="subtitle2" gutterBottom color="success.main">
                 Cash Optimization:
               </Typography>
@@ -285,10 +307,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId = 1 }) => {
                 <br />
                 • APR comparison and yield optimization
               </Typography>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Box>
       </Container>
     </>
   );
 };
+
+export default Dashboard;

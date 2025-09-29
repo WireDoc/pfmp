@@ -4,16 +4,12 @@ import {
   Typography,
   Card,
   CardContent,
-  Button,
   Alert,
 } from '@mui/material';
-import {
-  Add as AddIcon,
-} from '@mui/icons-material';
 import { AlertCard } from './AlertCard';
 
 interface AlertsDashboardProps {
-  userId: number;
+  userId: number; // retained for future backend integration (currently unused)
 }
 
 // Sample alert data for demonstration
@@ -54,6 +50,9 @@ const sampleAlerts = [
 ];
 
 export const AlertsDashboard: React.FC<AlertsDashboardProps> = ({ userId }) => {
+  // Touch userId to intentionally mark as used without altering behavior.
+  // This preserves the prop contract for upcoming API wiring.
+  void userId;
   const [alerts, setAlerts] = useState(sampleAlerts);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 

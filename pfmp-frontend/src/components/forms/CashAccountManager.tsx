@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -6,7 +6,6 @@ import {
   Typography,
   TextField,
   Button,
-  Grid,
   Alert,
   Box,
   Divider,
@@ -28,13 +27,13 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Grid,
 } from '@mui/material';
 import {
   Add,
   Edit,
   TrendingUp,
   TrendingDown,
-  AccountBalance,
 } from '@mui/icons-material';
 import type { Account } from '../../services/api';
 import { AccountType, AccountCategory, accountService } from '../../services/api';
@@ -79,11 +78,7 @@ export const CashAccountManager: React.FC<CashAccountManagerProps> = ({ userId, 
     { value: 'CertificateOfDeposit', label: 'Certificate of Deposit (CD)' },
   ];
 
-  useEffect(() => {
-    loadCashAccounts();
-  }, [userId]);
-
-  const loadCashAccounts = async () => {
+  const loadCashAccounts = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -103,7 +98,7 @@ export const CashAccountManager: React.FC<CashAccountManagerProps> = ({ userId, 
       try {
         const optimizationResponse = await accountService.getCashOptimization(userId);
         setOptimizationData(optimizationResponse.data);
-      } catch (optError) {
+      } catch {
         // If optimization endpoint fails, calculate basic data locally
         const totalCash = cashAccounts.reduce((sum: number, acc: Account) => sum + acc.currentBalance, 0);
         const accountsWithAPR = cashAccounts.filter((acc: Account) => acc.interestRate && acc.interestRate > 0);
@@ -132,7 +127,11 @@ export const CashAccountManager: React.FC<CashAccountManagerProps> = ({ userId, 
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    loadCashAccounts();
+  }, [loadCashAccounts]);
 
   const generateBasicRecommendations = (accounts: Account[], totalCash: number, bestAPRAccount: Account | null): string[] => {
     const recommendations = [];

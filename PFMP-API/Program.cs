@@ -31,6 +31,9 @@ namespace PFMP_API
             // Add Portfolio Valuation Service
             builder.Services.AddScoped<IPortfolioValuationService, PortfolioValuationService>();
 
+            // Add Advice Service (Wave 1 scaffold)
+            builder.Services.AddScoped<IAdviceService, AdviceService>();
+
             // Add Authentication Services
             builder.Services.AddScoped<IPasswordHashService, PasswordHashService>();
             builder.Services.AddHttpClient<IAuthenticationService, AuthenticationService>();

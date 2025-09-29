@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -18,12 +18,7 @@ import {
   Select,
   MenuItem,
 } from '@mui/material';
-import {
-  TrendingUp,
-  AccountBalance,
-  Warning,
-  CheckCircle,
-} from '@mui/icons-material';
+import { TrendingUp, AccountBalance, Warning, CheckCircle } from '@mui/icons-material';
 import type { Account, Goal } from '../../services/api';
 import { accountService, goalService, userService } from '../../services/api';
 
@@ -53,11 +48,7 @@ export const EmergencyFundTracker: React.FC<EmergencyFundTrackerProps> = ({ user
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    loadEmergencyFundData();
-  }, [userId]);
-
-  const loadEmergencyFundData = async () => {
+  const loadEmergencyFundData = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -118,7 +109,11 @@ export const EmergencyFundTracker: React.FC<EmergencyFundTrackerProps> = ({ user
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, targetMonths]);
+
+  useEffect(() => {
+    loadEmergencyFundData();
+  }, [loadEmergencyFundData]);
 
   const handleUpdateBalance = async () => {
     if (!selectedAccountId || !updateAmount) {
@@ -217,12 +212,22 @@ export const EmergencyFundTracker: React.FC<EmergencyFundTrackerProps> = ({ user
     }
   };
 
-  const getStatusColor = (status: string) => {
+  type StatusChipColor = 'default' | 'error' | 'warning' | 'success';
+  type StatusProgressColor = 'error' | 'warning' | 'success';
+  const getStatusColor = (status: string): StatusChipColor => {
     switch (status) {
       case 'insufficient': return 'error';
       case 'adequate': return 'warning';
       case 'excellent': return 'success';
       default: return 'default';
+    }
+  };
+  const getProgressColor = (status: string): StatusProgressColor => {
+    switch (status) {
+      case 'insufficient': return 'error';
+      case 'adequate': return 'warning';
+      case 'excellent': return 'success';
+      default: return 'success';
     }
   };
 
@@ -265,7 +270,7 @@ export const EmergencyFundTracker: React.FC<EmergencyFundTrackerProps> = ({ user
           <Chip
             icon={getStatusIcon(data.status)}
             label={data.status.charAt(0).toUpperCase() + data.status.slice(1)}
-            color={getStatusColor(data.status) as any}
+            color={getStatusColor(data.status)}
             variant="outlined"
           />
         }
@@ -297,7 +302,7 @@ export const EmergencyFundTracker: React.FC<EmergencyFundTrackerProps> = ({ user
             variant="determinate"
             value={progressPercentage}
             sx={{ height: 8, borderRadius: 4 }}
-            color={getStatusColor(data.status) as any}
+            color={getProgressColor(data.status)}
           />
           <Typography variant="caption" display="block" mt={1}>
             {progressPercentage.toFixed(1)}% of target reached
