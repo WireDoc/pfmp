@@ -507,6 +507,74 @@ Quoting Rules Cheat:
 - Single quotes for string literals inside SQL
 - For complex multi-line queries: use a here-string: `@" ... "@`
 
+### PostgreSQL Inline psql Strategies (PowerShell)
+
+Mixed‑case identifiers and quoting inside PowerShell can cause confusion. Use one of these three approaches:
+
+#### Solution 1 – Stop Parsing Operator (`--%`) (Best for quick one‑offs)
+PowerShell stops interpreting anything after `--%` and passes it literally to `psql`.
+```powershell
+psql "postgresql://pfmp_user:MediaPword.1@192.168.1.108:5433/pfmp_dev" --% -c "SELECT COUNT(*) FROM \"Advice\";"
+```
+Pros: Easiest mental model.  
+Cons: You cannot use PowerShell variables after `--%` on the same line.
+
+#### Solution 2 – Pre‑Escaped Variable String (Best for scriptable dynamic queries)
+Put the SQL in a single‑quoted variable and escape every double quote with a backslash so that `psql` receives `\"` and converts it to `"` at parse time:
+```powershell
+$sql = 'SELECT COUNT(*) FROM \"Advice\";'
+psql "postgresql://pfmp_user:MediaPword.1@192.168.1.108:5433/pfmp_dev" -c $sql
+```
+Explanation:
+1. PowerShell treats the content literally (single quotes = no interpolation).
+2. `psql` sees `\"` → interprets it as a literal quoted identifier `"Advice"`.
+
+⚠️ Critical Warning (Most Common Failure Here)
+DO NOT wrap the above in another PowerShell invocation like:
+```powershell
+powershell -Command "$sql = 'SELECT COUNT(*) FROM \"Advice\";'; psql \"postgresql://.../pfmp_dev\" -c $sql"
+```
+Why this breaks:
+- The outer `powershell -Command` causes a SECOND round of parsing; escaping and quoting are re‑interpreted.
+- Backslashes protecting the quotes can be eaten or transformed, so the inner command that finally reaches `psql` loses the required double quotes around mixed‑case identifiers.
+- Tokens like `SELECT`, `COUNT(*)`, or `FROM` can be mis-seen as separate PowerShell arguments (leading to `CommandNotFoundException` on fragments like `*` or `FROM`).
+- You may also see errors such as: `The term 'SELECT' is not recognized...` or relation not found because the identifier became unquoted (Postgres lowercased it to `advice`).
+
+Correct Pattern: Run the two-line sequence directly inside an interactive PowerShell session (or a single script file), NOT through an extra nested `powershell -Command` wrapper.
+```powershell
+$sql = 'SELECT COUNT(*) FROM \"Advice\";'
+psql "postgresql://pfmp_user:MediaPword.1@192.168.1.108:5433/pfmp_dev" -c $sql
+```
+If you MUST launch from another process (rare), place the SQL in a `.sql` file and use Solution 3 instead of trying to inline through multiple command layers.
+
+#### Solution 3 – External File (Best for anything longer or reusable)
+Place the query in a `.sql` / `.pgsql` file and run with `-f`:
+```powershell
+psql "postgresql://pfmp_user:MediaPword.1@192.168.1.108:5433/pfmp_dev" -f .\scripts\queries\querytest.pgsql
+```
+Pros: Easiest editing, versioned with the repo, works with editor integrations (F5 in extensions).  
+Cons: Slightly more friction for trivial one‑liners.
+
+#### Recommendation Summary
+| Scenario | Recommended |
+|----------|------------|
+| One-off ad-hoc count | Solution 1 (`--%`) |
+| Building query in parts / loops | Solution 2 (variable) |
+| Complex multi-line or shared queries | Solution 3 (file) |
+
+#### Notes & Pitfalls
+- Don’t mix `--%` with variables you expect PowerShell to expand afterward; it won’t.
+- If you forget to escape quotes in Solution 2, PowerShell may strip them or `psql` will mis-parse.
+- For here-strings with multi-line SQL, you can still use Solution 2 style:
+	```powershell
+	$multi = @'
+	SELECT \"AdviceId\", \"UserId\" FROM \"Advice\" ORDER BY \"CreatedAt\" DESC LIMIT 5;
+	'@
+	psql "postgresql://pfmp_user:MediaPword.1@192.168.1.108:5433/pfmp_dev" -c $multi
+	```
+- If errors persist, re-run with `--echo-all` flag to see the exact SQL `psql` thinks it received.
+
+
 
 ### Common Issues:
 
