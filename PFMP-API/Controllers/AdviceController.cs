@@ -119,5 +119,30 @@ namespace PFMP_API.Controllers
                 return StatusCode(500, "Failed to reject advice");
             }
         }
+
+        /// <summary>
+        /// Convert an Accepted advice into a task (idempotent if already converted).
+        /// </summary>
+        [HttpPost("{adviceId:int}/convert-to-task")]
+        public async Task<ActionResult<Advice>> ConvertToTask(int adviceId)
+        {
+            if (adviceId <= 0) return BadRequest("Invalid advice id");
+            try
+            {
+                var advice = await _adviceService.ConvertAdviceToTaskAsync(adviceId);
+                if (advice == null) return NotFound();
+                return Ok(advice);
+            }
+            catch (InvalidOperationException ioe)
+            {
+                _logger.LogWarning(ioe, "Invalid conversion for advice {AdviceId}", adviceId);
+                return Conflict(ioe.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to convert advice {AdviceId} to task", adviceId);
+                return StatusCode(500, "Failed to convert advice");
+            }
+        }
     }
 }

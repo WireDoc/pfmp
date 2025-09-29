@@ -33,6 +33,7 @@ namespace PFMP_API
 
             // Add Advice Service (Wave 1 scaffold)
             builder.Services.AddScoped<IAdviceService, AdviceService>();
+            builder.Services.AddScoped<IAdviceValidator, AdviceValidator>();
 
             // Add Authentication Services
             builder.Services.AddScoped<IPasswordHashService, PasswordHashService>();

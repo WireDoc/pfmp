@@ -1,6 +1,7 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { adviceService } from '../services/api';
 import type { Advice } from '../services/api';
+import { StatusBadge } from './StatusBadge';
 
 interface AdviceListProps {
   userId: number;
@@ -38,35 +39,6 @@ const AdviceList: React.FC<AdviceListProps> = ({ userId, autoRefreshMs }) => {
     return <div>No user selected.</div>;
   }
 
-  const badgeStyleFor = useCallback((status: Advice['status']): React.CSSProperties => {
-    const base: React.CSSProperties = {
-      display: 'inline-block',
-      padding: '0.15rem 0.55rem',
-      borderRadius: '999px',
-      fontSize: '0.65rem',
-      fontWeight: 600,
-      letterSpacing: 0.5,
-      border: '1px solid transparent'
-    };
-    switch (status) {
-      case 'Accepted':
-        return { ...base, background: '#e8f5e9', color: '#1b5e20', borderColor: '#1b5e20' };
-      case 'Rejected':
-        return { ...base, background: '#ffebee', color: '#b71c1c', borderColor: '#b71c1c' };
-      default: // Proposed or any future unhandled
-        return { ...base, background: '#e3f2fd', color: '#0d47a1', borderColor: '#0d47a1' };
-    }
-  }, []);
-
-  const statusLabel = useCallback((status: Advice['status']) => {
-    switch (status) {
-      case 'Accepted': return 'ACCEPTED';
-      case 'Rejected': return 'REJECTED';
-      case 'Proposed': return 'PROPOSED';
-      default: return status?.toUpperCase?.() || 'UNKNOWN';
-    }
-  }, []);
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -82,7 +54,7 @@ const AdviceList: React.FC<AdviceListProps> = ({ userId, autoRefreshMs }) => {
           <li key={a.adviceId} style={{ border: '1px solid #ccc', padding: '0.75rem', borderRadius: 6 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
               <div style={{ fontSize: '0.7rem', opacity: 0.7 }}>#{a.adviceId} · {new Date(a.createdAt).toLocaleString()}</div>
-              <span style={badgeStyleFor(a.status)}>{statusLabel(a.status)}</span>
+              <StatusBadge status={a.status} />
             </div>
             {a.theme && <div style={{ fontSize: '0.75rem', fontWeight: 600 }}>Theme: {a.theme}</div>}
             <p style={{ whiteSpace: 'pre-wrap', marginTop: '0.5rem' }}>{a.consensusText || '(empty)'}</p>
@@ -115,6 +87,25 @@ const AdviceList: React.FC<AdviceListProps> = ({ userId, autoRefreshMs }) => {
                   }}
                   style={{ padding: '0.35rem 0.7rem', background: '#b71c1c', color: '#fff', border: 'none', borderRadius: 4 }}
                 >Reject</button>
+              </div>
+            )}
+            {a.status === 'Accepted' && !a.linkedTaskId && (
+              <div style={{ marginTop: '0.5rem' }}>
+                <button
+                  onClick={async () => {
+                    const previous = a.status;
+                    setItems(prev => prev.map(it => it.adviceId === a.adviceId ? { ...it, status: 'ConvertedToTask' } : it));
+                    try {
+                      await adviceService.convertToTask(a.adviceId);
+                      // refresh to get linkedTaskId
+                      await load();
+                    } catch {
+                      setItems(prev => prev.map(it => it.adviceId === a.adviceId ? { ...it, status: previous } : it));
+                      setError('Failed to convert advice');
+                    }
+                  }}
+                  style={{ padding: '0.35rem 0.7rem', background: '#6a1b9a', color: '#fff', border: 'none', borderRadius: 4 }}
+                >Convert to Task</button>
               </div>
             )}
           </li>
