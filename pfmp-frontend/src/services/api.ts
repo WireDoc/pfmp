@@ -241,4 +241,27 @@ export const taskService = {
   delete: (id: number) => apiClient.delete(`/tasks/${id}`),
 };
 
+// Advice types (Wave 1)
+export interface Advice {
+  adviceId: number;
+  userId: number;
+  theme?: string | null;
+  status: string; // Proposed | Accepted | Rejected | ConvertedToTask
+  consensusText: string;
+  confidenceScore: number;
+  primaryJson?: string | null;
+  validatorJson?: string | null;
+  violationsJson?: string | null;
+  linkedTaskId?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GenerateAdviceResponse extends Advice {}
+
+export const adviceService = {
+  generate: (userId: number) => apiClient.post<GenerateAdviceResponse>(`/Advice/generate/${userId}`, {}),
+  getForUser: (userId: number) => apiClient.get<Advice[]>(`/Advice/user/${userId}`),
+};
+
 export default apiClient;

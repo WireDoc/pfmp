@@ -407,6 +407,107 @@ function git-safe-add {
 last updated: (auto) rewrite session for cleanup and clarity
 backup of previous corrupted file: `INSTRUCTIONS_OLD.md`
 
+### Advice (Wave 1) – Generation & Listing
+
+Wave 1 introduces a minimal Advice domain: store AI portfolio analysis text entries per user.
+
+Backend Endpoints (already live):
+- `POST /api/Advice/generate/{userId}` → triggers AI analysis, persists an Advice row, returns it.
+- `GET  /api/Advice/user/{userId}` → returns all advice for the user (newest first).
+
+Frontend Additions:
+- Component: `src/components/GenerateAdviceButton.tsx` (props: `userId`, optional `onGenerated`).
+- Component: `src/components/AdviceList.tsx` (props: `userId`, optional `autoRefreshMs`).
+- Service API: `adviceService.generate(userId)`, `adviceService.getForUser(userId)` added to `src/services/api.ts`.
+
+Example Integration Snippet:
+```tsx
+import AdviceList from './components/AdviceList';
+import GenerateAdviceButton from './components/GenerateAdviceButton';
+
+export const AdvicePanel: React.FC<{ userId: number }> = ({ userId }) => (
+	<div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+		<GenerateAdviceButton userId={userId} onGenerated={() => {/* parent can trigger refresh if needed */}} />
+		<AdviceList userId={userId} autoRefreshMs={60000} />
+	</div>
+);
+```
+
+Generating New Advice (manual test):
+```powershell
+Invoke-WebRequest -Uri "http://localhost:5052/api/Advice/generate/1" -Method POST | Select-Object -ExpandProperty Content
+```
+
+List Advice (PowerShell quick check):
+```powershell
+Invoke-WebRequest -Uri "http://localhost:5052/api/Advice/user/1" | Select-Object -ExpandProperty Content
+```
+
+Database Helper SQL (for ad‑hoc inspection):
+- `scripts/queries/list_advice.sql` – recent advice rows
+- `scripts/queries/list_users.sql` – first 20 users
+- `scripts/queries/counts.sql` – simple entity counts (users, advice)
+
+Run helper file inside psql:
+```powershell
+psql "postgresql://pfmp_user:MediaPword.1@192.168.1.108:5433/pfmp_dev" -f .\scripts\queries\list_advice.sql
+```
+
+Inline example (needs quoted identifiers due to mixed case):
+```powershell
+psql "postgresql://pfmp_user:MediaPword.1@192.168.1.108:5433/pfmp_dev" -c "SELECT \"AdviceId\", \"UserId\", \"Status\" FROM \"Advice\" ORDER BY \"CreatedAt\" DESC LIMIT 5;"
+```
+
+Planned Future Waves (not yet implemented here):
+- Validator model output storage (`ValidatorJson`)
+- Rule violations (`ViolationsJson`)
+- Conversion of accepted advice into tasks (link via `LinkedTaskId`)
+- Session transcript & dual-model consensus pipeline
+
+Current Safety Limits:
+- `ConsensusText` truncated at 8000 chars server-side as a guard
+- Basic exception handling returns fallback text when AI call fails
+
+If UI shows empty state: ensure at least one generation POST has succeeded and userId is correct.
+
+
+### PostgreSQL Quick Query (Inline vs Script)
+You can run ad‑hoc Postgres queries without creating a `.sql` file.
+
+Inline (connection URI):
+```powershell
+psql "postgresql://pfmp_user:MediaPword.1@192.168.1.108:5433/pfmp_dev" -c "SELECT \"UserId\", \"Email\" FROM \"Users\" LIMIT 3;"
+```
+
+If quoting becomes messy, drop the SQL into a file and use `-f`:
+```powershell
+psql "postgresql://pfmp_user:MediaPword.1@192.168.1.108:5433/pfmp_dev" -f .\query_users.sql
+```
+
+Helper script (already added): `scripts/psql-inline-example.ps1`
+```powershell
+./scripts/psql-inline-example.ps1 -Sql 'SELECT COUNT(*) FROM "Users";'
+```
+
+Recommended convenience wrapper (add to profile or future script):
+```powershell
+function Invoke-PgQuery {
+	param(
+		[Parameter(Mandatory)] [string]$Sql,
+		[string]$Conn = 'postgresql://pfmp_user:MediaPword.1@192.168.1.108:5433/pfmp_dev'
+	)
+	& psql --dbname $Conn --command $Sql
+}
+
+Invoke-PgQuery -Sql 'SELECT COUNT(*) FROM "Advice";'
+```
+
+Quoting Rules Cheat:
+- Prefer double quotes around identifiers (they are case sensitive in our schema)
+- Single quotes for string literals inside SQL
+- For complex multi-line queries: use a here-string: `@" ... "@`
+
+
 ### Common Issues:
 
 1. **`&&` syntax error**: Replace with `;`│   ├── Azure-Config-Instructions.ps1 # Azure AD setup guide$body = @{

@@ -1,0 +1,1 @@
+SELECT "UserId","Email","FirstName","LastName" FROM "Users" ORDER BY "UserId" LIMIT 10;
