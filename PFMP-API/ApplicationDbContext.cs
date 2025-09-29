@@ -31,6 +31,9 @@ namespace PFMP_API
         // Task Management
         public DbSet<UserTask> Tasks { get; set; }
 
+    // Advisory / Recommendations
+    public DbSet<Advice> Advice { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -189,6 +192,21 @@ namespace PFMP_API
                 
                 entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Description).IsRequired();
+            });
+
+            // Advice Configuration
+            modelBuilder.Entity<Advice>(entity =>
+            {
+                entity.HasKey(e => e.AdviceId);
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(40);
+                entity.Property(e => e.Theme).HasMaxLength(100);
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.CreatedAt);
             });
 
             // Configure decimal precision globally
