@@ -199,8 +199,26 @@ export const incomeSourceService = {
   getVADisabilityInfo: (userId: number) => apiClient.get(`/IncomeSources/va-disability/user/${userId}`),
   getSummary: (userId: number) => apiClient.get(`/IncomeSources/summary/user/${userId}`),
   getById: (id: number) => apiClient.get(`/IncomeSources/${id}`),
-  create: (incomeSource: any) => apiClient.post('/IncomeSources', incomeSource),
-  update: (id: number, incomeSource: any) => apiClient.put(`/IncomeSources/${id}`, incomeSource),
+  // Minimal IncomeSource shape; extend as fields are actually consumed in UI
+  create: (incomeSource: {
+    userId: number;
+    sourceType: string;
+    amount: number;
+    description?: string;
+    frequency?: string;
+    // index signature to remain flexible during transition
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: any;
+  }) => apiClient.post('/IncomeSources', incomeSource),
+  update: (id: number, incomeSource: Partial<{
+    userId: number;
+    sourceType: string;
+    amount: number;
+    description?: string;
+    frequency?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: any;
+  }>) => apiClient.put(`/IncomeSources/${id}`, incomeSource),
   delete: (id: number) => apiClient.delete(`/IncomeSources/${id}`),
 };
 
@@ -221,6 +239,29 @@ export const taskService = {
     apiClient.patch<Task>(`/tasks/${id}/complete`, request),
   dismiss: (id: number) => apiClient.patch<Task>(`/tasks/${id}/dismiss`),
   delete: (id: number) => apiClient.delete(`/tasks/${id}`),
+};
+
+// Advice types (Wave 1)
+export interface Advice {
+  adviceId: number;
+  userId: number;
+  theme?: string | null;
+  status: string; // Proposed | Accepted | Rejected | ConvertedToTask
+  consensusText: string;
+  confidenceScore: number;
+  primaryJson?: string | null;
+  validatorJson?: string | null;
+  violationsJson?: string | null;
+  linkedTaskId?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GenerateAdviceResponse extends Advice {}
+
+export const adviceService = {
+  generate: (userId: number) => apiClient.post<GenerateAdviceResponse>(`/Advice/generate/${userId}`, {}),
+  getForUser: (userId: number) => apiClient.get<Advice[]>(`/Advice/user/${userId}`),
 };
 
 export default apiClient;

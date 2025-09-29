@@ -25,4 +25,3 @@ echo 🌐 Frontend: http://localhost:3000
 echo.
 echo ⚠️  Close the PowerShell windows to stop the servers
 echo.
-pause

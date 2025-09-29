@@ -464,3 +464,77 @@ This comprehensive plan provides a roadmap for building a sophisticated, AI-powe
 - **Frontend**: React 19.1.1 on http://localhost:3000 ✅
 - **Database**: PostgreSQL 15 with 12 tables ✅
 - **Task System**: Complete CRUD functionality ✅
+
+---
+
+## Rebuild Interlude (Added 2025-09-27)
+
+### Context
+Post-migration (MUI Grid v2 + auth refactor) review uncovered that higher-order frontend orchestration layers (routing shell, onboarding wizard, protected layout, intelligence dashboards, alert UI) were absent while backend domains and several advanced leaf components persisted. To avoid ad hoc, undocumented reinstatement, a structured wave-based rebuild plan was adopted and documented before reintroducing code.
+
+### Still Present / Intact
+- Backend domain: Users, Accounts, Goals, IncomeSources, Alerts, Tasks, AI scaffolds
+- TSP 16-fund allocation logic & form code
+- Leaf components: SmartInvestmentRecommendations, RealBankAccountDashboard, ProtectedDashboardSections
+- Auth foundation: Custom provider using `@azure/msal-browser` (wrapper removed) with dev bypass
+- Build optimization: Manual Rollup chunk splitting & selective lazy loading
+
+### Missing (Deliberately Scheduled for Rebuild)
+- ProtectedRoute & routed layout/navigation frame
+- Onboarding wizard (`WelcomeOnboardingFlow`) + `UserSetupContext` + progress tracking
+- Auth UI: AuthHeader, SignInPrompt, UserProfileCard, AuthDebugPanel
+- Market dashboards (live & intelligence panels)
+- FinancialIntelligenceCenter aggregation hub
+- SmartAlertsSystem frontend layer
+- Dual-AI pipeline (advisor + validator abstraction & consensus surface)
+- Developer diagnostics / debug panel
+
+### Rebuild Waves
+| Wave | Scope | Abbrev. Definition of Done |
+|------|-------|----------------------------|
+| 0 | Documentation Alignment | README/log/pfmp.txt interlude/wave plan/migration note committed |
+| 1 | Routing & Protection | React Router, ProtectedRoute, layout shell, nav skeleton, suspense guards |
+| 2 | User Setup Layer | UserSetupContext, multi-step wizard (demographics, risk, TSP, income), persisted progress |
+| 3 | Auth & Profile UX | AuthHeader, SignInPrompt, ProfileCard, AuthDebugPanel, DebugComponent |
+| 4 | Intelligence Dashboards | Market dashboards, FinancialIntelligenceCenter, SmartAlertsSystem UI |
+| 5 | Dual-AI Pipeline | Advisor + Validator abstraction, consensus scoring & policy gates |
+| 6 | Performance & A11y | Bundle audit, route-level splitting validation, accessibility pass, test harness expansion |
+
+### Dual-AI Pipeline Vision (Wave 5 Target)
+1. Primary model generates structured recommendation set.  
+2. Validation model reviews for risk alignment, redundancy, temporal relevance.  
+3. Consensus engine merges or flags dissent; attaches confidence & rationale.  
+4. Policy gate (configurable) can suppress low-confidence or conflicting outputs.  
+Early iterations will mock inference responses to validate UX & telemetry before real API cost exposure.
+
+### Principles
+1. Incremental orchestration reintroduction (reduce regression risk).  
+2. Mock before real AI expenses.  
+3. Explicit acceptance criteria per wave (tracked in dedicated wave plan doc).  
+4. Feature flags for experimental dashboards / dual-AI modules.  
+5. Performance polishing deferred to Wave 6 except critical regressions.
+
+### Risks & Mitigations
+| Risk | Mitigation |
+|------|------------|
+| Scope creep inside a wave | Freeze scope at wave start; defer extras |
+| Undocumented architectural shifts | Maintain log + wave docs pre-implementation |
+| AI cost spikes | Mock + usage guard rails before enabling keys |
+| Fragmented onboarding state | Centralized UserSetupContext + idempotent backend APIs |
+| Premature optimization churn | Perf tasks isolated to Wave 6 |
+
+### Immediate Wave 0 Tasks
+1. Create `REBUILD-WAVE-PLAN.md` (detailed acceptance criteria).  
+2. Annotate `MIGRATION_STATUS.md` with rebuild notice.  
+3. Commit documentation as atomic change.  
+4. Begin Wave 1 branch & scaffold routing + guards.
+
+### Exit Criteria (Wave 0)
+- Documentation reflects present vs planned state unambiguously.  
+- Missing components clearly marked as intentional rebuild items.  
+- Wave sequencing & scope published for traceable future commits.
+
+### Tracking
+Progress logged in `pfmp-log.md`; tasks mirrored in internal TODO system.
+
+---

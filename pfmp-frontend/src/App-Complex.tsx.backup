@@ -1,0 +1,195 @@
+import React, { useState } from 'react';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { CssBaseline, Box, Alert, Collapse, Container } from '@mui/material';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { UserSetupProvider, useUserSetup } from './contexts/UserSetupContext';
+import { AuthHeader, SignInPrompt, UserProfileCard } from './components/AuthComponents';
+import { AuthDebugPanel } from './components/AuthDebugPanel';
+import { Dashboard } from './components/Dashboard';
+import { WelcomeOnboardingFlow } from './components/WelcomeOnboardingFlow';
+import { SetupProgressTracker } from './components/SetupProgressTracker';
+import { DebugComponent } from './components/DebugComponent';
+import { 
+  ProtectedPortfolioOverview, 
+  ProtectedAccountList, 
+  ProtectedGoalsSection 
+} from './components/ProtectedDashboardSections';
+import { SmartInvestmentRecommendations } from './components/SmartInvestmentRecommendations';
+import { LiveMarketDashboard } from './components/LiveMarketDashboard';
+import { MarketIntelligencePanel } from './components/MarketIntelligencePanel';
+import { RealBankAccountDashboard } from './components/RealBankAccountDashboard';
+import { FinancialIntelligenceCenter } from './components/FinancialIntelligenceCenter';
+import { SmartAlertsSystem } from './components/SmartAlertsSystem';
+
+const theme = createTheme({
+  palette: {
+    mode: 'light',
+    primary: {
+      main: '#1976d2',
+    },
+    secondary: {
+      main: '#dc004e',
+    },
+    success: {
+      main: '#2e7d32',
+    },
+    warning: {
+      main: '#ed6c02',
+    },
+    info: {
+      main: '#0288d1',
+    },
+  },
+  typography: {
+    h4: {
+      fontWeight: 600,
+    },
+    h6: {
+      fontWeight: 600,
+    },
+  },
+  shape: {
+    borderRadius: 8,
+  },
+});
+
+/**
+ * Authenticated App Content - handles setup flow and main dashboard
+ */
+const AuthenticatedContent: React.FC = () => {
+  const { progress, skipOnboarding } = useUserSetup();
+  const [showDashboard, setShowDashboard] = useState(false);
+
+  // Show dashboard if setup is complete, skipped, or user manually proceeds
+  const shouldShowDashboard = progress.isSetupComplete || skipOnboarding || showDashboard;
+
+  // Temporary debug mode - show debug component first
+  return (
+    <Container maxWidth="lg" sx={{ py: 3 }}>
+      <DebugComponent />
+      
+      {!shouldShowDashboard ? (
+        <WelcomeOnboardingFlow onComplete={() => setShowDashboard(true)} />
+      ) : (
+        <>
+          <UserProfileCard />
+          
+          {/* Setup Progress Tracker - shows if setup is incomplete */}
+          {!progress.isSetupComplete && !skipOnboarding && (
+            <SetupProgressTracker onOpenSetup={() => setShowDashboard(false)} />
+          )}
+          
+          {/* Only show Financial Intelligence Center if setup is complete */}
+          {(progress.isSetupComplete || skipOnboarding) && (
+            <FinancialIntelligenceCenter />
+          )}
+          
+          {/* Protected Financial Overview */}
+          <ProtectedPortfolioOverview />
+          
+          {/* Real Bank Account Integration */}
+          <RealBankAccountDashboard />
+          
+          {/* Protected Account Information */}
+          <ProtectedAccountList />
+          
+          {/* Protected Goals Section */}
+          <ProtectedGoalsSection />
+          
+          {/* AI Market Intelligence - Real-time data feeding the AI */}
+          <MarketIntelligencePanel />
+          
+          {/* Smart Investment Analysis Engine */}
+          <SmartInvestmentRecommendations />
+          
+          {/* Live Market Data */}
+          <LiveMarketDashboard />
+          
+          {/* Original Dashboard Components */}
+          <Dashboard />
+          
+          {/* Smart Alerts System - Fixed positioned */}
+          <SmartAlertsSystem />
+        </>
+      )}
+    </Container>
+  );
+};
+
+/**
+ * Main App Content Component
+ * Renders different content based on authentication state
+ */
+const AppContent: React.FC = () => {
+  const { isAuthenticated, loading, error } = useAuth();
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          fontSize: '18px',
+        }}
+      >
+        Loading PFMP...
+      </Box>
+    );
+  }
+
+  return (
+    <>
+      <AuthHeader />
+      
+      {/* Full Error Message Display */}
+      <Collapse in={!!error}>
+        <Alert 
+          severity="error" 
+          sx={{ m: 2, borderRadius: 2 }}
+          onClose={() => {
+            // Could add a way to clear the error here if needed
+          }}
+        >
+          <Box>
+            <strong>Authentication Error:</strong>
+            <Box component="div" sx={{ mt: 1, fontSize: '0.875rem', fontFamily: 'monospace' }}>
+              {error}
+            </Box>
+          </Box>
+        </Alert>
+      </Collapse>
+      
+      {isAuthenticated ? (
+        <UserSetupProvider>
+          <AuthenticatedContent />
+        </UserSetupProvider>
+      ) : (
+        <Container maxWidth="lg" sx={{ py: 3 }}>
+          <SignInPrompt />
+        </Container>
+      )}
+      
+      {/* Debug panel for testing */}
+      <AuthDebugPanel />
+    </>
+  );
+};
+
+/**
+ * Main App Component
+ * Wraps everything with theme and authentication providers
+ */
+function App() {
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ThemeProvider>
+  );
+}
+
+export default App;
