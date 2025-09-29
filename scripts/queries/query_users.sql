@@ -1,0 +1,1 @@
+SELECT "UserId", "Email" FROM "Users" ORDER BY "UserId" LIMIT 20;

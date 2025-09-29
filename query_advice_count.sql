@@ -1,1 +1,0 @@
-SELECT COUNT(*) AS advice_count FROM "Advice";

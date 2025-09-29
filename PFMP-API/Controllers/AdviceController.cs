@@ -69,5 +69,45 @@ namespace PFMP_API.Controllers
                 return StatusCode(500, "Failed to fetch advice");
             }
         }
+
+        /// <summary>
+        /// Mark an advice record as Accepted.
+        /// </summary>
+        [HttpPost("{adviceId:int}/accept")]
+        public async Task<ActionResult<Advice>> Accept(int adviceId)
+        {
+            if (adviceId <= 0) return BadRequest("Invalid advice id");
+            try
+            {
+                var advice = await _adviceService.AcceptAdviceAsync(adviceId);
+                if (advice == null) return NotFound();
+                return Ok(advice);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to accept advice {AdviceId}", adviceId);
+                return StatusCode(500, "Failed to accept advice");
+            }
+        }
+
+        /// <summary>
+        /// Mark an advice record as Rejected.
+        /// </summary>
+        [HttpPost("{adviceId:int}/reject")]
+        public async Task<ActionResult<Advice>> Reject(int adviceId)
+        {
+            if (adviceId <= 0) return BadRequest("Invalid advice id");
+            try
+            {
+                var advice = await _adviceService.RejectAdviceAsync(adviceId);
+                if (advice == null) return NotFound();
+                return Ok(advice);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to reject advice {AdviceId}", adviceId);
+                return StatusCode(500, "Failed to reject advice");
+            }
+        }
     }
 }

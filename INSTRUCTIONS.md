@@ -1,5 +1,13 @@
 # PFMP Development Instructions
 
+> Index Note (Docs Modularization): Detailed rebuild wave planning, migration status, and session summaries have moved to `docs/waves/`.
+> Quick links:
+> - Rebuild Wave Plan: `docs/waves/REBUILD-WAVE-PLAN.md`
+> - Migration Status (MUI Grid / Auth): `docs/waves/MIGRATION_STATUS.md`
+> - Prior Session Summary: `docs/waves/SESSION_COMPLETE.md`
+> Additional architectural notes: see `docs/` root and `docs/notes/` for historical logs.
+
+
 ### ✅ CORRECT PowerShell syntax:
 
 Starting Services
