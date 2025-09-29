@@ -38,139 +38,41 @@ Starting Services
 - frontend dev: http://localhost:3000 (alt: 5173)
 - postgres (dev remote): 192.168.1.108:5433 (alt local: localhost:5432)
 - azure ad:
-	- client id: efe3c2da-c4bb-45ff-b85b-e965de54f910
-	- tenant id: 90c3ba91-a0c4-4816-9f8f-beeefbfc33d2
+	## PFMP Instructions Index
 
-### Start (Preferred)
-```
-cd W:\pfmp; ./start-dev-servers.bat
-```
-Creates two external windows (backend + frontend) preserving service isolation.
+	This root file is now an index. Detailed content moved into focused guides under `docs/guides/` and wave planning under `docs/waves/`.
 
-### Manual Start (Fallback)
-Backend:
-```
-cd W:\pfmp\PFMP-API; dotnet run --launch-profile http
-```
-Frontend:
-```
-cd W:\pfmp\pfmp-frontend; npm run dev
-```
+	### Start Here
+	- Quick environment + run steps: `docs/guides/QUICK-START.md`
 
-### Health Checks
-```
-cd W:\pfmp; Invoke-WebRequest -Uri "http://localhost:5052/weatherforecast"
-cd W:\pfmp; Invoke-WebRequest -Uri "http://localhost:5052/api/auth/config"
-cd W:\pfmp; Invoke-WebRequest -Uri "http://localhost:3000"
-```
+	### Core Guides
+	- Development standards & rules: `docs/guides/DEV-STANDARDS.md`
+	- Frontend & backend architecture + Advice endpoints: `docs/guides/FRONTEND-BACKEND-GUIDE.md`
+	- Database, psql strategies & migrations: `docs/guides/DATA-&-DB.md`
+	- Troubleshooting, commands & status glossary: `docs/guides/TROUBLESHOOTING-&-REFERENCE.md`
 
-### Auth (Dev Mode)
-- dev bypass active in `import.meta.env.DEV`
-- simulated users auto-loaded
-- production: run full build & real Azure login flow
+	### Rebuild Waves & History
+	- Wave plan: `docs/waves/REBUILD-WAVE-PLAN.md`
+	- Migration status: `docs/waves/MIGRATION_STATUS.md`
+	- Session summary archive: `docs/waves/SESSION_COMPLETE.md`
 
-### Build
-```
-cd W:\pfmp\pfmp-frontend; npm run build
-```
-Runs TypeScript project build then Vite bundle.
+	### Conventions (Summary)
+	- Use PowerShell; chain with `;`
+	- Use MUI Grid v2 `size` prop (legacy grid syntax blocked)
+	- Conventional commits (e.g. `feat(advice): add accept endpoint`)
+	- Idempotent Advice accept/reject; cross transitions blocked
 
-### When Backend Restart Is Required
-- controller / DTO signature changes
-- EF model updates
-- Program.cs or auth configuration changes
-
-### Port / Process Recovery
-```
-Get-Process | Where-Object { $_.ProcessName -match "(dotnet|node)" }
-Stop-Process -Name "dotnet" -Force -ErrorAction SilentlyContinue
-Stop-Process -Name "node" -Force -ErrorAction SilentlyContinue
-```
-
-### Typical Workflow
-1. `cd W:\pfmp; git pull`
-2. start services (batch)
-3. edit frontend (hot reload)
-4. test API endpoints
-5. restart backend only if server-side changes
-6. `npm run build` before large refactors
-7. commit grouped logical changes
-
-### Dependency Policy
-- upgrade React, MUI, TypeScript, Vite, ESLint, msal regularly
-- after upgrade: install → build → smoke test
-
-### Planned Hardening (Later)
-- re-enable `noUnusedLocals`, then `noUnusedParameters`
-- add route/code splitting for large dashboard chunks
-- introduce test suite (Jest/Vitest)
-- expand ESLint rule coverage (imports/order/accessibility)
-
-### Troubleshooting Quick Reference
-- 404 API: backend not running / port conflict
-- CORS: verify proxy in `vite.config.ts`
-- Auth issues: check redirect URIs + dev mode flag
-- Build hang: run `npx tsc -b` to isolate TypeScript
-- Stale dashboard: use "Refresh Data" button
-
-### File Map
-- backend: `W:\pfmp\PFMP-API`
-- frontend: `W:\pfmp\pfmp-frontend`
-- docs: `W:\pfmp\docs`
-- log: `W:\pfmp\docs\notes\pfmp-log.md`
-- migration: `W:\pfmp\MIGRATION_STATUS.md`
-
-### Security Notes
-- never commit secrets; dev tokens are mock placeholders
-
-### Bundle Status
-- current single JS bundle ~590 kB (gzipped ~182 kB) → acceptable pre-splitting
-
-### Phase Goal
-- stable builds + incremental refactors, prep for stricter lint re-enable
-
----
-backup of corrupted original: `INSTRUCTIONS_OLD.md`
-last updated: dedup cleanup
-- `DATABASE-TOOLS-SETUP.md` - Database configuration
-
-- `notes/` - Development notes and completion logs## Authentication Setup
-
-
-
----### Method 1: Using PowerShell Script (Recommended)2. **Current Directory Script**: Use `.\script.bat` not just `script.bat`
-
-
-
-## Quick Start ChecklistThe project uses Microsoft Azure AD for authentication:
-
-
-
-1. ✅ Ensure you're in PowerShell (not Command Prompt)```powershell3. **Path Separators**: Use `\` for Windows paths
-
-2. ✅ Navigate to project root: `cd W:\pfmp`
-
-3. ✅ **Services run in SEPARATE external PowerShell windows**: `.\scripts\start-dev-servers.ps1`- **Client ID**: `efe3c2da-c4bb-45ff-b85b-e965de54f910`
-
-4. ✅ Wait for both external windows to show "running"
-
-5. ✅ Test in browser: http://localhost:3000- **Tenant ID**: `90c3ba91-a0c4-4816-9f8f-beeefbfc33d2`cd W:\pfmp4. **Multiple Commands**: 
-
-6. ✅ Use fresh terminals for any additional commands
-
-- **Supported Accounts**: Personal and work Microsoft accounts
-
-**Remember**: Services run in their own windows, commands run in fresh terminals!
-.\scripts\start-dev-servers.ps1   ```powershell
-
-### Azure Configuration
-
-Run the Azure configuration script for setup instructions:```   # Correct
-
+	### Quick Commands
+	```powershell
 ```powershell
 
 cd W:\pfmp   cd path; command
 
+
+	### Need More?
+	If something feels missing from these guides, add a new focused doc in `docs/guides/` instead of bloating this index.
+
+	Last updated: modular docs refactor.
 .\scripts\Azure-Config-Instructions.ps1
 
 ```### Method 2: Manual Startup (Advanced)   

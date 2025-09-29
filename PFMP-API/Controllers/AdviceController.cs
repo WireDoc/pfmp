@@ -83,6 +83,11 @@ namespace PFMP_API.Controllers
                 if (advice == null) return NotFound();
                 return Ok(advice);
             }
+            catch (InvalidOperationException ioe)
+            {
+                _logger.LogWarning(ioe, "Invalid transition accepting advice {AdviceId}", adviceId);
+                return Conflict(ioe.Message);
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to accept advice {AdviceId}", adviceId);
@@ -102,6 +107,11 @@ namespace PFMP_API.Controllers
                 var advice = await _adviceService.RejectAdviceAsync(adviceId);
                 if (advice == null) return NotFound();
                 return Ok(advice);
+            }
+            catch (InvalidOperationException ioe)
+            {
+                _logger.LogWarning(ioe, "Invalid transition rejecting advice {AdviceId}", adviceId);
+                return Conflict(ioe.Message);
             }
             catch (Exception ex)
             {
