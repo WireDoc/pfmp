@@ -15,7 +15,8 @@ public class AdviceServiceSmokeTests
         db.Users.Add(new User { UserId = userId, FirstName = "Test", LastName = "User", Email = "test@example.com", EmergencyFundTarget = 1000 });
         db.SaveChanges();
         var ai = new FakeAiService("AI Text");
-        return new AdviceService(db, ai, new NullLogger<AdviceService>());
+        var validator = new AdviceValidator();
+        return new AdviceService(db, ai, validator, new NullLogger<AdviceService>());
     }
 
     [Fact]
@@ -25,6 +26,7 @@ public class AdviceServiceSmokeTests
         var advice = await svc.GenerateBasicAdviceAsync(1);
         Assert.Equal("Proposed", advice.Status);
         Assert.Contains("AI Text", advice.ConsensusText);
+        Assert.False(string.IsNullOrWhiteSpace(advice.ValidatorJson));
     }
 
     [Fact]
