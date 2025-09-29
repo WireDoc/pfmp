@@ -262,6 +262,8 @@ export interface GenerateAdviceResponse extends Advice {}
 export const adviceService = {
   generate: (userId: number) => apiClient.post<GenerateAdviceResponse>(`/Advice/generate/${userId}`, {}),
   getForUser: (userId: number) => apiClient.get<Advice[]>(`/Advice/user/${userId}`),
+  accept: (adviceId: number) => apiClient.post<Advice>(`/Advice/${adviceId}/accept`, {}),
+  reject: (adviceId: number) => apiClient.post<Advice>(`/Advice/${adviceId}/reject`, {}),
 };
 
 export default apiClient;

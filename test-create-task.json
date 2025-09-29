@@ -1,7 +1,0 @@
-{
-  "userId": 1,
-  "type": 1,
-  "title": "Test Task",
-  "description": "A test task to validate the API endpoint",
-  "priority": 2
-}

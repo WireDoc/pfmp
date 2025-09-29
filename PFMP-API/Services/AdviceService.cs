@@ -68,5 +68,27 @@ namespace PFMP_API.Services
                 .OrderByDescending(a => a.CreatedAt)
                 .ToListAsync();
         }
+
+        public async Task<Advice?> AcceptAdviceAsync(int adviceId)
+        {
+            var advice = await _db.Advice.FirstOrDefaultAsync(a => a.AdviceId == adviceId);
+            if (advice == null) return null;
+            if (advice.Status == "Accepted") return advice; // idempotent
+            advice.Status = "Accepted";
+            advice.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+            return advice;
+        }
+
+        public async Task<Advice?> RejectAdviceAsync(int adviceId)
+        {
+            var advice = await _db.Advice.FirstOrDefaultAsync(a => a.AdviceId == adviceId);
+            if (advice == null) return null;
+            if (advice.Status == "Rejected") return advice; // idempotent
+            advice.Status = "Rejected";
+            advice.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+            return advice;
+        }
     }
 }
