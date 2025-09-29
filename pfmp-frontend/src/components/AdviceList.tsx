@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { adviceService, Advice } from '../services/api';
+import { adviceService } from '../services/api';
+import type { Advice } from '../services/api';
 
 interface AdviceListProps {
   userId: number;

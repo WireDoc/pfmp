@@ -22,6 +22,7 @@ import {
   Dashboard as DashboardIcon,
   Assignment,
   NotificationImportant,
+  PsychologyAlt,
 } from '@mui/icons-material';
 import { TSPAllocationForm } from './forms/TSPAllocationForm';
 import { EmergencyFundTracker } from './forms/EmergencyFundTracker';
@@ -29,6 +30,7 @@ import { CashAccountManager } from './forms/CashAccountManager';
 import { VADisabilityTracker } from './forms/VADisabilityTracker';
 import { TaskDashboard } from './TaskDashboard';
 import { AlertsDashboard } from './AlertsDashboard';
+import AdvicePanel from './AdvicePanel';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -119,6 +121,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId = 1 }) => {
       label: 'Alerts',
       icon: <NotificationImportant />,
       component: <AlertsDashboard userId={userId} key={`alerts-${refreshKey}`} />
+    },
+    // Temporary Wave 1 Advice tab (can be removed later)
+    {
+      label: 'Advice (Temp)',
+      icon: <PsychologyAlt />,
+      component: <AdvicePanel userId={userId} key={`advice-${refreshKey}`} />
     }
   ];
 
