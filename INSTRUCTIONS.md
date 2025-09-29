@@ -297,6 +297,64 @@ No exceptions. Refactor any legacy snippet before committing.
 6. build validation before major refactors: `cd W:\pfmp\pfmp-frontend; npm run build`
 7. commit when multiple related fixes complete (grouped commit style)
 
+### Git Commit Workflow (Using `git add .` Safely)
+You can use `git add .` in this repo (mono-tree with API + frontend + docs) **if you follow a short safety checklist** to avoid committing secrets, build artifacts, or accidental large files.
+
+#### Fast Path (Solo Dev / Normal Change)
+```powershell
+cd W:\pfmp
+git status -s            # 1. Review what changed
+npm run lint --prefix pfmp-frontend ; dotnet build PFMP-API/PFMP-API.csproj  # 2. Sanity build
+git add .                # 3. Stage everything (only after review)
+git diff --cached --name-only  # 4. Confirm staged list
+git commit -m "feat(advice): add generation endpoint"  # 5. Conventional message
+git push origin <branch>
+```
+
+#### When NOT to blindly rely on `git add .`
+| Situation | Risk | Action |
+|-----------|------|--------|
+| New build / dist output appears | Repo bloat | Ensure covered by `.gitignore`; unstage if added |
+| Added secret config (keys, connection strings) | Credential leak | Remove file, add to `.gitignore`, rotate secret if exposed |
+| Local DB dump / large CSV | Large history & slow clone | Store externally (cloud bucket) |
+| Scratch / debug logs | Noise | Delete or move to temp before commit |
+
+#### Safer Variant (If Unsure)
+```powershell
+git add -u        # only modified & deleted tracked files
+git add path/to/new-file.ts  # explicitly add intentional new files
+```
+
+#### Optional Guard Function (PowerShell)
+Add to your PowerShell profile to force a human confirmation step:
+```powershell
+function git-safe-add {
+	git status -s
+	Read-Host 'Review changes above; press Enter to stage or Ctrl+C to abort' > $null
+	git add .
+	git diff --cached --name-only
+}
+```
+
+#### Pre-Commit Mental Checklist
+- [ ] No secrets (keys, tokens, connection strings) staged
+- [ ] No generated artifacts (bin/ obj/ dist/ .vite/)
+- [ ] Lint & build passing (frontend + API)
+- [ ] Commit message: conventional & scoped (e.g. `refactor(auth): split context object`)
+
+#### Conventional Commit Hints
+`feat:` new user-facing feature
+`fix:` bug patch
+`refactor:` structural change w/out behavior change
+`docs:` documentation only
+`chore:` tooling / maintenance
+`perf:` performance improvement
+`test:` add/modify tests
+`ci:` pipeline config changes
+
+#### Summary
+`git add .` is **approved** here because the project: (1) has a curated `.gitignore`, (2) uses no local secret files for production keys, (3) maintains small artifact surfaces. Follow the checklist to avoid accidental inclusions.
+
 ### When to Restart Backend
 - added/changed: controllers, DTOs, Entity Framework models, Program.cs wiring, authentication config
 - not needed for: pure frontend changes, static docs edits, CSS/theme tweaks
