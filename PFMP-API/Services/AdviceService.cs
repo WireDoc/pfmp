@@ -74,6 +74,10 @@ namespace PFMP_API.Services
             var advice = await _db.Advice.FirstOrDefaultAsync(a => a.AdviceId == adviceId);
             if (advice == null) return null;
             if (advice.Status == "Accepted") return advice; // idempotent
+            if (advice.Status == "Rejected")
+            {
+                throw new InvalidOperationException("Cannot accept advice that is already Rejected");
+            }
             advice.Status = "Accepted";
             advice.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
@@ -85,6 +89,10 @@ namespace PFMP_API.Services
             var advice = await _db.Advice.FirstOrDefaultAsync(a => a.AdviceId == adviceId);
             if (advice == null) return null;
             if (advice.Status == "Rejected") return advice; // idempotent
+            if (advice.Status == "Accepted")
+            {
+                throw new InvalidOperationException("Cannot reject advice that is already Accepted");
+            }
             advice.Status = "Rejected";
             advice.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
