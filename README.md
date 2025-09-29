@@ -295,6 +295,7 @@ The complete stack has been tested and verified:
 - `pfmp.txt` - Comprehensive project plan and technical specifications
 - `pfmp-log.md` - Detailed development session logs and progress tracking
 - `PFMP-API/` - .NET 9 Web API backend application
+- `docs/AI-ADVISOR-WAVE-PLAN.md` - Dual-AI advisor architecture & phased wave roadmap (Waves 1–7)
 
 ## 🤝 Contributing
 
