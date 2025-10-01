@@ -5,6 +5,55 @@
 
 An AI-powered financial advisor platform designed for government employees and military members, providing personalized investment recommendations, portfolio management, and retirement planning with specialized TSP and government benefit integration.
 
+## 🧪 Testing Documentation
+Core manual testing flows live under `docs/testing/`:
+- `docs/testing/alerts-advice-testing.md` – CURRENT simplified lifecycle (Alert → Advice:Proposed → Accept (creates Task) OR Dismiss)
+- `docs/testing/advice-testing.md` – Legacy (Deprecated) lifecycle reference (Retained for historical context only)
+- `docs/testing/tasks-testing.md` – Task CRUD, status workflow, provenance verification
+- `docs/testing/README.md` – Index & conventions
+
+Current Advice Lifecycle (Simplified):
+```
+Alert --[generate-advice]--> Advice (Proposed) --[accept]--> Advice (Accepted, task auto-created)
+                                             \--[dismiss]--> Advice (Dismissed)
+```
+Legacy endpoints `/reject` & `/convert-to-task` now return 410 Gone.
+
+Validator / Provenance:
+- Acceptance creates a Task if none exists and backfills `SourceAdviceId` + `SourceType="Advice"`.
+- `acceptedAt`, `dismissedAt`, `previousStatus`, `sourceAlertId`, `generationMethod`, and optional `sourceAlertSnapshot` enrich auditability.
+
+Quick Start (User 1):
+```powershell
+# Generate generic portfolio advice
+Invoke-RestMethod -Method POST http://localhost:5052/api/Advice/generate/1 | Select-Object adviceId,status
+
+# Generate advice from alert 1
+Invoke-RestMethod -Method POST http://localhost:5052/api/Alerts/1/generate-advice | Select-Object adviceId,sourceAlertId,status
+
+# Accept advice (replace 123 with real id) – creates linked task automatically
+Invoke-RestMethod -Method POST http://localhost:5052/api/Advice/123/accept | Select-Object adviceId,status,linkedTaskId
+
+# Dismiss another proposed advice
+Invoke-RestMethod -Method POST http://localhost:5052/api/Advice/124/dismiss | Select-Object adviceId,status
+
+# List all advice (user 1)
+Invoke-RestMethod http://localhost:5052/api/Advice/user/1 | Format-Table adviceId,status,linkedTaskId,sourceAlertId
+```
+See the dedicated guide (`alerts-advice-testing.md`) for deeper verification queries (SQL + troubleshooting).
+
+### Recent Additions (Oct 2025)
+- Simplified advice lifecycle (Removed Reject / Convert; added Dismiss terminal path)
+- Provenance fields + idempotent acceptance backfill
+- Health endpoint: `GET /health`
+- Swagger UI (dev + optional prod via `Swagger:Always=true`): `/swagger`
+- Custom endpoint listing: `GET /api/docs/endpoints`
+- Build tooling: `build-all.bat`, `scripts/ci-build.ps1` (flags `-SkipFrontend`, `-SkipBackend`)
+- Test integration + coverage collection (Cobertura)
+- Frontend smoke script: `npm run smoke`
+- Solution file `PFMP.sln`
+- `BUILD.md` central build + script reference
+
 ## 🚀 Feature Snapshot (Current vs Rebuild)
 
 ### Currently Active (Verified 2025-09-27)

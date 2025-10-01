@@ -434,6 +434,21 @@ This comprehensive plan provides a roadmap for building a sophisticated, AI-powe
 
 **Development Phase**: Phase 3 Task Management - ✅ **FULLY COMPLETE**
 
+### Post-September Updates (Oct 2025 Lifecycle & Tooling Refresh)
+The platform underwent a focused lifecycle refactor and developer experience enhancement:
+- Advice lifecycle simplified: Proposed → Accepted | Dismissed (legacy Reject / ConvertToTask endpoints return 410)
+- Automatic task creation on accept; provenance fields (`SourceAdviceId`, `SourceType`, `SourceAlertId`, `GenerationMethod`, timestamps) added
+- Added health endpoint `/health` and Swagger UI `/swagger` with config toggle `Swagger:Always=true`
+- Added custom endpoint inventory: `GET /api/docs/endpoints`
+- Introduced solution file `PFMP.sln` (API + tests)
+- Added code coverage collection via `--collect:"XPlat Code Coverage"` in CI build script
+- Added frontend smoke script (`npm run smoke`) to exercise core API flows
+- Created `BUILD.md` consolidating build, test, coverage, swagger, and smoke instructions
+- Updated tests to reflect new lifecycle (dismiss replaces reject; provenance assertions)
+- Added batch & PowerShell scripts: `build-all.bat`, `scripts/ci-build.ps1` with flags `-SkipFrontend` / `-SkipBackend`
+- Implemented idempotent acceptance with provenance backfill for existing tasks missing linkage
+- Legacy documentation preserved under `advice-testing.md` (deprecated) with pointer to new combined `alerts-advice-testing.md`
+
 ### Completed Milestones
 - ✅ **Phase 1**: MVP Foundation (PostgreSQL, .NET API, React frontend)
 - ✅ **Phase 2**: Core Portfolio Management (11 entities, complete TSP integration)

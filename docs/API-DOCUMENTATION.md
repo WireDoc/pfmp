@@ -178,15 +178,17 @@ PATCH /api/alerts/{id}/undismiss
 ```
 **Description**: Reverses dismissal (sets `IsDismissed = false`, `DismissedAt = null`) - allows users to see dismissed alerts again
 
-#### Task Generation from Alerts
+#### Advice Generation from Alerts
 
-##### Generate Task from Alert
+##### Generate Advice from Alert
 ```http
-POST /api/alerts/{alertId}/generate-task
+POST /api/alerts/{alertId}/generate-advice
 ```
-**Description**: Creates a task from an actionable alert. Maps alert category to appropriate task type and severity to priority.
+**Description**: Generates an advice record from an actionable alert. Captures the alert snapshot for provenance. Accepting the advice will create a task.
 
-**Response**: Created task object with `SourceAlertId` linking back to the alert
+**Response**: Created advice object (status = Proposed) with `sourceAlertId` and `sourceAlertSnapshot` populated.
+
+> Note: Direct alert→task generation has been replaced by alert→advice→(accept)→task to ensure human-in-the-loop acknowledgment.
 
 ### Accounts Controller
 **Base Route**: `/api/accounts`
@@ -260,14 +262,53 @@ GET /api/goals?userId={userId}
   "title": "Quarterly Portfolio Rebalance",
   "description": "Review and adjust portfolio allocation",
   "priority": "Medium",
-  "status": "Pending", 
-  "createdDate": "2025-09-24T10:00:00Z",
-  "dueDate": "2025-10-01T00:00:00Z",
+  "status": "Pending",
+  "createdDate": "2025-10-01T10:00:00Z",
+  "dueDate": "2025-10-08T00:00:00Z",
+  "sourceAdviceId": 12,
+  "sourceType": "AdviceAcceptance",
   "sourceAlertId": 5,
   "estimatedImpact": 1500.00,
   "confidenceScore": 0.85
 }
 ```
+
+### Advice Structure
+```json
+{
+  "adviceId": 12,
+  "userId": 1,
+  "status": "Proposed", 
+  "title": "Rebalance portfolio toward target weights",
+  "description": "Detected 6% drift from target allocation; propose rebalancing within ±2% bands.",
+  "generationMethod": "AlertConversion",
+  "sourceAlertId": 5,
+  "sourceAlertSnapshot": { "alertId":5, "title":"Portfolio Rebalancing Needed", "severity":"Medium" },
+  "previousStatus": null,
+  "acceptedAt": null,
+  "dismissedAt": null,
+  "linkedTaskId": null
+}
+```
+
+#### Advice Lifecycle
+States:
+- Proposed (initial)
+- Accepted (terminal; task auto-created if not already created)
+- Dismissed (terminal)
+
+Acceptance Behavior:
+- Creates a task (if none) and sets `linkedTaskId`, `previousStatus`, `acceptedAt`.
+- Idempotent: re-accepting returns existing linkage.
+
+Dismiss Behavior:
+- Sets `dismissedAt`, `previousStatus` and finalizes lifecycle without creating a task.
+
+Provenance Fields:
+- `sourceAlertId` / `sourceAlertSnapshot` (originating alert context)
+- `generationMethod` (e.g., AlertConversion, DirectGeneration)
+- `previousStatus` (for auditing transitions)
+- `linkedTaskId` (task created upon acceptance)
 
 ### Alert Structure
 ```json
