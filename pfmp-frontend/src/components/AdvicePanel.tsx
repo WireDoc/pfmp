@@ -1,4 +1,4 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback } from 'react';
 import { Paper, Box, Typography, Divider, Button, Stack, Alert } from '@mui/material';
 import GenerateAdviceButton from './GenerateAdviceButton';
 import AdviceList from './AdviceList';
@@ -13,8 +13,6 @@ interface AdvicePanelProps {
  * This file can be removed or relocated in a future dashboard refactor.
  */
 const AdvicePanel: React.FC<AdvicePanelProps> = ({ userId }) => {
-  const listRef = useRef<{ refresh?: () => void } | null>(null);
-
   const handleGenerated = useCallback(() => {
     // If we later expose a refresh method from AdviceList, call it here.
     // For now, parent doesn't need to do anything because AdviceList doesn't expose imperative handle.

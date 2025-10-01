@@ -180,6 +180,26 @@ namespace PFMP_API.Migrations
                     b.Property<int?>("LinkedTaskId")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DismissedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PreviousStatus")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<int?>("SourceAlertId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("GenerationMethod")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("SourceAlertSnapshot")
+                        .HasColumnType("text");
+
                     b.Property<string>("PrimaryJson")
                         .HasColumnType("text");
 
@@ -236,7 +256,7 @@ namespace PFMP_API.Migrations
                     b.Property<DateTime?>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int?>("GeneratedTaskId")
+                    b.Property<int>("PortfolioImpactScore")
                         .HasColumnType("integer");
 
                     b.Property<bool>("IsActionable")
@@ -261,8 +281,6 @@ namespace PFMP_API.Migrations
                     b.Property<int>("Severity")
                         .HasColumnType("integer");
 
-                    b.Property<bool>("TaskGenerated")
-                        .HasColumnType("boolean");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -276,7 +294,7 @@ namespace PFMP_API.Migrations
 
                     b.HasIndex("CreatedAt");
 
-                    b.HasIndex("GeneratedTaskId");
+                    // Removed legacy GeneratedTaskId index in refactor
 
                     b.HasIndex("UserId", "IsRead");
 
@@ -1130,6 +1148,13 @@ namespace PFMP_API.Migrations
                     b.Property<int?>("SourceAlertId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("SourceAdviceId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SourceType")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -1264,18 +1289,12 @@ namespace PFMP_API.Migrations
 
             modelBuilder.Entity("PFMP_API.Models.Alert", b =>
                 {
-                    b.HasOne("PFMP_API.Models.UserTask", "GeneratedTask")
-                        .WithMany()
-                        .HasForeignKey("GeneratedTaskId");
-
                     b.HasOne("PFMP_API.Models.User", "User")
                         .WithMany("Alerts")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("GeneratedTask");
-
+                    
                     b.Navigation("User");
                 });
 

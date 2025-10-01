@@ -246,25 +246,46 @@ export interface Advice {
   adviceId: number;
   userId: number;
   theme?: string | null;
-  status: string; // Proposed | Accepted | Rejected | ConvertedToTask
+  status: string; // Proposed | Accepted | Dismissed
   consensusText: string;
   confidenceScore: number;
   primaryJson?: string | null;
   validatorJson?: string | null;
   violationsJson?: string | null;
-  linkedTaskId?: number | null;
+  linkedTaskId?: number | null; // present after accept
+  sourceAlertId?: number | null;
+  acceptedAt?: string | null;
+  dismissedAt?: string | null;
+  previousStatus?: string | null;
+  generationMethod?: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface GenerateAdviceResponse extends Advice {}
+export type GenerateAdviceResponse = Advice;
 
 export const adviceService = {
+  // Generate advice directly (user scoped) - legacy path retained if backend supports
   generate: (userId: number) => apiClient.post<GenerateAdviceResponse>(`/Advice/generate/${userId}`, {}),
-  getForUser: (userId: number) => apiClient.get<Advice[]>(`/Advice/user/${userId}`),
+  // Generate advice from a specific alert
+  generateFromAlert: (alertId: number) => apiClient.post<GenerateAdviceResponse>(`/Alerts/${alertId}/generate-advice`, {}),
+  // Fetch advice for a user with optional status filter(s)
+  getForUser: (userId: number, statuses?: string[] | string) => {
+    const params = new URLSearchParams();
+    params.append('userId', userId.toString());
+    if (statuses) {
+      if (Array.isArray(statuses)) {
+        statuses.forEach(s => params.append('status', s));
+      } else {
+        params.append('status', statuses);
+      }
+    }
+    return apiClient.get<Advice[]>(`/Advice/user/${userId}?${params.toString()}`);
+  },
   accept: (adviceId: number) => apiClient.post<Advice>(`/Advice/${adviceId}/accept`, {}),
-  reject: (adviceId: number) => apiClient.post<Advice>(`/Advice/${adviceId}/reject`, {}),
-  convertToTask: (adviceId: number) => apiClient.post<Advice>(`/Advice/${adviceId}/convert-to-task`, {}),
+  dismiss: (adviceId: number) => apiClient.post<Advice>(`/Advice/${adviceId}/dismiss`, {}),
+  // Optionally support un-dismiss (if backend later adds it)
+  undismiss: (adviceId: number) => apiClient.post<Advice>(`/Advice/${adviceId}/undismiss`, {}),
 };
 
 export default apiClient;

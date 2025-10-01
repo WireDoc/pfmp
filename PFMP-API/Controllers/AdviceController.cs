@@ -47,21 +47,16 @@ namespace PFMP_API.Controllers
         }
 
         /// <summary>
-        /// Get all advice records for a user ordered newest first.
+        /// Get advice records for a user with optional status filtering.
         /// </summary>
-        /// <param name="userId">The user id.</param>
         [HttpGet("user/{userId:int}")]
-        public async Task<ActionResult<IEnumerable<Advice>>> GetForUser(int userId)
+        public async Task<ActionResult<IEnumerable<Advice>>> GetForUser(int userId, [FromQuery] string? status = null, [FromQuery] bool includeDismissed = false)
         {
-            if (userId <= 0)
-            {
-                return BadRequest("Invalid user id");
-            }
-
+            if (userId <= 0) return BadRequest("Invalid user id");
             try
             {
-                var advice = await _adviceService.GetAdviceForUserAsync(userId);
-                return Ok(advice.OrderByDescending(a => a.CreatedAt));
+                var advice = await _adviceService.GetAdviceForUserAsync(userId, status, includeDismissed);
+                return Ok(advice);
             }
             catch (Exception ex)
             {
@@ -96,53 +91,37 @@ namespace PFMP_API.Controllers
         }
 
         /// <summary>
-        /// Mark an advice record as Rejected.
+        /// Dismiss an advice (only if not yet accepted).
         /// </summary>
-        [HttpPost("{adviceId:int}/reject")]
-        public async Task<ActionResult<Advice>> Reject(int adviceId)
+        [HttpPost("{adviceId:int}/dismiss")]
+        public async Task<ActionResult<Advice>> Dismiss(int adviceId)
         {
             if (adviceId <= 0) return BadRequest("Invalid advice id");
             try
             {
-                var advice = await _adviceService.RejectAdviceAsync(adviceId);
+                var advice = await _adviceService.DismissAdviceAsync(adviceId);
                 if (advice == null) return NotFound();
                 return Ok(advice);
             }
             catch (InvalidOperationException ioe)
             {
-                _logger.LogWarning(ioe, "Invalid transition rejecting advice {AdviceId}", adviceId);
+                _logger.LogWarning(ioe, "Invalid transition dismissing advice {AdviceId}", adviceId);
                 return Conflict(ioe.Message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to reject advice {AdviceId}", adviceId);
-                return StatusCode(500, "Failed to reject advice");
+                _logger.LogError(ex, "Failed to dismiss advice {AdviceId}", adviceId);
+                return StatusCode(500, "Failed to dismiss advice");
             }
         }
 
-        /// <summary>
-        /// Convert an Accepted advice into a task (idempotent if already converted).
-        /// </summary>
+    /// <summary>
+    /// Legacy endpoint placeholders returning 410 (Gone) to guide clients to new flow.
+    /// </summary>
+    [HttpPost("{adviceId:int}/reject")]
+        public ActionResult RejectLegacy(int adviceId) => StatusCode(410, new { message = "Rejected endpoint deprecated. Use /dismiss or /accept." });
+
         [HttpPost("{adviceId:int}/convert-to-task")]
-        public async Task<ActionResult<Advice>> ConvertToTask(int adviceId)
-        {
-            if (adviceId <= 0) return BadRequest("Invalid advice id");
-            try
-            {
-                var advice = await _adviceService.ConvertAdviceToTaskAsync(adviceId);
-                if (advice == null) return NotFound();
-                return Ok(advice);
-            }
-            catch (InvalidOperationException ioe)
-            {
-                _logger.LogWarning(ioe, "Invalid conversion for advice {AdviceId}", adviceId);
-                return Conflict(ioe.Message);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to convert advice {AdviceId} to task", adviceId);
-                return StatusCode(500, "Failed to convert advice");
-            }
-        }
+        public ActionResult ConvertLegacy(int adviceId) => StatusCode(410, new { message = "Conversion deprecated. Use /accept to create task." });
     }
 }

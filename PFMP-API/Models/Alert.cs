@@ -52,13 +52,14 @@ namespace PFMP_API.Models
         public string? ActionUrl { get; set; } // URL for actionable alerts
         public string? Metadata { get; set; } // JSON for additional context
         
-        // Task generation for actionable alerts
-        public int? GeneratedTaskId { get; set; } // Links to auto-generated task
-        public bool TaskGenerated { get; set; } = false; // Track if task was created
+    /// <summary>
+    /// Portfolio impact / actionability score (0-100) computed by scoring heuristic.
+    /// </summary>
+    public int PortfolioImpactScore { get; set; } = 0;
 
         // Navigation properties
         [JsonIgnore] // Prevent circular reference in JSON serialization
         public virtual User User { get; set; } = null!;
-        public virtual UserTask? GeneratedTask { get; set; }
+    // Legacy GeneratedTask link removed with new workflow (alerts no longer spawn tasks directly).
     }
 }

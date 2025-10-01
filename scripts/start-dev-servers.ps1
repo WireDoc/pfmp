@@ -2,7 +2,11 @@
 # This script starts both the .NET API and React frontend in separate PowerShell windows
 # Usage: Right-click and "Run with PowerShell" or execute from terminal with: .\start-dev-servers.ps1
 
-Write-Host "🚀 Starting PFMP Development Servers..." -ForegroundColor Green
+param(
+    [int]$Mode = 0  # 0 = both, 1 = backend only, 2 = frontend only
+)
+
+Write-Host "🚀 Starting PFMP Development Servers (Mode=$Mode)..." -ForegroundColor Green
 Write-Host "=======================================" -ForegroundColor Green
 
 # Get the script directory to ensure relative paths work
@@ -30,24 +34,26 @@ Write-Host "📁 Frontend Path: $FrontendPath" -ForegroundColor Yellow
 Write-Host ""
 
 # Start .NET API in new PowerShell window
-Write-Host "🔧 Starting .NET API Server..." -ForegroundColor Cyan
-$ApiTitle = "PFMP API Server - .NET 9"
-$ApiCommand = "cd '$ApiPath'; Write-Host '🔧 Starting .NET API on http://localhost:5052' -ForegroundColor Green; dotnet run --urls=http://localhost:5052; Read-Host 'Press Enter to close'"
-
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "& {$env:DOTNET_ENVIRONMENT='Development'; [Console]::Title='$ApiTitle'; $ApiCommand}"
-
-# Wait a moment for API to start initializing
-Start-Sleep -Seconds 2
+if ($Mode -eq 0 -or $Mode -eq 1) {
+    Write-Host "🔧 Starting .NET API Server..." -ForegroundColor Cyan
+    $ApiTitle = "PFMP API Server - .NET 9"
+    $ApiCommand = "cd '$ApiPath'; Write-Host '🔧 Starting .NET API on http://localhost:5052' -ForegroundColor Green; dotnet run --urls=http://localhost:5052; Read-Host 'Press Enter to close'"
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", "& {$env:DOTNET_ENVIRONMENT='Development'; [Console]::Title='$ApiTitle'; $ApiCommand}"
+    Start-Sleep -Seconds 2
+}
 
 # Start React Frontend in new PowerShell window  
-Write-Host "⚛️  Starting React Frontend..." -ForegroundColor Cyan
-$FrontendTitle = "PFMP Frontend - React + Vite"
-$FrontendCommand = "cd '$FrontendPath'; Write-Host '⚛️ Starting React Frontend on http://localhost:5173' -ForegroundColor Green; npm run dev; Read-Host 'Press Enter to close'"
-
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "& {[Console]::Title='$FrontendTitle'; $FrontendCommand}"
+if ($Mode -eq 0 -or $Mode -eq 2) {
+    Write-Host "⚛️  Starting React Frontend..." -ForegroundColor Cyan
+    $FrontendTitle = "PFMP Frontend - React + Vite"
+    $FrontendCommand = "cd '$FrontendPath'; Write-Host '⚛️ Starting React Frontend on http://localhost:5173' -ForegroundColor Green; npm run dev; Read-Host 'Press Enter to close'"
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", "& {[Console]::Title='$FrontendTitle'; $FrontendCommand}"
+}
 
 Write-Host ""
-Write-Host "✅ Both servers are starting up!" -ForegroundColor Green
+if ($Mode -eq 0) { Write-Host "✅ Both servers are starting up!" -ForegroundColor Green }
+elseif ($Mode -eq 1) { Write-Host "✅ Backend server starting." -ForegroundColor Green }
+elseif ($Mode -eq 2) { Write-Host "✅ Frontend server starting." -ForegroundColor Green }
 Write-Host "🌐 API will be available at: http://localhost:5052" -ForegroundColor White
 Write-Host "🌐 Frontend will be available at: http://localhost:5173" -ForegroundColor White
 Write-Host ""

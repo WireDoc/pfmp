@@ -27,7 +27,7 @@ import {
   Assignment as AssignmentIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
-import { taskService } from '../services/api';
+import { taskService, adviceService } from '../services/api';
 import type { 
   CreateTaskRequest,
 } from '../types/Task';
@@ -56,13 +56,15 @@ interface AlertCardProps {
   onMarkAsRead?: (alertId: number) => void;
   onDismiss?: (alertId: number) => void;
   onTaskCreated?: () => void;
+  onAdviceGenerated?: (alertId: number) => void;
 }
 
 export const AlertCard: React.FC<AlertCardProps> = ({ 
   alert, 
   onMarkAsRead, 
   onDismiss,
-  onTaskCreated 
+  onTaskCreated,
+  onAdviceGenerated
 }) => {
   const [showTaskDialog, setShowTaskDialog] = useState(false);
   const [taskData, setTaskData] = useState<Partial<CreateTaskRequest>>({
@@ -74,6 +76,7 @@ export const AlertCard: React.FC<AlertCardProps> = ({
     priority: getSuggestedPriority(alert.severity),
   });
   const [creating, setCreating] = useState(false);
+  const [generatingAdvice, setGeneratingAdvice] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function getSuggestedPriority(severity: string): TaskPriority {
@@ -143,6 +146,22 @@ export const AlertCard: React.FC<AlertCardProps> = ({
 
   const isExpired = alert.expiresAt && new Date(alert.expiresAt) < new Date();
 
+  const handleGenerateAdvice = async () => {
+    try {
+      setGeneratingAdvice(true);
+      setError(null);
+      await adviceService.generateFromAlert(alert.alertId);
+      onAdviceGenerated?.(alert.alertId);
+      // Optionally mark as read when advice generated
+      onMarkAsRead?.(alert.alertId);
+    } catch (err) {
+      setError('Failed to generate advice');
+      console.error('Error generating advice:', err);
+    } finally {
+      setGeneratingAdvice(false);
+    }
+  };
+
   return (
     <>
       <Card sx={{ mb: 2, opacity: alert.isRead ? 0.7 : 1 }}>
@@ -197,21 +216,31 @@ export const AlertCard: React.FC<AlertCardProps> = ({
         <CardActions sx={{ justifyContent: 'space-between' }}>
           <Box display="flex" gap={1}>
             {alert.isActionable && (
-              <Button
-                size="small"
-                variant="contained"
-                color="primary"
-                startIcon={<AssignmentIcon />}
-                onClick={() => {
-                  setTaskData({
-                    ...taskData,
-                    type: getSuggestedTaskType(alert.category)
-                  });
-                  setShowTaskDialog(true);
-                }}
-              >
-                Create Task
-              </Button>
+              <>
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="primary"
+                  startIcon={<AssignmentIcon />}
+                  onClick={() => {
+                    setTaskData({
+                      ...taskData,
+                      type: getSuggestedTaskType(alert.category)
+                    });
+                    setShowTaskDialog(true);
+                  }}
+                >
+                  Create Task
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  disabled={generatingAdvice}
+                  onClick={handleGenerateAdvice}
+                >
+                  {generatingAdvice ? 'Generating...' : 'Generate Advice'}
+                </Button>
+              </>
             )}
             {!alert.isRead && onMarkAsRead && (
               <Button

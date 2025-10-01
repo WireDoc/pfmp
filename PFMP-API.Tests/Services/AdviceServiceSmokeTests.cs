@@ -40,13 +40,13 @@ public class AdviceServiceSmokeTests
     }
 
     [Fact]
-    public async Task RejectAdvice_From_Proposed_Sets_Rejected()
+    public async Task DismissAdvice_From_Proposed_Sets_Dismissed()
     {
         var svc = CreateService(out var db);
         var advice = await svc.GenerateBasicAdviceAsync(1);
-        var rejected = await svc.RejectAdviceAsync(advice.AdviceId);
-        Assert.NotNull(rejected);
-        Assert.Equal("Rejected", rejected!.Status);
+        var dismissed = await svc.DismissAdviceAsync(advice.AdviceId);
+        Assert.NotNull(dismissed);
+        Assert.Equal("Dismissed", dismissed!.Status);
     }
 
     [Fact]
@@ -61,31 +61,47 @@ public class AdviceServiceSmokeTests
     }
 
     [Fact]
-    public async Task RejectAdvice_Idempotent_When_Already_Rejected()
+    public async Task DismissAdvice_Idempotent_When_Already_Dismissed()
     {
         var svc = CreateService(out var db);
         var advice = await svc.GenerateBasicAdviceAsync(1);
-        var first = await svc.RejectAdviceAsync(advice.AdviceId);
-        var second = await svc.RejectAdviceAsync(advice.AdviceId);
-        Assert.Equal("Rejected", first!.Status);
-        Assert.Equal("Rejected", second!.Status);
+        var first = await svc.DismissAdviceAsync(advice.AdviceId);
+        var second = await svc.DismissAdviceAsync(advice.AdviceId);
+        Assert.Equal("Dismissed", first!.Status);
+        Assert.Equal("Dismissed", second!.Status);
     }
 
     [Fact]
-    public async Task Accept_After_Rejected_Throws()
+    public async Task Accept_After_Dismissed_Overwrites_Dismissed()
     {
         var svc = CreateService(out var db);
         var advice = await svc.GenerateBasicAdviceAsync(1);
-        await svc.RejectAdviceAsync(advice.AdviceId);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.AcceptAdviceAsync(advice.AdviceId)!);
+        await svc.DismissAdviceAsync(advice.AdviceId);
+        var accepted = await svc.AcceptAdviceAsync(advice.AdviceId);
+        Assert.Equal("Accepted", accepted!.Status);
+        Assert.Null(accepted.DismissedAt);
     }
 
     [Fact]
-    public async Task Reject_After_Accepted_Throws()
+    public async Task Dismiss_After_Accepted_Throws()
     {
         var svc = CreateService(out var db);
         var advice = await svc.GenerateBasicAdviceAsync(1);
         await svc.AcceptAdviceAsync(advice.AdviceId);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.RejectAdviceAsync(advice.AdviceId)!);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.DismissAdviceAsync(advice.AdviceId)!);
+    }
+
+    [Fact]
+    public async Task Accept_Creates_Task_With_Provenance()
+    {
+        var svc = CreateService(out var db);
+        var advice = await svc.GenerateBasicAdviceAsync(1);
+        var accepted = await svc.AcceptAdviceAsync(advice.AdviceId);
+        Assert.Equal("Accepted", accepted!.Status);
+        Assert.NotNull(accepted.LinkedTaskId);
+        var task = await db.Tasks.FirstOrDefaultAsync(t => t.TaskId == accepted.LinkedTaskId);
+        Assert.NotNull(task);
+        Assert.Equal(advice.AdviceId, task!.SourceAdviceId);
+        Assert.Equal("Advice", task.SourceType);
     }
 }

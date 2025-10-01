@@ -71,6 +71,11 @@ export const AlertsDashboard: React.FC<AlertsDashboardProps> = ({ userId }) => {
     setTimeout(() => setSuccessMessage(null), 5000);
   };
 
+  const handleAdviceGenerated = (alertId: number) => {
+    setSuccessMessage('Advice generated from alert #' + alertId + '. Check the Advice tab.');
+    setTimeout(() => setSuccessMessage(null), 5000);
+  };
+
   const unreadAlerts = alerts.filter(alert => !alert.isRead);
   const readAlerts = alerts.filter(alert => alert.isRead);
 
@@ -109,6 +114,7 @@ export const AlertsDashboard: React.FC<AlertsDashboardProps> = ({ userId }) => {
               onMarkAsRead={handleMarkAsRead}
               onDismiss={handleDismiss}
               onTaskCreated={handleTaskCreated}
+              onAdviceGenerated={handleAdviceGenerated}
             />
           ))}
         </>
@@ -125,6 +131,7 @@ export const AlertsDashboard: React.FC<AlertsDashboardProps> = ({ userId }) => {
               alert={alert}
               onDismiss={handleDismiss}
               onTaskCreated={handleTaskCreated}
+              onAdviceGenerated={handleAdviceGenerated}
             />
           ))}
         </>
