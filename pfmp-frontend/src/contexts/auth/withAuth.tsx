@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuth } from './AuthProvider';
+import { useAuth } from './useAuth';
 
 /**
  * Higher-order component to protect routes/components that require authentication.

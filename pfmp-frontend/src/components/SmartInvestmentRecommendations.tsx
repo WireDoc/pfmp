@@ -328,7 +328,7 @@ export const SmartInvestmentRecommendations: React.FC = () => {
               <Typography variant="body2">
                 <strong>Analysis Complete!</strong> Based on your moderate risk tolerance and diversified goals, 
                 we've identified optimal allocations across {availableOptions.length} investment options. 
-                Recommendations consider current market conditions, interest rates at {4.5}%, and your {mockUserProfile.age}-year investment timeline.
+                Recommendations consider current market conditions, interest rates at {4.5}%, and your {MOCK_USER_PROFILE.age}-year investment timeline.
               </Typography>
             </Alert>
 

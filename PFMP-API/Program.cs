@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using PFMP_API.Services;
 using System.Text;
 using System.Text.Json.Serialization;
+using Microsoft.OpenApi.Models;
 
 namespace PFMP_API
 {
@@ -105,18 +106,32 @@ namespace PFMP_API
                     options.JsonSerializerOptions.WriteIndented = true;
                 });
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-            builder.Services.AddOpenApi();
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "PFMP API",
+                    Version = "v1",
+                    Description = "Personal Financial Management Platform API"
+                });
+            });
 
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            bool enableSwaggerAlways = builder.Configuration.GetValue<bool>("Swagger:Always", false);
+            if (app.Environment.IsDevelopment() || enableSwaggerAlways)
             {
-                app.MapOpenApi();
-                // Disable HTTPS redirection in development
-                // app.UseHttpsRedirection();
+                app.UseSwagger();
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "PFMP API v1");
+                    c.DocumentTitle = "PFMP API Docs";
+                });
             }
-            else
+
+            if (!app.Environment.IsDevelopment())
             {
                 app.UseHttpsRedirection();
             }
@@ -128,6 +143,15 @@ namespace PFMP_API
             app.UseAuthorization();
 
             app.MapControllers();
+
+            // Lightweight health endpoint (unauthenticated)
+            app.MapGet("/health", () => Results.Json(new
+            {
+                status = "OK",
+                service = "PFMP-API",
+                utc = DateTime.UtcNow,
+                env = app.Environment.EnvironmentName
+            }));
 
             // Seed development data if enabled
             if (app.Environment.IsDevelopment())

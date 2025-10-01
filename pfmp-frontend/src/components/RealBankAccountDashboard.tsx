@@ -31,7 +31,7 @@ import { ProtectedRoute } from './ProtectedRoute';
 import { PlaidBankingService } from '../services/PlaidBankingService';
 import type { BankAccount, SpendingAnalysis } from '../services/PlaidBankingService';
 import type { InvestmentCapacitySummary } from '../types/components';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/auth/useAuth';
 
 /**
  * Real Bank Account Integration Component

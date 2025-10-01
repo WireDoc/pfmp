@@ -78,86 +78,186 @@ namespace PFMP_API.Services
             return advice;
         }
 
-        public async Task<IEnumerable<Advice>> GetAdviceForUserAsync(int userId)
+        public async Task<IEnumerable<Advice>> GetAdviceForUserAsync(int userId, string? status = null, bool includeDismissed = false)
         {
-            return await _db.Advice
-                .Where(a => a.UserId == userId)
-                .OrderByDescending(a => a.CreatedAt)
-                .ToListAsync();
+            var query = _db.Advice.AsQueryable().Where(a => a.UserId == userId);
+            if (!includeDismissed)
+            {
+                query = query.Where(a => a.Status != "Dismissed");
+            }
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                query = query.Where(a => a.Status == status);
+            }
+            return await query.OrderByDescending(a => a.CreatedAt).ToListAsync();
         }
 
         public async Task<Advice?> AcceptAdviceAsync(int adviceId)
         {
             var advice = await _db.Advice.FirstOrDefaultAsync(a => a.AdviceId == adviceId);
             if (advice == null) return null;
-            if (advice.Status == "Accepted") return advice; // idempotent
-            if (advice.Status == "Rejected")
-            {
-                throw new InvalidOperationException("Cannot accept advice that is already Rejected");
-            }
-            advice.Status = "Accepted";
-            advice.UpdatedAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync();
-            return advice;
-        }
-
-        public async Task<Advice?> RejectAdviceAsync(int adviceId)
-        {
-            var advice = await _db.Advice.FirstOrDefaultAsync(a => a.AdviceId == adviceId);
-            if (advice == null) return null;
-            if (advice.Status == "Rejected") return advice; // idempotent
+            // If already accepted, still ensure provenance fields on linked task are populated before returning.
             if (advice.Status == "Accepted")
             {
-                throw new InvalidOperationException("Cannot reject advice that is already Accepted");
+                if (advice.LinkedTaskId != null)
+                {
+                    var existingTask = await _db.Tasks.FirstOrDefaultAsync(t => t.TaskId == advice.LinkedTaskId);
+                    if (existingTask != null)
+                    {
+                        bool changed = false;
+                        if (existingTask.SourceAdviceId == null)
+                        {
+                            existingTask.SourceAdviceId = advice.AdviceId;
+                            changed = true;
+                        }
+                        if (string.IsNullOrEmpty(existingTask.SourceType))
+                        {
+                            existingTask.SourceType = "Advice";
+                            changed = true;
+                        }
+                        if (changed)
+                        {
+                            await _db.SaveChangesAsync();
+                        }
+                    }
+                }
+                return advice; // idempotent with provenance assurance
             }
-            advice.Status = "Rejected";
+
+            if (advice.Status == "Dismissed")
+            {
+                // Direct accept overrides dismissal.
+                advice.PreviousStatus = "Dismissed";
+            }
+
+            if (advice.LinkedTaskId == null)
+            {
+                // Create task on first acceptance.
+                var task = new UserTask
+                {
+                    UserId = advice.UserId,
+                    Type = TaskType.GoalAdjustment,
+                    Title = (advice.Theme ?? "Advice") + " Action",
+                    Description = advice.ConsensusText.Length > 500 ? advice.ConsensusText[..500] + "..." : advice.ConsensusText,
+                    Priority = TaskPriority.Medium,
+                    Status = Models.TaskStatus.Pending,
+                    CreatedDate = DateTime.UtcNow,
+                    SourceAlertId = advice.SourceAlertId,
+                    SourceAdviceId = advice.AdviceId,
+                    SourceType = "Advice"
+                };
+                _db.Tasks.Add(task);
+                await _db.SaveChangesAsync();
+                advice.LinkedTaskId = task.TaskId;
+            }
+            else
+            {
+                // Ensure existing linked task has provenance fields populated (in case of earlier omission)
+                var existingTask = await _db.Tasks.FirstOrDefaultAsync(t => t.TaskId == advice.LinkedTaskId);
+                if (existingTask != null)
+                {
+                    bool changed = false;
+                    if (existingTask.SourceAdviceId == null)
+                    {
+                        existingTask.SourceAdviceId = advice.AdviceId;
+                        changed = true;
+                    }
+                    if (string.IsNullOrEmpty(existingTask.SourceType))
+                    {
+                        existingTask.SourceType = "Advice";
+                        changed = true;
+                    }
+                    if (changed)
+                    {
+                        await _db.SaveChangesAsync();
+                    }
+                }
+            }
+
+            advice.Status = "Accepted";
+            advice.AcceptedAt = advice.AcceptedAt ?? DateTime.UtcNow;
+            advice.UpdatedAt = DateTime.UtcNow;
+            advice.DismissedAt = null; // ensure cleared if previously dismissed
+            await _db.SaveChangesAsync();
+            return advice;
+        }
+
+        public async Task<Advice?> DismissAdviceAsync(int adviceId)
+        {
+            var advice = await _db.Advice.FirstOrDefaultAsync(a => a.AdviceId == adviceId);
+            if (advice == null) return null;
+            if (advice.Status == "Dismissed") return advice; // idempotent
+            if (advice.Status == "Accepted")
+            {
+                throw new InvalidOperationException("Cannot dismiss advice that is already Accepted");
+            }
+            advice.PreviousStatus = advice.Status;
+            advice.Status = "Dismissed";
+            advice.DismissedAt = DateTime.UtcNow;
             advice.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
             return advice;
         }
 
-        /// <summary>
-        /// Converts an Accepted advice into a UserTask, links it, and updates status to ConvertedToTask.
-        /// Rules:
-        /// - Only Accepted advice may be converted (Proposed must be accepted first; Rejected cannot convert; already ConvertedToTask idempotent).
-        /// </summary>
-        public async Task<Advice?> ConvertAdviceToTaskAsync(int adviceId)
+        public async Task<Advice> GenerateAdviceFromAlertAsync(int alertId, int userId, bool includeSnapshot = true)
         {
-            var advice = await _db.Advice.FirstOrDefaultAsync(a => a.AdviceId == adviceId);
-            if (advice == null) return null;
-
-            if (advice.Status == "ConvertedToTask") return advice; // idempotent
-
-            if (advice.Status == "Proposed")
+            var alert = await _db.Alerts.FirstOrDefaultAsync(a => a.AlertId == alertId && a.UserId == userId);
+            if (alert == null)
             {
-                throw new InvalidOperationException("Advice must be Accepted before conversion to task");
-            }
-            if (advice.Status == "Rejected")
-            {
-                throw new InvalidOperationException("Cannot convert Rejected advice to task");
-            }
-            if (advice.Status != "Accepted")
-            {
-                throw new InvalidOperationException($"Cannot convert advice in status {advice.Status}");
+                throw new ArgumentException($"Alert {alertId} not found for user {userId}");
             }
 
-            // Create a simple task record (placeholder mapping logic).
-            var task = new UserTask
+            var baseText = $"Alert: {alert.Title}\n{alert.Message}";
+            string enriched = baseText;
+            try
             {
-                UserId = advice.UserId,
-                Type = TaskType.GoalAdjustment,
-                Title = (advice.Theme ?? "Advice") + " Action",
-                Description = advice.ConsensusText.Length > 500 ? advice.ConsensusText[..500] + "..." : advice.ConsensusText,
-                Priority = TaskPriority.Medium,
-                Status = Models.TaskStatus.Pending,
-                CreatedDate = DateTime.UtcNow
+                // Attempt AI expansion - fallback to base alert text if fails
+                var analysis = await _aiService.AnalyzePortfolioAsync(userId) ?? string.Empty;
+                enriched = (analysis.Length > 0 ? analysis + "\n\n" : string.Empty) + baseText;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "AI enrichment failed for alert advice generation {AlertId}", alertId);
+            }
+
+            if (enriched.Length > 8000) enriched = enriched[..8000] + "...";
+
+            var advice = new Advice
+            {
+                UserId = userId,
+                Theme = alert.Category.ToString(),
+                Status = "Proposed",
+                ConsensusText = enriched,
+                ConfidenceScore = 55,
+                SourceAlertId = alert.AlertId,
+                GenerationMethod = "FromAlert",
+                SourceAlertSnapshot = includeSnapshot ? System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    alert.AlertId,
+                    alert.Title,
+                    alert.Message,
+                    alert.Category,
+                    alert.Severity,
+                    alert.CreatedAt
+                }) : null,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
-            _db.Tasks.Add(task);
-            await _db.SaveChangesAsync();
 
-            advice.LinkedTaskId = task.TaskId;
-            advice.Status = "ConvertedToTask";
-            advice.UpdatedAt = DateTime.UtcNow;
+            // Apply validator heuristic
+            try
+            {
+                var validation = await _validator.ValidateAsync(advice);
+                advice.ValidatorJson = System.Text.Json.JsonSerializer.Serialize(validation);
+                advice.ViolationsJson = validation.Issues.Any() ? System.Text.Json.JsonSerializer.Serialize(validation.Issues) : null;
+                advice.ConfidenceScore = Math.Clamp(advice.ConfidenceScore + (int)validation.HeuristicConfidenceAdjustment, 0, 100);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Validator failed for alert-derived advice {AlertId}", alertId);
+            }
+
+            _db.Advice.Add(advice);
             await _db.SaveChangesAsync();
             return advice;
         }

@@ -1,4 +1,4 @@
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/auth/useAuth';
 import { pfmpApiConfig } from '../config/authConfig';
 
 // Lightweight goal shape (expand when backend fields become concrete)

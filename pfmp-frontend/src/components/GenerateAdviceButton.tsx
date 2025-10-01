@@ -17,7 +17,7 @@ const GenerateAdviceButton: React.FC<GenerateAdviceButtonProps> = ({ userId, onG
     try {
       await adviceService.generate(userId);
       onGenerated?.();
-    } catch (e) {
+    } catch {
       setError('Generation failed');
     } finally {
       setLoading(false);

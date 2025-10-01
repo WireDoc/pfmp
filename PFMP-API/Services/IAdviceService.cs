@@ -5,9 +5,9 @@ namespace PFMP_API.Services
     public interface IAdviceService
     {
         Task<Advice> GenerateBasicAdviceAsync(int userId);
-        Task<IEnumerable<Advice>> GetAdviceForUserAsync(int userId);
+        Task<Advice> GenerateAdviceFromAlertAsync(int alertId, int userId, bool includeSnapshot = true);
+        Task<IEnumerable<Advice>> GetAdviceForUserAsync(int userId, string? status = null, bool includeDismissed = false);
         Task<Advice?> AcceptAdviceAsync(int adviceId);
-        Task<Advice?> RejectAdviceAsync(int adviceId);
-        Task<Advice?> ConvertAdviceToTaskAsync(int adviceId);
+        Task<Advice?> DismissAdviceAsync(int adviceId);
     }
 }

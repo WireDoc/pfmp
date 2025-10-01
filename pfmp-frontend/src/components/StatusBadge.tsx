@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type StatusKind = 'Proposed' | 'Accepted' | 'Rejected' | 'ConvertedToTask' | string;
+export type StatusKind = 'Proposed' | 'Accepted' | 'Dismissed' | string;
 
 interface StatusBadgeProps {
   status: StatusKind;
@@ -11,8 +11,7 @@ interface StatusBadgeProps {
 const colorMap: Record<string, { bg: string; fg: string; border: string; label?: string }> = {
   Proposed: { bg: '#e3f2fd', fg: '#0d47a1', border: '#0d47a1', label: 'PROPOSED' },
   Accepted: { bg: '#e8f5e9', fg: '#1b5e20', border: '#1b5e20', label: 'ACCEPTED' },
-  Rejected: { bg: '#ffebee', fg: '#b71c1c', border: '#b71c1c', label: 'REJECTED' },
-  ConvertedToTask: { bg: '#f3e5f5', fg: '#6a1b9a', border: '#6a1b9a', label: 'CONVERTED' }
+  Dismissed: { bg: '#fafafa', fg: '#616161', border: '#bdbdbd', label: 'DISMISSED' }
 };
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, style, titlePrefix }) => {

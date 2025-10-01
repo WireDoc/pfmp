@@ -4,7 +4,6 @@
  */
 
 import { Configuration, PlaidApi, PlaidEnvironments } from 'plaid';
-import type { PlaidAccount, PlaidTransaction } from '../types/plaid';
 
 export interface BankAccount {
   id: string;
@@ -121,7 +120,7 @@ export class PlaidBankingService {
         access_token: accessToken,
       });
 
-      const accounts: BankAccount[] = response.data.accounts.map((account: PlaidAccount) => ({
+  const accounts: BankAccount[] = response.data.accounts.map((account) => ({
         id: account.account_id || 'unknown',
         name: account.name || 'Account',
         officialName: account.official_name || account.name || 'Account',
@@ -169,7 +168,7 @@ export class PlaidBankingService {
         },
       });
 
-      const transactions: Transaction[] = response.data.transactions.map((tx: PlaidTransaction) => ({
+  const transactions: Transaction[] = response.data.transactions.map((tx) => ({
         id: tx.transaction_id || 'unknown',
         accountId: tx.account_id || 'unknown',
         amount: tx.amount ?? 0,

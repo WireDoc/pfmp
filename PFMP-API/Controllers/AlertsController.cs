@@ -113,11 +113,7 @@ namespace PFMP_API.Controllers
                 _context.Alerts.Add(alert);
                 await _context.SaveChangesAsync();
 
-                // Generate task if alert is actionable
-                if (alert.IsActionable && !alert.TaskGenerated)
-                {
-                    await GenerateTaskFromAlert(alert);
-                }
+                // Legacy task generation removed (alerts no longer spawn tasks directly).
 
                 _logger.LogInformation("Created alert {AlertId} for user {UserId}", alert.AlertId, alert.UserId);
                 return CreatedAtAction(nameof(GetAlert), new { id = alert.AlertId }, alert);
@@ -391,7 +387,8 @@ namespace PFMP_API.Controllers
                     DismissedAlerts = alerts.Count(a => a.IsDismissed),
                     ExpiredAlerts = alerts.Count(a => a.ExpiresAt != null && a.ExpiresAt <= DateTime.UtcNow),
                     ActionableAlerts = alerts.Count(a => a.IsActionable),
-                    TaskGeneratedAlerts = alerts.Count(a => a.TaskGenerated),
+                    // Legacy metric removed (alerts no longer generate tasks directly)
+                    TaskGeneratedAlerts = 0,
                     AlertsByCategory = alerts.GroupBy(a => a.Category)
                         .ToDictionary(g => g.Key.ToString(), g => g.Count()),
                     AlertsBySeverity = alerts.GroupBy(a => a.Severity)
@@ -416,102 +413,41 @@ namespace PFMP_API.Controllers
         /// <param name="alertId">Alert ID</param>
         /// <returns>Created task</returns>
         [HttpPost("{alertId}/generate-task")]
-        public async Task<ActionResult<UserTask>> GenerateTaskFromAlert(int alertId)
+        public ActionResult GenerateTaskFromAlert(int alertId) => StatusCode(410, new { message = "Deprecated. Alerts no longer generate tasks directly. Use /api/Alerts/{id}/generate-advice then accept the advice." });
+
+        /// <summary>
+        /// Generates an Advice record derived from an alert (manual trigger; no auto task creation).
+        /// </summary>
+        [HttpPost("{alertId}/generate-advice")]
+        public async Task<ActionResult<Advice>> GenerateAdviceFromAlert(int alertId, [FromServices] IAdviceService adviceService, [FromQuery] bool includeSnapshot = true)
         {
             try
             {
-                var alert = await _context.Alerts.FindAsync(alertId);
+                // Find alert to extract user context
+                var alert = await _context.Alerts.FirstOrDefaultAsync(a => a.AlertId == alertId);
                 if (alert == null)
                 {
                     return NotFound($"Alert with ID {alertId} not found");
                 }
 
-                if (!alert.IsActionable)
-                {
-                    return BadRequest("Alert is not actionable");
-                }
-
-                if (alert.TaskGenerated)
-                {
-                    return BadRequest("Task has already been generated for this alert");
-                }
-
-                var task = await GenerateTaskFromAlert(alert);
-                return Ok(task);
+                var advice = await adviceService.GenerateAdviceFromAlertAsync(alertId, alert.UserId, includeSnapshot);
+                return Ok(advice);
+            }
+            catch (ArgumentException ae)
+            {
+                _logger.LogWarning(ae, "Validation error generating advice from alert {AlertId}", alertId);
+                return BadRequest(ae.Message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error generating task from alert {AlertId}", alertId);
-                return StatusCode(500, "An error occurred while generating task from alert");
+                _logger.LogError(ex, "Error generating advice from alert {AlertId}", alertId);
+                return StatusCode(500, "Failed to generate advice from alert");
             }
         }
 
         /// <summary>
         /// Private method to generate a task from an alert
         /// </summary>
-        private async Task<UserTask> GenerateTaskFromAlert(Alert alert)
-        {
-            // Create task based on alert category and content
-            var taskType = MapAlertCategoryToTaskType(alert.Category);
-            var taskPriority = MapAlertSeverityToTaskPriority(alert.Severity);
-
-            var task = new UserTask
-            {
-                UserId = alert.UserId,
-                Title = $"Action Required: {alert.Title}",
-                Description = alert.Message,
-                Type = taskType,
-                Priority = taskPriority,
-                Status = Models.TaskStatus.Pending,
-                CreatedDate = DateTime.UtcNow,
-                DueDate = alert.ExpiresAt ?? DateTime.UtcNow.AddDays(7), // Default 7 days if no expiry
-                SourceAlertId = alert.AlertId,
-                Notes = "Generated from alert system"
-            };
-
-            _context.Tasks.Add(task);
-            await _context.SaveChangesAsync();
-
-            // Update alert to mark task as generated
-            alert.GeneratedTaskId = task.TaskId;
-            alert.TaskGenerated = true;
-            await _context.SaveChangesAsync();
-
-            _logger.LogInformation("Generated task {TaskId} from alert {AlertId}", task.TaskId, alert.AlertId);
-            return task;
-        }
-
-        /// <summary>
-        /// Maps alert category to appropriate task type
-        /// </summary>
-        private Models.TaskType MapAlertCategoryToTaskType(AlertCategory category)
-        {
-            return category switch
-            {
-                AlertCategory.Portfolio => Models.TaskType.Rebalancing,
-                AlertCategory.Goal => Models.TaskType.GoalAdjustment,
-                AlertCategory.Transaction => Models.TaskType.CashOptimization,
-                AlertCategory.Performance => Models.TaskType.Rebalancing,
-                AlertCategory.Security => Models.TaskType.InsuranceReview,
-                AlertCategory.Tax => Models.TaskType.TaxLossHarvesting,
-                AlertCategory.Rebalancing => Models.TaskType.Rebalancing,
-                _ => Models.TaskType.CashOptimization
-            };
-        }
-
-        /// <summary>
-        /// Maps alert severity to appropriate task priority
-        /// </summary>
-        private Models.TaskPriority MapAlertSeverityToTaskPriority(AlertSeverity severity)
-        {
-            return severity switch
-            {
-                AlertSeverity.Critical => Models.TaskPriority.High,
-                AlertSeverity.High => Models.TaskPriority.High,
-                AlertSeverity.Medium => Models.TaskPriority.Medium,
-                AlertSeverity.Low => Models.TaskPriority.Low,
-                _ => Models.TaskPriority.Medium
-            };
-        }
+        // Legacy mapping helpers removed with task generation deprecation.
     }
 }

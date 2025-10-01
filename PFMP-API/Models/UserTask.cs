@@ -67,6 +67,16 @@ namespace PFMP_API.Models
 
         // Link to the source recommendation/alert that generated this task
         public int? SourceAlertId { get; set; }
+    /// <summary>
+    /// Optional link directly to originating advice (supersedes SourceAlertId for direct provenance).
+    /// </summary>
+    public int? SourceAdviceId { get; set; }
+
+    /// <summary>
+    /// Source type descriptor (e.g., 'Advice', 'Manual').
+    /// </summary>
+    [MaxLength(30)]
+    public string? SourceType { get; set; }
 
         // Additional context and metadata
         public string? Notes { get; set; }
