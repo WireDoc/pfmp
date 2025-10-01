@@ -35,7 +35,18 @@ if (-not $SkipBackend) {
     # Run tests (will discover PFMP-API.Tests via solution or project reference)
     $testsPath = Join-Path $repoRoot 'PFMP-API.Tests'
     if (Test-Path $testsPath) {
-    Run-Step -Title 'Test .NET' -ScriptBlock { dotnet test $testsPath -c Release --nologo --collect:"XPlat Code Coverage" }
+        Run-Step -Title 'Test .NET' -ScriptBlock { dotnet test $testsPath -c Release --nologo --collect:"XPlat Code Coverage" }
+        # Consolidate coverage (cobertura) into a stable location (coverage/) if present
+        $coverageRoot = Join-Path $testsPath 'TestResults'
+        if (Test-Path $coverageRoot) {
+            $cobertura = Get-ChildItem -Path $coverageRoot -Recurse -Filter 'coverage.cobertura.xml' -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+            if ($cobertura) {
+                $targetDir = Join-Path $repoRoot 'coverage'
+                if (-not (Test-Path $targetDir)) { New-Item -ItemType Directory -Path $targetDir | Out-Null }
+                Copy-Item $cobertura.FullName (Join-Path $targetDir 'coverage.cobertura.xml') -Force
+                Write-Host "Copied coverage report to $targetDir" -ForegroundColor DarkGray
+            }
+        }
     }
 }
 
