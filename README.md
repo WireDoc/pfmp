@@ -43,31 +43,16 @@ Invoke-RestMethod http://localhost:5052/api/Advice/user/1 | Format-Table adviceI
 See the dedicated guide (`alerts-advice-testing.md`) for deeper verification queries (SQL + troubleshooting).
 
 ### Recent Additions (Oct 2025)
-- Simplified advice lifecycle (Removed Reject / Convert; added Dismiss terminal path)
-- Provenance fields + idempotent acceptance backfill
-- Health endpoint: `GET /health`
-- Swagger UI (dev + optional prod via `Swagger:Always=true`): `/swagger`
-- Custom endpoint listing: `GET /api/docs/endpoints`
-- Build tooling: `build-all.bat`, `scripts/ci-build.ps1` (flags `-SkipFrontend`, `-SkipBackend`)
-- Test integration + coverage collection (Cobertura)
-- Frontend smoke script: `npm run smoke`
-- Solution file `PFMP.sln`
-- `BUILD.md` central build + script reference
+* Backup script & policy (ALWAYS backup before migrations/seeding)
 
 ## 🚀 Feature Snapshot (Current vs Rebuild)
 
 ### Currently Active (Verified 2025-09-27)
-- .NET 9 backend: Users, Accounts, Goals, Income Sources, Alerts, Tasks, AI endpoints
-- TSP allocation: Full 16-fund system with preset strategies
-- Alerts backend lifecycle (Read / Dismissed / Active) + alert → task linkage
-- Task management backend + status transitions
 - Auth: Custom `AuthProvider` + development bypass (MSAL wrapper removed; direct `@azure/msal-browser` retained)
 - Leaf frontend components still present: `SmartInvestmentRecommendations`, `RealBankAccountDashboard`, `ProtectedDashboardSections`
 
 ### Missing During Rebuild (To Be Recreated)
 - Protected routing guard & routed layout shell
-- Onboarding wizard (`WelcomeOnboardingFlow`) + `UserSetupContext`
-- Setup progress tracker & resumable onboarding state UI
 - Market dashboards (`LiveMarketDashboard`, `MarketIntelligencePanel`)
 - `FinancialIntelligenceCenter` aggregation hub UI
 - Frontend `SmartAlertsSystem` (visual + interaction layer)
@@ -76,8 +61,6 @@ See the dedicated guide (`alerts-advice-testing.md`) for deeper verification que
 - Developer diagnostics / debug panel
 
 ### Strategic Additions Planned
-- Dual-AI advisor abstraction (Primary: GPT-X future | Validator: Claude Sonnet) with consensus & policy rule evaluation
-- Formal Wave-based modular reconstruction for auditability & controlled scope
 - Feature flags for cost-bearing AI calls & experimental intelligence modules
 
 ### Rebuild Guiding Principles
@@ -85,22 +68,13 @@ See the dedicated guide (`alerts-advice-testing.md`) for deeper verification que
 2. Narrow-scoped waves with explicit acceptance criteria
 3. Introduce dual-AI abstraction before scaling AI usage costs
 4. Defer heavy performance work (beyond existing chunks) to final wave
-5. Maintain dev auth bypass until onboarding wizard stabilizes
-
-## 🏗️ Architecture
-
-### Technology Stack (Practical Current State)
 - **Frontend Runtime**: React 19 + TypeScript + Vite (minimal shell while rebuilding)
 - **UI Library**: MUI v7 (Grid v2 migration complete)
 - **Backend**: .NET 9 Web API (stable multi-domain controllers)
-- **Database**: PostgreSQL 15 (Synology NAS) – full schema intact
-- **AI Architecture**: Prepared for Azure OpenAI + Anthropic; dual-AI validator pattern scheduled Wave 5
-- **Infra Path**: Hybrid local dev → Azure (unchanged strategic direction)
-- **Build Perf**: Manual Rollup `manualChunks` + selective lazy boundaries
-
 ### Frontend Layout Standard: MUI Grid v2 ✅
 We enforce a single, consistent layout system using the **stable MUI Grid v2 API**.
 
+4. (Critical) Run a manual backup before first local migration if modifying schema
 Rationale:
 - Removes legacy Grid / `Grid2` ambiguity
 - Stronger typing via `size` prop object form
