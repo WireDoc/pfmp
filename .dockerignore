@@ -1,0 +1,24 @@
+# Ignore everything not needed for building the API image
+**/.git
+**/.gitignore
+**/.vs
+**/.vscode
+**/bin
+**/obj
+**/TestResults
+**/node_modules
+**/coverage
+**/dist
+**/build
+**/.cache
+**/*.tgz
+**/logs
+**/scripts/dev
+**/scripts/db
+Dockerfile
+**/*.md
+# Allow API project source and csproj
+!PFMP-API/**
+# But still ignore API build outputs if present
+PFMP-API/bin
+PFMP-API/obj

@@ -1,0 +1,22 @@
+version: "3.9"
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/api/Dockerfile
+    container_name: pfmp-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: ${EXTERNAL_DB_CONN}
+      Development__BypassAuthentication: "true"
+      Development__SeedTestData: "true"
+    ports:
+      - "5052:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+
+# External DB (Synology) is assumed reachable on the network.
+# Provide EXTERNAL_DB_CONN via .env (see .env.example). No local db service here.

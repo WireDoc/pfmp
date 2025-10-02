@@ -120,11 +120,62 @@ Endpoints:
 5. GET /api/Tasks?userId=1 (verifies linkage)
 Fails fast with non-zero exit on any failure.
 
+## Docker (API + Postgres)
+
+### Compose Startup (API only, external DB)
+Create a `.env` from `.env.example` and set `EXTERNAL_DB_CONN`.
+```
+docker compose -f docker/docker-compose.yml up --build -d
+```
+Services started:
+- `api`: PFMP-API (host port 5052, container 8080)
+
+Health check:
+```
+curl http://localhost:5052/health
+```
+
+Swagger (dev): `http://localhost:5052/swagger`
+
+### Tear Down & Cleanup
+```
+docker compose -f docker/docker-compose.yml down -v
+```
+Removes containers and the named volume `pgdata`.
+
+### Iteration Tips
+- For fastest C# feedback keep using `dotnet run` locally; reserve containers for integration/system tests.
+Rebuild only API layer after code changes:
+```
+docker compose -f docker/docker-compose.yml build api
+docker compose -f docker/docker-compose.yml up -d api
+```
+
+### Environment Overrides
+Add a `.env` file at repo root (auto-loaded by compose) with the external connection string:
+```
+EXTERNAL_DB_CONN=Host=192.168.1.108;Port=5433;Database=pfmp_dev;Username=pfmp_user;Password=REDACTED;Include Error Detail=true
+```
+
+### Backups (External Postgres)
+Since Postgres runs on Synology, schedule regular dumps (example Windows scheduled task or Synology cron):
+```
+pg_dump --format=custom --file pfmp_$(Get-Date -Format yyyyMMdd_HHmm).dump --dbname "Host=192.168.1.108;Port=5433;Database=pfmp_dev;Username=pfmp_user;Password=..."
+```
+Retain a rotation (e.g., last 7 daily, 4 weekly). Consider verifying restore quarterly.
+
+### Future Hardening
+- Non-root runtime user
+- Read-only filesystem
+- Multi-arch build (amd64/arm64)
+- Image vulnerability scan in CI (Trivy/Grype)
+
 ## Next Enhancements (Optional)
-- Add HTML coverage publishing in CI (e.g., artifact upload).
+- HTML coverage publishing in CI (artifact upload).
 - Parallelize backend + frontend phases.
-- Add Docker multi-stage image (API + static frontend assets).
-- Add Postman collection generation or OpenAPI-driven client generation.
+- Frontend container (optional) for unified deploy.
+- OpenAPI-driven TypeScript client generation.
+- Automated migration validation step (apply + diff).
 
 ---
 This document maintained alongside `scripts/ci-build.ps1` and `build-all.bat`; update when adding new flags or steps.
