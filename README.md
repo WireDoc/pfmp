@@ -44,6 +44,8 @@ See the dedicated guide (`alerts-advice-testing.md`) for deeper verification que
 
 ### Recent Additions (Oct 2025)
 * Backup script & policy (ALWAYS backup before migrations/seeding)
+* Docker marked experimental (mapped drive build instability; use native `dotnet run` for daily dev)
+* OpenAPI → TypeScript generation pipeline scaffolded (`npm run generate:api` / `scripts/generate-openapi.ps1`)
 
 ## 🚀 Feature Snapshot (Current vs Rebuild)
 

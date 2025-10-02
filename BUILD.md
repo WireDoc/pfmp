@@ -122,6 +122,8 @@ Fails fast with non-zero exit on any failure.
 
 ## Docker (API + Postgres)
 
+> Experimental: Docker support is currently marked **experimental** due to build instability on mapped Windows drives. Use native `dotnet run` for day‑to‑day development; containers are optional for integration/system testing. Issues encountered: read-only filesystem errors during multi-stage build layer commit on a mapped `W:` drive. Workaround (deferred): build/publish on host, copy publish output into a slim runtime image.
+
 ### Compose Startup (API only, external DB)
 Create a `.env` from `.env.example` and set `EXTERNAL_DB_CONN`.
 ```
@@ -188,6 +190,48 @@ See `docs/DATABASE-BACKUP.md` for retention + restore.
 - Frontend container (optional) for unified deploy.
 - OpenAPI-driven TypeScript client generation.
 - Automated migration validation step (apply + diff).
+
+## OpenAPI → TypeScript Client Generation
+
+The backend Swagger spec at `http://localhost:5052/swagger/v1/swagger.json` is used to generate strongly typed frontend interfaces.
+
+### One-Time Setup (Already Added)
+Dev dependency: `openapi-typescript` and script: `npm run generate:api` (see `pfmp-frontend/package.json`).
+
+### Generated Output
+`pfmp-frontend/src/api/generated/openapi-types.ts` (auto-created / overwritten). Do **not** hand edit; regenerate after API surface changes.
+
+### Run Generation
+In a terminal (backend running):
+```
+cd pfmp-frontend
+npm install  # if not already
+npm run generate:api
+```
+or via PowerShell helper:
+```
+pwsh scripts/generate-openapi.ps1
+```
+
+### Importing Types
+Example:
+```ts
+import type { paths } from './api/generated/openapi-types';
+type GetAdviceResponse = paths['/api/Advice/user/{userId}']['get']['responses']['200']['content']['application/json'];
+```
+
+For convenience you may build lightweight wrapper functions that narrow the above types to domain-specific aliases.
+
+### Regeneration Triggers
+- Adding or renaming controller actions
+- Changing DTO shapes / response contracts
+- Version bump of the API that alters routes
+
+Commit regenerated file with related backend changes to keep frontend in sync.
+
+### Future Automation
+- CI job to fail if spec changes without regenerated client
+- Precommit hook comparing hash of swagger JSON
 
 ---
 This document maintained alongside `scripts/ci-build.ps1` and `build-all.bat`; update when adding new flags or steps.
