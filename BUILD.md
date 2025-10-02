@@ -169,6 +169,18 @@ Retain a rotation (e.g., last 7 daily, 4 weekly). Consider verifying restore qua
 - Read-only filesystem
 - Multi-arch build (amd64/arm64)
 - Image vulnerability scan in CI (Trivy/Grype)
+  
+## Backup Requirement (Pre-Migration Gate)
+ALWAYS run a manual backup before:
+- Adding/modifying EF Core migrations
+- Large seed or bulk data adjustment
+- Schema refactors (renames, drops)
+
+Command:
+```
+pwsh scripts/db/backup-postgres.ps1
+```
+See `docs/DATABASE-BACKUP.md` for retention + restore.
 
 ## Next Enhancements (Optional)
 - HTML coverage publishing in CI (artifact upload).
