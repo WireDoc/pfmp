@@ -2,6 +2,43 @@
 
 Modern React (19) + TypeScript + Vite application for service member / veteran–focused financial planning: allocation intelligence, onboarding guidance, and forthcoming dual-AI advisory pipeline.
 
+## Authentication Modes (Simulated vs Real Azure AD)
+During early waves we optimize iteration speed using a simulated auth path while keeping the codebase MSAL‑ready.
+
+| Mode | How It Works | When To Use | Trigger |
+|------|--------------|-------------|---------|
+| Simulated (default) | Local dev flag returns a mock signed-in user without MSAL redirect / popup. | Fast UI iteration, onboarding flows, offline demos. | Feature flag `use_simulated_auth=true` (default) |
+| Real MSAL | Uses `@azure/msal-browser` to perform real Azure Entra ID login and acquire tokens. | Pre‑production drill, validating protected API calls, integration tests with real tenant. | Set `use_simulated_auth=false` + provide env vars |
+
+### Switching to Real Authentication
+1. Provide the following Vite env vars (create / edit `.env.local` in `pfmp-frontend/`):
+   ```dotenv
+   VITE_AZURE_AD_CLIENT_ID=your-app-client-id
+   VITE_AZURE_AD_TENANT_ID=your-tenant-id-or-common
+   # Optional: override authority explicitly (normally derived)
+   VITE_AZURE_AD_AUTHORITY=https://login.microsoftonline.com/your-tenant-id
+   ```
+2. Disable simulated auth at runtime:
+   ```ts
+   import { updateFlags } from './src/flags/featureFlags';
+   updateFlags({ use_simulated_auth: false });
+   ```
+   Or temporarily toggle via the Dev Flags Panel (if exposed in a dev-only route/component).
+3. Restart the dev server if you changed env variables so Vite picks them up.
+4. Perform a fresh load — MSAL will initialize and present the login UX.
+
+### Reverting to Simulated Auth
+Call `updateFlags({ use_simulated_auth: true })` or refresh after re‑enabling the flag. No additional cleanup required.
+
+### Common Issues
+| Symptom | Likely Cause | Fix |
+|---------|--------------|-----|
+| Blank screen after disabling simulation | Missing / incorrect env vars | Verify values in `.env.local`; restart `npm run dev` |
+| Continuous redirect loop | Authority / tenant mismatch | Ensure tenant ID matches app registration; remove custom authority to derive automatically |
+| 401 from API | Backend not yet accepting bearer tokens in this wave | Keep using simulated auth until backend JWT wiring is enabled |
+
+---
+
 ## Status (Wave Model)
 
 | Wave | Focus | Status |
