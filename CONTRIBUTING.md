@@ -1,70 +1,102 @@
-# Contributing Guidelines
+# Contributing Guide
 
-## Commit Conventions
-Use Conventional Commits:
-- feat: new user-facing feature
-- fix: bug fix
-- docs: documentation only
-- chore: tooling / maintenance
-- refactor: non-feature structural changes
-- test: add or adjust tests
-- perf: performance improvements
+This document merges legacy operational practices with the new wave-based rebuild workflow.
 
-Examples:
-```
-feat(advice): add dismissal endpoint
-docs(backup): add pre-migration backup requirement
-chore(docker): reorganize compose for external DB
-```
+## 1. Wave Workflow
+1. Kickoff Doc: Create/update `docs/waves/WAVE-X-*.md` with scope + acceptance.
+2. Deliver in vertical slices (routing shell, context, endpoint) rather than monolith changes.
+3. Gate incomplete UI/logic with feature flags (`pfmp-frontend/src/flags/featureFlags.ts`).
+4. Close a wave only after code, tests, docs, and flag table updated (remove stale duplicates).
+5. Seed the next wave (design doc or placeholder flag) before declaring completion.
 
-## Mandatory Pre-Migration Backup
-Before any PR that changes database schema or seed logic:
-1. Run manual backup:
-```
+## 2. Commit Conventions
+Follow Conventional Commits (scopes flexible):
+- `feat(onboarding): add persistence hydration`
+- `fix(auth): correct msal authority override`
+- `docs(waves): add Wave 3 design`
+- `chore(repo): add pre-commit hook`
+- `refactor(flags): stabilize snapshot logic`
+
+Shorthand prefixes still valid: feat, fix, docs, chore, refactor, test, perf.
+
+## 3. Mandatory Pre-Migration Backup (Backend)
+Before schema/seed modifications:
+```powershell
 pwsh scripts/db/backup-postgres.ps1
 ```
-2. Verify backup file created in `db-backups/`.
-3. Reference backup run in PR description (e.g., `Backup: pfmp_20251002_142000_manual.dump`).
+Reference backup artifact in PR/commit (e.g., `Backup: pfmp_20251002_142000_manual.dump`).
 
-## Coverage & Testing
-- Run `build-all.bat` (or `scripts/ci-build.ps1`) locally before opening a PR.
-- Aim not to reduce overall line coverage for core service classes.
-- Generate optional HTML report:
+## 4. Pre-Commit Hook
+Enable once:
+```bash
+git config core.hooksPath .githooks
 ```
-reportgenerator -reports:PFMP-API.Tests/TestResults/**/coverage.cobertura.xml -targetdir:coverage-report
-```
-(Remove or ignore `coverage-report/` when done.)
+The hook runs:
+1. Backend build (`dotnet build PFMP-API/PFMP-API.csproj`)
+2. Frontend lint (`npm run lint` inside `pfmp-frontend`)
+3. Type check (`npx tsc -p tsconfig.app.json --noEmit`)
+4. Conditional vitest run if staged TS/TSX files change
 
-## Docker Usage (API Only)
-```
-docker compose -f docker/docker-compose.yml up --build -d
-```
-Ensure `.env` contains a valid external connection string.
+Failing any step blocks the commit.
 
-## Provenance & Lifecycle Discipline
-- New Advice lifecycle transitions must update provenance fields (previousStatus, acceptedAt/dismissedAt).
-- Tasks created from acceptance must always populate `sourceAdviceId` & `sourceType`.
+## 5. Feature Flags
+Add new flags sparingly; default to `false` unless required bootstrap. Document in the frontend README table. Retire flags after hard enablement.
+Key current flags:
+- `onboarding_enabled`
+- `onboarding_persistence_enabled`
+- `use_simulated_auth`
+- `exp_intelligence_dashboards`
+- `exp_dual_ai_pipeline`
 
-## Documentation Requirements
-Every feature touching lifecycle, schema, or endpoints must update where relevant:
-- `README.md`
-- `BUILD.md`
-- `docs/API-DOCUMENTATION.md`
-- `docs/DATABASE-BACKUP.md` (if backup implications)
+## 6. Testing Expectations
+| Change Type | Minimum Tests |
+|-------------|---------------|
+| Reducer / Context | State transitions + edge (reset/hydrate) |
+| Persistence / Fetch | Success + 404/new start path |
+| Routing / Protection | Redirect & not-found paths |
+| Feature Flag Behavior | Toggle-driven branching |
+| Validation Layer (future) | Valid + invalid sample payload |
 
-## Scripts
-Add new scripts under `scripts/` with clear naming; prefer PowerShell for cross-team consistency on Windows-heavy environments.
+Keep tests light; avoid over-mocking internals.
 
-## Security & Secrets
-- Never commit real secrets. Redact passwords in docs (replace with `REDACTED`).
-- Connection strings in examples should not contain production credentials.
+## 7. Coverage & Build Discipline
+- Ensure `npm test` (frontend) and `dotnet build` (backend) succeed locally.
+- No large coverage target enforced yet; avoid removing meaningful tests.
+- Wave closure should not regress previously validated acceptance criteria.
 
-## Opening a PR
+## 8. Documentation Requirements
+Update where scope touches:
+- Architecture / waves: `docs/waves/`
+- User-facing rebuild plan: root `README.md`
+- Frontend architecture / flags: `pfmp-frontend/README.md`
+- Changelog entry: `CHANGELOG.md` (Unreleased → version on release)
+- Lifecycle / domain logic: relevant doc in `docs/`
+
+## 9. Existing Legacy Sections (Retained)
+From prior guidelines:
+- Provenance & lifecycle: maintain audit fields when adding transitions.
+- Security: never commit secrets; redact sensitive strings.
+- Scripts: place reusable automation in `scripts/` with clear naming.
+
+## 10. Opening a PR (Future Externalization)
 Checklist:
-- [ ] Backup performed (if schema/seed impacted)
-- [ ] Tests pass locally
-- [ ] Coverage not regressed materially
-- [ ] Docs updated
-- [ ] No stray `TestResults/` or coverage artifacts
+- [ ] Backup done (if schema/seed touched)
+- [ ] Pre-commit hook passes
+- [ ] Tests added/updated
+- [ ] Docs (wave / changelog / readme) updated
+- [ ] No stray build artifacts (`dist/`, coverage reports)
 
-Thanks for contributing!
+## 11. Versioning
+Alpha cycle: manual bump in `VERSION` + `CHANGELOG.md`. Tag releases (`git tag vX.Y.Z-alpha && git push --tags`).
+
+## 12. Performance & A11y (Future Wave 6)
+Will introduce:
+- Bundle size diff check pre-commit/CI
+- Accessibility audit script
+- Visual regression harness (storybook + screenshot diff)
+
+## 13. Open Questions
+Track unresolved architectural or product questions under **Open Questions** in the active wave design doc.
+
+---
+Thanks for contributing and keeping the wave cadence disciplined.
