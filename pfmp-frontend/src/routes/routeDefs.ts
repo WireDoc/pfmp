@@ -12,7 +12,7 @@ export interface AppRoute {
 
 export const ROUTES: AppRoute[] = [
   { id: 'root', path: '/', protected: true, lazyImport: () => import('../views/DashboardPage') },
-  { id: 'onboarding', path: '/onboarding', protected: true, lazyImport: () => import('../views/OnboardingPlaceholder') },
+  { id: 'onboarding', path: '/onboarding', protected: true, lazyImport: () => import('../views/OnboardingPage') },
   { id: 'login', path: '/login', protected: false, lazyImport: () => import('../views/LoginPlaceholder') },
   { id: 'notfound', path: '*', protected: false, lazyImport: () => import('../views/NotFoundPage') },
 ];

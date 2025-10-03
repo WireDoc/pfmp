@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { isFeatureEnabled } from '../../flags/featureFlags';
 // Using only msal-browser to avoid peer dependency mismatch of @azure/msal-react with React 19.
 import { InteractionRequiredAuthError } from '@azure/msal-browser';
 import type { AuthenticationResult, AccountInfo, SilentRequest } from '@azure/msal-browser';
@@ -30,7 +31,8 @@ export const AuthProvider: React.FC<InternalAuthProviderProps> = ({ children, __
     useEffect(() => {
         const initializeAuth = async () => {
             try {
-                if (DEV_MODE && !__forceDevOff) {
+                const simulate = isFeatureEnabled('use_simulated_auth');
+                if (simulate && !__forceDevOff) {
                     // Auto-login with first simulated user in dev mode.
                     const defaultUser = SIMULATED_USERS[0];
                     setUser(defaultUser as AccountInfo);
@@ -133,7 +135,7 @@ export const AuthProvider: React.FC<InternalAuthProviderProps> = ({ children, __
     };
 
     const switchUser = (userIndex: number) => {
-        if (DEV_MODE && userIndex >= 0 && userIndex < SIMULATED_USERS.length) {
+        if (isFeatureEnabled('use_simulated_auth') && userIndex >= 0 && userIndex < SIMULATED_USERS.length) {
             const selectedUser = SIMULATED_USERS[userIndex];
             setUser(selectedUser as AccountInfo);
             setIsAuthenticated(true);
@@ -148,7 +150,7 @@ export const AuthProvider: React.FC<InternalAuthProviderProps> = ({ children, __
         getAccessToken,
         loading,
         error,
-        isDev: __forceDevOff ? false : DEV_MODE,
+    isDev: __forceDevOff ? false : DEV_MODE,
         switchUser,
         availableUsers: SIMULATED_USERS,
     };

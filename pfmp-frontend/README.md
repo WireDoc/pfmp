@@ -1,26 +1,101 @@
-# PFMP Frontend - Personal Financial Management Platform
+# PFMP Frontend – Personal Financial Management Platform
 
-A React + TypeScript + Vite application for comprehensive personal financial management, featuring dashboard analytics, goal tracking, and financial intelligence tools.
+Modern React (19) + TypeScript + Vite application for service member / veteran–focused financial planning: allocation intelligence, onboarding guidance, and forthcoming dual-AI advisory pipeline.
 
-## Current Status (September 2025)
+## Status (Wave Model)
 
-### 🔄 MUI Grid v1 to v2 Migration - **COMPLETED**
-- ✅ Successfully migrated all Grid components from MUI v4/v5 syntax to MUI v7.3.2 Grid v2 syntax
-- ✅ Updated all Grid props to use `size={{}}` instead of deprecated size props (xs, sm, md, lg, xl)
-- ✅ Converted Grid container/item pattern to new Grid component structure
-- ✅ Fixed Grid imports across all components
+| Wave | Focus | Status |
+|------|-------|--------|
+| 0 | Baseline cleanup, routing plan, feature flag infra, test harness seed | ✅ Complete |
+| 1 | Core routing, protected routes, layout, dev flag panel | ✅ Complete |
+| 2 | Onboarding scaffold (context, steps UI, auth simulation control) | 🚧 In Progress |
+| 3 | Data persistence & onboarding validation | Planned |
+| 4 | Intelligence dashboards (exp_intelligence_dashboards) | Planned |
+| 5 | Dual AI pipeline (exp_dual_ai_pipeline) | Planned |
+| 6 | Performance, accessibility, visual regression hardening | Planned |
 
-### 🏗️ Build Status
-- ❌ 11 TypeScript errors remaining (down from 16+ original errors)
-- 🔧 Next phase: Address remaining TypeScript compilation issues
+### Current Wave (2) – Onboarding
+Delivered so far:
+- `OnboardingContext` reducer + hook (progress, completion tracking)
+- Interactive `OnboardingPage` (steps list, progress bar, navigation controls)
+- Feature flag `use_simulated_auth` gating simulated MSAL shortcut
+- Expanded test coverage: routing, protected route, not-found, flags panel, onboarding state
 
-### 📁 Key Components Status
-- ✅ `Dashboard.tsx` - MUI Grid migration complete, 1 unused parameter warning
-- ✅ `AlertsDashboard.tsx` - MUI Grid migration complete, cleaned unused imports
-- ✅ `CashAccountManager.tsx` - MUI Grid migration complete, fixed Grid imports
-- ✅ `VADisabilityTracker.tsx` - Syntax corruption repaired, MUI Grid migration complete
-- ✅ `AuthContext.tsx` - Recreated clean implementation, MSAL integration ready
-- ⚠️ Various service files - Need unused parameter cleanup
+Upcoming within Wave 2:
+- Validation layer (schema placeholders)
+- Potential per-step component extraction
+- Persisted progress design notes (prep for Wave 3)
+
+### Feature Flags Snapshot
+| Flag | Default | Purpose |
+|------|---------|---------|
+| routing_enabled | true | Gate base router initialization (legacy safety) |
+| onboarding_enabled | false | External exposure toggle (will flip post-polish) |
+| use_simulated_auth | true | Rapid dev velocity with mock users |
+| storybook_docs_enabled | false | Reserved; Storybook deferred pending Vite 7 alignment |
+| exp_intelligence_dashboards | false | Future analytics modules |
+| exp_dual_ai_pipeline | false | Future advisory dual-AI engine |
+
+### Storybook (Deferred)
+Storybook installation is deferred: currently published addon sets for 9.x did not fully align with `vite@7` at time of Wave 2 kickoff. We will install once a coherent 9.x release set (framework + addons) is available without forcing peer overrides. Until then, component review occurs inline or via temporary sandbox routes.
+
+## Tech Stack
+- React 19 + TypeScript
+- Vite 7
+- MUI 7 (Material UI)
+- MSAL Browser (real auth to be enabled after simulated phase)
+- Axios (typed API helper)
+- Vitest + Testing Library + jsdom
+- Custom feature flag store via `useSyncExternalStore`
+
+## Quick Start
+```bash
+npm install
+npm run dev
+```
+
+Generate (typed) OpenAPI types (ensure backend running on 5052):
+```bash
+npm run generate:api
+```
+
+Run tests:
+```bash
+npm test
+```
+
+## Project Structure (Current)
+```
+src/
+  api/              # HTTP client + generated OpenAPI types (after generate:api)
+  components/       # Reusable UI + dev utilities (DevFlagsPanel, etc.)
+  contexts/         # Auth + future domain contexts
+  flags/            # Feature flag store & hooks
+  layout/           # App shell, header bar
+  onboarding/       # Wave 2 onboarding context & step defs
+  routes/           # Central route definitions
+  tests/            # Vitest specs
+  views/            # Page-level components
+```
+
+## Testing Philosophy
+Lightweight unit + integration tests focusing on: routing assurances, guarded navigation, context reducers, and critical developer affordances (feature flags). Visual & interaction regression will be layered in a later wave.
+
+## Contributing (High Level)
+1. Small, focused PRs aligned to a wave.
+2. Add/extend tests for changed behavior.
+3. Prefer feature flag gating for experimental UI.
+4. Document decisions in a wave kickoff or completion doc (`docs/waves`).
+
+## Roadmap Highlights
+- Wave 2 completion → flip `onboarding_enabled` and begin persistence design.
+- Wave 3 introduces backend persistence + validation for onboarding.
+- Wave 4 unlocks intelligence dashboards under experimental flag.
+- Wave 5 dual-AI advisory pipeline experiment.
+- Wave 6 performance, accessibility, visual regression harness & Storybook adoption.
+
+---
+Legacy migration notes (MUI Grid v1→v2) and earlier error tallies were archived during Wave 0 cleanup and are intentionally removed for clarity.
 
 ## Technology Stack
 
