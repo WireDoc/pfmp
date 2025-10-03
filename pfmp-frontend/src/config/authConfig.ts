@@ -1,5 +1,15 @@
 import type { Configuration, PopupRequest, LogLevel } from '@azure/msal-browser';
 
+// Environment-driven overrides (Vite exposes import.meta.env.VITE_*)
+const ENV_CLIENT_ID = import.meta.env.VITE_AZURE_AD_CLIENT_ID as string | undefined;
+const ENV_TENANT_ID = import.meta.env.VITE_AZURE_AD_TENANT_ID as string | undefined;
+// Support custom authority via full URL if provided.
+const ENV_AUTHORITY = import.meta.env.VITE_AZURE_AD_AUTHORITY as string | undefined;
+
+// Fallback constants (development / simulated default)
+const DEFAULT_CLIENT_ID = 'efe3c2da-c4bb-45ff-b85b-e965de54f910';
+const DEFAULT_TENANT_AUTH = 'https://login.microsoftonline.com/common';
+
 /**
  * Configuration object to be passed to MSAL instance on creation.
  * For a full list of MSAL configuration parameters, visit:
@@ -7,10 +17,8 @@ import type { Configuration, PopupRequest, LogLevel } from '@azure/msal-browser'
  */
 export const msalConfig: Configuration = {
     auth: {
-        clientId: 'efe3c2da-c4bb-45ff-b85b-e965de54f910', // Azure AD App Registration Client ID
-        authority: 'https://login.microsoftonline.com/common', // Use 'common' for personal + work accounts
-        // Alternative: Use tenant-specific if 'common' has issues
-        // authority: 'https://login.microsoftonline.com/90c3ba91-a0c4-4816-9f8f-beeefbfc33d2',
+        clientId: ENV_CLIENT_ID || DEFAULT_CLIENT_ID, // Azure AD App Registration Client ID (env override)
+        authority: ENV_AUTHORITY || (ENV_TENANT_ID ? `https://login.microsoftonline.com/${ENV_TENANT_ID}` : DEFAULT_TENANT_AUTH),
         redirectUri: window.location.origin, // Updated to match SPA configuration
         postLogoutRedirectUri: window.location.origin, // Redirect after logout
     },
@@ -92,3 +100,8 @@ export const pfmpApiScopes = {
     read: [`api://${msalConfig.auth.clientId}/user_impersonation`],
     write: [`api://${msalConfig.auth.clientId}/user_impersonation`],
 };
+
+// Developer Note: To enable real MSAL auth locally while keeping simulated auth default:
+// 1. Set VITE_AZURE_AD_CLIENT_ID and (optionally) VITE_AZURE_AD_TENANT_ID in a .env.local file.
+// 2. Toggle the feature flag use_simulated_auth to false (via Dev Flags panel or programmatic updateFlags call).
+// 3. Restart dev server if adding new env vars.
