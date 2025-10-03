@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Pre-commit hook: fast sanity checks (backend build, frontend lint+types, optional quick tests)
+# Enable with: git config core.hooksPath .githooks
+set -euo pipefail
+
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
+
+say() { echo -e "${YELLOW}[pre-commit]${NC} $1"; }
+ok() { echo -e "${GREEN}[ok]${NC} $1"; }
+fail() { echo -e "${RED}[fail]${NC} $1"; }
+
+# Detect changed frontend/backend paths quickly (can optimize later)
+ROOT_DIR=$(git rev-parse --show-toplevel)
+cd "$ROOT_DIR"
+
+# 1. Backend build (fast)
+say "Building backend (PFMP-API)..."
+if dotnet build PFMP-API/PFMP-API.csproj -c Debug /nologo >/dev/null; then
+  ok "Backend build passed"
+else
+  fail "Backend build failed"
+  exit 1
+fi
+
+# 2. Frontend lint + type check (skip full prod build for speed)
+if [ -d pfmp-frontend ]; then
+  say "Frontend lint + type check..."
+  pushd pfmp-frontend >/dev/null
+  if npm run lint --silent >/dev/null; then ok "Lint clean"; else fail "Lint failed"; exit 1; fi
+  # Type check via tsc project references (no emit)
+  if npx tsc -p tsconfig.app.json --noEmit >/dev/null; then ok "Type check passed"; else fail "Type errors"; exit 1; fi
+  popd >/dev/null
+fi
+
+# 3. Focused test run (optional minimal) – run only if JS/TS changes detected
+CHANGED_JS=$(git diff --cached --name-only | grep -E '^pfmp-frontend/src/.*\.(ts|tsx)$' || true)
+if [ -n "$CHANGED_JS" ]; then
+  say "Running vitest (changed set)..."
+  pushd pfmp-frontend >/dev/null
+  if npx vitest run --silent >/dev/null; then ok "Tests passed"; else fail "Tests failed"; exit 1; fi
+  popd >/dev/null
+else
+  say "No frontend src changes detected – skipping tests"
+fi
+
+ok "All pre-commit checks passed"
+exit 0
