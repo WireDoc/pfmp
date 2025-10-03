@@ -1892,3 +1892,40 @@ This entry ensures that future diffs showing large component additions are conte
 Wave 0 IN PROGRESS – Log entry complete; proceeding to README & supporting document updates.
 
 ---
+
+## 2025-10-02 - Wave 0 Completion (Documentation Alignment)
+
+### Accomplishments
+- Closed Wave 0 per rebuild plan; formal completion doc at `docs/waves/WAVE-0-COMPLETION.md`
+- README & BUILD.md updated (experimental Docker note, OpenAPI generation scaffold)
+- First OpenAPI types generation committed (typed contract baseline)
+- Provenance lifecycle (Advice accept/dismiss, auto task creation) fully documented & validated
+- Backup discipline (pre-migration requirement + script) enforced in docs
+
+### Key Artifacts
+- `docs/waves/WAVE-0-COMPLETION.md`
+- `docs/waves/REBUILD-WAVE-PLAN.md`
+- `pfmp-frontend/src/api/generated/openapi-types.ts`
+
+### Decisions
+- Adopt per-wave semantic prerelease version bumps (advancing to v0.7.0-alpha)
+- Defer Docker hardening (mapped drive issue) until after routing restored
+- Implement feature flags + typed API client at Wave 1 start (foundational)
+
+### Risks Forward
+| Risk | Mitigation |
+|------|-----------|
+| Missing routing/layout (blocks onboarding) | Execute Wave 1 immediately |
+| Lack of feature flags may couple experimental features | Add scaffold early in Wave 1 |
+| Manual API calls could drift from OpenAPI spec | Replace with typed adapter now |
+
+### Next Steps
+1. Wave 1 routing skeleton (router, layout, ProtectedRoute)
+2. Feature flag infra & usage pattern
+3. Typed API client abstraction (inference helpers)
+4. Storybook and visual regression planning docs
+
+### Closure Signal
+All Wave 0 acceptance criteria satisfied; wave formally CLOSED.
+
+---

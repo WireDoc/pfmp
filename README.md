@@ -1,6 +1,6 @@
-# PFMP - Personal Financial Management Platform
+# PFMP - Personal Financial Management Platform (v0.7.0-alpha)
 
-> ⚠️ **REBUILD NOTICE (Wave 0 – Documentation Alignment)**  
+> ⚠️ **REBUILD NOTICE (Wave 1 – Routing & Protection Kickoff)**  
 > Frontend orchestration layers (routing shell, onboarding wizard, protected layout, intelligence dashboards, alert UI) are currently being **reconstructed** after discovering higher-order components were missing. Backend APIs, data models, and several advanced leaf components (e.g., `SmartInvestmentRecommendations`, `RealBankAccountDashboard`) remain intact. This README now reflects the *current minimal runtime* plus the structured rebuild plan.
 
 An AI-powered financial advisor platform designed for government employees and military members, providing personalized investment recommendations, portfolio management, and retirement planning with specialized TSP and government benefit integration.
@@ -43,9 +43,11 @@ Invoke-RestMethod http://localhost:5052/api/Advice/user/1 | Format-Table adviceI
 See the dedicated guide (`alerts-advice-testing.md`) for deeper verification queries (SQL + troubleshooting).
 
 ### Recent Additions (Oct 2025)
+* Wave 0 closed (documentation alignment complete) → Version bump to v0.7.0-alpha
 * Backup script & policy (ALWAYS backup before migrations/seeding)
 * Docker marked experimental (mapped drive build instability; use native `dotnet run` for daily dev)
 * OpenAPI → TypeScript generation pipeline scaffolded (`npm run generate:api` / `scripts/generate-openapi.ps1`)
+* Wave 1 kickoff: routing & protection scaffolding scheduled next
 
 ## 🚀 Feature Snapshot (Current vs Rebuild)
 
