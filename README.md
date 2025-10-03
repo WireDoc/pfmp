@@ -1,9 +1,21 @@
 # PFMP - Personal Financial Management Platform (v0.7.0-alpha)
 
-> ⚠️ **REBUILD NOTICE (Wave 1 – Routing & Protection Kickoff)**  
-> Frontend orchestration layers (routing shell, onboarding wizard, protected layout, intelligence dashboards, alert UI) are currently being **reconstructed** after discovering higher-order components were missing. Backend APIs, data models, and several advanced leaf components (e.g., `SmartInvestmentRecommendations`, `RealBankAccountDashboard`) remain intact. This README now reflects the *current minimal runtime* plus the structured rebuild plan.
+> **Wave Rebuild Context**  
+> Frontend orchestration layers (routing shell, onboarding wizard, protected layout, future intelligence dashboards) are being rebuilt in deliberate waves. Backend APIs and advanced leaf components remain stable.
 
 An AI-powered financial advisor platform designed for government employees and military members, providing personalized investment recommendations, portfolio management, and retirement planning with specialized TSP and government benefit integration.
+
+## Documentation Map
+- Core Backend & Domain: (this README)  
+- Frontend Architecture & Feature Flags: `pfmp-frontend/README.md`  
+- Wave Design & Kickoff Docs: `docs/waves/`  
+- Testing Guides: `docs/testing/`  
+- Persistence / Onboarding Design: `docs/waves/WAVE-3-PERSISTENCE-DESIGN.md`  
+- Changelog: `CHANGELOG.md`  
+- Storybook & Visual Regression Plan (scaffolds): `docs/storybook-setup.md`, `docs/visual-regression-plan.md`
+
+## Changelog
+See `CHANGELOG.md` for version history (current: v0.7.0-alpha).
 
 ## 🧪 Testing Documentation
 Core manual testing flows live under `docs/testing/`:
@@ -462,4 +474,4 @@ Status: Wave 0 in progress – implementation code changes deliberately deferred
 **Current Version**: v0.6.1-alpha (Rebuild Wave 0)  
 **Rebuild Mode**: Frontend orchestration reconstruction (backend stable)
 
-**🎯 Immediate Focus**: Complete Wave 0 docs → start Wave 1 (routing & shell reintroduction)
+**🎯 Immediate Focus**: Wave 2 (onboarding polish) → Wave 3 (persistence implementation)
