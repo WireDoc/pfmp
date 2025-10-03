@@ -1,9 +1,11 @@
-version: "3.9"
+## NOTE: Experimental container setup (not required for current development workflow).
+## Future: remove external DB dependency / introduce full stack compose when ready.
 services:
   api:
     build:
       context: ..
       dockerfile: docker/api/Dockerfile
+    image: pfmp-api:dev
     container_name: pfmp-api
     environment:
       ASPNETCORE_ENVIRONMENT: Development
