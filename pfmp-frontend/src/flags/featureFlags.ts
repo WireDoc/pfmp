@@ -7,7 +7,8 @@ export type FeatureFlagKey =
   | 'onboarding_enabled'
   | 'exp_intelligence_dashboards'
   | 'exp_dual_ai_pipeline'
-  | 'storybook_docs_enabled';
+  | 'storybook_docs_enabled'
+  | 'use_simulated_auth';
 
 export interface FeatureFlagsState {
   routing_enabled: boolean;
@@ -15,6 +16,7 @@ export interface FeatureFlagsState {
   exp_intelligence_dashboards: boolean;
   exp_dual_ai_pipeline: boolean;
   storybook_docs_enabled: boolean;
+  use_simulated_auth: boolean;
 }
 
 const defaultFlags: FeatureFlagsState = {
@@ -23,6 +25,7 @@ const defaultFlags: FeatureFlagsState = {
   exp_intelligence_dashboards: false, // Wave 4
   exp_dual_ai_pipeline: false, // Wave 5
   storybook_docs_enabled: false,
+  use_simulated_auth: true, // keep true during early waves for velocity
 };
 
 let dynamicOverrides: Partial<FeatureFlagsState> = {};
