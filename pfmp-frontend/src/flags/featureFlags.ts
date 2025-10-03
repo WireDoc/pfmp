@@ -31,12 +31,23 @@ export function setFeatureFlag<K extends keyof FeatureFlagsState>(key: K, value:
   dynamicOverrides[key] = value;
 }
 
+// Internal cached snapshot to satisfy useSyncExternalStore requirement that
+// getSnapshot returns the SAME reference when no state change occurred.
+let currentSnapshot: FeatureFlagsState = { ...defaultFlags };
+// Ensure initial snapshot reflects any preset overrides (none normally during tests)
+recomputeSnapshot();
+
+function recomputeSnapshot() {
+  // Rebuild snapshot (cheap shallow merge – only 5 keys) and assign new ref.
+  currentSnapshot = { ...defaultFlags, ...dynamicOverrides };
+}
+
 export function getFeatureFlags(): FeatureFlagsState {
-  return { ...defaultFlags, ...dynamicOverrides };
+  return currentSnapshot;
 }
 
 export function isFeatureEnabled<K extends keyof FeatureFlagsState>(key: K): boolean {
-  return getFeatureFlags()[key];
+  return currentSnapshot[key];
 }
 
 // React hook (can later evolve to context/provider if runtime mutation grows)
@@ -55,7 +66,19 @@ function emit() {
 }
 
 export function updateFlags(partial: Partial<FeatureFlagsState>) {
+  let changed = false;
+  for (const k of Object.keys(partial) as (keyof FeatureFlagsState)[]) {
+    if (dynamicOverrides[k] !== partial[k]) {
+      changed = true;
+      break;
+    }
+  }
+  if (!changed) {
+    // Even if nothing changed, allow an explicit refresh by forcing emit? Skip to avoid loops.
+    return;
+  }
   dynamicOverrides = { ...dynamicOverrides, ...partial };
+  recomputeSnapshot();
   emit();
 }
 
