@@ -13,7 +13,15 @@ const DEV_MODE = import.meta.env.DEV;
 
 // AuthContext now defined in AuthContextObject.ts
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+interface InternalAuthProviderProps extends AuthProviderProps {
+    /**
+     * Test hook: allow forcing dev mode off even when import.meta.env.DEV is true so that
+     * unauthenticated flows (e.g., ProtectedRoute redirects) can be exercised.
+     */
+    __forceDevOff?: boolean;
+}
+
+export const AuthProvider: React.FC<InternalAuthProviderProps> = ({ children, __forceDevOff }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [user, setUser] = useState<AccountInfo | null>(null);
     const [loading, setLoading] = useState(true);
@@ -22,7 +30,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     useEffect(() => {
         const initializeAuth = async () => {
             try {
-                if (DEV_MODE) {
+                if (DEV_MODE && !__forceDevOff) {
                     // Auto-login with first simulated user in dev mode.
                     const defaultUser = SIMULATED_USERS[0];
                     setUser(defaultUser as AccountInfo);
@@ -140,7 +148,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         getAccessToken,
         loading,
         error,
-        isDev: DEV_MODE,
+        isDev: __forceDevOff ? false : DEV_MODE,
         switchUser,
         availableUsers: SIMULATED_USERS,
     };
