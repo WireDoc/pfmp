@@ -5,6 +5,7 @@
 export type FeatureFlagKey =
   | 'routing_enabled'
   | 'onboarding_enabled'
+  | 'onboarding_persistence_enabled'
   | 'exp_intelligence_dashboards'
   | 'exp_dual_ai_pipeline'
   | 'storybook_docs_enabled'
@@ -13,6 +14,7 @@ export type FeatureFlagKey =
 export interface FeatureFlagsState {
   routing_enabled: boolean;
   onboarding_enabled: boolean;
+  onboarding_persistence_enabled: boolean;
   exp_intelligence_dashboards: boolean;
   exp_dual_ai_pipeline: boolean;
   storybook_docs_enabled: boolean;
@@ -22,6 +24,7 @@ export interface FeatureFlagsState {
 const defaultFlags: FeatureFlagsState = {
   routing_enabled: true, // Wave 1 target
   onboarding_enabled: false, // Will flip in Wave 2
+  onboarding_persistence_enabled: false, // Wave 3 (guards network calls until backend ready)
   exp_intelligence_dashboards: false, // Wave 4
   exp_dual_ai_pipeline: false, // Wave 5
   storybook_docs_enabled: false,
