@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
 import { AppRouter } from '../AppRouter';
 import { OnboardingProvider } from '../onboarding/OnboardingContext';
 import { updateFlags } from '../flags/featureFlags';
@@ -8,13 +7,11 @@ import { AuthProvider } from '../contexts/AuthContext';
 
 function renderWithProviders(initialPath: string) {
   return render(
-    <MemoryRouter initialEntries={[initialPath]}>
-      <AuthProvider>
-        <OnboardingProvider>
-          <AppRouter />
-        </OnboardingProvider>
-      </AuthProvider>
-    </MemoryRouter>
+    <AuthProvider>
+      <OnboardingProvider>
+        <AppRouter initialEntries={[initialPath]} />
+      </OnboardingProvider>
+    </AuthProvider>
   );
 }
 

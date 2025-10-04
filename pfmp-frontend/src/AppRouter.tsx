@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
+import { createBrowserRouter, createMemoryRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { isFeatureEnabled } from './flags/featureFlags';
 import { ROUTES } from './routes/routeDefs';
 import { ProtectedRoute } from './components/routing/ProtectedRoute';
@@ -22,7 +22,9 @@ function useOnboardingState() {
   }
 }
 
-export function AppRouter() {
+export interface AppRouterProps { initialEntries?: string[] }
+
+export function AppRouter(props: AppRouterProps) {
   const enableWave4 = isFeatureEnabled('enableDashboardWave4');
   const { hydrated, complete } = useOnboardingState();
 
@@ -31,26 +33,37 @@ export function AppRouter() {
     return true;
   });
 
-  const router = createBrowserRouter([
+  const baseChildren = filtered.filter(r => r.path !== '*').map(r => {
+    const Component = lazy(r.lazyImport!);
+    const element = r.protected ? (
+      <ProtectedRoute>
+        {(!hydrated) ? <PageSpinner /> : (!complete && enableWave4 && r.id === 'dashboard-wave4') ? <Navigate to="/onboarding" replace /> : <Component />}
+      </ProtectedRoute>
+    ) : <Component />;
+    return {
+      path: r.path.replace(/^\//,''),
+      element: <Suspense fallback={<PageSpinner />}>{element}</Suspense>,
+    };
+  });
+
+  // If wave4 disabled, provide a graceful redirect for /dashboard back to legacy root
+  if (!enableWave4) {
+    baseChildren.push({ path: 'dashboard', element: <Navigate to="/" replace /> });
+  }
+
+  const routes = [
     {
       path: '/',
       element: <AppLayout />,
       errorElement: <RouteErrorBoundary><div style={{padding:24}}>Root error</div></RouteErrorBoundary>,
-      children: filtered.filter(r => r.path !== '*').map(r => {
-        const Component = lazy(r.lazyImport!);
-        const element = r.protected ? (
-          <ProtectedRoute>
-            {(!hydrated) ? <PageSpinner /> : (!complete && enableWave4 && r.id === 'dashboard-wave4') ? <Navigate to="/onboarding" replace /> : <Component />}
-          </ProtectedRoute>
-        ) : <Component />;
-        return {
-          path: r.path.replace(/^\//,''),
-          element: <Suspense fallback={<PageSpinner />}>{element}</Suspense>,
-        };
-      })
+      children: baseChildren
     },
     { path: '*', element: <Suspense fallback={<PageSpinner />}><NotFoundLazy /></Suspense> }
-  ]);
+  ];
+
+  const router = props.initialEntries
+    ? createMemoryRouter(routes, { initialEntries: props.initialEntries })
+    : createBrowserRouter(routes);
 
   return <RouterProvider router={router} />;
 }
