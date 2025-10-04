@@ -1,27 +1,48 @@
 @echo off
-REM PFMP Development Server Launcher (Batch Version)
-REM Double-click this file to start both servers
+REM PFMP Development Server Launcher (Batch Wrapper)
+REM Usage:
+REM   start-dev-servers.bat            (start both)
+REM   start-dev-servers.bat backend    (backend only)
+REM   start-dev-servers.bat frontend   (frontend only)
+REM   start-dev-servers.bat both       (explicit both)
 
-echo.
-echo 🚀 Starting PFMP Development Servers...
-echo =======================================
-echo.
+setlocal ENABLEDELAYEDEXPANSION
+set MODE_ARG=%1
+if /I "%MODE_ARG%"=="" set MODE_ARG=both
+if /I "%MODE_ARG%"=="both" set MODE=0
+if /I "%MODE_ARG%"=="backend" set MODE=1
+if /I "%MODE_ARG%"=="frontend" set MODE=2
 
-REM Start .NET API in new window
-echo 🔧 Starting .NET API Server...
-start "PFMP API Server" powershell -NoExit -Command "cd '%~dp0PFMP-API'; Write-Host '🔧 PFMP API Server - Port 5052' -ForegroundColor Green; Write-Host 'Environment: Development' -ForegroundColor Yellow; Write-Host ''; dotnet run --urls=http://localhost:5052"
+if not defined MODE (
+	echo Invalid argument: %MODE_ARG%
+	echo Expected: backend ^| frontend ^| both
+	exit /b 1
+)
 
-REM Wait 3 seconds for API to initialize
-timeout /t 3 /nobreak > nul
+set SCRIPT_DIR=%~dp0
+set PS1=%SCRIPT_DIR%scripts\start-dev-servers.ps1
+if not exist "%PS1%" (
+	echo ERROR: Could not find PowerShell script at %PS1%
+	exit /b 1
+)
 
-REM Start React Frontend in new window
-echo ⚛️  Starting React Frontend...
-start "PFMP Frontend" powershell -NoExit -Command "cd '%~dp0pfmp-frontend'; Write-Host '⚛️ PFMP Frontend - Port 5173' -ForegroundColor Green; Write-Host 'Framework: React 19 + Vite 7' -ForegroundColor Yellow; Write-Host ''; npm run dev"
+set KEEP=%2
+if /I "%KEEP%"=="KEEP_OPEN" (
+	set NO_CLOSE=1
+)
 
-echo.
-echo ✅ Both servers are starting in separate windows!
-echo 🌐 API: http://localhost:5052
-echo 🌐 Frontend: http://localhost:3000
-echo.
-echo ⚠️  Close the PowerShell windows to stop the servers
-echo.
+echo Starting dev servers via PowerShell (Mode=%MODE% ^| %MODE_ARG%)
+powershell -ExecutionPolicy Bypass -File "%PS1%" -Mode %MODE% -NoWait
+
+if defined NO_CLOSE (
+	echo KEEP_OPEN specified. Leaving window open.
+	goto :EOF
+)
+set /a COUNT=10
+:loop
+if %COUNT% LEQ 0 goto :eof
+title Closing in %COUNT% seconds... (both)
+ping -n 2 127.0.0.1 > nul
+set /a COUNT=%COUNT%-1
+goto :loop
+exit /b 0

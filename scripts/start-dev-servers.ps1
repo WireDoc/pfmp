@@ -1,76 +1,82 @@
-# PFMP Development Server Launcher
-# This script starts both the .NET API and React frontend in separate PowerShell windows
-# Usage: Right-click and "Run with PowerShell" or execute from terminal with: .\start-dev-servers.ps1
+<#
+PFMP Development Server Launcher (Rewritten Clean Implementation)
+Starts API and/or Frontend in separate PowerShell windows.
 
+Usage:
+    .\start-dev-servers.ps1            # both
+    .\start-dev-servers.ps1 backend    # backend only
+    .\start-dev-servers.ps1 frontend   # frontend only
+    .\start-dev-servers.ps1 -Mode 1    # backend (numeric)
+    .\start-dev-servers.ps1 -Mode 2 -NoWait
+
+Exit codes:
+    0 success launch initiated
+    1 configuration/path error
+    2 dependency missing (dotnet / npm)
+#>
 param(
-    [int]$Mode = 0  # 0 = both, 1 = backend only, 2 = frontend only
+    [Parameter(Position=0)]
+    [string]$Mode = 'both',   # accepts: both|backend|frontend|0|1|2
+    [switch]$NoWait
 )
 
-Write-Host "🚀 Starting PFMP Development Servers (Mode=$Mode)..." -ForegroundColor Green
-Write-Host "=======================================" -ForegroundColor Green
-
-# Get the script directory to ensure relative paths work
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-
-# Define paths
-$ApiPath = Join-Path $ScriptDir "PFMP-API"
-$FrontendPath = Join-Path $ScriptDir "pfmp-frontend"
-
-# Verify paths exist
-if (!(Test-Path $ApiPath)) {
-    Write-Host "❌ ERROR: API directory not found at $ApiPath" -ForegroundColor Red
-    Read-Host "Press Enter to exit"
-    exit 1
+function Resolve-ModeValue([string]$m) {
+    switch ($m.ToLower()) {
+        '0' { return 0 }
+        'both' { return 0 }
+        '1' { return 1 }
+        'backend' { return 1 }
+        'api' { return 1 }
+        '2' { return 2 }
+        'frontend' { return 2 }
+        default { return 0 }
+    }
 }
 
-if (!(Test-Path $FrontendPath)) {
-    Write-Host "❌ ERROR: Frontend directory not found at $FrontendPath" -ForegroundColor Red
-    Read-Host "Press Enter to exit"
-    exit 1
+$numericMode = Resolve-ModeValue $Mode
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoLeaf = Split-Path -Leaf $scriptDir
+if ($repoLeaf -ieq 'scripts') { $repoRoot = Split-Path -Parent $scriptDir } else { $repoRoot = $scriptDir }
+$apiPath = Join-Path $repoRoot 'PFMP-API'
+$frontendPath = Join-Path $repoRoot 'pfmp-frontend'
+
+if (-not (Test-Path $apiPath)) { Write-Host "ERROR: API path not found: $apiPath" -ForegroundColor Red; exit 1 }
+if (-not (Test-Path $frontendPath)) { Write-Host "ERROR: Frontend path not found: $frontendPath" -ForegroundColor Red; exit 1 }
+
+function Test-Command($name){ $null -ne (Get-Command $name -ErrorAction SilentlyContinue) }
+if (-not (Test-Command dotnet)) { Write-Host "ERROR: 'dotnet' not on PATH" -ForegroundColor Red; exit 2 }
+if (-not (Test-Command npm)) { Write-Host "ERROR: 'npm' not on PATH" -ForegroundColor Red; exit 2 }
+
+Write-Host "Launching (mode=$numericMode)" -ForegroundColor Green
+Write-Host " API Path:      $apiPath" -ForegroundColor Yellow
+Write-Host " Frontend Path: $frontendPath" -ForegroundColor Yellow
+
+function Start-PfmpWindow {
+    param(
+        [string]$Title,
+        [string]$WorkDir,
+        [string]$Body
+    )
+    $command = "[Console]::Title='$Title'; Set-Location '$WorkDir'; $Body"
+    Start-Process powershell -WorkingDirectory $WorkDir -ArgumentList '-NoExit','-Command', $command | Out-Null
 }
 
-Write-Host "📁 API Path: $ApiPath" -ForegroundColor Yellow
-Write-Host "📁 Frontend Path: $FrontendPath" -ForegroundColor Yellow
-Write-Host ""
-
-# Start .NET API in new PowerShell window
-if ($Mode -eq 0 -or $Mode -eq 1) {
-    Write-Host "🔧 Starting .NET API Server..." -ForegroundColor Cyan
-    $ApiTitle = "PFMP API Server - .NET 9"
-    $ApiCommand = "cd '$ApiPath'; Write-Host '🔧 Starting .NET API on http://localhost:5052' -ForegroundColor Green; dotnet run --urls=http://localhost:5052; Read-Host 'Press Enter to close'"
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", "& {$env:DOTNET_ENVIRONMENT='Development'; [Console]::Title='$ApiTitle'; $ApiCommand}"
+if ($numericMode -eq 0 -or $numericMode -eq 1) {
+        Start-PfmpWindow -Title 'PFMP API' -WorkDir $apiPath -Body "`$env:DOTNET_ENVIRONMENT='Development'; Write-Host 'API listening http://localhost:5052' -ForegroundColor Green; dotnet run --urls=http://localhost:5052"
     Start-Sleep -Seconds 2
 }
-
-# Start React Frontend in new PowerShell window  
-if ($Mode -eq 0 -or $Mode -eq 2) {
-    Write-Host "⚛️  Starting React Frontend..." -ForegroundColor Cyan
-    $FrontendTitle = "PFMP Frontend - React + Vite"
-    $FrontendCommand = "cd '$FrontendPath'; Write-Host '⚛️ Starting React Frontend on http://localhost:5173' -ForegroundColor Green; npm run dev; Read-Host 'Press Enter to close'"
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", "& {[Console]::Title='$FrontendTitle'; $FrontendCommand}"
+if ($numericMode -eq 0 -or $numericMode -eq 2) {
+        Start-PfmpWindow -Title 'PFMP Frontend' -WorkDir $frontendPath -Body "Write-Host 'Frontend dev server http://localhost:5173' -ForegroundColor Green; npm run dev"
 }
 
-Write-Host ""
-if ($Mode -eq 0) { Write-Host "✅ Both servers are starting up!" -ForegroundColor Green }
-elseif ($Mode -eq 1) { Write-Host "✅ Backend server starting." -ForegroundColor Green }
-elseif ($Mode -eq 2) { Write-Host "✅ Frontend server starting." -ForegroundColor Green }
-Write-Host "🌐 API will be available at: http://localhost:5052" -ForegroundColor White
-Write-Host "🌐 Frontend will be available at: http://localhost:5173" -ForegroundColor White
-Write-Host ""
-Write-Host "📝 Development Notes:" -ForegroundColor Yellow
-Write-Host "   • API runs on port 5052 (configured in launchSettings.json)" -ForegroundColor Gray
-Write-Host "   • Frontend runs on port 5173 (Vite default)" -ForegroundColor Gray
-Write-Host "   • CORS is configured to allow frontend-API communication" -ForegroundColor Gray
-Write-Host "   • Both windows will stay open for easy monitoring" -ForegroundColor Gray
-Write-Host ""
-Write-Host "🔍 Testing URLs:" -ForegroundColor Yellow
-Write-Host "   • API Health: http://localhost:5052/weatherforecast" -ForegroundColor Gray
-Write-Host "   • Task API: http://localhost:5052/api/tasks?userId=1" -ForegroundColor Gray
-Write-Host "   • Frontend: http://localhost:3000" -ForegroundColor Gray
-Write-Host ""
-Write-Host "⚠️  To stop servers: Close each PowerShell window or press Ctrl+C in each" -ForegroundColor Yellow
-Write-Host ""
+switch ($numericMode) { 0 { $msg='Both services starting' } 1 { $msg='Backend starting' } 2 { $msg='Frontend starting' } }
+Write-Host $msg -ForegroundColor Green
+Write-Host 'API:      http://localhost:5052'
+Write-Host 'Frontend: http://localhost:5173'
+Write-Host 'Health:   http://localhost:5052/health   (liveness)'
+Write-Host 'Ready:    http://localhost:5052/health/ready (readiness)'
+Write-Host "Stop by closing windows or Ctrl+C in each." -ForegroundColor Yellow
 
-# Keep this window open briefly to show the status
-Write-Host "Script completed. Check the new windows for server output." -ForegroundColor Green
-Read-Host "Press Enter to close this launcher window"
+if (-not $NoWait) { Read-Host 'Press Enter to close launcher shell' | Out-Null }
+
+exit 0
