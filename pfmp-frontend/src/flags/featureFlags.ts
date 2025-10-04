@@ -23,8 +23,8 @@ export interface FeatureFlagsState {
 
 const defaultFlags: FeatureFlagsState = {
   routing_enabled: true, // Wave 1 target
-  onboarding_enabled: false, // Will flip in Wave 2
-  onboarding_persistence_enabled: false, // Wave 3 (guards network calls until backend ready)
+  onboarding_enabled: true, // Enabled for active onboarding dev testing
+  onboarding_persistence_enabled: true, // Backend persistence now implemented
   exp_intelligence_dashboards: false, // Wave 4
   exp_dual_ai_pipeline: false, // Wave 5
   storybook_docs_enabled: false,

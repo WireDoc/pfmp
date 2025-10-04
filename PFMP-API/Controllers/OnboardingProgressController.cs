@@ -1,51 +1,61 @@
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Concurrent;
+using PFMP_API.Services;
+using PFMP_API.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace PFMP_API.Controllers
 {
     /// <summary>
-    /// In-memory onboarding progress persistence (Wave 3 scaffold).
-    /// Guards real implementation until database entity & auth integration are added.
+    /// Onboarding progress persistence endpoints (Wave 3).
+    /// Backed by database via IOnboardingProgressService. Dev mode allows query userId override.
     /// </summary>
     [ApiController]
     [Route("api/onboarding")] // matches frontend persistence.ts base
     public class OnboardingProgressController : ControllerBase
     {
-        // Using string user id to align with frontend dev-mode 'dev-user' default.
-        private static readonly ConcurrentDictionary<string, OnboardingProgressDto> _store = new();
+        private readonly IOnboardingProgressService _service;
+        private readonly IConfiguration _config;
+        private readonly ApplicationDbContext _db;
 
-        private static readonly object _lock = new();
+        public OnboardingProgressController(IOnboardingProgressService service, IConfiguration config, ApplicationDbContext db)
+        {
+            _service = service;
+            _config = config;
+            _db = db;
+        }
+
+        private async Task<int> ResolveUserIdAsync(int? queryUserId, string? email, CancellationToken ct)
+        {
+            if (queryUserId.HasValue && queryUserId.Value > 0) return queryUserId.Value;
+            if (!string.IsNullOrWhiteSpace(email))
+            {
+                var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == email, ct);
+                if (user != null) return user.UserId;
+            }
+            // Dev registry fallback
+            return DevUserRegistry.DefaultTestUserId;
+        }
 
         /// <summary>
         /// Get current onboarding progress for the (dev) user. Returns 404 if none exists yet.
         /// </summary>
         [HttpGet("progress")]
-        public ActionResult<OnboardingProgressDto> GetProgress([FromQuery] string? userId)
+        public async Task<ActionResult<OnboardingProgressDto>> GetProgress([FromQuery] int? userId, [FromQuery] string? email, CancellationToken ct = default)
         {
-            var key = string.IsNullOrWhiteSpace(userId) ? "dev-user" : userId!;
-            if (_store.TryGetValue(key, out var dto))
-            {
-                return Ok(dto);
-            }
-            return NotFound();
+            var uid = await ResolveUserIdAsync(userId, email, ct);
+            var entity = await _service.GetAsync(uid, ct);
+            if (entity == null) return NotFound();
+            return Ok(OnboardingProgressMapping.ToDto(entity));
         }
 
         /// <summary>
         /// Upsert full onboarding progress snapshot (replaces existing snapshot attributes).
         /// </summary>
         [HttpPut("progress")]
-        public ActionResult UpsertProgress([FromBody] UpsertOnboardingProgressRequest request, [FromQuery] string? userId)
+        public async Task<ActionResult> UpsertProgress([FromBody] UpsertOnboardingProgressRequest request, [FromQuery] int? userId, [FromQuery] string? email, CancellationToken ct = default)
         {
-            var key = string.IsNullOrWhiteSpace(userId) ? "dev-user" : userId!;
-            var dto = new OnboardingProgressDto
-            {
-                UserId = key,
-                CurrentStepId = request.CurrentStepId,
-                CompletedStepIds = request.CompletedStepIds?.Distinct().ToList() ?? new List<string>(),
-                StepPayloads = request.StepPayloads ?? new Dictionary<string, object?>(),
-                UpdatedUtc = DateTime.UtcNow
-            };
-            _store[key] = dto;
+            var uid = await ResolveUserIdAsync(userId, email, ct);
+            await _service.UpsertAsync(uid, request.CurrentStepId, request.CompletedStepIds ?? new List<string>(), request.StepPayloads ?? new Dictionary<string, object?>(), ct);
             return NoContent();
         }
 
@@ -53,55 +63,45 @@ namespace PFMP_API.Controllers
         /// PATCH partial step data or mark completion.
         /// </summary>
         [HttpPatch("progress/step/{stepId}")]
-        public ActionResult PatchStep(string stepId, [FromBody] PatchOnboardingStepRequest request, [FromQuery] string? userId)
+        public async Task<ActionResult> PatchStep(string stepId, [FromBody] PatchOnboardingStepRequest request, [FromQuery] int? userId, [FromQuery] string? email, CancellationToken ct = default)
         {
             if (string.IsNullOrWhiteSpace(stepId)) return BadRequest("Step id required");
-            var key = string.IsNullOrWhiteSpace(userId) ? "dev-user" : userId!;
+            var uid = await ResolveUserIdAsync(userId, email, ct);
+            await _service.PatchStepAsync(uid, stepId, request.Data, request.Completed, ct);
+            return NoContent();
+        }
 
-            _store.AddOrUpdate(key, _ =>
-            {
-                // Create new record if none existed
-                var completed = new List<string>();
-                if (request.Completed == true) completed.Add(stepId);
-                return new OnboardingProgressDto
-                {
-                    UserId = key,
-                    CurrentStepId = stepId,
-                    CompletedStepIds = completed,
-                    StepPayloads = request.Data != null ? new Dictionary<string, object?> { [stepId] = request.Data } : new Dictionary<string, object?>(),
-                    UpdatedUtc = DateTime.UtcNow
-                };
-            }, (_, existing) =>
-            {
-                lock (_lock)
-                {
-                    // Update existing snapshot
-                    if (request.Data != null)
-                    {
-                        existing.StepPayloads ??= new Dictionary<string, object?>();
-                        existing.StepPayloads[stepId] = request.Data;
-                    }
-                    if (request.Completed == true && !existing.CompletedStepIds.Contains(stepId))
-                    {
-                        existing.CompletedStepIds.Add(stepId);
-                    }
-                    // Heuristic: advance current step if this matches existing current or is next logical step
-                    existing.CurrentStepId = stepId;
-                    existing.UpdatedUtc = DateTime.UtcNow;
-                    return existing;
-                }
-            });
+        /// <summary>
+        /// Reset onboarding progress for the user (testing convenience endpoint).
+        /// </summary>
+        [HttpPost("progress/reset")]
+        public async Task<ActionResult> Reset([FromQuery] int? userId, [FromQuery] string? email, CancellationToken ct = default)
+        {
+            var uid = await ResolveUserIdAsync(userId, email, ct);
+            await _service.ResetAsync(uid, ct);
             return NoContent();
         }
     }
 
     public class OnboardingProgressDto
     {
-        public string UserId { get; set; } = string.Empty;
-        public string CurrentStepId { get; set; } = string.Empty;
+        public int UserId { get; set; }
+        public string? CurrentStepId { get; set; }
         public List<string> CompletedStepIds { get; set; } = new();
-        public Dictionary<string, object?>? StepPayloads { get; set; } = new();
+        public Dictionary<string, object?> StepPayloads { get; set; } = new();
         public DateTime UpdatedUtc { get; set; }
+    }
+
+    internal static class OnboardingProgressMapping
+    {
+        public static OnboardingProgressDto ToDto(OnboardingProgress entity) => new()
+        {
+            UserId = entity.UserId,
+            CurrentStepId = entity.CurrentStepId,
+            CompletedStepIds = entity.GetCompletedStepIds(),
+            StepPayloads = entity.GetStepPayloads(),
+            UpdatedUtc = entity.UpdatedUtc
+        };
     }
 
     public class UpsertOnboardingProgressRequest

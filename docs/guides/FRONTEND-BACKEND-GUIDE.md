@@ -24,6 +24,35 @@ If `import.meta.env.DEV` is true, simulated accounts are provided; real MSAL flo
 - Status transitions: Proposed → Accepted | Rejected; cross changes blocked.
 
 ## Future Waves (See `docs/waves/REBUILD-WAVE-PLAN.md`)
+## Onboarding Persistence (Wave 3)
+Endpoints (all under `/api/onboarding`):
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | /progress | Get current user onboarding snapshot (404 = fresh) |
+| PUT | /progress | Upsert full snapshot (currentStepId, completedStepIds, stepPayloads) |
+| PATCH | /progress/step/{stepId} | Partial step data update and/or mark complete |
+| POST | /progress/reset | Delete snapshot (dev/testing convenience) |
+
+Query parameters:
+- `userId=` overrides dev registry default
+- `email=` resolves user by email (dev only)
+
+## Dev User Switching
+Backend registry: `/api/dev/users` (GET list, POST `/api/dev/users/default/{userId}` to change default).
+Frontend: DevUserSwitcher component (added in `App.tsx`) sets backend default and injects `userId` into onboarding persistence calls.
+
+## API Documentation & AI Integration
+- Swagger/OpenAPI UI (dev): `http://localhost:5052/swagger` (always on in Development)
+- OpenAI model usage central service: see `AIService` in backend (configuration in `appsettings.*` under `OpenAI`).
+
+## Quick Onboarding Flow Example (PowerShell)
+```powershell
+Invoke-RestMethod -Method GET http://localhost:5052/api/onboarding/progress # 404 if no progress
+Invoke-RestMethod -Method PATCH http://localhost:5052/api/onboarding/progress/step/welcome -Body '{"data":{"ack":true},"completed":true}' -ContentType 'application/json'
+Invoke-RestMethod -Method GET http://localhost:5052/api/onboarding/progress
+Invoke-RestMethod -Method POST http://localhost:5052/api/onboarding/progress/reset
+```
+
 - Routing & protection restoration
 - Setup / onboarding context
 - Dual-AI consensus scaffold
