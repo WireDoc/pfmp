@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
 import { AppRouter } from '../AppRouter';
 import { OnboardingProvider, useOnboarding } from '../onboarding/OnboardingContext';
 import { updateFlags } from '../flags/featureFlags';
@@ -22,15 +21,13 @@ function IncompleteOnboardingHarness({ children }: { children: React.ReactNode }
 function renderScenario(path: string, flag: boolean) {
   updateFlags({ enableDashboardWave4: flag });
   return render(
-    <MemoryRouter initialEntries={[path]}>
-      <AuthProvider>
-        <OnboardingProvider>
-          <IncompleteOnboardingHarness>
-            <AppRouter />
-          </IncompleteOnboardingHarness>
-        </OnboardingProvider>
-      </AuthProvider>
-    </MemoryRouter>
+    <AuthProvider>
+      <OnboardingProvider>
+        <IncompleteOnboardingHarness>
+          <AppRouter initialEntries={[path]} />
+        </IncompleteOnboardingHarness>
+      </OnboardingProvider>
+    </AuthProvider>
   );
 }
 
