@@ -24,6 +24,20 @@ public class UserAdminController : ControllerBase
     private bool IsAllowedEnv() => _env.IsDevelopment() || _env.IsEnvironment("Testing");
 
     /// <summary>
+    /// List users (limited fields). Intended for quick dev/test discovery.
+    /// </summary>
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<UserDto>>> ListUsers(CancellationToken ct = default)
+    {
+        if (!IsAllowedEnv()) return NotFound();
+        var users = await _db.Users
+            .OrderBy(u => u.UserId)
+            .Select(u => new UserDto(u.UserId, u.FirstName, u.LastName, u.Email, u.CreatedAt, u.IsTestAccount, u.BypassAuthentication))
+            .ToListAsync(ct);
+        return Ok(users);
+    }
+
+    /// <summary>
     /// Delete a user and all cascaded related data. 204 if deleted, 404 if not found.
     /// </summary>
     [HttpDelete("{userId:int}")]
@@ -121,5 +135,21 @@ public class UserAdminController : ControllerBase
 
         var dto = new UserDto(user.UserId, user.FirstName, user.LastName, user.Email, user.CreatedAt, user.IsTestAccount, user.BypassAuthentication);
         return Created($"/api/admin/users/{user.UserId}", dto);
+    }
+
+    /// <summary>
+    /// Reset (delete) onboarding progress for a user without deleting the user.
+    /// </summary>
+    [HttpPost("{userId:int}/onboarding/reset")]
+    public async Task<IActionResult> ResetOnboarding(int userId, CancellationToken ct = default)
+    {
+        if (!IsAllowedEnv()) return NotFound();
+        var progress = await _db.OnboardingProgress.FirstOrDefaultAsync(p => p.UserId == userId, ct);
+        if (progress != null)
+        {
+            _db.OnboardingProgress.Remove(progress);
+            await _db.SaveChangesAsync(ct);
+        }
+        return NoContent();
     }
 }

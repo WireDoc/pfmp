@@ -1,0 +1,71 @@
+{
+  "info": {
+    "name": "PFMP API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0",
+    "description": "Core PFMP API endpoints grouped for development and testing. Adjust host/port if different."
+  },
+  "item": [
+    {
+      "name": "Health & Docs",
+      "item": [
+        {"name": "Health", "request": {"method": "GET", "url": "http://localhost:5052/health"}},
+        {"name": "Swagger JSON", "request": {"method": "GET", "url": "http://localhost:5052/swagger/v1/swagger.json"}}
+      ]
+    },
+    {
+      "name": "Admin Users",
+      "item": [
+        {"name": "List Users", "request": {"method": "GET", "url": "http://localhost:5052/api/admin/users"}},
+        {"name": "Create User", "request": {"method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode": "raw", "raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Doe\",\n  \"email\": \"jane+{{guid}}@local\",\n  \"emergencyFundTarget\": 0\n}"}, "url": "http://localhost:5052/api/admin/users"}},
+        {"name": "Create Test User (fresh)", "request": {"method": "POST", "url": "http://localhost:5052/api/admin/users/test?scenario=fresh"}},
+        {"name": "Create Test User (mid)", "request": {"method": "POST", "url": "http://localhost:5052/api/admin/users/test?scenario=mid"}},
+        {"name": "Create Test User (done)", "request": {"method": "POST", "url": "http://localhost:5052/api/admin/users/test?scenario=done"}},
+        {"name": "Reset Onboarding Progress", "request": {"method": "POST", "url": "http://localhost:5052/api/admin/users/{{userId}}/onboarding/reset"}},
+        {"name": "Delete User", "request": {"method": "DELETE", "url": "http://localhost:5052/api/admin/users/{{userId}}"}}
+      ]
+    },
+    {
+      "name": "Dev Registry (Legacy)",
+      "item": [
+        {"name": "List Dev Users", "request": {"method": "GET", "url": "http://localhost:5052/api/dev/users"}},
+        {"name": "Set Default Dev User", "request": {"method": "POST", "url": "http://localhost:5052/api/dev/users/default/{{userId}}"}}
+      ]
+    },
+    {
+      "name": "Onboarding Progress",
+      "item": [
+        {"name": "Get Progress", "request": {"method": "GET", "url": "http://localhost:5052/api/onboarding/progress?userId={{userId}}"}},
+        {"name": "Put Snapshot", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"currentStepId\": \"welcome\",\n  \"completedStepIds\": [\"welcome\"],\n  \"stepPayloads\": { \n    \"welcome\": { \"acknowledged\": true }\n  }\n}"}, "url": "http://localhost:5052/api/onboarding/progress?userId={{userId}}"}},
+        {"name": "Patch Step", "request": {"method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode": "raw", "raw": "{\n  \"data\": { \"nickname\": \"Tester\" },\n  \"completed\": true\n}"}, "url": "http://localhost:5052/api/onboarding/progress/step/profile?userId={{userId}}"}},
+        {"name": "Reset Progress (legacy dev)", "request": {"method": "POST", "url": "http://localhost:5052/api/onboarding/progress/reset?userId={{userId}}"}}
+      ]
+    },
+    {
+      "name": "Advice",
+      "item": [
+        {"name": "Generate Advice", "request": {"method": "POST", "url": "http://localhost:5052/api/Advice/generate/{{userId}}"}},
+        {"name": "List Advice For User", "request": {"method": "GET", "url": "http://localhost:5052/api/Advice/user/{{userId}}"}},
+        {"name": "Accept Advice", "request": {"method": "POST", "url": "http://localhost:5052/api/Advice/{{adviceId}}/accept"}},
+        {"name": "Reject Advice", "request": {"method": "POST", "url": "http://localhost:5052/api/Advice/{{adviceId}}/reject"}}
+      ]
+    },
+    {
+      "name": "AI",
+      "item": [
+        {"name": "AI Generate (example)", "request": {"method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode": "raw", "raw": "{ \n  \"prompt\": \"Explain TSP allocation basics\" \n}"}, "url": "http://localhost:5052/api/ai/generate"}}
+      ]
+    },
+    {
+      "name": "Weather (Sample Scaffold)",
+      "item": [
+        {"name": "Weather Forecast", "request": {"method": "GET", "url": "http://localhost:5052/weatherforecast"}}
+      ]
+    }
+  ],
+  "variable": [
+    {"key": "userId", "value": "1"},
+    {"key": "adviceId", "value": "1"},
+    {"key": "guid", "value": "00000000000000000000000000000000"}
+  ]
+}
