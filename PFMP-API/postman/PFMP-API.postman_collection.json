@@ -10,6 +10,7 @@
       "name": "Health & Docs",
       "item": [
   {"name": "Health", "request": {"method": "GET", "url": "{{baseUrl}}/health"}},
+  {"name": "Health Ready", "request": {"method": "GET", "url": "{{baseUrl}}/health/ready"}},
   {"name": "Swagger JSON", "request": {"method": "GET", "url": "{{baseUrl}}/swagger/v1/swagger.json"}}
       ]
     },

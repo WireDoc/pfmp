@@ -157,6 +157,49 @@ namespace PFMP_API
                 env = app.Environment.EnvironmentName
             }));
 
+            // Readiness endpoint: checks DB connectivity and pending migrations
+            app.MapGet("/health/ready", async (ApplicationDbContext db, IWebHostEnvironment env) =>
+            {
+                var dbOk = false;
+                int? appliedMigrations = null;
+                int? totalMigrations = null;
+                string? error = null;
+                try
+                {
+                    // Quick connectivity test
+                    dbOk = await db.Database.CanConnectAsync();
+                    // Use synchronous enumeration via IMigrator because async extension methods may not be available in current EF Core version
+                    var all = db.Database.GetMigrations();
+                    var applied = db.Database.GetAppliedMigrations();
+                    totalMigrations = all.Count();
+                    appliedMigrations = applied.Count();
+                }
+                catch (Exception ex)
+                {
+                    error = ex.GetType().Name + ": " + ex.Message;
+                }
+
+                var ready = dbOk && (error == null);
+
+                var payload = new
+                {
+                    status = ready ? "READY" : "DEGRADED",
+                    service = "PFMP-API",
+                    utc = DateTime.UtcNow,
+                    env = env.EnvironmentName,
+                    database = new
+                    {
+                        reachable = dbOk,
+                        appliedMigrations,
+                        totalMigrations,
+                        allApplied = appliedMigrations.HasValue && totalMigrations.HasValue && appliedMigrations == totalMigrations
+                    },
+                    error
+                };
+
+                return ready ? Results.Json(payload) : Results.Json(payload, statusCode: 503);
+            });
+
             // NOTE: Original automatic seeding removed (archived under archive/seeder/DevelopmentDataSeeder.cs).
             // Prefer explicit runtime creation via /api/admin/users endpoints now.
 
