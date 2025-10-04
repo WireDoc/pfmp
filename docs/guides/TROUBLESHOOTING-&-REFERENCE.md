@@ -50,6 +50,17 @@ Invoke-WebRequest -Uri "http://localhost:5052/api/dev/users"
 - Swagger UI: `http://localhost:5052/swagger`
 - Health: `http://localhost:5052/health`
 - Dev Users: `http://localhost:5052/api/dev/users`
+ - Admin Users (create/delete): `http://localhost:5052/api/admin/users`
+
+## Legacy Seeder (Archived)
+Automatic dev seeding has been archived at `PFMP-API/archive/seeder/DevelopmentDataSeeder.cs`.
+Use the runtime admin endpoints instead:
+```
+POST /api/admin/users                      # create baseline user
+POST /api/admin/users/test?scenario=mid    # create scenario test user
+DELETE /api/admin/users/{id}               # cascade delete user + data
+```
+Advantages: deterministic, explicit, scriptable.
 
 ## Future Enhancements (Pointers)
 - Dual-AI consensus: see `docs/waves/REBUILD-WAVE-PLAN.md`

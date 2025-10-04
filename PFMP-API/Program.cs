@@ -157,19 +157,8 @@ namespace PFMP_API
                 env = app.Environment.EnvironmentName
             }));
 
-            // Seed development data if enabled
-            if (app.Environment.IsDevelopment())
-            {
-                using var scope = app.Services.CreateScope();
-                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-                
-                if (config.GetValue<bool>("Development:SeedTestData", false))
-                {
-                    context.Database.EnsureCreated();
-                    await DevelopmentDataSeeder.SeedDevelopmentData(context);
-                }
-            }
+            // NOTE: Original automatic seeding removed (archived under archive/seeder/DevelopmentDataSeeder.cs).
+            // Prefer explicit runtime creation via /api/admin/users endpoints now.
 
             app.Run();
         }

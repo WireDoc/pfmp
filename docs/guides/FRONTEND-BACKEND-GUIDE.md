@@ -41,6 +41,21 @@ Query parameters:
 Backend registry: `/api/dev/users` (GET list, POST `/api/dev/users/default/{userId}` to change default).
 Frontend: DevUserSwitcher component (added in `App.tsx`) sets backend default and injects `userId` into onboarding persistence calls.
 
+### Admin User Management (New)
+Instead of startup seeding, create and remove users explicitly:
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | /api/admin/users | Create baseline user |
+| POST | /api/admin/users/test?scenario=fresh|mid|done | Create test user with optional onboarding snapshot |
+| DELETE | /api/admin/users/{id} | Delete user + cascaded data |
+
+Scenarios:
+- `fresh`: no onboarding progress
+- `mid`: currentStep financialProfile; welcome+profile completed
+- `done`: currentStep confirmation; welcome+profile+financialProfile+preferences completed
+
+Legacy automatic seeding retained under `archive/seeder` for reference.
+
 ## API Documentation & AI Integration
 - Swagger/OpenAPI UI (dev): `http://localhost:5052/swagger` (always on in Development)
 - OpenAI model usage central service: see `AIService` in backend (configuration in `appsettings.*` under `OpenAI`).
