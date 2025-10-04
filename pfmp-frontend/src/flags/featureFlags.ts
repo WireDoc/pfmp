@@ -9,7 +9,8 @@ export type FeatureFlagKey =
   | 'exp_intelligence_dashboards'
   | 'exp_dual_ai_pipeline'
   | 'storybook_docs_enabled'
-  | 'use_simulated_auth';
+  | 'use_simulated_auth'
+  | 'enableDashboardWave4';
 
 export interface FeatureFlagsState {
   routing_enabled: boolean;
@@ -19,6 +20,7 @@ export interface FeatureFlagsState {
   exp_dual_ai_pipeline: boolean;
   storybook_docs_enabled: boolean;
   use_simulated_auth: boolean;
+  enableDashboardWave4: boolean;
 }
 
 const defaultFlags: FeatureFlagsState = {
@@ -29,6 +31,7 @@ const defaultFlags: FeatureFlagsState = {
   exp_dual_ai_pipeline: false, // Wave 5
   storybook_docs_enabled: false,
   use_simulated_auth: true, // keep true during early waves for velocity
+  enableDashboardWave4: false, // toggles new dashboard skeleton (Wave 4 Phase 1)
 };
 
 let dynamicOverrides: Partial<FeatureFlagsState> = {};

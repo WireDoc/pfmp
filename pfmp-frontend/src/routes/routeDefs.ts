@@ -13,6 +13,8 @@ export interface AppRoute {
 export const ROUTES: AppRoute[] = [
   { id: 'root', path: '/', protected: true, lazyImport: () => import('../views/DashboardPage') },
   { id: 'onboarding', path: '/onboarding', protected: true, lazyImport: () => import('../views/OnboardingPage') },
+  // Wave 4 dashboard skeleton route (flagged). The actual wiring will swap root once stable.
+  { id: 'dashboard-wave4', path: '/dashboard', protected: true, lazyImport: () => import('../views/DashboardWave4') },
   { id: 'login', path: '/login', protected: false, lazyImport: () => import('../views/LoginPlaceholder') },
   { id: 'notfound', path: '*', protected: false, lazyImport: () => import('../views/NotFoundPage') },
 ];
