@@ -51,6 +51,11 @@ For manual API exploration without the frontend wiring:
 
 `{{baseUrl}}` defaults to `http://localhost:5052`; change it in the environment if the API runs elsewhere.
 
+### Health & Readiness
+- Liveness: `GET /health` – lightweight JSON (no DB calls).
+- Readiness: `GET /health/ready` – includes database connectivity + migration application counts. Returns 200 with `status=READY` or 503 with `status=DEGRADED` if unreachable or exception encountered.
+Use readiness in CI or container orchestrators; keep `/health` for fast uptime probes.
+
 ### Admin User Management (New)
 Instead of startup seeding, create and remove users explicitly:
 | Method | Path | Purpose |
