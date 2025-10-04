@@ -1,6 +1,7 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 import { Suspense, lazy } from 'react';
+import { DevUserSwitcher } from './dev/DevUserSwitcher';
 const Dashboard = lazy(() => import('./components/Dashboard'));
 
 const theme = createTheme({
@@ -39,9 +40,12 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Suspense fallback={<div style={{padding:40}}>Loading dashboard...</div>}>
-        <Dashboard userId={1} />
-      </Suspense>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0.5rem 1rem' }}>
+        <DevUserSwitcher />
+        <Suspense fallback={<div style={{padding:40}}>Loading dashboard...</div>}>
+          <Dashboard userId={1} />
+        </Suspense>
+      </div>
     </ThemeProvider>
   );
 }

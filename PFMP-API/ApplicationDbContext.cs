@@ -34,6 +34,9 @@ namespace PFMP_API
     // Advisory / Recommendations
     public DbSet<Advice> Advice { get; set; }
 
+        // Onboarding (Wave 3)
+        public DbSet<OnboardingProgress> OnboardingProgress { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -207,6 +210,28 @@ namespace PFMP_API
                 entity.Property(e => e.Theme).HasMaxLength(100);
                 entity.HasIndex(e => e.UserId);
                 entity.HasIndex(e => e.CreatedAt);
+            });
+
+            // OnboardingProgress Configuration
+            modelBuilder.Entity<OnboardingProgress>(entity =>
+            {
+                entity.HasKey(e => e.UserId); // 1:1 with User
+                entity.HasOne<User>()
+                    .WithOne()
+                    .HasForeignKey<OnboardingProgress>(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(e => e.CurrentStepId).HasMaxLength(100);
+                // Store JSON as text (PostgreSQL jsonb via HasColumnType)
+                entity.Property(e => e.CompletedStepIdsJson)
+                    .HasColumnType("jsonb")
+                    .HasColumnName("CompletedStepIds");
+                entity.Property(e => e.StepPayloadsJson)
+                    .HasColumnType("jsonb")
+                    .HasColumnName("StepPayloads");
+                entity.Property(e => e.UpdatedUtc).IsRequired();
+
+                entity.HasIndex(e => e.UpdatedUtc);
             });
 
             // Configure decimal precision globally

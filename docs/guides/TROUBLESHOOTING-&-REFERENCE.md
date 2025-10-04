@@ -6,6 +6,8 @@
 | API 404 | Backend not running | Start backend window |
 | CORS error | Proxy / origin mismatch | Check Vite config + backend CORS | 
 | Auth stuck | Dev bypass vs prod mismatch | Confirm build mode | 
+| Onboarding not persisting | Flags disabled or wrong userId | Ensure `onboarding_enabled` & `onboarding_persistence_enabled` true; verify user switcher selection |
+| Dev user switch no effect | Backend default not updated | Check POST /api/dev/users/default/{id} 204 response |
 | Build hang | TypeScript vs bundler confusion | Run `npx tsc -b` separately |
 | Port in use | Stray dotnet/node process | Kill processes below |
 
@@ -32,6 +34,9 @@ Stop-Process -Name "node" -Force -ErrorAction SilentlyContinue
 cd W:\pfmp; git status; git log --oneline -5
 Invoke-WebRequest -Uri "http://localhost:5052/weatherforecast"
 Invoke-WebRequest -Uri "http://localhost:5052/api/Advice/user/1"
+Invoke-WebRequest -Uri "http://localhost:5052/api/onboarding/progress"
+Invoke-RestMethod -Method PATCH "http://localhost:5052/api/onboarding/progress/step/welcome" -Body '{"data":{"ack":true},"completed":true}' -ContentType 'application/json'
+Invoke-WebRequest -Uri "http://localhost:5052/api/dev/users"
 ```
 
 ## Security Reminders
@@ -40,6 +45,11 @@ Invoke-WebRequest -Uri "http://localhost:5052/api/Advice/user/1"
 
 ## Performance Snapshot
 - Current main bundle ~590 kB (gz ~182 kB) – pre code-splitting target
+
+## Reference URLs
+- Swagger UI: `http://localhost:5052/swagger`
+- Health: `http://localhost:5052/health`
+- Dev Users: `http://localhost:5052/api/dev/users`
 
 ## Future Enhancements (Pointers)
 - Dual-AI consensus: see `docs/waves/REBUILD-WAVE-PLAN.md`

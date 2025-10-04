@@ -7,6 +7,7 @@ using PFMP_API.Services;
 using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.OpenApi.Models;
+using PFMP_API.Services; // Ensure onboarding service types are visible
 
 namespace PFMP_API
 {
@@ -35,6 +36,9 @@ namespace PFMP_API
             // Add Advice Service (Wave 1 scaffold)
             builder.Services.AddScoped<IAdviceService, AdviceService>();
             builder.Services.AddScoped<IAdviceValidator, AdviceValidator>();
+
+            // Onboarding Progress Service (Wave 3)
+            builder.Services.AddScoped<IOnboardingProgressService, OnboardingProgressService>();
 
             // Add Authentication Services
             builder.Services.AddScoped<IPasswordHashService, PasswordHashService>();

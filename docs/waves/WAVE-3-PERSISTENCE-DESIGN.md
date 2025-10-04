@@ -1,6 +1,6 @@
 # Wave 3 Design – Onboarding Persistence & State Hydration
 
-Status: Draft
+Status: Implemented (DB-backed persistence active; reset endpoint added for testing)
 Date: 2025-10-03
 
 ## Goal
@@ -17,12 +17,13 @@ interface OnboardingProgressDTO {
 }
 ```
 
-## API Endpoints (Proposed)
+## API Endpoints (Implemented)
 | Method | Path | Body / Params | Description |
 |--------|------|---------------|-------------|
-| GET | /api/onboarding/progress | (auth user) | Fetch latest progress |
+| GET | /api/onboarding/progress | (dev user or future auth) | Fetch latest progress |
 | PUT | /api/onboarding/progress | OnboardingProgressDTO (minus userId) | Upsert full progress snapshot |
 | PATCH | /api/onboarding/progress/step/{stepId} | { data, completed?: bool } | Partial update for a single step |
+| POST | /api/onboarding/progress/reset | (none) | Reset (delete) progress for testing |
 
 Incremental PATCH allows lower latency UI flows; full PUT used on major transitions or reconciliation.
 
@@ -34,7 +35,7 @@ Incremental PATCH allows lower latency UI flows; full PUT used on major transiti
   - step_payloads (jsonb)
   - updated_utc (timestamp with tz)
 - Versioning: schema version field optional for future migrations.
-- Concurrency: optimistic with updated_utc; reject if stale older than stored.
+- Concurrency: future enhancement; timestamp present but no optimistic check yet (Wave 3 scope defer).
 - Security: row-level filter by authenticated user id.
 
 ## Client Flow
@@ -66,7 +67,8 @@ Incremental PATCH allows lower latency UI flows; full PUT used on major transiti
 - Should we record wizard abandonment reason? (Needs UX event taxonomy.)
 
 ## Acceptance (Wave 3)
-- Progress persists across refresh.
-- Validation pipeline stores normalized data.
-- Flag gating network activity available.
-- Tests: reducer hydration, PATCH/PUT integration mock.
+- Progress persists across refresh (frontend hydration + DB persistence).
+- Reset endpoint enables manual iteration.
+- Feature flag gating network activity (`onboarding_persistence_enabled`).
+- Initial backend service abstraction in place for future auth + concurrency upgrades.
+  (Validation normalization and optimistic concurrency deferred to later wave.)

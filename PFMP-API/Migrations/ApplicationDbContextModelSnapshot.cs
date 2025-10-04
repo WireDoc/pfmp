@@ -167,6 +167,9 @@ namespace PFMP_API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("AdviceId"));
 
+                    b.Property<DateTime?>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<int>("ConfidenceScore")
                         .HasColumnType("integer");
 
@@ -177,30 +180,27 @@ namespace PFMP_API.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int?>("LinkedTaskId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("AcceptedAt")
-                        .HasColumnType("timestamp with time zone");
-
                     b.Property<DateTime?>("DismissedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("PreviousStatus")
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<int?>("SourceAlertId")
-                        .HasColumnType("integer");
 
                     b.Property<string>("GenerationMethod")
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
-                    b.Property<string>("SourceAlertSnapshot")
-                        .HasColumnType("text");
+                    b.Property<int?>("LinkedTaskId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PreviousStatus")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
 
                     b.Property<string>("PrimaryJson")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("SourceAlertId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SourceAlertSnapshot")
                         .HasColumnType("text");
 
                     b.Property<string>("Status")
@@ -256,9 +256,6 @@ namespace PFMP_API.Migrations
                     b.Property<DateTime?>("ExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("PortfolioImpactScore")
-                        .HasColumnType("integer");
-
                     b.Property<bool>("IsActionable")
                         .HasColumnType("boolean");
 
@@ -275,12 +272,14 @@ namespace PFMP_API.Migrations
                     b.Property<string>("Metadata")
                         .HasColumnType("text");
 
+                    b.Property<int>("PortfolioImpactScore")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("ReadAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("Severity")
                         .HasColumnType("integer");
-
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -293,8 +292,6 @@ namespace PFMP_API.Migrations
                     b.HasKey("AlertId");
 
                     b.HasIndex("CreatedAt");
-
-                    // Removed legacy GeneratedTaskId index in refactor
 
                     b.HasIndex("UserId", "IsRead");
 
@@ -761,6 +758,33 @@ namespace PFMP_API.Migrations
                     b.ToTable("InsurancePolicies");
                 });
 
+            modelBuilder.Entity("PFMP_API.Models.OnboardingProgress", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CompletedStepIdsJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("CompletedStepIds");
+
+                    b.Property<string>("CurrentStepId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("StepPayloadsJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("StepPayloads");
+
+                    b.Property<DateTime>("UpdatedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("UserId");
+
+                    b.HasIndex("UpdatedUtc");
+
+                    b.ToTable("OnboardingProgress");
+                });
+
             modelBuilder.Entity("PFMP_API.Models.RealEstate", b =>
                 {
                     b.Property<int>("RealEstateId")
@@ -1145,10 +1169,10 @@ namespace PFMP_API.Migrations
                     b.Property<int>("ProgressPercentage")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("SourceAlertId")
+                    b.Property<int?>("SourceAdviceId")
                         .HasColumnType("integer");
 
-                    b.Property<int?>("SourceAdviceId")
+                    b.Property<int?>("SourceAlertId")
                         .HasColumnType("integer");
 
                     b.Property<string>("SourceType")
@@ -1294,7 +1318,7 @@ namespace PFMP_API.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                    
+
                     b.Navigation("User");
                 });
 
@@ -1351,6 +1375,15 @@ namespace PFMP_API.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.OnboardingProgress", b =>
+                {
+                    b.HasOne("PFMP_API.Models.User", null)
+                        .WithOne()
+                        .HasForeignKey("PFMP_API.Models.OnboardingProgress", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("PFMP_API.Models.RealEstate", b =>

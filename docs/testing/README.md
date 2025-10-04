@@ -9,6 +9,7 @@ Modular testing references grouped by subject. Each guide provides:
 ## Available Guides
 - [Advice Testing](./advice-testing.md) - Generate, list, accept (auto-creates task), dismiss, provenance fields
 - [Task Testing](./tasks-testing.md) - Direct task CRUD, status transitions, linkage from accepted advice
+- [Onboarding Testing](./onboarding-testing.md) - Wave 3 persistence (GET/PUT/PATCH/RESET) + dev user switching
 
 ## Conventions
 - Base API URL: `http://localhost:5052/api`
