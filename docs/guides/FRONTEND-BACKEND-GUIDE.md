@@ -41,6 +41,16 @@ Query parameters:
 Backend registry: `/api/dev/users` (GET list, POST `/api/dev/users/default/{userId}` to change default).
 Frontend: DevUserSwitcher component (added in `App.tsx`) sets backend default and injects `userId` into onboarding persistence calls.
 
+### Postman Collection & Environment
+For manual API exploration without the frontend wiring:
+- Import `PFMP-API/postman/PFMP-API.postman_collection.json`.
+- Import `PFMP-API/postman/PFMP-Local.postman_environment.json` and select the environment.
+- Create a test user via `Admin Users / Create Test User (fresh|mid|done)`; copy its `id` into the `userId` environment variable.
+- Generate advice (`Advice / Generate Advice`), then list advice and set `adviceId` to accept/reject.
+- Reset onboarding using `Admin Users / Reset Onboarding Progress` or delete/recreate users to start clean.
+
+`{{baseUrl}}` defaults to `http://localhost:5052`; change it in the environment if the API runs elsewhere.
+
 ### Admin User Management (New)
 Instead of startup seeding, create and remove users explicitly:
 | Method | Path | Purpose |
