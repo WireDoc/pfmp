@@ -56,11 +56,30 @@ function reducer(state: OnboardingState, action: Action): OnboardingState {
   }
 }
 
-export const OnboardingProvider: React.FC<{ children: React.ReactNode; userId?: string }> = ({ children, userId = 'dev-user' }) => {
-  const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
+interface OnboardingProviderProps {
+  children: React.ReactNode;
+  userId?: string;
+  /** Test helper: if true, provider starts with all steps completed */
+  testCompleteAll?: boolean;
+  /** Test helper: explicit completed step IDs */
+  testCompletedSteps?: OnboardingStepId[];
+}
+
+export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children, userId = 'dev-user', testCompleteAll, testCompletedSteps }) => {
+  const [state, dispatch] = useReducer(reducer, INITIAL_STATE, (base) => {
+    if (testCompleteAll) {
+      return { currentIndex: stepsArr.length - 1, completed: new Set(stepsArr.map(s => s.id)) };
+    }
+    if (testCompletedSteps && testCompletedSteps.length) {
+      return { currentIndex: stepsArr.length - 1, completed: new Set(testCompletedSteps) };
+    }
+    return base;
+  });
   const persistenceEnabled = useFeatureFlag('onboarding_persistence_enabled');
   const hydratedRef = useRef(false);
   const [hydrated, setHydrated] = React.useState(!persistenceEnabled); // if disabled treat as hydrated
+
+  // (Test bootstrap no longer needed; handled in reducer init)
 
   // Hydrate from backend if enabled
   useEffect(() => {

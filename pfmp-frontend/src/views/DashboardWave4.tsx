@@ -30,7 +30,7 @@ export const DashboardWave4: React.FC = () => {
   }
 
   return (
-    <Box p={3} display="flex" flexDirection="column" gap={3}>
+    <Box data-testid="wave4-dashboard-root" p={3} display="flex" flexDirection="column" gap={3}>
       <Box>
         <Typography variant="h4" gutterBottom>Dashboard (Wave 4)</Typography>
         <Typography variant="body2" color="text.secondary">

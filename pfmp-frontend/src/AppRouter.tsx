@@ -28,6 +28,7 @@ export function AppRouter(props: AppRouterProps) {
   const enableWave4 = isFeatureEnabled('enableDashboardWave4');
   const { hydrated, complete } = useOnboardingState();
 
+
   const filtered = ROUTES.filter(r => {
     if (!enableWave4 && r.id === 'dashboard-wave4') return false;
     return true;
