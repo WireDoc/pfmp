@@ -27,7 +27,8 @@ function renderWithProviders(initialPath: string, complete = false) {
 
 describe('Dashboard Wave4 flag gating', () => {
   beforeEach(() => {
-    updateFlags({ enableDashboardWave4: false });
+    // Ensure Wave4 disabled by default and persistence off (avoids network calls in markComplete)
+    updateFlags({ enableDashboardWave4: false, onboarding_persistence_enabled: false });
   });
 
   it('does not render Wave4 dashboard when flag off (falls back to legacy dashboard)', async () => {
@@ -37,7 +38,7 @@ describe('Dashboard Wave4 flag gating', () => {
   });
 
   it('renders Wave4 dashboard when flag on', async () => {
-    updateFlags({ enableDashboardWave4: true });
+    updateFlags({ enableDashboardWave4: true, onboarding_persistence_enabled: false });
     renderWithProviders('/dashboard', true);
     await waitFor(() => expect(screen.getByText(/Dashboard \(Wave 4\)/)).toBeInTheDocument());
     expect(screen.getByText(/Wave 4 Placeholder/)).toBeInTheDocument();
