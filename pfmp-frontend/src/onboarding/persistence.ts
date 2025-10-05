@@ -17,7 +17,8 @@ export interface OnboardingProgressDTO {
   updatedUtc: string;
 }
 
-const API_BASE = '/api/onboarding';
+// Use an absolute-like base in test (node) environment to avoid ERR_INVALID_URL
+const API_BASE = (typeof window === 'undefined') ? 'http://localhost/api/onboarding' : '/api/onboarding';
 
 async function safeJson<T>(resp: Response): Promise<T> {
   const text = await resp.text();
