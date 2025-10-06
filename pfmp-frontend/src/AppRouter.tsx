@@ -1,14 +1,14 @@
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
 import { createBrowserRouter, createMemoryRouter, RouterProvider, Navigate } from 'react-router-dom';
-import { isFeatureEnabled } from './flags/featureFlags';
-import { ROUTES } from './routes/routeDefs';
+import { useFeatureFlag } from './flags/featureFlags';
+import { staticChildRoutes, staticNotFound } from './routes/staticRoutes';
 import { ProtectedRoute } from './components/routing/ProtectedRoute';
 import { AppLayout } from './layout/AppLayout';
 import { PageSpinner } from './components/common/PageSpinner';
 import { RouteErrorBoundary } from './components/common/RouteErrorBoundary';
 import { useOnboarding } from './onboarding/OnboardingContext';
 
-const NotFoundLazy = lazy(() => import('./views/NotFoundPage'));
+// NotFound lazy component supplied via staticRoutes (staticNotFound)
 
 function useOnboardingState() {
   try {
@@ -25,29 +25,37 @@ function useOnboardingState() {
 export interface AppRouterProps { initialEntries?: string[] }
 
 export function AppRouter(props: AppRouterProps) {
-  const enableWave4 = isFeatureEnabled('enableDashboardWave4');
+  const enableWave4 = useFeatureFlag('enableDashboardWave4');
   const { hydrated, complete } = useOnboardingState();
 
+  const baseChildren = staticChildRoutes
+    .filter(r => enableWave4 || r.id !== 'dashboard-wave4')
+    .map(r => {
+      const isWave4 = r.id === 'dashboard-wave4';
+      let element = r.element;
+      if (isWave4) {
+        if (!enableWave4) {
+          element = <Navigate to="/" replace />;
+        } else {
+          if (!hydrated) {
+            element = <PageSpinner />;
+          } else if (!complete) {
+            element = <Navigate to="/onboarding" replace />;
+          }
+        }
+      }
+      // Wrap protected routes (legacy dashboard index & onboarding & wave4 when enabled)
+      const protectedIds = new Set(['root-index', 'root-alias', 'onboarding', 'dashboard-wave4']);
+      if (protectedIds.has(r.id)) {
+        element = <ProtectedRoute>{element}</ProtectedRoute>;
+      }
+      let finalElement: React.ReactElement;
+      finalElement = <Suspense fallback={<PageSpinner />}>{element}</Suspense>;
+      // Test logging removed after stabilization
+      return r.index ? { index: true, element: finalElement } : { path: r.path!, element: finalElement };
+    });
 
-  const filtered = ROUTES.filter(r => {
-    if (!enableWave4 && r.id === 'dashboard-wave4') return false;
-    return true;
-  });
-
-  const baseChildren = filtered.filter(r => r.path !== '*').map(r => {
-    const Component = lazy(r.lazyImport!);
-    const element = r.protected ? (
-      <ProtectedRoute>
-        {(!hydrated) ? <PageSpinner /> : (!complete && enableWave4 && r.id === 'dashboard-wave4') ? <Navigate to="/onboarding" replace /> : <Component />}
-      </ProtectedRoute>
-    ) : <Component />;
-    return {
-      path: r.path.replace(/^\//,''),
-      element: <Suspense fallback={<PageSpinner />}>{element}</Suspense>,
-    };
-  });
-
-  // If wave4 disabled, provide a graceful redirect for /dashboard back to legacy root
+  // If flag disabled, we removed the /dashboard route. Provide an explicit redirect so tests hitting /dashboard don't 404.
   if (!enableWave4) {
     baseChildren.push({ path: 'dashboard', element: <Navigate to="/" replace /> });
   }
@@ -59,7 +67,7 @@ export function AppRouter(props: AppRouterProps) {
       errorElement: <RouteErrorBoundary><div style={{padding:24}}>Root error</div></RouteErrorBoundary>,
       children: baseChildren
     },
-    { path: '*', element: <Suspense fallback={<PageSpinner />}><NotFoundLazy /></Suspense> }
+  { path: '*', element: <Suspense fallback={<PageSpinner />}>{staticNotFound}</Suspense> }
   ];
 
   const router = props.initialEntries
