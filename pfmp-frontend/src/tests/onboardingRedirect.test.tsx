@@ -1,13 +1,15 @@
+import { legacyDashboardTestId } from './helpers/mockStaticRoutes';
+import { useEffect, type ReactNode } from 'react';
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
-import { AppRouter } from '../AppRouter';
 import { OnboardingProvider, useOnboarding } from '../onboarding/OnboardingContext';
 import { updateFlags } from '../flags/featureFlags';
 import { AuthProvider } from '../contexts/AuthContext';
-import React, { useEffect } from 'react';
+
+import { AppRouter } from '../AppRouter';
 
 // Helper component to leave onboarding intentionally incomplete (do not mark all as complete)
-function IncompleteOnboardingHarness({ children }: { children: React.ReactNode }) {
+function IncompleteOnboardingHarness({ children }: { children: ReactNode }) {
   const ob = useOnboarding();
   useEffect(() => {
     // Ensure only first step is marked complete to simulate partial progress
@@ -48,6 +50,6 @@ describe('Onboarding gating redirects', () => {
 
   it('when wave4 dashboard disabled, legacy dashboard accessible (no redirect)', async () => {
     renderScenario('/dashboard', false);
-    expect(await screen.findByText(/Dashboard/)).toBeInTheDocument();
+    expect(await screen.findByTestId(legacyDashboardTestId)).toBeInTheDocument();
   });
 });

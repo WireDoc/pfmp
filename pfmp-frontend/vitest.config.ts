@@ -7,6 +7,7 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
     globals: true,
+    threads: false,
     exclude: ['docs/**', '**/dist/**', '**/node_modules/**'],
     coverage: {
       reporter: ['text', 'lcov'],
