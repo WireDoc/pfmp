@@ -1,38 +1,48 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import '@testing-library/jest-dom';
+import { MemoryRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { render, screen } from '@testing-library/react';
-import { AppRouter } from '../AppRouter';
 import { OnboardingProvider } from '../onboarding/OnboardingContext';
-import { updateFlags } from '../flags/featureFlags';
+import { updateFlags, getFeatureFlags } from '../flags/featureFlags';
 import { AuthProvider } from '../contexts/AuthContext';
+import DashboardWave4 from '../views/DashboardWave4';
+import DashboardPage from '../views/DashboardPage';
 
-function renderWithProviders(initialPath: string, complete = false) {
-  return render(
+function DashboardRoute() {
+  const flags = getFeatureFlags();
+  return flags.enableDashboardWave4 ? <DashboardWave4 /> : <Navigate to="/" replace />;
+}
+
+function Harness({ initialPath }: { initialPath: string }) {
+  return (
     <AuthProvider>
-      <OnboardingProvider testCompleteAll={complete}>
-        <AppRouter initialEntries={[initialPath]} />
+      <OnboardingProvider testCompleteAll>
+        <MemoryRouter initialEntries={[initialPath]}>
+          <Routes>
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/dashboard" element={<DashboardRoute />} />
+          </Routes>
+        </MemoryRouter>
       </OnboardingProvider>
     </AuthProvider>
   );
 }
 
-describe('Dashboard Wave4 flag gating', () => {
+describe('Dashboard Wave4 flag gating (MemoryRouter harness)', () => {
   beforeEach(() => {
-    // Ensure Wave4 disabled by default and persistence off (avoids network calls in markComplete)
     updateFlags({ enableDashboardWave4: false, onboarding_persistence_enabled: false });
   });
 
   it('does not render Wave4 dashboard when flag off (falls back to legacy dashboard)', async () => {
-    renderWithProviders('/dashboard', true);
-    // Legacy dashboard has simple heading 'Dashboard' and no Wave 4 placeholder list item
+    render(<Harness initialPath="/dashboard" />);
     expect(await screen.findByText(/^Dashboard$/)).toBeInTheDocument();
-    expect(screen.queryByText(/Wave 4 Placeholder/)).toBeNull();
+    expect(screen.queryByTestId('wave4-dashboard-root')).toBeNull();
   });
 
-  // Temporarily skipped to stabilize test suite while Wave4 dashboard build proceeds.
-  it.skip('renders Wave4 dashboard when flag on', async () => {
+  it('renders Wave4 dashboard when flag on', async () => {
     updateFlags({ enableDashboardWave4: true, onboarding_persistence_enabled: false });
-    renderWithProviders('/dashboard', true);
-    expect(await screen.findByText(/Wave 4 Placeholder/)).toBeInTheDocument();
+    render(<Harness initialPath="/dashboard" />);
+    const el = await screen.findByTestId('wave4-dashboard-root');
+    expect(el).toBeInTheDocument();
   });
 });

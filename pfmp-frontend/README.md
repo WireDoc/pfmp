@@ -53,7 +53,7 @@ Call `updateFlags({ use_simulated_auth: true })` or refresh after re‑enabling 
 | 1 | Core routing, protected routes, layout, dev flag panel | ✅ Complete |
 | 2 | Onboarding scaffold (context, steps UI, auth simulation control) | 🚧 In Progress |
 | 3 | Data persistence & onboarding validation | Planned |
-| 4 | Intelligence dashboards (exp_intelligence_dashboards) | Planned |
+| 4 | Intelligence dashboards (exp_intelligence_dashboards) & static routing refactor | 🚧 In Progress |
 | 5 | Dual AI pipeline (exp_dual_ai_pipeline) | Planned |
 | 6 | Performance, accessibility, visual regression hardening | Planned |
 
@@ -74,8 +74,9 @@ Upcoming within Wave 2:
 |------|---------|---------|
 | routing_enabled | true | Base router enable switch |
 | onboarding_enabled | false | External exposure toggle (flip when polish complete) |
-| onboarding_persistence_enabled | false | Guards hydration + network persistence (Wave 3) |
+| onboarding_persistence_enabled | true | Enables onboarding hydration + persistence (Wave 3 milestone) |
 | use_simulated_auth | true | Simulated auth for velocity |
+| enableDashboardWave4 | false | Flags static Wave 4 dashboard route |
 | storybook_docs_enabled | false | Reserved (deferred) |
 | exp_intelligence_dashboards | false | Future dashboards |
 | exp_dual_ai_pipeline | false | Future dual-AI engine |
@@ -115,13 +116,19 @@ src/
   flags/            # Feature flag store & hooks
   layout/           # App shell, header bar
   onboarding/       # Wave 2 onboarding context & step defs
-  routes/           # Central route definitions
+   routes/           # Static route definitions (lazy elements, feature-flag gating helpers)
   tests/            # Vitest specs
   views/            # Page-level components
 ```
 
+### Routing architecture
+- `routes/staticRoutes.tsx` contains the lazily-loaded route elements used by the production `AppRouter`. Each element exposes a `preload()` helper via `lazyWithPreload`, allowing Vitest to eagerly resolve modules when necessary.
+- `AppRouter.tsx` consumes `staticChildRoutes`, applies feature-flag + onboarding gating, wraps protected entries with `ProtectedRoute`, and injects a redirect stub for `/dashboard` when `enableDashboardWave4` is disabled.
+- The integration test `src/tests/appRouterWave4Gating.test.tsx` renders `AppRouter` inside the usual providers using `createMemoryRouter` with `initialEntries`. This validates the flag-on/flag-off behavior without custom harness hacks.
+- For lighter weight assertions, `src/tests/dashboardFlagGating.test.tsx` keeps a dedicated MemoryRouter harness that exercises the same flag snapshot directly.
+
 ## Testing Philosophy
-Lightweight unit + integration tests focusing on: routing assurances, guarded navigation, context reducers, and critical developer affordances (feature flags). Visual & interaction regression will be layered in a later wave.
+Lightweight unit + integration tests focusing on: routing assurances, guarded navigation, context reducers, and critical developer affordances (feature flags). The Wave 4 work adds an `AppRouter` integration spec in addition to the harness test to ensure lazy routes hydrate correctly. Visual & interaction regression will be layered in a later wave.
 
 ## Contributing (Frontend Scope)
 1. Open small PRs aligned with an active wave.

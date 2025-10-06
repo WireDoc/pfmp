@@ -23,8 +23,9 @@ Reintroduce the higher-order frontend orchestration layer (authenticated shell, 
 
 ## Deliverables
 1. `AppRouter.tsx` updated with:
-   - `/onboarding` route
-   - `/dashboard` protected route (default redirect target post-completion)
+  - `/onboarding` route
+  - `/dashboard` protected route (default redirect target post-completion)
+  - Static route registry (`routes/staticRoutes.tsx`) consumed inside the router
 2. `OnboardingProvider` with shape:
 ```ts
 interface OnboardingState {
@@ -39,7 +40,8 @@ interface OnboardingState {
 4. Client adapter in `onboardingService.ts` using existing backend endpoints with 404→fresh translation.
 5. Basic dashboard page: shows user nickname (if set) + counts of completed steps + stub tiles.
 6. Updated feature flag: `enableDashboardWave4` gating new routes until stable.
-7. E2E happy-path manual checklist documented.
+7. Integration + harness tests verifying flag gating and lazy route hydration.
+8. E2E happy-path manual checklist documented.
 
 ## Phased Implementation
 | Phase | Goal | Exit Criteria |
@@ -49,7 +51,7 @@ interface OnboardingState {
 | 3 | Step Patch Wiring | Patch updates UI state locally then re-syncs |
 | 4 | Gating Logic | Incomplete onboarding → force /onboarding; complete → /dashboard |
 | 5 | Dashboard Stub | Nickname + step progress summary rendered |
-| 6 | Flag & Docs | Feature flag toggles entire flow; docs updated |
+| 6 | Flag & Docs | Feature flag toggles entire flow; docs + tests updated |
 
 ## API Usage Contracts
 - GET /api/onboarding/progress (404 => treat as { currentStepId: 'welcome', completedStepIds: [] })
