@@ -51,23 +51,23 @@ Call `updateFlags({ use_simulated_auth: true })` or refresh after re‑enabling 
 |------|-------|--------|
 | 0 | Baseline cleanup, routing plan, feature flag infra, test harness seed | ✅ Complete |
 | 1 | Core routing, protected routes, layout, dev flag panel | ✅ Complete |
-| 2 | Onboarding scaffold (context, steps UI, auth simulation control) | 🚧 In Progress |
-| 3 | Data persistence & onboarding validation | Planned |
+| 2 | Onboarding scaffold (context, steps UI, auth simulation control) | ✅ Complete |
+| 3 | Data persistence & onboarding validation | ✅ Complete |
 | 4 | Intelligence dashboards (exp_intelligence_dashboards) & static routing refactor | 🚧 In Progress |
 | 5 | Dual AI pipeline (exp_dual_ai_pipeline) | Planned |
 | 6 | Performance, accessibility, visual regression hardening | Planned |
 
-### Current Wave (2) – Onboarding
+### Current Wave (4) – Intelligence Dashboards
 Delivered so far:
-- `OnboardingContext` reducer + hook (progress, completion tracking)
-- Interactive `OnboardingPage` (steps list, progress bar, navigation controls)
-- Feature flag `use_simulated_auth` gating simulated MSAL shortcut
-- Expanded test coverage: routing, protected route, not-found, flags panel, onboarding state
+- Static route registry + `AppRouter` integration gated by `enableDashboardWave4`
+- Dashboard shell with overview/accounts/insights panels backed by mock service
+- Auth-aware welcome + onboarding completion summary card on `/dashboard`
+- Onboarding provider wrapped at app root with dev user switcher surfaced for quick account swaps
 
-Upcoming within Wave 2:
-- Validation layer (schema placeholders)
-- Potential per-step component extraction
-- Persisted progress design notes (prep for Wave 3)
+Upcoming within Wave 4:
+- Connect dashboard data hooks to backend services
+- Flesh out smart alerts/task conversion surface
+- Expand integration tests around dashboard summary and feature flag flows
 
 ### Feature Flags Snapshot
 | Flag | Default | Purpose |

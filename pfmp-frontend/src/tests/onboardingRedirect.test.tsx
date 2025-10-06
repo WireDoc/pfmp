@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, afterEach } from 'vitest';
+import { render, screen, act } from '@testing-library/react';
 import { AppRouter } from '../AppRouter';
 import { OnboardingProvider, useOnboarding } from '../onboarding/OnboardingContext';
 import { updateFlags } from '../flags/featureFlags';
@@ -18,11 +18,19 @@ function IncompleteOnboardingHarness({ children }: { children: React.ReactNode }
   return <>{children}</>;
 }
 
+afterEach(() => {
+  act(() => {
+    updateFlags({ onboarding_persistence_enabled: true, enableDashboardWave4: false });
+  });
+});
+
 function renderScenario(path: string, flag: boolean) {
-  updateFlags({ enableDashboardWave4: flag });
+  act(() => {
+    updateFlags({ enableDashboardWave4: flag, onboarding_persistence_enabled: false });
+  });
   return render(
     <AuthProvider>
-      <OnboardingProvider>
+      <OnboardingProvider skipAutoHydrate>
         <IncompleteOnboardingHarness>
           <AppRouter initialEntries={[path]} />
         </IncompleteOnboardingHarness>
@@ -35,7 +43,7 @@ describe('Onboarding gating redirects', () => {
   it('when wave4 dashboard enabled and onboarding incomplete, redirects to onboarding', async () => {
     renderScenario('/dashboard', true);
     // Expect onboarding page content
-    expect(await screen.findByText(/Onboarding/i)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /Onboarding/i })).toBeInTheDocument();
   });
 
   it('when wave4 dashboard disabled, legacy dashboard accessible (no redirect)', async () => {

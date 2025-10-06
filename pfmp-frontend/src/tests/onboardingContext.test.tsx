@@ -4,7 +4,7 @@ import { renderHook, act } from '@testing-library/react';
 
 function setup() {
   return renderHook(() => useOnboarding(), {
-    wrapper: ({ children }) => <OnboardingProvider>{children}</OnboardingProvider>
+    wrapper: ({ children }) => <OnboardingProvider skipAutoHydrate>{children}</OnboardingProvider>
   });
 }
 

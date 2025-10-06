@@ -9,7 +9,7 @@ import { AuthProvider } from '../contexts/AuthContext';
 describe('Routing skeleton', () => {
   it('renders navigation links', () => {
     render(
-      <MemoryRouter initialEntries={['/']}>
+      <MemoryRouter initialEntries={['/']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider>
           <AppLayout />
         </AuthProvider>

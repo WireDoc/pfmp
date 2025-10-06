@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { render, screen } from '@testing-library/react';
 import { AuthProvider } from '../contexts/AuthContext';
 import NotFoundPage from '../views/NotFoundPage';
@@ -9,7 +9,7 @@ import NotFoundPage from '../views/NotFoundPage';
 describe('NotFound route', () => {
   it('renders not found content for unknown path', () => {
     render(
-      <MemoryRouter initialEntries={['/does-not-exist']}>        
+      <MemoryRouter initialEntries={['/does-not-exist']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <AuthProvider __forceDevOff>
           <Routes>
             <Route path='*' element={<NotFoundPage />} />

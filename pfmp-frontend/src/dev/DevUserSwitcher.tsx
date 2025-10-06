@@ -4,6 +4,11 @@ import { setDevUserId } from './devUserState';
 interface DevUserInfo { userId: number; email: string; isDefault: boolean; }
 
 export const DevUserSwitcher: React.FC = () => {
+  if (import.meta.env.MODE === 'test') {
+    // Skip dev user orchestration during Vitest runs to avoid network noise
+    // and act() warnings triggered by async state updates.
+    return null;
+  }
   const [users, setUsers] = useState<DevUserInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -14,9 +19,9 @@ export const DevUserSwitcher: React.FC = () => {
       const resp = await fetch('/api/dev/users');
       if (!resp.ok) throw new Error('Failed to fetch dev users');
       const data = await resp.json();
-      setUsers(data.users);
-      const def = data.users.find((u: DevUserInfo) => u.isDefault);
-  setDevUserId(def?.userId ?? null as any);
+    setUsers(data.users);
+    const def = data.users.find((u: DevUserInfo) => u.isDefault);
+    setDevUserId(def?.userId ?? null);
     } catch (e:any) {
       setError(e.message);
     } finally {
@@ -34,6 +39,7 @@ export const DevUserSwitcher: React.FC = () => {
 
   async function resetUser(userId: number) {
     await fetch(`/api/onboarding/progress/reset?userId=${userId}`, { method: 'POST' });
+    setDevUserId(userId);
     // No explicit confirmation; re-hydration occurs on next GET by context
   }
 
