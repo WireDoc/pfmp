@@ -3,6 +3,12 @@
 ## Objective
 Reintroduce the higher-order frontend orchestration layer (authenticated shell, onboarding gating, dashboard surface) in a structured, incremental manner without destabilizing existing backend domains.
 
+## Progress Update (2025-10-06)
+- `AppRouter` now runs inside `OnboardingProvider`; the dev user switcher is available in the layout so each backend test account hydrates its own progress on demand.
+- Wave 4 dashboard renders a welcome banner with onboarding completion summary (step counts + percent) before the overview/accounts/insights panels.
+- Onboarding persistence reacts to dev user switching/reset calls, ensuring `/dashboard` reflects the correct profile before mock data loads.
+- Next focus: replace mock dashboard service with backend data sources and light up alert → task interactions behind the flag.
+
 ## Scope Inclusions
 - Routing shell (React Router v6) with protected layout
 - Onboarding gating wrapper (redirect to onboarding if incomplete)

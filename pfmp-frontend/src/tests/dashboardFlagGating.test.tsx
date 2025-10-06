@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import '@testing-library/jest-dom';
 import { MemoryRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import { OnboardingProvider } from '../onboarding/OnboardingContext';
 import { updateFlags, getFeatureFlags } from '../flags/featureFlags';
 import { AuthProvider } from '../contexts/AuthContext';
@@ -16,8 +16,8 @@ function DashboardRoute() {
 function Harness({ initialPath }: { initialPath: string }) {
   return (
     <AuthProvider>
-      <OnboardingProvider testCompleteAll>
-        <MemoryRouter initialEntries={[initialPath]}>
+      <OnboardingProvider testCompleteAll skipAutoHydrate>
+        <MemoryRouter initialEntries={[initialPath]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/dashboard" element={<DashboardRoute />} />
@@ -30,7 +30,9 @@ function Harness({ initialPath }: { initialPath: string }) {
 
 describe('Dashboard Wave4 flag gating (MemoryRouter harness)', () => {
   beforeEach(() => {
-    updateFlags({ enableDashboardWave4: false, onboarding_persistence_enabled: false });
+    act(() => {
+      updateFlags({ enableDashboardWave4: false, onboarding_persistence_enabled: false });
+    });
   });
 
   it('does not render Wave4 dashboard when flag off (falls back to legacy dashboard)', async () => {
@@ -40,7 +42,9 @@ describe('Dashboard Wave4 flag gating (MemoryRouter harness)', () => {
   });
 
   it('renders Wave4 dashboard when flag on', async () => {
-    updateFlags({ enableDashboardWave4: true, onboarding_persistence_enabled: false });
+    act(() => {
+      updateFlags({ enableDashboardWave4: true, onboarding_persistence_enabled: false });
+    });
     render(<Harness initialPath="/dashboard" />);
     const el = await screen.findByTestId('wave4-dashboard-root');
     expect(el).toBeInTheDocument();

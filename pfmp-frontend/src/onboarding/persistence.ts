@@ -66,3 +66,11 @@ function debounce<F extends (...args: any[]) => void>(fn: F, ms: number) {
 }
 
 export const debouncedPatchStep = debounce(patchStep, 400);
+
+export async function resetProgress(): Promise<void> {
+  if (!isFeatureEnabled('onboarding_persistence_enabled')) return;
+  const uid = getDevUserId();
+  await fetch(`${API_BASE}/progress/reset${uid ? `?userId=${uid}` : ''}`, {
+    method: 'POST',
+  });
+}

@@ -1,7 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react';
 import { sortedSteps, type OnboardingStepId } from './steps';
-import { fetchProgress, debouncedPatchStep, putProgress } from './persistence';
+import { fetchProgress, debouncedPatchStep, putProgress, resetProgress } from './persistence';
 import { useFeatureFlag } from '../flags/featureFlags';
+import { useDevUserId } from '../dev/devUserState';
 
 interface OnboardingState {
   currentIndex: number;
@@ -15,7 +16,8 @@ interface OnboardingContextValue {
   goNext: () => void;
   goPrev: () => void;
   markComplete: (id?: OnboardingStepId) => void;
-  reset: () => void;
+  reset: () => Promise<void>;
+  refresh: () => Promise<void>;
   progressPercent: number;
   hydrated: boolean;
 }
@@ -63,9 +65,17 @@ interface OnboardingProviderProps {
   testCompleteAll?: boolean;
   /** Test helper: explicit completed step IDs */
   testCompletedSteps?: OnboardingStepId[];
+  /** Test helper: skip the automatic hydration side-effect on mount */
+  skipAutoHydrate?: boolean;
 }
 
-export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children, userId = 'dev-user', testCompleteAll, testCompletedSteps }) => {
+export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
+  children,
+  userId = 'dev-user',
+  testCompleteAll,
+  testCompletedSteps,
+  skipAutoHydrate,
+}) => {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE, (base) => {
     if (testCompleteAll) {
       return { currentIndex: stepsArr.length - 1, completed: new Set(stepsArr.map(s => s.id)) };
@@ -76,49 +86,83 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     return base;
   });
   const persistenceEnabled = useFeatureFlag('onboarding_persistence_enabled');
-  const hydratedRef = useRef(false);
-  const [hydrated, setHydrated] = React.useState(!persistenceEnabled); // if disabled treat as hydrated
+  const devUserId = useDevUserId();
+  const hydrationSeqRef = useRef(0);
+  const isHydratingRef = useRef(false);
+  const [hydrated, setHydrated] = React.useState(() => skipAutoHydrate ? true : !persistenceEnabled);
 
-  // (Test bootstrap no longer needed; handled in reducer init)
+  const hydrate = useCallback(async () => {
+    hydrationSeqRef.current += 1;
+    const runId = hydrationSeqRef.current;
 
-  // Hydrate from backend if enabled
-  useEffect(() => {
-    let cancelled = false;
-    if (!persistenceEnabled || hydratedRef.current) return;
-    (async () => {
-      try {
-        const dto = await fetchProgress();
-        if (cancelled) return;
-        if (dto) {
-          const idx = stepsArr.findIndex(s => s.id === dto.currentStepId);
-          dispatch({ type: 'HYDRATE', currentIndex: idx >= 0 ? idx : 0, completed: dto.completedStepIds });
+    if (!persistenceEnabled) {
+      setHydrated(true);
+      return;
+    }
+
+    isHydratingRef.current = true;
+    setHydrated(false);
+    dispatch({ type: 'RESET' });
+
+    try {
+      const dto = await fetchProgress();
+      if (runId !== hydrationSeqRef.current) return;
+      if (dto) {
+        const validCompleted = (dto.completedStepIds ?? []).filter((id): id is OnboardingStepId =>
+          stepsArr.some(step => step.id === id)
+        );
+        const currentIdx = dto.currentStepId ? stepsArr.findIndex(step => step.id === dto.currentStepId) : -1;
+        let targetIndex = currentIdx;
+        if (targetIndex < 0) {
+          targetIndex = stepsArr.findIndex(step => !validCompleted.includes(step.id));
+          if (targetIndex < 0) {
+            targetIndex = stepsArr.length - 1;
+          }
         }
-      } catch {
-        // Ignore; leave initial state intact
-      } finally {
-        if (!cancelled) {
-          hydratedRef.current = true;
-          setHydrated(true);
-        }
+        dispatch({ type: 'HYDRATE', currentIndex: targetIndex, completed: validCompleted });
       }
-    })();
-    return () => { cancelled = true; };
+    } catch {
+      if (runId !== hydrationSeqRef.current) return;
+      // Ignore fetch errors; leave reset state in place.
+    } finally {
+      if (runId === hydrationSeqRef.current) {
+        isHydratingRef.current = false;
+        setHydrated(true);
+      }
+    }
   }, [persistenceEnabled]);
+
+  useEffect(() => {
+    if (skipAutoHydrate) {
+      return;
+    }
+    void hydrate();
+  }, [hydrate, devUserId, skipAutoHydrate]);
 
   const goNext = useCallback(() => dispatch({ type: 'NEXT' }), []);
   const goPrev = useCallback(() => dispatch({ type: 'PREV' }), []);
   const markComplete = useCallback((id?: OnboardingStepId) => {
     const target = id ?? stepsArr[state.currentIndex].id;
     dispatch({ type: 'MARK_COMPLETE', id: target });
-    if (persistenceEnabled) {
+    if (persistenceEnabled && hydrated) {
       debouncedPatchStep(target, { completed: true });
     }
-  }, [state.currentIndex, persistenceEnabled]);
-  const reset = useCallback(() => dispatch({ type: 'RESET' }), []);
+  }, [state.currentIndex, persistenceEnabled, hydrated]);
+  const reset = useCallback(async () => {
+    dispatch({ type: 'RESET' });
+    if (persistenceEnabled) {
+      try {
+        await resetProgress();
+      } catch {
+        // Ignore reset errors; UI already shows cleared state.
+      }
+      await hydrate();
+    }
+  }, [persistenceEnabled, hydrate]);
+  const refresh = useCallback(() => hydrate(), [hydrate]);
 
-  // Persist full snapshot on major transitions (index or completion changes)
   useEffect(() => {
-    if (!persistenceEnabled || !hydrated) return;
+    if (!persistenceEnabled || !hydrated || isHydratingRef.current) return;
     const currentStepId = stepsArr[state.currentIndex].id;
     const dto = {
       userId,
@@ -140,6 +184,7 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     goPrev,
     markComplete,
     reset,
+    refresh,
     progressPercent,
     hydrated,
   };

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { DevFlagsPanel } from '../components/dev/DevFlagsPanel';
 import { updateFlags, isFeatureEnabled } from '../flags/featureFlags';
 
@@ -8,7 +8,9 @@ import { updateFlags, isFeatureEnabled } from '../flags/featureFlags';
 describe('DevFlagsPanel', () => {
   it('toggles a flag and reflects change in store', () => {
     // Ensure known initial state
-    updateFlags({ onboarding_enabled: false });
+    act(() => {
+      updateFlags({ onboarding_enabled: false });
+    });
     render(<DevFlagsPanel />);
 
     // Open panel
@@ -19,7 +21,9 @@ describe('DevFlagsPanel', () => {
     expect(checkbox.checked).toBe(false);
 
     // Toggle it
-    fireEvent.click(checkbox);
+    act(() => {
+      fireEvent.click(checkbox);
+    });
 
     // Should be checked now and reflected in store
     expect(checkbox.checked).toBe(true);

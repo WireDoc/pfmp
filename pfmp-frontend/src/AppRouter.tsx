@@ -27,6 +27,7 @@ export interface AppRouterProps { initialEntries?: string[] }
 export function AppRouter(props: AppRouterProps) {
   const enableWave4 = useFeatureFlag('enableDashboardWave4');
   const { hydrated, complete } = useOnboardingState();
+  const futureConfig = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
 
   const baseChildren = staticChildRoutes
     .filter(r => enableWave4 || r.id !== 'dashboard-wave4')
@@ -74,5 +75,5 @@ export function AppRouter(props: AppRouterProps) {
     ? createMemoryRouter(routes, { initialEntries: props.initialEntries })
     : createBrowserRouter(routes);
 
-  return <RouterProvider router={router} />;
+  return <RouterProvider router={router} future={futureConfig} />;
 }

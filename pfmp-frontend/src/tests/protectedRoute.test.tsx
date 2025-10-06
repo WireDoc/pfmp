@@ -7,10 +7,12 @@ import { render, screen } from '@testing-library/react';
 // Helper to temporarily disable DEV auto-auth simulation.
 // We'll mock import.meta.env to force DEV=false for one test.
 
+const futureConfig = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
+
 describe('ProtectedRoute', () => {
   it('redirects unauthenticated user to /login (dev mode off)', () => {
     render(
-      <MemoryRouter initialEntries={['/secure']}>
+      <MemoryRouter initialEntries={['/secure']} future={futureConfig}>
         <AuthProvider __forceDevOff>
           <Routes>
             <Route path="/login" element={<div>LoginPage</div>} />
@@ -32,7 +34,7 @@ describe('ProtectedRoute', () => {
 
   it('renders children when authenticated (dev mode auto auth)', () => {
     render(
-      <MemoryRouter initialEntries={['/secure']}>
+      <MemoryRouter initialEntries={['/secure']} future={futureConfig}>
         <AuthProvider>
           <Routes>
             <Route
