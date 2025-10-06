@@ -7,7 +7,21 @@ Reintroduce the higher-order frontend orchestration layer (authenticated shell, 
 - `AppRouter` now runs inside `OnboardingProvider`; the dev user switcher is available in the layout so each backend test account hydrates its own progress on demand.
 - Wave 4 dashboard renders a welcome banner with onboarding completion summary (step counts + percent) before the overview/accounts/insights panels.
 - Onboarding persistence reacts to dev user switching/reset calls, ensuring `/dashboard` reflects the correct profile before mock data loads.
-- Next focus: replace mock dashboard service with backend data sources and light up alert → task interactions behind the flag.
+- Immediate priorities split into three tracks (see below) so we can land backend connectivity, verify onboarding persistence end-to-end, and stand up alert-driven task handoffs in parallel.
+
+### Immediate Action Tracks (Owner Triage 2025-10-06)
+1. **Onboarding persistence validation**
+  - Exercise the full GET/PUT/PATCH/RESET flow through `OnboardingProvider` against `OnboardingProgressController`.
+  - Add Vitest coverage (MSW) for hydrate success, 404 → fresh state, network retry, and dev-user switching querystring handling.
+  - Document a manual QA checklist in `docs/testing/onboarding-persistence.md` (new) once verified.
+2. **Dashboard data service integration**
+  - Finalize `DashboardService` contract with the API team (document schema in `docs/api/dashboard-contract.md`).
+  - Implement a real service adapter (flagged), retaining the current mock as a dev fallback.
+  - Extend unit tests to assert loading/error/empty flows with both mock and real adapters.
+3. **Alerts → Tasks interaction**
+  - Design alert list UI states (empty, loading, error) and optimistic task-creation flow.
+  - Wire to existing Alerts/Tasks endpoints behind `enableDashboardWave4`.
+  - Capture telemetry stub (`console.debug('[telemetry]', ...)`) for conversion latency pending Wave 6 instrumentation.
 
 ## Scope Inclusions
 - Routing shell (React Router v6) with protected layout
@@ -48,6 +62,8 @@ interface OnboardingState {
 6. Updated feature flag: `enableDashboardWave4` gating new routes until stable.
 7. Integration + harness tests verifying flag gating and lazy route hydration.
 8. E2E happy-path manual checklist documented.
+9. Dashboard service contract doc + real adapter implementation plan recorded.
+10. Onboarding persistence QA checklist capturing backend verification steps.
 
 ## Phased Implementation
 | Phase | Goal | Exit Criteria |
@@ -75,8 +91,8 @@ interface OnboardingState {
 
 ## Testing Strategy (Incremental)
 - Unit: Reducer/state transitions (if extracted)
-- Integration: Mock fetch (MSW) for onboarding adapter
-- Manual: Postman + Browser checklist (documented)
+- Integration: Mock fetch (MSW) for onboarding adapter + dashboard service adapters
+- Manual: Postman + Browser checklist (documented) + onboarding persistence QA checklist
 
 ## Metrics / Telemetry (Deferred)
 Add lightweight timing logs around fetch & patch once stable.
@@ -89,6 +105,13 @@ Add lightweight timing logs around fetch & patch once stable.
 - Can create a test user, complete onboarding steps via UI, and automatically land on dashboard.
 - Refresh retains state (matches backend snapshot).
 - No uncaught provider errors in console.
+
+## Task Tracker (Wave 4 Execution)
+- [ ] Validate onboarding persistence end-to-end (see `docs/testing/onboarding-persistence.md`).
+- [ ] Draft & sign off dashboard contract doc (`docs/api/dashboard-contract.md`) with backend.
+- [ ] Implement real dashboard adapter behind `enableDashboardWave4` and add MSW fixtures.
+- [ ] Design and wire alert → task optimistic flow with telemetry stub.
+- [ ] Update README Wave tracker once dashboard feature flag defaults to on.
 
 ## Rollout Plan
 1. Implement behind flag `enableDashboardWave4 = false` initially.

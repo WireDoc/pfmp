@@ -109,15 +109,24 @@ Scope:
 - SmartAlertsSystem UI: list, filter (active/read/dismissed), convert to task action
 - Task creation from alert triggers optimistic UI update
 - Basic retry & empty states
+- Back-end dashboard data adapter (flagged) replacing mocks once contracts agreed
+- Onboarding persistence verification (GET/PUT/PATCH/RESET) feeding dashboard gating
 
 Acceptance Criteria:
 - All new dashboard routes lazy-loaded (individual chunking confirmed via build analysis)
 - Alert → Task conversion updates UI within < 500ms (optimistic) even if backend slower
 - Dismissing and restoring (if planned) produce consistent state
 - No alert list fetch results in clear “No alerts” UI, not silent blank
+- Real dashboard adapter can be toggled on for dev/staging once smoke-tested against API contract doc
+- Onboarding persistence suite validated (automated + manual checklist linked)
 
 Out of Scope:
 - Advanced charting or streaming updates
+
+Execution Notes (2025-10-06):
+- Draft `docs/api/dashboard-contract.md` capturing agreed schema for net worth, accounts, and insights payloads.
+- Add `docs/testing/onboarding-persistence.md` outlining manual QA + MSW coverage expectations.
+- Track alert→task optimistic flow telemetry via placeholder logger pending Wave 6 instrumentation.
 
 ---
 ## Wave 5 – Dual-AI Pipeline Scaffold
