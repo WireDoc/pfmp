@@ -8,6 +8,8 @@ Reintroduce the higher-order frontend orchestration layer (authenticated shell, 
 - Wave 4 dashboard renders a welcome banner with onboarding completion summary (step counts + percent) before the overview/accounts/insights panels.
 - Onboarding persistence reacts to dev user switching/reset calls, ensuring `/dashboard` reflects the correct profile before mock data loads.
 - Immediate priorities split into three tracks (see below) so we can land backend connectivity, verify onboarding persistence end-to-end, and stand up alert-driven task handoffs in parallel.
+- Client dashboard service now supports swapping between mock data and an API adapter via new feature flag `dashboard_wave4_real_data` (default off until backend endpoint is ready).
+- Router/onboarding Vitest suites stabilized via shared static-routes mock helper; dashboard service selection tests now assert flag-driven swaps and cache resets, keeping the suite green.
 
 ### Immediate Action Tracks (Owner Triage 2025-10-06)
 1. **Onboarding persistence validation**
@@ -16,8 +18,8 @@ Reintroduce the higher-order frontend orchestration layer (authenticated shell, 
   - Document a manual QA checklist in `docs/testing/onboarding-persistence.md` (new) once verified.
 2. **Dashboard data service integration**
   - Finalize `DashboardService` contract with the API team (document schema in `docs/api/dashboard-contract.md`).
-  - Implement a real service adapter (flagged), retaining the current mock as a dev fallback.
-  - Extend unit tests to assert loading/error/empty flows with both mock and real adapters.
+  - ✅ Implemented real service adapter (flagged) with unit + selection coverage verifying API/mocked mode swaps.
+  - Extend integration tests (MSW) to assert loading/error/empty flows with both mock and real adapters.
 3. **Alerts → Tasks interaction**
   - Design alert list UI states (empty, loading, error) and optimistic task-creation flow.
   - Wire to existing Alerts/Tasks endpoints behind `enableDashboardWave4`.
@@ -109,9 +111,11 @@ Add lightweight timing logs around fetch & patch once stable.
 ## Task Tracker (Wave 4 Execution)
 - [ ] Validate onboarding persistence end-to-end (see `docs/testing/onboarding-persistence.md`).
 - [ ] Draft & sign off dashboard contract doc (`docs/api/dashboard-contract.md`) with backend.
-- [ ] Implement real dashboard adapter behind `enableDashboardWave4` and add MSW fixtures.
+- [x] Implement real dashboard adapter behind `enableDashboardWave4`/`dashboard_wave4_real_data` and cover API vs mock selection in Vitest. *(MSW fixture coverage tracked separately below.)*
 - [ ] Design and wire alert → task optimistic flow with telemetry stub.
 - [ ] Update README Wave tracker once dashboard feature flag defaults to on.
+- [ ] Add MSW fixtures + integration tests for dashboard service (happy path + error + empty).
+- [ ] Publish dashboard real-data rollout runbook (`docs/runbooks/ENABLE-DASHBOARD-REAL-DATA.md`) with QA checklist and flag enablement steps.
 
 ## Rollout Plan
 1. Implement behind flag `enableDashboardWave4 = false` initially.

@@ -1,6 +1,6 @@
 # Dashboard Service Contract (Wave 4)
 
-**Status:** Draft – pending backend alignment (2025-10-06)
+**Status:** Draft – backend alignment pending; frontend adapter implemented behind `dashboard_wave4_real_data` flag (2025-10-06)
 
 ## Purpose
 Define the shared payload structure for the Wave 4 dashboard service so the frontend can switch from mocks to live data without further schema churn.
@@ -15,7 +15,16 @@ Define the shared payload structure for the Wave 4 dashboard service so the fron
 
 > ✅ Existing backend routes (`AccountsController`, `AlertsController`, `TasksController`) may already cover pieces of this data. Part of this work is confirming whether to wrap them or expose a new composite endpoint.
 
-## Proposed Response Shapes
+## Proposed Response Shapes & Headers
+
+Unless otherwise noted, requests should include:
+
+```
+Authorization: Bearer {MSAL access token}
+Accept: application/json
+```
+
+The frontend adapter currently attempts the call without an auth header; wiring the token retrieval will follow once API scopes are confirmed.
 
 ### `GET /api/dashboard/summary`
 ```json
@@ -89,10 +98,12 @@ Define the shared payload structure for the Wave 4 dashboard service so the fron
 3. What auth scopes are required for dashboard endpoints in staging/prod?
 
 ## Action Items
-- [ ] Backend: confirm endpoint availability and payload alignment (owner: API team)
-- [ ] Frontend: update `DashboardService` to choose between mock and live endpoints behind the feature flag (owner: Wave 4 squad)
+- [ ] Backend: confirm endpoint availability, auth scopes, and payload alignment (owner: API team)
+- [x] Frontend: update `DashboardService` to choose between mock and live endpoints behind the feature flag (owner: Wave 4 squad)
+- [ ] Frontend: attach MSAL bearer token to real-data requests once scopes finalized (owner: Wave 4 squad)
 - [ ] QA: add contract validation tests (MSW fixtures) covering success, empty, and error payloads (owner: QA/dev pairing)
 - [ ] DX: document sample responses in `PFMP-API.http` for local debugging (owner: dev rel)
+- [ ] Ops: follow rollout runbook for enabling `dashboard_wave4_real_data` in higher environments (runbook TBD)
 
 ## Next Checkpoint
 Review with backend lead once initial payload drafts are validated against current EF models and stored procs. Target date: **2025-10-08**.
