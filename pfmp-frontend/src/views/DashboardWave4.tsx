@@ -1,5 +1,6 @@
-import React from 'react';
-import { Box, Typography, Grid, Paper, Alert, Skeleton } from '@mui/material';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Box, Typography, Paper, Alert, Skeleton, Snackbar } from '@mui/material';
+import Grid from '@mui/material/Grid';
 import { useOnboarding } from '../onboarding/OnboardingContext';
 import { Navigate } from 'react-router-dom';
 import { useDashboardData } from '../services/dashboard/useDashboardData';
@@ -10,6 +11,7 @@ import { AlertsPanel } from './dashboard/AlertsPanel';
 import { AdvicePanel } from './dashboard/AdvicePanel';
 import { TasksPanel } from './dashboard/TasksPanel';
 import { useAuth } from '../contexts/auth/useAuth';
+import type { AlertCard, DashboardData, TaskItem } from '../services/dashboard';
 
 // (Removed old sections placeholder list; replaced by dedicated panel components.)
 
@@ -53,6 +55,91 @@ export const DashboardWave4: React.FC = () => {
   const displayName = user?.name ?? user?.username ?? 'PFMP Member';
 
   const { data, loading, error } = useDashboardData();
+  const [viewData, setViewData] = useState<DashboardData | null>(null);
+  const [recentTaskIds, setRecentTaskIds] = useState<Set<number>>(new Set());
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (data) {
+      setViewData(data);
+      setRecentTaskIds(new Set());
+    }
+  }, [data]);
+
+  const severityToPriority = useMemo(() => ({
+    Low: 'Low',
+    Medium: 'Medium',
+    High: 'High',
+    Critical: 'High',
+  } satisfies Record<AlertCard['severity'], TaskItem['priority']>), []);
+
+  const handleCreateTaskFromAlert = useCallback((alert: AlertCard) => {
+    setViewData(prev => {
+      if (!prev) {
+        setToastMessage('Dashboard data still loading — please try again in a moment.');
+        return prev;
+      }
+
+      const existingFollowUpTask = prev.tasks.find(task =>
+        task.sourceAlertId === alert.alertId && task.title.startsWith('Follow up:'),
+      );
+      if (existingFollowUpTask) {
+        setToastMessage(`Task already exists for “${alert.title}”`);
+        return prev;
+      }
+
+      const newTaskId = Date.now();
+      const createdAt = new Date().toISOString();
+      const newTask: TaskItem = {
+        taskId: newTaskId,
+        userId: alert.userId,
+        type: 'FollowUp',
+        title: `Follow up: ${alert.title}`,
+        description: alert.message,
+        priority: severityToPriority[alert.severity] ?? 'Medium',
+        status: 'Pending',
+        createdDate: createdAt,
+        dueDate: null,
+        sourceAdviceId: null,
+        sourceAlertId: alert.alertId,
+        progressPercentage: 0,
+        confidenceScore: alert.portfolioImpactScore ?? null,
+      };
+
+      setRecentTaskIds(prevIds => {
+        const next = new Set(prevIds);
+        next.add(newTaskId);
+        return next;
+      });
+      setToastMessage(`Created task “${alert.title}”`);
+
+      const updatedAdvice = prev.advice.map(item =>
+        item.sourceAlertId === alert.alertId
+          ? {
+              ...item,
+              linkedTaskId: newTaskId,
+              status: item.status === 'Proposed' ? 'Accepted' : item.status,
+            }
+          : item,
+      );
+
+      return {
+        ...prev,
+        alerts: prev.alerts.map(a =>
+          a.alertId === alert.alertId
+            ? { ...a, isActionable: false, isRead: true }
+            : a,
+        ),
+        advice: updatedAdvice,
+        tasks: [newTask, ...prev.tasks],
+      } satisfies DashboardData;
+    });
+  }, [severityToPriority, setRecentTaskIds, setToastMessage]);
+
+  const displayData = viewData ?? data ?? null;
+  const alerts = displayData?.alerts ?? [];
+  const advice = displayData?.advice ?? [];
+  const tasks = displayData?.tasks ?? [];
 
   return (
     <Box data-testid="wave4-dashboard-root" p={3} display="flex" flexDirection="column" gap={3}>
@@ -80,37 +167,41 @@ export const DashboardWave4: React.FC = () => {
         <Grid size={12}>
           <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography variant="h6" gutterBottom>Overview</Typography>
-            {loading ? <Skeleton variant="rectangular" height={60} /> : <OverviewPanel data={data} loading={loading} />}
+            {loading ? <Skeleton variant="rectangular" height={60} /> : <OverviewPanel data={displayData} loading={loading} />}
           </Paper>
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
           <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography variant="h6" gutterBottom>Accounts</Typography>
-            {loading ? <Skeleton variant="rectangular" height={120} /> : <AccountsPanel data={data} loading={loading} />}
+            {loading ? <Skeleton variant="rectangular" height={120} /> : <AccountsPanel data={displayData} loading={loading} />}
           </Paper>
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
           <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography variant="h6" gutterBottom>Insights</Typography>
-            {loading ? <Skeleton variant="rectangular" height={120} /> : <InsightsPanel data={data} loading={loading} />}
+            {loading ? <Skeleton variant="rectangular" height={120} /> : <InsightsPanel data={displayData} loading={loading} />}
           </Paper>
         </Grid>
         <Grid size={12}>
           <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography variant="h6" gutterBottom>Alerts</Typography>
-            {loading ? <Skeleton variant="rectangular" height={140} /> : <AlertsPanel data={data} loading={loading} />}
+            {loading ? (
+              <Skeleton variant="rectangular" height={140} />
+            ) : (
+              <AlertsPanel alerts={alerts} loading={loading} onCreateTask={handleCreateTaskFromAlert} />
+            )}
           </Paper>
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
           <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography variant="h6" gutterBottom>Advice</Typography>
-            {loading ? <Skeleton variant="rectangular" height={140} /> : <AdvicePanel data={data} loading={loading} />}
+            {loading ? <Skeleton variant="rectangular" height={140} /> : <AdvicePanel advice={advice} loading={loading} />}
           </Paper>
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
           <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography variant="h6" gutterBottom>Tasks</Typography>
-            {loading ? <Skeleton variant="rectangular" height={140} /> : <TasksPanel data={data} loading={loading} />}
+            {loading ? <Skeleton variant="rectangular" height={140} /> : <TasksPanel tasks={tasks} loading={loading} recentTaskIds={recentTaskIds} />}
           </Paper>
         </Grid>
       </Grid>
@@ -122,6 +213,16 @@ export const DashboardWave4: React.FC = () => {
           <li>Future: live account aggregation, richer alert → task flows, AI insights</li>
         </ul>
       </Paper>
+      <Snackbar
+        open={Boolean(toastMessage)}
+        autoHideDuration={4000}
+        onClose={() => setToastMessage(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="success" variant="filled" onClose={() => setToastMessage(null)} sx={{ width: '100%' }}>
+          {toastMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

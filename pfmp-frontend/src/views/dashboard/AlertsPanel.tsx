@@ -1,55 +1,112 @@
 import React from 'react';
-import { Box, Chip, Stack, Typography } from '@mui/material';
-import type { DashboardData, AlertCard } from '../../services/dashboard';
+import {
+  Box,
+  Button,
+  Chip,
+  Divider,
+  Stack,
+  Tooltip,
+  Typography,
+} from '@mui/material';
+import {
+  WarningAmberRounded as WarningIcon,
+  ErrorOutlineRounded as ErrorIcon,
+  InfoOutlined as InfoIcon,
+  TaskAlt as TaskIcon,
+  CheckCircleOutline as SuccessIcon,
+} from '@mui/icons-material';
+import type { AlertCard } from '../../services/dashboard';
 
-interface Props {
-  data: DashboardData | null;
+interface AlertsPanelProps {
+  alerts: AlertCard[];
   loading: boolean;
+  onCreateTask?: (alert: AlertCard) => void;
 }
 
-const severityColor: Record<AlertCard['severity'], 'success' | 'warning' | 'error' | 'default'> = {
-  Low: 'success',
-  Medium: 'warning',
-  High: 'error',
-  Critical: 'error',
+type ChipColor = 'default' | 'success' | 'warning' | 'error' | 'info';
+
+const severityMeta: Record<AlertCard['severity'], { color: ChipColor; icon: React.ReactNode }> = {
+  Low: { color: 'success', icon: <SuccessIcon fontSize="small" /> },
+  Medium: { color: 'warning', icon: <InfoIcon fontSize="small" /> },
+  High: { color: 'error', icon: <WarningIcon fontSize="small" /> },
+  Critical: { color: 'error', icon: <ErrorIcon fontSize="small" /> },
 };
 
-function renderSeverity(severity: AlertCard['severity']) {
-  const color = severityColor[severity] ?? 'default';
-  return <Chip size="small" color={color} label={severity} />;
-}
-
-export const AlertsPanel: React.FC<Props> = ({ data, loading }) => {
-  if (loading && !data) {
+export const AlertsPanel: React.FC<AlertsPanelProps> = ({ alerts, loading, onCreateTask }) => {
+  if (loading && alerts.length === 0) {
     return <Typography variant="body2">Loading alerts…</Typography>;
   }
 
-  if (!loading && (!data || data.alerts.length === 0)) {
+  if (!loading && alerts.length === 0) {
     return <Typography variant="body2">No active alerts</Typography>;
   }
 
-  if (!data) {
-    return <Typography variant="body2">No alert data available</Typography>;
-  }
-
   return (
-    <Stack spacing={1} data-testid="alerts-panel">
-      {data.alerts.slice(0, 5).map((alert) => (
-        <Box key={alert.alertId} sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="subtitle2">{alert.title}</Typography>
-            {renderSeverity(alert.severity)}
-            {alert.isActionable && <Chip size="small" label="Actionable" variant="outlined" />}
-          </Box>
-          <Typography variant="body2" color="text.secondary">{alert.message}</Typography>
-          <Typography variant="caption" color="text.disabled">
-            {new Date(alert.createdAt).toLocaleString()}
-          </Typography>
-        </Box>
-      ))}
-      {data.alerts.length > 5 && (
+    <Stack spacing={1.5} data-testid="alerts-panel">
+      {alerts.slice(0, 5).map((alert, idx) => {
+        const severity = severityMeta[alert.severity] ?? severityMeta.Medium;
+        const actionable = alert.isActionable && !alert.isDismissed;
+        return (
+          <React.Fragment key={alert.alertId}>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 1,
+                borderRadius: 2,
+                border: theme => `1px solid ${theme.palette.divider}`,
+                padding: 1.5,
+                backgroundColor: alert.isRead ? 'action.hover' : 'background.paper',
+                transition: 'background-color 0.2s ease',
+              }}
+            >
+              <Box display="flex" alignItems="flex-start" gap={1} flexWrap="wrap">
+                <Chip
+                  icon={severity.icon}
+                  color={severity.color}
+                  size="small"
+                  label={alert.severity}
+                />
+                <Chip size="small" variant="outlined" label={alert.category} />
+                {alert.isRead && <Chip size="small" variant="outlined" label="Read" />}
+                {alert.isDismissed && <Chip size="small" color="default" label="Dismissed" />}
+                {alert.isActionable && !alert.isDismissed && (
+                  <Chip size="small" color="info" variant="outlined" label="Actionable" />
+                )}
+              </Box>
+
+              <Box display="flex" flexDirection="column" gap={0.5}>
+                <Typography variant="subtitle2">{alert.title}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {alert.message}
+                </Typography>
+              </Box>
+
+              <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
+                <Typography variant="caption" color="text.disabled">
+                  {new Date(alert.createdAt).toLocaleString()}
+                </Typography>
+                {actionable && onCreateTask && (
+                  <Tooltip title="Create a follow-up task to track this alert">
+                    <Button
+                      size="small"
+                      variant="contained"
+                      endIcon={<TaskIcon fontSize="small" />}
+                      onClick={() => onCreateTask(alert)}
+                    >
+                      Create follow-up task
+                    </Button>
+                  </Tooltip>
+                )}
+              </Box>
+            </Box>
+            {idx < Math.min(alerts.length, 5) - 1 && <Divider flexItem light />}
+          </React.Fragment>
+        );
+      })}
+      {alerts.length > 5 && (
         <Typography variant="caption" color="text.secondary">
-          Showing {Math.min(5, data.alerts.length)} of {data.alerts.length} alerts
+          Showing {Math.min(5, alerts.length)} of {alerts.length} alerts
         </Typography>
       )}
     </Stack>

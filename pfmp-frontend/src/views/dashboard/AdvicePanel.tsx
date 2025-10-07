@@ -1,45 +1,69 @@
 import React from 'react';
-import { Box, Chip, Stack, Typography } from '@mui/material';
-import type { DashboardData } from '../../services/dashboard';
+import { Box, Chip, Divider, Stack, Typography } from '@mui/material';
+import type { AdviceItem } from '../../services/dashboard';
 
-interface Props {
-  data: DashboardData | null;
+interface AdvicePanelProps {
+  advice: AdviceItem[];
   loading: boolean;
 }
 
-export const AdvicePanel: React.FC<Props> = ({ data, loading }) => {
-  if (loading && !data) {
+const statusColor: Record<string, 'default' | 'success' | 'warning' | 'info'> = {
+  Proposed: 'info',
+  Accepted: 'success',
+  Dismissed: 'warning',
+};
+
+export const AdvicePanel: React.FC<AdvicePanelProps> = ({ advice, loading }) => {
+  if (loading && advice.length === 0) {
     return <Typography variant="body2">Loading advice…</Typography>;
   }
 
-  if (!loading && (!data || data.advice.length === 0)) {
+  if (!loading && advice.length === 0) {
     return <Typography variant="body2">No advice generated yet</Typography>;
   }
 
-  if (!data) {
-    return <Typography variant="body2">No advice data available</Typography>;
-  }
-
   return (
-    <Stack spacing={1} data-testid="advice-panel">
-      {data.advice.slice(0, 5).map((item) => (
-        <Box key={item.adviceId} sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="subtitle2">{item.theme}</Typography>
-            <Chip size="small" label={item.status} variant="outlined" />
-            {item.confidenceScore != null && (
-              <Chip size="small" color="primary" label={`Confidence ${item.confidenceScore}%`} />
+    <Stack spacing={1.5} data-testid="advice-panel">
+      {advice.slice(0, 5).map((item, idx) => (
+        <React.Fragment key={item.adviceId}>
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1,
+              borderRadius: 2,
+              border: theme => `1px solid ${theme.palette.divider}`,
+              padding: 1.5,
+              backgroundColor: 'background.paper',
+            }}
+          >
+            <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
+              <Chip
+                size="small"
+                color={statusColor[item.status] ?? 'default'}
+                label={item.status}
+              />
+              <Chip size="small" variant="outlined" label={item.theme} />
+              {item.confidenceScore != null && (
+                <Chip size="small" color="primary" label={`Confidence ${item.confidenceScore}%`} />
+              )}
+            </Box>
+            <Typography variant="subtitle2">{item.consensusText}</Typography>
+            <Typography variant="caption" color="text.disabled">
+              {new Date(item.createdAt).toLocaleString()}
+            </Typography>
+            {item.linkedTaskId != null && (
+              <Typography variant="caption" color="text.secondary">
+                Linked task #{item.linkedTaskId}
+              </Typography>
             )}
           </Box>
-          <Typography variant="body2" color="text.secondary">{item.consensusText}</Typography>
-          <Typography variant="caption" color="text.disabled">
-            {new Date(item.createdAt).toLocaleString()}
-          </Typography>
-        </Box>
+          {idx < Math.min(advice.length, 5) - 1 && <Divider flexItem light />}
+        </React.Fragment>
       ))}
-      {data.advice.length > 5 && (
+      {advice.length > 5 && (
         <Typography variant="caption" color="text.secondary">
-          Showing {Math.min(5, data.advice.length)} of {data.advice.length} advice items
+          Showing {Math.min(5, advice.length)} of {advice.length} advice items
         </Typography>
       )}
     </Stack>
