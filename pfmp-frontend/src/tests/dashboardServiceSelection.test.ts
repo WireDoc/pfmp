@@ -1,4 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
+import { mockDashboardSummary } from './mocks/handlers';
+import { mswServer } from './mocks/server';
 import { getDashboardService, __resetDashboardServiceForTest } from '../services/dashboard';
 import { updateFlags } from '../flags/featureFlags';
 
@@ -15,13 +17,6 @@ const apiSummary = {
 	insights: [],
 } as const;
 
-function toUrl(input: RequestInfo | URL): string {
-	if (typeof input === 'string') return input;
-	if (input instanceof URL) return input.toString();
-	if (typeof Request !== 'undefined' && input instanceof Request) return input.url;
-	return String(input);
-}
-
 afterEach(() => {
 	updateFlags({ dashboard_wave4_real_data: false });
 	__resetDashboardServiceForTest();
@@ -29,6 +24,7 @@ afterEach(() => {
 	if (originalFetch) {
 		global.fetch = originalFetch;
 	}
+	mswServer.resetHandlers();
 });
 
 describe('dashboard service selection', () => {
@@ -44,37 +40,21 @@ describe('dashboard service selection', () => {
 	});
 
 	it('switches to API service when real-data flag enabled', async () => {
-		const fetchMock = vi.spyOn(global, 'fetch').mockImplementation(async (input: RequestInfo | URL) => {
-			const url = toUrl(input);
-			if (url.includes('/api/dashboard/summary')) {
-				return new Response(JSON.stringify(apiSummary), {
-					status: 200,
-					headers: { 'Content-Type': 'application/json' },
-				});
-			}
-			return Promise.reject(new Error(`Unexpected fetch call during dashboard selection test: ${url}`));
-		});
+		const fetchSpy = vi.spyOn(global, 'fetch');
+		mswServer.use(...mockDashboardSummary(apiSummary));
 		updateFlags({ dashboard_wave4_real_data: true });
 		const service = getDashboardService();
 		const data = await service.load();
-		expect(fetchMock).toHaveBeenCalledTimes(1);
-		expect(fetchMock.mock.calls[0]?.[0]).toContain('/api/dashboard/summary');
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('/api/dashboard/summary');
 		expect(data.netWorth.netWorth.amount).toBe(apiSummary.netWorth.netWorth.amount);
 	});
 
 	it('updates cached instance when flag toggles between modes', async () => {
 		updateFlags({ dashboard_wave4_real_data: false });
 		const initialService = getDashboardService();
-		const fetchMock = vi.spyOn(global, 'fetch').mockImplementation(async (input: RequestInfo | URL) => {
-			const url = toUrl(input);
-			if (url.includes('/api/dashboard/summary')) {
-				return new Response(JSON.stringify(apiSummary), {
-					status: 200,
-					headers: { 'Content-Type': 'application/json' },
-				});
-			}
-			return Promise.reject(new Error(`Unexpected fetch call during dashboard selection test: ${url}`));
-		});
+		const fetchSpy = vi.spyOn(global, 'fetch');
+		mswServer.use(...mockDashboardSummary(apiSummary));
 		updateFlags({ dashboard_wave4_real_data: true });
 		const apiService = getDashboardService();
 		expect(apiService).not.toBe(initialService);
@@ -83,7 +63,7 @@ describe('dashboard service selection', () => {
 		const backToMock = getDashboardService();
 		expect(backToMock).not.toBe(apiService);
 		const data = await backToMock.load();
-		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
 		expect(data.netWorth.netWorth.amount).toBe(182_500);
 	});
 });
