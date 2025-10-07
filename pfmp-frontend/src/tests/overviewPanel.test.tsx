@@ -24,6 +24,9 @@ describe('OverviewPanel', () => {
       },
       accounts: [],
       insights: [],
+      alerts: [],
+      advice: [],
+      tasks: [],
     };
     render(<OverviewPanel data={data} loading={false} />);
     expect(screen.getByText(/75,000/)).toBeInTheDocument();

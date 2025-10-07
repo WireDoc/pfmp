@@ -40,10 +40,72 @@ export interface Insight {
   generatedAt: string; // ISO
 }
 
+export type AlertSeverity = 'Low' | 'Medium' | 'High' | 'Critical';
+export type AlertCategory =
+  | 'Portfolio'
+  | 'Banking'
+  | 'Cashflow'
+  | 'Insurance'
+  | 'Planning'
+  | 'General'
+  | string;
+
+export interface AlertCard {
+  alertId: number;
+  userId: number;
+  title: string;
+  message: string;
+  severity: AlertSeverity;
+  category: AlertCategory;
+  isActionable: boolean;
+  portfolioImpactScore?: number | null;
+  createdAt: string;
+  isRead: boolean;
+  isDismissed: boolean;
+  expiresAt: string | null;
+  actionUrl: string | null;
+}
+
+export type AdviceStatus = 'Proposed' | 'Accepted' | 'Dismissed' | string;
+
+export interface AdviceItem {
+  adviceId: number;
+  userId: number;
+  theme: string;
+  status: AdviceStatus;
+  consensusText: string;
+  confidenceScore?: number | null;
+  sourceAlertId: number | null;
+  linkedTaskId: number | null;
+  createdAt: string;
+}
+
+export type TaskPriority = 'Low' | 'Medium' | 'High' | string;
+export type TaskStatus = 'Pending' | 'InProgress' | 'Completed' | 'Dismissed' | string;
+
+export interface TaskItem {
+  taskId: number;
+  userId: number;
+  type: string;
+  title: string;
+  description: string;
+  priority: TaskPriority;
+  status: TaskStatus;
+  createdDate: string;
+  dueDate: string | null;
+  sourceAdviceId: number | null;
+  sourceAlertId: number | null;
+  progressPercentage?: number | null;
+  confidenceScore?: number | null;
+}
+
 export interface DashboardData {
   netWorth: NetWorthSummary;
   accounts: AccountSnapshot[];
   insights: Insight[];
+  alerts: AlertCard[];
+  advice: AdviceItem[];
+  tasks: TaskItem[];
 }
 
 export interface DashboardService {

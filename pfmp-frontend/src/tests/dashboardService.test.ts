@@ -39,17 +39,90 @@ describe('Dashboard services', () => {
       insights: [],
     } as const;
 
-    const fetchSpy = vi.spyOn(global, 'fetch');
+    const fetchSpy = vi.spyOn(global, 'fetch').mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes('/api/alerts')) {
+        return new Response(JSON.stringify([
+          {
+            alertId: 1,
+            userId: 1,
+            title: 'Alert',
+            message: 'Check this out',
+            severity: 'High',
+            category: 'Portfolio',
+            isActionable: true,
+            portfolioImpactScore: 50,
+            createdAt: '2025-10-06T12:00:00Z',
+            isRead: false,
+            isDismissed: false,
+            expiresAt: null,
+            actionUrl: null,
+          },
+        ]), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      if (url.toLowerCase().includes('/api/advice/user/')) {
+        return new Response(JSON.stringify([
+          {
+            adviceId: 10,
+            userId: 1,
+            theme: 'General',
+            status: 'Proposed',
+            consensusText: 'Do thing',
+            confidenceScore: 70,
+            sourceAlertId: 1,
+            linkedTaskId: null,
+            createdAt: '2025-10-06T12:05:00Z',
+          },
+        ]), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      if (url.includes('/api/Tasks') || url.includes('/api/tasks')) {
+        return new Response(JSON.stringify([
+          {
+            taskId: 20,
+            userId: 1,
+            type: 'GoalAdjustment',
+            title: 'Task',
+            description: 'Complete task',
+            priority: 'Medium',
+            status: 'Pending',
+            createdDate: '2025-10-06T12:06:00Z',
+            dueDate: null,
+            sourceAdviceId: 10,
+            sourceAlertId: 1,
+            progressPercentage: 0,
+            confidenceScore: 80,
+          },
+        ]), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return originalFetch ? originalFetch(input as any, init as any) : Promise.reject(new Error('No fetch available'));
+    });
+
     mswServer.use(...mockDashboardSummary(summary));
 
     const apiService = createApiDashboardService();
     const data = await apiService.load();
 
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('/api/dashboard/summary');
+  expect(fetchSpy).toHaveBeenCalledTimes(4);
+  const urls = fetchSpy.mock.calls.map(call => String(call?.[0]));
+  expect(urls[0]).toContain('/api/dashboard/summary');
+  expect(urls.some(url => url.includes('/api/alerts'))).toBe(true);
+  expect(urls.some(url => url.toLowerCase().includes('/api/advice/user/'))).toBe(true);
+  expect(urls.some(url => url.includes('/api/Tasks') || url.includes('/api/tasks'))).toBe(true);
     expect(data.netWorth.netWorth.amount).toBe(900);
     expect(data.accounts).toEqual([]);
     expect(data.insights).toEqual([]);
+    expect(data.alerts).toHaveLength(1);
+    expect(data.advice).toHaveLength(1);
+    expect(data.tasks).toHaveLength(1);
   });
 
   it('API dashboard service throws when netWorth missing', async () => {
@@ -87,6 +160,9 @@ describe('Dashboard services', () => {
 
     expect(data.accounts).toEqual([]);
     expect(data.insights).toEqual([]);
+    expect(data.alerts).toEqual([]);
+    expect(data.advice).toEqual([]);
+    expect(data.tasks).toEqual([]);
   });
 
   it('includes Authorization header when simulated auth disabled and token available', async () => {

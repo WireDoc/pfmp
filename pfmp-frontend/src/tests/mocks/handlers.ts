@@ -22,6 +22,18 @@ const dashboardSummaryMatchers = [
   /\/api\/dashboard\/summary$/,
 ] as const;
 
+const alertsMatchers = [
+  /\/api\/alerts\/?(?:\?.*)?$/i,
+] as const;
+
+const adviceMatchers = [
+  /\/api\/advice\/user\/\d+\/?(?:\?.*)?$/i,
+] as const;
+
+const tasksMatchers = [
+  /\/api\/tasks\/?(?:\?.*)?$/i,
+] as const;
+
 const onboardingProgressMatcher = /\/api\/onboarding\/progress(?:\?.*)?$/;
 const onboardingStepMatcher = /\/api\/onboarding\/progress\/step\/(?:[^/?]+)(?:\?.*)?$/;
 const onboardingResetMatcher = /\/api\/onboarding\/progress\/reset(?:\?.*)?$/;
@@ -29,6 +41,18 @@ const onboardingResetMatcher = /\/api\/onboarding\/progress\/reset(?:\?.*)?$/;
 const createDashboardSummaryHandlers = (
   resolver: Parameters<typeof http.get>[1],
 ) => dashboardSummaryMatchers.map((matcher) => http.get(matcher, resolver));
+
+const createAlertsHandlers = (
+  resolver: Parameters<typeof http.get>[1],
+) => alertsMatchers.map((matcher) => http.get(matcher, resolver));
+
+const createAdviceHandlers = (
+  resolver: Parameters<typeof http.get>[1],
+) => adviceMatchers.map((matcher) => http.get(matcher, resolver));
+
+const createTasksHandlers = (
+  resolver: Parameters<typeof http.get>[1],
+) => tasksMatchers.map((matcher) => http.get(matcher, resolver));
 
 export const defaultHandlers = [
   ...moduleRouteExpressions.map((expr) =>
@@ -40,6 +64,9 @@ export const defaultHandlers = [
       { status: 501 },
     ),
   ),
+  ...createAlertsHandlers(() => HttpResponse.json([], { status: 200 })),
+  ...createAdviceHandlers(() => HttpResponse.json([], { status: 200 })),
+  ...createTasksHandlers(() => HttpResponse.json([], { status: 200 })),
   http.get(onboardingProgressMatcher, () =>
     HttpResponse.json(
       { message: 'No mock registered for onboarding progress' },
@@ -53,6 +80,15 @@ export const defaultHandlers = [
 
 export const mockDashboardSummary = (data: any, init?: ResponseInit) =>
   createDashboardSummaryHandlers(() => HttpResponse.json(data, init));
+
+export const mockDashboardAlerts = (data: any[], init?: ResponseInit) =>
+  createAlertsHandlers(() => HttpResponse.json(data, init ?? { status: 200 }));
+
+export const mockDashboardAdvice = (data: any[], init?: ResponseInit) =>
+  createAdviceHandlers(() => HttpResponse.json(data, init ?? { status: 200 }));
+
+export const mockDashboardTasks = (data: any[], init?: ResponseInit) =>
+  createTasksHandlers(() => HttpResponse.json(data, init ?? { status: 200 }));
 
 export interface OnboardingApiMock {
   handlers: ReturnType<typeof http.get>[];
