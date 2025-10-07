@@ -36,6 +36,10 @@ interface ApiFixture {
   tasks?: Parameters<typeof mockDashboardTasks>[0];
 }
 
+interface RealDataOptions {
+  handleCreateTask?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+}
+
 function extractUrl(input: RequestInfo | URL): string {
   if (typeof input === 'string') return input;
   if (input instanceof URL) return input.toString();
@@ -43,7 +47,7 @@ function extractUrl(input: RequestInfo | URL): string {
   return String(input);
 }
 
-function renderDashboardWithRealData({ summary, alerts, advice, tasks }: ApiFixture) {
+function renderDashboardWithRealData({ summary, alerts, advice, tasks }: ApiFixture, options?: RealDataOptions) {
   act(() => {
     updateFlags({ enableDashboardWave4: true, onboarding_persistence_enabled: false, dashboard_wave4_real_data: true });
   });
@@ -58,6 +62,12 @@ function renderDashboardWithRealData({ summary, alerts, advice, tasks }: ApiFixt
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
+    if (url.includes('/api/Tasks') && init?.method?.toUpperCase() === 'POST') {
+      if (options?.handleCreateTask) {
+        return options.handleCreateTask(input, init);
+      }
+      return jsonResponse({ taskId: 90210 });
+    }
     if (url.includes('/api/alerts')) {
       return jsonResponse(alerts ?? []);
     }
@@ -255,5 +265,142 @@ describe('DashboardWave4 direct component render', () => {
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: /create follow-up task/i })).not.toBeInTheDocument();
     });
+  });
+
+  it('persists follow-up tasks via API when real data flag is enabled', async () => {
+    const createTaskHandler = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      expect(init?.method).toBeDefined();
+      if (init?.body) {
+        const parsed = JSON.parse(init.body.toString());
+        expect(parsed).toMatchObject({
+          title: expect.stringContaining('Portfolio drift detected'),
+          userId: 1,
+          sourceAlertId: 88,
+        });
+      }
+      return new Response(JSON.stringify({ taskId: 4321 }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+
+    renderDashboardWithRealData({
+      summary: {
+        netWorth: {
+          totalAssets: { amount: 250000, currency: 'USD' },
+          totalLiabilities: { amount: 50000, currency: 'USD' },
+          netWorth: { amount: 200000, currency: 'USD' },
+          lastUpdated: '2025-10-07T00:00:00Z',
+        },
+      },
+      alerts: [
+        {
+          alertId: 88,
+          userId: 1,
+          title: 'Portfolio drift detected',
+          message: 'Equity exposure exceeds policy band.',
+          severity: 'High',
+          category: 'Portfolio',
+          isActionable: true,
+          portfolioImpactScore: 70,
+          createdAt: '2025-10-07T00:00:00Z',
+          isRead: false,
+          isDismissed: false,
+          expiresAt: null,
+          actionUrl: null,
+        },
+      ],
+      advice: [
+        {
+          adviceId: 101,
+          userId: 1,
+          theme: 'Rebalance',
+          status: 'Proposed',
+          consensusText: 'Shift 3% from equities into bonds.',
+          confidenceScore: 82,
+          sourceAlertId: 88,
+          linkedTaskId: null,
+          createdAt: '2025-10-07T00:00:00Z',
+        },
+      ],
+      tasks: [],
+    }, { handleCreateTask: createTaskHandler });
+
+    const alertsPanel = await screen.findByTestId('alerts-panel');
+    const tasksPanel = await screen.findByTestId('tasks-panel');
+    const createTaskButton = within(alertsPanel).getByRole('button', { name: /create a follow-up task to track this alert/i });
+    fireEvent.click(createTaskButton);
+
+    await waitFor(() => expect(createTaskHandler).toHaveBeenCalled());
+
+    await waitFor(() => {
+      expect(within(tasksPanel).getByText('Follow up: Portfolio drift detected')).toBeInTheDocument();
+      expect(screen.getByText('Linked task #4321')).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /create follow-up task/i })).not.toBeInTheDocument();
+    });
+  });
+
+  it('reverts optimistic follow-up task when API persistence fails', async () => {
+    const failingCreateTask = vi.fn(async () => new Response(JSON.stringify({ message: 'nope' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    }));
+
+    renderDashboardWithRealData({
+      summary: {
+        netWorth: {
+          totalAssets: { amount: 100000, currency: 'USD' },
+          totalLiabilities: { amount: 10000, currency: 'USD' },
+          netWorth: { amount: 90000, currency: 'USD' },
+          lastUpdated: '2025-10-07T00:00:00Z',
+        },
+      },
+      alerts: [
+        {
+          alertId: 77,
+          userId: 1,
+          title: 'High utilization detected',
+          message: 'Utilization at 50% exceeds target.',
+          severity: 'High',
+          category: 'Cashflow',
+          isActionable: true,
+          portfolioImpactScore: 60,
+          createdAt: '2025-10-07T00:00:00Z',
+          isRead: false,
+          isDismissed: false,
+          expiresAt: null,
+          actionUrl: null,
+        },
+      ],
+      advice: [
+        {
+          adviceId: 222,
+          userId: 1,
+          theme: 'Cashflow',
+          status: 'Proposed',
+          consensusText: 'Consider reducing discretionary expenses.',
+          confidenceScore: 55,
+          sourceAlertId: 77,
+          linkedTaskId: null,
+          createdAt: '2025-10-07T00:00:00Z',
+        },
+      ],
+      tasks: [],
+    }, { handleCreateTask: failingCreateTask });
+
+    const alertsPanel = await screen.findByTestId('alerts-panel');
+    const createTaskButton = within(alertsPanel).getByRole('button', { name: /create a follow-up task to track this alert/i });
+    fireEvent.click(createTaskButton);
+
+    await waitFor(() => expect(failingCreateTask).toHaveBeenCalled());
+
+    await waitFor(() => {
+      expect(screen.queryByText('Follow up: High utilization detected')).not.toBeInTheDocument();
+      expect(within(alertsPanel).getByRole('button', { name: /create a follow-up task to track this alert/i })).toBeInTheDocument();
+    });
+
+    expect(await screen.findByText(/Couldn't save “High utilization detected”/)).toBeInTheDocument();
   });
 });

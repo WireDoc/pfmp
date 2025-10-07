@@ -26,11 +26,19 @@ function resolvePriorityColor(priority: TaskItem['priority']): 'default' | 'warn
 
 export const TasksPanel: React.FC<TasksPanelProps> = ({ tasks, loading, recentTaskIds }) => {
   if (loading && tasks.length === 0) {
-    return <Typography variant="body2">Loading tasks…</Typography>;
+    return (
+      <Stack spacing={1.5} data-testid="tasks-panel">
+        <Typography variant="body2">Loading tasks…</Typography>
+      </Stack>
+    );
   }
 
   if (!loading && tasks.length === 0) {
-    return <Typography variant="body2">No tasks yet</Typography>;
+    return (
+      <Stack spacing={1.5} data-testid="tasks-panel">
+        <Typography variant="body2">No tasks yet</Typography>
+      </Stack>
+    );
   }
 
   return (

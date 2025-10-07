@@ -1,4 +1,4 @@
-import { DashboardService, DashboardData } from './types';
+import type { CreateFollowUpTaskRequest, DashboardData, DashboardService } from './types';
 
 interface MockOptions {
   latencyMs?: number;
@@ -131,6 +131,10 @@ export function createMockDashboardService(opts: MockOptions = {}): DashboardSer
         throw new Error('Mock dashboard service simulated failure');
       }
       return generateData();
+    },
+    async createFollowUpTask(_request: CreateFollowUpTaskRequest) {
+      if (latencyMs) await new Promise(r => setTimeout(r, latencyMs));
+      return { taskId: Math.floor(Date.now() / 1000) };
     },
   };
 }
