@@ -72,6 +72,53 @@ function generateData(): DashboardData {
         generatedAt: now,
       },
     ],
+    alerts: [
+      {
+        alertId: 42,
+        userId: 1,
+        title: 'High credit utilization',
+        message: 'Visa Rewards utilization is 43% of limit.',
+        severity: 'High',
+        category: 'Portfolio',
+        isActionable: true,
+        portfolioImpactScore: 68,
+        createdAt: now,
+        isRead: false,
+        isDismissed: false,
+        expiresAt: null,
+        actionUrl: null,
+      },
+    ],
+    advice: [
+      {
+        adviceId: 101,
+        userId: 1,
+        theme: 'General',
+        status: 'Proposed',
+        consensusText: 'Your equity allocation is slightly above target.',
+        confidenceScore: 60,
+        sourceAlertId: 42,
+        linkedTaskId: null,
+        createdAt: now,
+      },
+    ],
+    tasks: [
+      {
+        taskId: 555,
+        userId: 1,
+        type: 'GoalAdjustment',
+        title: 'Rebalance equity allocation',
+        description: 'Shift 3% from equities into bonds.',
+        priority: 'Medium',
+        status: 'Pending',
+        createdDate: now,
+        dueDate: null,
+        sourceAdviceId: 101,
+        sourceAlertId: 42,
+        progressPercentage: 0,
+        confidenceScore: 70,
+      },
+    ],
   };
 }
 

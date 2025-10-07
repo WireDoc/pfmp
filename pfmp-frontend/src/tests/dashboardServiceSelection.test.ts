@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { mockDashboardSummary } from './mocks/handlers';
+import { mockDashboardSummary, mockDashboardAlerts, mockDashboardAdvice, mockDashboardTasks } from './mocks/handlers';
 import { mswServer } from './mocks/server';
 import { getDashboardService, __resetDashboardServiceForTest } from '../services/dashboard';
 import { updateFlags } from '../flags/featureFlags';
@@ -41,29 +41,44 @@ describe('dashboard service selection', () => {
 
 	it('switches to API service when real-data flag enabled', async () => {
 		const fetchSpy = vi.spyOn(global, 'fetch');
-		mswServer.use(...mockDashboardSummary(apiSummary));
+		mswServer.use(
+			...mockDashboardSummary(apiSummary),
+			...mockDashboardAlerts([]),
+			...mockDashboardAdvice([]),
+			...mockDashboardTasks([]),
+		);
 		updateFlags({ dashboard_wave4_real_data: true });
 		const service = getDashboardService();
 		const data = await service.load();
-		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		expect(fetchSpy).toHaveBeenCalled();
 		expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('/api/dashboard/summary');
 		expect(data.netWorth.netWorth.amount).toBe(apiSummary.netWorth.netWorth.amount);
+		const urls = fetchSpy.mock.calls.map(call => String(call?.[0]));
+		expect(urls.some(url => url.includes('/api/alerts'))).toBe(true);
+		expect(urls.some(url => url.toLowerCase().includes('/api/advice/user/'))).toBe(true);
+		expect(urls.some(url => url.includes('/api/Tasks') || url.includes('/api/tasks'))).toBe(true);
 	});
 
 	it('updates cached instance when flag toggles between modes', async () => {
 		updateFlags({ dashboard_wave4_real_data: false });
 		const initialService = getDashboardService();
 		const fetchSpy = vi.spyOn(global, 'fetch');
-		mswServer.use(...mockDashboardSummary(apiSummary));
+		mswServer.use(
+			...mockDashboardSummary(apiSummary),
+			...mockDashboardAlerts([]),
+			...mockDashboardAdvice([]),
+			...mockDashboardTasks([]),
+		);
 		updateFlags({ dashboard_wave4_real_data: true });
 		const apiService = getDashboardService();
 		expect(apiService).not.toBe(initialService);
 		await apiService.load();
+		const apiFetchCallCount = fetchSpy.mock.calls.length;
 		updateFlags({ dashboard_wave4_real_data: false });
 		const backToMock = getDashboardService();
 		expect(backToMock).not.toBe(apiService);
 		const data = await backToMock.load();
-		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		expect(fetchSpy.mock.calls.length).toBe(apiFetchCallCount);
 		expect(data.netWorth.netWorth.amount).toBe(182_500);
 	});
 });
