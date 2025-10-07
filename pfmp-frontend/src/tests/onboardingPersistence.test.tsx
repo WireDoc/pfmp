@@ -1,12 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { render, screen, act, waitFor } from '@testing-library/react';
 import { OnboardingProvider, useOnboarding } from '../onboarding/OnboardingContext';
 import { updateFlags } from '../flags/featureFlags';
 import { setDevUserId } from '../dev/devUserState';
-
-// Mock fetch globally
-let fetchSpy: ReturnType<typeof vi.spyOn> | null = null;
+import { createOnboardingApiMock, http, HttpResponse } from './mocks/handlers';
+import { mswServer } from './mocks/server';
+import type { OnboardingProgressDTO } from '../onboarding/persistence';
+import type { OnboardingStepId } from '../onboarding/steps';
 
 function TestConsumer() {
   const ob = useOnboarding();
@@ -26,86 +27,77 @@ describe('Onboarding persistence integration', () => {
     act(() => {
       updateFlags({ onboarding_persistence_enabled: true });
     });
-    fetchSpy = vi.spyOn(global, 'fetch') as unknown as ReturnType<typeof vi.spyOn>;
+    act(() => {
+      setDevUserId(null);
+    });
   });
 
   it('hydrates from existing progress DTO', async () => {
-    (global.fetch as any).mockImplementationOnce(async () => new Response(JSON.stringify({
-      userId: 'u1',
-      completedStepIds: ['demographics'],
+    const dto: OnboardingProgressDTO = {
+      userId: 'dev-user',
+      completedStepIds: ['demographics'] as OnboardingStepId[],
       currentStepId: 'risk',
       updatedUtc: new Date().toISOString(),
-    }), { status: 200 }));
+    };
+    const api = createOnboardingApiMock({ 'dev-user': dto });
+    mswServer.use(...api.handlers);
 
     render(<OnboardingProvider><TestConsumer /></OnboardingProvider>);
 
-    // Allow hydration effect
-    await act(async () => {});
-
+    await waitFor(() => expect(screen.getByTestId('hydrated').textContent).toBe('yes'));
     expect(screen.getByTestId('hydrated').textContent).toBe('yes');
     expect(screen.getByTestId('current-step').textContent).toBe('risk');
     expect(screen.getByTestId('completed-count').textContent).toBe('1');
   });
 
   it('treats 404 as fresh start', async () => {
-    (global.fetch as any).mockImplementationOnce(async () => new Response('', { status: 404 }));
+    const api = createOnboardingApiMock();
+    mswServer.use(...api.handlers);
     render(<OnboardingProvider><TestConsumer /></OnboardingProvider>);
-    await act(async () => {});
+    await waitFor(() => expect(screen.getByTestId('hydrated').textContent).toBe('yes'));
     expect(screen.getByTestId('hydrated').textContent).toBe('yes');
     expect(screen.getByTestId('current-step').textContent).toBe('demographics');
   });
 
   it('PATCH called on step completion + NEXT (debounced)', async () => {
-    vi.useFakeTimers();
-    // First call: GET 404
-    (global.fetch as any).mockImplementationOnce(async () => new Response('', { status: 404 }));
-    // Subsequent calls: PATCH + PUT (fire and forget) just return 200
-    ;(global.fetch as any).mockImplementation(async () => new Response('', { status: 200 }));
+    const api = createOnboardingApiMock();
+    mswServer.use(...api.handlers);
 
-    try {
-      render(<OnboardingProvider><TestConsumer /></OnboardingProvider>);
-      await act(async () => {});
+    render(<OnboardingProvider><TestConsumer /></OnboardingProvider>);
+    await waitFor(() => expect(screen.getByTestId('hydrated').textContent).toBe('yes'));
 
-      await act(async () => {
-        screen.getByText('advance').click();
-        // flush debounce 400ms
-        vi.advanceTimersByTime(450);
-      });
+    await act(async () => {
+      screen.getByText('advance').click();
+    });
 
-      const calls = (global.fetch as any).mock.calls.map((c: any) => c[0]);
-      expect(calls.some((u: string) => u.includes('/progress/step/'))).toBe(true);
-      expect(calls.some((u: string) => u.endsWith('/progress'))).toBe(true); // PUT snapshot
-    } finally {
-      vi.useRealTimers();
-    }
+    await waitFor(() => {
+      expect(api.patchLog.length).toBeGreaterThan(0);
+      expect(api.putLog.length).toBeGreaterThan(0);
+    }, { timeout: 3000 });
   });
 
   it('rehydrates when dev user switches', async () => {
-    const firstDto = {
-      userId: 'dev-1',
-      completedStepIds: ['demographics'],
+    const firstDto: OnboardingProgressDTO = {
+      userId: '101',
+      completedStepIds: ['demographics'] as OnboardingStepId[],
       currentStepId: 'risk',
       updatedUtc: new Date().toISOString(),
     };
-    const secondDto = {
-      userId: 'dev-2',
-      completedStepIds: ['demographics', 'risk'],
+    const secondDto: OnboardingProgressDTO = {
+      userId: '202',
+      completedStepIds: ['demographics', 'risk'] as OnboardingStepId[],
       currentStepId: 'income',
       updatedUtc: new Date().toISOString(),
     };
-    const getQueue = [
-      new Response(JSON.stringify(firstDto), { status: 200 }),
-      new Response(JSON.stringify(secondDto), { status: 200 })
-    ];
-    (global.fetch as any).mockImplementation(async (_url: string, init?: RequestInit) => {
-      if (!init || !init.method || init.method === 'GET') {
-        const res = getQueue.shift();
-        return res ?? new Response('', { status: 404 });
-      }
-      return new Response('', { status: 200 });
+    const api = createOnboardingApiMock({
+      '101': firstDto,
+      '202': secondDto,
     });
+    mswServer.use(...api.handlers);
 
-    setDevUserId(101);
+    await act(async () => {
+      setDevUserId(101);
+    });
 
     render(<OnboardingProvider><TestConsumer /></OnboardingProvider>);
 
@@ -116,33 +108,19 @@ describe('Onboarding persistence integration', () => {
     });
 
     await waitFor(() => expect(screen.getByTestId('current-step').textContent).toBe('income'));
-    expect((global.fetch as any).mock.calls.filter(([, init]: [any, RequestInit | undefined]) => !init || init.method === undefined || init.method === 'GET').length).toBe(2);
+    expect(api.getState('101')?.currentStepId).toBe('risk');
+    expect(api.getState('202')?.currentStepId).toBe('income');
   });
 
   it('reset API clears progress and rehydrates baseline', async () => {
-    const initialDto = {
-      userId: 'dev-1',
-      completedStepIds: ['demographics', 'risk'],
+    const initialDto: OnboardingProgressDTO = {
+      userId: 'dev-user',
+      completedStepIds: ['demographics', 'risk'] as OnboardingStepId[],
       currentStepId: 'tsp',
       updatedUtc: new Date().toISOString(),
     };
-    let resetCallCount = 0;
-    const getQueue = [
-      new Response(JSON.stringify(initialDto), { status: 200 }),
-      new Response('', { status: 404 })
-    ];
-
-    (global.fetch as any).mockImplementation(async (_url: string, init?: RequestInit) => {
-      if (!init || !init.method || init.method === 'GET') {
-        const res = getQueue.shift();
-        return res ?? new Response('', { status: 404 });
-      }
-      if (init.method === 'POST') {
-        resetCallCount += 1;
-        return new Response('', { status: 200 });
-      }
-      return new Response('', { status: 200 });
-    });
+    const api = createOnboardingApiMock({ 'dev-user': initialDto });
+    mswServer.use(...api.handlers);
 
     render(<OnboardingProvider><TestConsumer /></OnboardingProvider>);
 
@@ -152,14 +130,31 @@ describe('Onboarding persistence integration', () => {
       screen.getByTestId('reset-button').click();
     });
 
-    await waitFor(() => expect(screen.getByTestId('current-step').textContent).toBe('demographics'));
+    await waitFor(() => {
+      expect(api.resetLog.length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByTestId('current-step').textContent).toBe('demographics');
+    });
+    const snapshot = api.getState('dev-user');
+    expect(snapshot?.currentStepId).toBe('demographics');
+    expect(snapshot?.completedStepIds).toEqual([]);
+  });
 
-    expect(resetCallCount).toBeGreaterThanOrEqual(1);
+  it('surfaces default state when fetch fails', async () => {
+    mswServer.use(
+      http.get('http://localhost/api/onboarding/progress', () =>
+        HttpResponse.json({ message: 'oops' }, { status: 500 }),
+      ),
+    );
+
+    render(<OnboardingProvider><TestConsumer /></OnboardingProvider>);
+
+    await waitFor(() => expect(screen.getByTestId('hydrated').textContent).toBe('yes'));
+    expect(screen.getByTestId('current-step').textContent).toBe('demographics');
   });
 
   afterEach(() => {
-    vi.useRealTimers();
-    fetchSpy?.mockRestore();
-    fetchSpy = null;
+    act(() => {
+      setDevUserId(null);
+    });
   });
 });
