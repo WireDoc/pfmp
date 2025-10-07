@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import '@testing-library/jest-dom';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, fireEvent, waitFor, within } from '@testing-library/react';
 import { OnboardingProvider } from '../onboarding/OnboardingContext';
 import { AuthProvider } from '../contexts/AuthContext';
 import DashboardWave4 from '../views/DashboardWave4';
@@ -237,5 +237,23 @@ describe('DashboardWave4 direct component render', () => {
     );
 
     expect(await screen.findByText('Failed to load dashboard data')).toBeInTheDocument();
+  });
+
+  it('optimistically creates a follow-up task from an actionable alert', async () => {
+  renderDashboard();
+
+  const alertsPanel = await screen.findByTestId('alerts-panel');
+  const tasksPanel = await screen.findByTestId('tasks-panel');
+  const createTaskButton = within(alertsPanel).getByRole('button', { name: /create a follow-up task to track this alert/i });
+    fireEvent.click(createTaskButton);
+
+    expect(screen.getByText('Follow up: High credit utilization')).toBeInTheDocument();
+    expect(within(tasksPanel).getByTestId('recent-task-card')).toBeInTheDocument();
+    expect(screen.getByText(/Linked task #\d+/)).toBeInTheDocument();
+    expect(screen.getByText(/Rebalance equity allocation/)).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /create follow-up task/i })).not.toBeInTheDocument();
+    });
   });
 });
