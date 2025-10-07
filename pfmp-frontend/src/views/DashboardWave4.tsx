@@ -6,6 +6,9 @@ import { useDashboardData } from '../services/dashboard/useDashboardData';
 import { OverviewPanel } from './dashboard/OverviewPanel';
 import { AccountsPanel } from './dashboard/AccountsPanel';
 import { InsightsPanel } from './dashboard/InsightsPanel';
+import { AlertsPanel } from './dashboard/AlertsPanel';
+import { AdvicePanel } from './dashboard/AdvicePanel';
+import { TasksPanel } from './dashboard/TasksPanel';
 import { useAuth } from '../contexts/auth/useAuth';
 
 // (Removed old sections placeholder list; replaced by dedicated panel components.)
@@ -92,13 +95,31 @@ export const DashboardWave4: React.FC = () => {
             {loading ? <Skeleton variant="rectangular" height={120} /> : <InsightsPanel data={data} loading={loading} />}
           </Paper>
         </Grid>
+        <Grid size={12}>
+          <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Typography variant="h6" gutterBottom>Alerts</Typography>
+            {loading ? <Skeleton variant="rectangular" height={140} /> : <AlertsPanel data={data} loading={loading} />}
+          </Paper>
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Typography variant="h6" gutterBottom>Advice</Typography>
+            {loading ? <Skeleton variant="rectangular" height={140} /> : <AdvicePanel data={data} loading={loading} />}
+          </Paper>
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Typography variant="h6" gutterBottom>Tasks</Typography>
+            {loading ? <Skeleton variant="rectangular" height={140} /> : <TasksPanel data={data} loading={loading} />}
+          </Paper>
+        </Grid>
       </Grid>
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Typography variant="subtitle2" gutterBottom>Development Notes</Typography>
         <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.5 }}>
           <li>Route: /dashboard (flag: enableDashboardWave4)</li>
           <li>Redirects: Incomplete onboarding → /onboarding</li>
-          <li>Future: data loaders, account aggregation, AI insights panel</li>
+          <li>Future: live account aggregation, richer alert → task flows, AI insights</li>
         </ul>
       </Paper>
     </Box>
