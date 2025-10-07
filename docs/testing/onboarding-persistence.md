@@ -17,7 +17,7 @@ Ensure the rebuilt onboarding flow persists progress accurately across dev-user 
 ## Automation Backlog
 - [x] Add MSW handlers to Vitest suite covering GET 200/404, PATCH success, PATCH failure responses.
 - [x] Expand `onboardingPersistence.test.tsx` to assert querystring user IDs, dev user switching, reset flows, and optimistic `markComplete` behaviour.
-- [ ] Create smoke script using `node scripts/onboarding-smoke.ts` (placeholder) to hit API endpoints directly.
+- [x] Add CLI smoke script `node scripts/onboarding-smoke.mjs` to hit API endpoints directly.
 
 ### Automated Regression
 
@@ -26,7 +26,7 @@ Ensure the rebuilt onboarding flow persists progress accurately across dev-user 
 - CI hook: add to Wave 4 dashboard pipeline once smoke script exists.
 
 ## Manual QA Steps
-1. Run backend + frontend locally (`start-dev-servers.bat`).
+1. Run backend + frontend locally (`start-dev-servers.bat`). Optionally execute `node scripts/onboarding-smoke.mjs http://localhost:5052 1` from `pfmp-frontend/` to validate API readiness before UI checks.
 2. Ensure flags `enableDashboardWave4` and `onboarding_persistence_enabled` are true (use `/flags` dev panel or `featureFlags.json`).
 3. Load `/dashboard`; confirm redirect to onboarding occurs after hydrate spinner clears.
 4. Complete each step (Demographics → Risk → TSP → Income). After each completion, verify `debouncedPatchStep` request succeeds (network tab) and the dashboard unlocks when finished.

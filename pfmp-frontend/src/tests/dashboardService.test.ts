@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { mockDashboardSummary } from './mocks/handlers';
+import { mockDashboardSummary, http, HttpResponse } from './mocks/handlers';
 import { mswServer } from './mocks/server';
 import { createApiDashboardService } from '../services/dashboard/apiDashboardService';
 import { getDashboardService, __resetDashboardServiceForTest } from '../services/dashboard';
@@ -57,6 +57,17 @@ describe('Dashboard services', () => {
 
     const apiService = createApiDashboardService();
     await expect(apiService.load()).rejects.toThrow(/netWorth/);
+  });
+
+  it('API dashboard service surfaces HTTP errors', async () => {
+    mswServer.use(
+      http.get(/\/api\/dashboard\/summary$/, () =>
+        HttpResponse.json({ message: 'boom' }, { status: 500 }),
+      ),
+    );
+
+    const apiService = createApiDashboardService();
+    await expect(apiService.load()).rejects.toThrow(/Failed to fetch dashboard summary \(500\)/);
   });
 
   it('defaults optional arrays when API omits them', async () => {
