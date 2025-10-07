@@ -11,7 +11,37 @@ import { AlertsPanel } from './dashboard/AlertsPanel';
 import { AdvicePanel } from './dashboard/AdvicePanel';
 import { TasksPanel } from './dashboard/TasksPanel';
 import { useAuth } from '../contexts/auth/useAuth';
-import type { AlertCard, DashboardData, TaskItem } from '../services/dashboard';
+import { getDashboardService } from '../services/dashboard';
+import type { AdviceItem, AlertCard, DashboardData, TaskItem, CreateFollowUpTaskRequest } from '../services/dashboard';
+
+const TASK_PRIORITY_TO_ENUM: Record<TaskItem['priority'], number> = {
+  Low: 1,
+  Medium: 2,
+  High: 3,
+  Critical: 4,
+};
+
+const DEFAULT_PRIORITY_ENUM = TASK_PRIORITY_TO_ENUM['Medium'];
+
+function resolveTaskTypeFromCategory(category: AlertCard['category']): number {
+  const normalized = `${category ?? ''}`.toLowerCase();
+  if (normalized.includes('portfolio') || normalized.includes('equity') || normalized.includes('allocation')) {
+    return 1; // Rebalancing
+  }
+  if (normalized.includes('cash') || normalized.includes('bank')) {
+    return 4; // CashOptimization
+  }
+  if (normalized.includes('tax')) {
+    return 3; // TaxLossHarvesting
+  }
+  if (normalized.includes('insurance')) {
+    return 6; // InsuranceReview
+  }
+  if (normalized.includes('emergency')) {
+    return 7; // EmergencyFundContribution
+  }
+  return 5; // GoalAdjustment as a sensible default
+}
 
 // (Removed old sections placeholder list; replaced by dedicated panel components.)
 
@@ -74,45 +104,51 @@ export const DashboardWave4: React.FC = () => {
   } satisfies Record<AlertCard['severity'], TaskItem['priority']>), []);
 
   const handleCreateTaskFromAlert = useCallback((alert: AlertCard) => {
+    const baseline = viewData ?? data ?? null;
+    if (!baseline) {
+      setToastMessage('Dashboard data still loading — please try again in a moment.');
+      return;
+    }
+
+    const existingFollowUpTask = baseline.tasks.find(task =>
+      task.sourceAlertId === alert.alertId && task.title.startsWith('Follow up:'),
+    );
+    if (existingFollowUpTask) {
+      setToastMessage(`Task already exists for “${alert.title}”`);
+      return;
+    }
+
+    const newTaskId = Date.now();
+    const createdAt = new Date().toISOString();
+    const priority = severityToPriority[alert.severity] ?? 'Medium';
+    const newTask: TaskItem = {
+      taskId: newTaskId,
+      userId: alert.userId,
+      type: 'FollowUp',
+      title: `Follow up: ${alert.title}`,
+      description: alert.message,
+      priority,
+      status: 'Pending',
+      createdDate: createdAt,
+      dueDate: null,
+      sourceAdviceId: null,
+      sourceAlertId: alert.alertId,
+      progressPercentage: 0,
+      confidenceScore: alert.portfolioImpactScore ?? null,
+    };
+
+    const originalAlertSnapshot = baseline.alerts.find(a => a.alertId === alert.alertId);
+    const adviceSnapshots = new Map<number, AdviceItem>();
+    baseline.advice.forEach(item => {
+      if (item.sourceAlertId === alert.alertId) {
+        adviceSnapshots.set(item.adviceId, { ...item });
+      }
+    });
+
     setViewData(prev => {
       if (!prev) {
-        setToastMessage('Dashboard data still loading — please try again in a moment.');
         return prev;
       }
-
-      const existingFollowUpTask = prev.tasks.find(task =>
-        task.sourceAlertId === alert.alertId && task.title.startsWith('Follow up:'),
-      );
-      if (existingFollowUpTask) {
-        setToastMessage(`Task already exists for “${alert.title}”`);
-        return prev;
-      }
-
-      const newTaskId = Date.now();
-      const createdAt = new Date().toISOString();
-      const newTask: TaskItem = {
-        taskId: newTaskId,
-        userId: alert.userId,
-        type: 'FollowUp',
-        title: `Follow up: ${alert.title}`,
-        description: alert.message,
-        priority: severityToPriority[alert.severity] ?? 'Medium',
-        status: 'Pending',
-        createdDate: createdAt,
-        dueDate: null,
-        sourceAdviceId: null,
-        sourceAlertId: alert.alertId,
-        progressPercentage: 0,
-        confidenceScore: alert.portfolioImpactScore ?? null,
-      };
-
-      setRecentTaskIds(prevIds => {
-        const next = new Set(prevIds);
-        next.add(newTaskId);
-        return next;
-      });
-      setToastMessage(`Created task “${alert.title}”`);
-
       const updatedAdvice = prev.advice.map(item =>
         item.sourceAlertId === alert.alertId
           ? {
@@ -122,7 +158,6 @@ export const DashboardWave4: React.FC = () => {
             }
           : item,
       );
-
       return {
         ...prev,
         alerts: prev.alerts.map(a =>
@@ -134,7 +169,94 @@ export const DashboardWave4: React.FC = () => {
         tasks: [newTask, ...prev.tasks],
       } satisfies DashboardData;
     });
-  }, [severityToPriority, setRecentTaskIds, setToastMessage]);
+
+    setRecentTaskIds(prevIds => {
+      const next = new Set(prevIds);
+      next.add(newTaskId);
+      return next;
+    });
+    setToastMessage('Creating follow-up task…');
+
+    const service = getDashboardService();
+    const requestPayload: CreateFollowUpTaskRequest = {
+      userId: alert.userId,
+      type: resolveTaskTypeFromCategory(alert.category),
+      title: newTask.title,
+      description: newTask.description,
+      priority: TASK_PRIORITY_TO_ENUM[priority] ?? DEFAULT_PRIORITY_ENUM,
+      dueDate: null,
+      sourceAlertId: alert.alertId,
+      confidenceScore: alert.portfolioImpactScore ?? null,
+    };
+
+    const persistPromise = service.createFollowUpTask?.(requestPayload);
+
+    if (!persistPromise) {
+      setToastMessage(`Created task “${alert.title}”`);
+      return;
+    }
+
+    persistPromise
+      .then(({ taskId }) => {
+        if (taskId && taskId !== newTaskId) {
+          setViewData(prev => {
+            if (!prev) {
+              return prev;
+            }
+            return {
+              ...prev,
+              advice: prev.advice.map(item =>
+                item.sourceAlertId === alert.alertId
+                  ? { ...item, linkedTaskId: taskId }
+                  : item,
+              ),
+              tasks: prev.tasks.map(task =>
+                task.taskId === newTaskId
+                  ? { ...task, taskId }
+                  : task,
+              ),
+            } satisfies DashboardData;
+          });
+          setRecentTaskIds(prevIds => {
+            const next = new Set(prevIds);
+            next.delete(newTaskId);
+            next.add(taskId);
+            return next;
+          });
+        }
+        setToastMessage(`Created task “${alert.title}”`);
+      })
+      .catch(error => {
+        console.error('Failed to persist follow-up task', error);
+        setToastMessage(`Couldn't save “${alert.title}”. Please try again.`);
+        setRecentTaskIds(prevIds => {
+          const next = new Set(prevIds);
+          next.delete(newTaskId);
+          return next;
+        });
+        setViewData(prev => {
+          if (!prev) {
+            return prev;
+          }
+          const revertedAlerts = prev.alerts.map(a => {
+            if (a.alertId !== alert.alertId) {
+              return a;
+            }
+            return originalAlertSnapshot ? { ...originalAlertSnapshot } : { ...a, isActionable: true };
+          });
+          const revertedAdvice = prev.advice.map(item => {
+            const snapshot = adviceSnapshots.get(item.adviceId);
+            return snapshot ? { ...snapshot } : item;
+          });
+          return {
+            ...prev,
+            alerts: revertedAlerts,
+            advice: revertedAdvice,
+            tasks: prev.tasks.filter(task => task.taskId !== newTaskId),
+          } satisfies DashboardData;
+        });
+      });
+  }, [data, viewData, severityToPriority]);
 
   const displayData = viewData ?? data ?? null;
   const alerts = displayData?.alerts ?? [];

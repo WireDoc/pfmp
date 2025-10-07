@@ -110,5 +110,19 @@ export interface DashboardData {
 
 export interface DashboardService {
   load(): Promise<DashboardData>;
+  createFollowUpTask?(request: CreateFollowUpTaskRequest): Promise<{ taskId: number | null }>;
   // Future: subscribe(cb: (partial: Partial<DashboardData>) => void): () => void;
+}
+
+export interface CreateFollowUpTaskRequest {
+  userId: number;
+  type: number;
+  title: string;
+  description: string;
+  priority: number;
+  dueDate?: string | null;
+  sourceAlertId?: number | null;
+  estimatedImpact?: number | null;
+  impactDescription?: string | null;
+  confidenceScore?: number | null;
 }

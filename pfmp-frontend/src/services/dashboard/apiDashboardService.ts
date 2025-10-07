@@ -8,6 +8,7 @@ import type {
   AlertCard,
   AdviceItem,
   TaskItem,
+  CreateFollowUpTaskRequest,
 } from './types';
 
 interface ApiDashboardSummaryResponse {
@@ -29,6 +30,7 @@ const DEFAULT_DASHBOARD_USER_ID = (import.meta.env?.VITE_PFMP_DASHBOARD_USER_ID 
 const ALERTS_URL = `${API_ORIGIN}/api/alerts?userId=${encodeURIComponent(DEFAULT_DASHBOARD_USER_ID)}&isActive=true`;
 const ADVICE_URL = `${API_ORIGIN}/api/Advice/user/${encodeURIComponent(DEFAULT_DASHBOARD_USER_ID)}?status=Proposed&includeDismissed=false`;
 const TASKS_URL = `${API_ORIGIN}/api/Tasks?userId=${encodeURIComponent(DEFAULT_DASHBOARD_USER_ID)}&status=Pending`;
+const TASKS_CREATE_URL = `${API_ORIGIN}/api/Tasks`;
 
 async function resolveAuthHeaders(): Promise<Record<string, string>> {
   if (typeof window === 'undefined') {
@@ -142,6 +144,26 @@ export function createApiDashboardService(): DashboardService {
         advice,
         tasks,
       } satisfies DashboardData;
+    },
+    async createFollowUpTask(request: CreateFollowUpTaskRequest) {
+      const headers: HeadersInit = {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        ...(await resolveAuthHeaders()),
+      };
+      const resp = await fetch(TASKS_CREATE_URL, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(request),
+      });
+      if (!resp.ok) {
+        throw new Error(`Failed to create dashboard task (${resp.status})`);
+      }
+      const payload = await safeJson<unknown>(resp);
+      if (payload && typeof payload === 'object' && 'taskId' in payload && typeof (payload as any).taskId === 'number') {
+        return { taskId: (payload as { taskId: number }).taskId };
+      }
+      return { taskId: null };
     },
   };
 }
