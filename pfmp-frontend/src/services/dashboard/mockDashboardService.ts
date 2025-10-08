@@ -1,4 +1,11 @@
-import type { CreateFollowUpTaskRequest, DashboardData, DashboardService } from './types';
+import type {
+  CreateFollowUpTaskRequest,
+  DashboardData,
+  DashboardService,
+  UpdateTaskProgressRequest,
+  UpdateTaskStatusRequest,
+  CompleteTaskRequestPayload,
+} from './types';
 
 interface MockOptions {
   latencyMs?: number;
@@ -135,6 +142,15 @@ export function createMockDashboardService(opts: MockOptions = {}): DashboardSer
     async createFollowUpTask(_request: CreateFollowUpTaskRequest) {
       if (latencyMs) await new Promise(r => setTimeout(r, latencyMs));
       return { taskId: Math.floor(Date.now() / 1000) };
+    },
+    async updateTaskStatus(_request: UpdateTaskStatusRequest) {
+      if (latencyMs) await new Promise(r => setTimeout(r, latencyMs));
+    },
+    async updateTaskProgress(_request: UpdateTaskProgressRequest) {
+      if (latencyMs) await new Promise(r => setTimeout(r, latencyMs));
+    },
+    async completeTask(_request: CompleteTaskRequestPayload) {
+      if (latencyMs) await new Promise(r => setTimeout(r, latencyMs));
     },
   };
 }

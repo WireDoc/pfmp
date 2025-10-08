@@ -15,6 +15,8 @@ import {
 } from './mocks/handlers';
 import { mswServer } from './mocks/server';
 import { __resetDashboardServiceForTest } from '../services/dashboard';
+import type { DashboardService } from '../services/dashboard';
+import * as mockDashboardService from '../services/dashboard/mockDashboardService';
 
 function renderDashboard() {
   act(() => {
@@ -86,6 +88,13 @@ function renderDashboardWithRealData({ summary, alerts, advice, tasks }: ApiFixt
       </OnboardingProvider>
     </AuthProvider>
   );
+}
+
+function stubMockDashboardService(overrides?: Partial<DashboardService>) {
+  const base = mockDashboardService.createMockDashboardService({ latencyMs: 0 });
+  const stub = { ...base, ...overrides } satisfies DashboardService;
+  vi.spyOn(mockDashboardService, 'createMockDashboardService').mockImplementation(() => stub);
+  return stub;
 }
 
 beforeEach(() => {
@@ -402,5 +411,115 @@ describe('DashboardWave4 direct component render', () => {
     });
 
     expect(await screen.findByText(/Couldn't save “High utilization detected”/)).toBeInTheDocument();
+  });
+
+  it('updates task status optimistically and clears pending state when persistence succeeds', async () => {
+    stubMockDashboardService();
+
+    renderDashboard();
+
+    const tasksPanel = await screen.findByTestId('tasks-panel');
+    expect(within(tasksPanel).getByText('Rebalance equity allocation')).toBeInTheDocument();
+    expect(within(tasksPanel).getByText('Pending')).toBeInTheDocument();
+
+    const startButton = within(tasksPanel).getByTestId('task-action-start-555');
+    fireEvent.click(startButton);
+
+    expect(within(tasksPanel).getByText('InProgress')).toBeInTheDocument();
+    const completeButton = within(tasksPanel).getByTestId('task-action-complete-555');
+    expect(completeButton).toBeDisabled();
+
+    await waitFor(() => expect(completeButton).not.toBeDisabled());
+    await screen.findByText('Updated “Rebalance equity allocation”');
+  });
+
+  it('reverts task status when persistence fails', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    stubMockDashboardService({
+      updateTaskStatus: async () => {
+        throw new Error('nope');
+      },
+    });
+
+    renderDashboard();
+
+    const tasksPanel = await screen.findByTestId('tasks-panel');
+    const startButton = within(tasksPanel).getByTestId('task-action-start-555');
+    fireEvent.click(startButton);
+
+    expect(within(tasksPanel).getByText('InProgress')).toBeInTheDocument();
+
+    await waitFor(() => expect(within(tasksPanel).getByText('Pending')).toBeInTheDocument());
+  expect(await screen.findByText("Couldn't update “Rebalance equity allocation”. Please try again.")).toBeInTheDocument();
+
+    consoleSpy.mockRestore();
+  });
+
+  it('updates task progress and derives status from slider interaction', async () => {
+    const updateProgress = vi.fn(async () => {});
+    stubMockDashboardService({ updateTaskProgress: updateProgress });
+
+    renderDashboard();
+
+    const tasksPanel = await screen.findByTestId('tasks-panel');
+    const sliderRoot = within(tasksPanel).getByTestId('task-progress-slider-555');
+    const rectSpy = vi.spyOn(sliderRoot, 'getBoundingClientRect' as any).mockReturnValue({
+      width: 200,
+      height: 16,
+      top: 0,
+      left: 0,
+      right: 200,
+      bottom: 16,
+      x: 0,
+      y: 0,
+      toJSON: () => ({})
+    } as DOMRect);
+
+    fireEvent.mouseDown(sliderRoot, { clientX: 0 });
+    fireEvent.mouseMove(document.body, { clientX: 100 });
+    fireEvent.mouseUp(document.body, { clientX: 100 });
+
+    await waitFor(() => expect(updateProgress).toHaveBeenCalledWith({ taskId: 555, progressPercentage: 50 }));
+    await waitFor(() => expect(within(tasksPanel).getByText('InProgress')).toBeInTheDocument());
+    await waitFor(() => expect(within(tasksPanel).getByText('50%')).toBeInTheDocument());
+    await screen.findByText('Updated progress for “Rebalance equity allocation”');
+
+    rectSpy.mockRestore();
+  });
+
+  it('reverts task progress when persistence fails', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const failingProgress = vi.fn(async () => {
+      throw new Error('nope');
+    });
+    stubMockDashboardService({ updateTaskProgress: failingProgress });
+
+    renderDashboard();
+
+    const tasksPanel = await screen.findByTestId('tasks-panel');
+    const sliderRoot = within(tasksPanel).getByTestId('task-progress-slider-555');
+    const rectSpy = vi.spyOn(sliderRoot, 'getBoundingClientRect' as any).mockReturnValue({
+      width: 200,
+      height: 16,
+      top: 0,
+      left: 0,
+      right: 200,
+      bottom: 16,
+      x: 0,
+      y: 0,
+      toJSON: () => ({})
+    } as DOMRect);
+
+    fireEvent.mouseDown(sliderRoot, { clientX: 0 });
+    fireEvent.mouseMove(document.body, { clientX: 100 });
+    fireEvent.mouseUp(document.body, { clientX: 100 });
+
+  await waitFor(() => expect(failingProgress).toHaveBeenCalled());
+  await waitFor(() => expect(within(tasksPanel).getByText('Pending')).toBeInTheDocument());
+  await waitFor(() => expect(within(tasksPanel).getByText('0%')).toBeInTheDocument());
+    expect(await screen.findByText("Couldn't update progress for “Rebalance equity allocation”. Please try again.")).toBeInTheDocument();
+
+    consoleSpy.mockRestore();
+    rectSpy.mockRestore();
   });
 });

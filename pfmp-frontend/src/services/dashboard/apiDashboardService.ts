@@ -9,6 +9,15 @@ import type {
   AdviceItem,
   TaskItem,
   CreateFollowUpTaskRequest,
+  UpdateTaskStatusRequest,
+  UpdateTaskProgressRequest,
+  CompleteTaskRequestPayload,
+} from './types';
+import {
+  TASK_PRIORITY_FROM_ENUM,
+  TASK_STATUS_FROM_ENUM,
+  TASK_STATUS_TO_ENUM,
+  TASK_TYPE_FROM_ENUM,
 } from './types';
 
 interface ApiDashboardSummaryResponse {
@@ -31,6 +40,9 @@ const ALERTS_URL = `${API_ORIGIN}/api/alerts?userId=${encodeURIComponent(DEFAULT
 const ADVICE_URL = `${API_ORIGIN}/api/Advice/user/${encodeURIComponent(DEFAULT_DASHBOARD_USER_ID)}?status=Proposed&includeDismissed=false`;
 const TASKS_URL = `${API_ORIGIN}/api/Tasks?userId=${encodeURIComponent(DEFAULT_DASHBOARD_USER_ID)}&status=Pending`;
 const TASKS_CREATE_URL = `${API_ORIGIN}/api/Tasks`;
+const TASK_STATUS_URL = (taskId: number | string) => `${API_ORIGIN}/api/Tasks/${encodeURIComponent(taskId)}/status`;
+const TASK_PROGRESS_URL = (taskId: number | string) => `${API_ORIGIN}/api/Tasks/${encodeURIComponent(taskId)}/progress`;
+const TASK_COMPLETE_URL = (taskId: number | string) => `${API_ORIGIN}/api/Tasks/${encodeURIComponent(taskId)}/complete`;
 
 async function resolveAuthHeaders(): Promise<Record<string, string>> {
   if (typeof window === 'undefined') {
@@ -62,6 +74,14 @@ async function resolveAuthHeaders(): Promise<Record<string, string>> {
     }
     return {};
   }
+}
+
+async function buildJsonHeaders(): Promise<Record<string, string>> {
+  return {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    ...(await resolveAuthHeaders()),
+  };
 }
 
 async function safeJson<T>(resp: Response): Promise<T> {
@@ -103,6 +123,97 @@ async function fetchList<T>(url: string, headers: HeadersInit, context: 'alerts'
   return [];
 }
 
+const TASK_STATUS_LABELS = Object.values(TASK_STATUS_FROM_ENUM);
+const TASK_PRIORITY_LABELS = Object.values(TASK_PRIORITY_FROM_ENUM);
+
+function normalizeTaskStatus(value: unknown): TaskItem['status'] {
+  if (typeof value === 'number') {
+    return TASK_STATUS_FROM_ENUM[value] ?? 'Pending';
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim();
+    const match = TASK_STATUS_LABELS.find(label => label.toLowerCase() === normalized.toLowerCase());
+    return (match ?? normalized) as TaskItem['status'];
+  }
+  return 'Pending';
+}
+
+function normalizeTaskPriority(value: unknown): TaskItem['priority'] {
+  if (typeof value === 'number') {
+    return TASK_PRIORITY_FROM_ENUM[value] ?? 'Medium';
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim();
+    const match = TASK_PRIORITY_LABELS.find(label => label.toLowerCase() === normalized.toLowerCase());
+    return (match ?? normalized) as TaskItem['priority'];
+  }
+  return 'Medium';
+}
+
+function normalizeTaskType(value: unknown): string {
+  if (typeof value === 'number') {
+    return TASK_TYPE_FROM_ENUM[value] ?? `TaskType${value}`;
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  return 'Task';
+}
+
+function normalizeIsoString(value: unknown): string {
+  if (typeof value === 'string' && value.trim()) {
+    return value;
+  }
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  return new Date().toISOString();
+}
+
+function normalizeNullableNumber(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function normalizeTaskPayload(payload: Record<string, unknown>): TaskItem {
+  const taskId = normalizeNullableNumber(payload.taskId ?? payload.TaskId) ?? Date.now();
+  const userId = normalizeNullableNumber(payload.userId ?? payload.UserId) ?? 0;
+  const status = normalizeTaskStatus(payload.status ?? payload.Status);
+  const priority = normalizeTaskPriority(payload.priority ?? payload.Priority);
+  const type = normalizeTaskType(payload.type ?? payload.Type ?? 'Task');
+  const createdDate = normalizeIsoString(payload.createdDate ?? payload.CreatedDate);
+  const dueDateRaw = payload.dueDate ?? payload.DueDate;
+  const dueDate = typeof dueDateRaw === 'string' ? dueDateRaw : null;
+  const sourceAlertId = normalizeNullableNumber(payload.sourceAlertId ?? payload.SourceAlertId);
+  const sourceAdviceId = normalizeNullableNumber(payload.sourceAdviceId ?? payload.SourceAdviceId);
+  const progressPercentage = normalizeNullableNumber(payload.progressPercentage ?? payload.ProgressPercentage) ?? 0;
+  const confidenceScore = normalizeNullableNumber(payload.confidenceScore ?? payload.ConfidenceScore);
+  const descriptionRaw = payload.description ?? payload.Description;
+  const titleRaw = payload.title ?? payload.Title;
+
+  return {
+    taskId,
+    userId,
+    type,
+    title: typeof titleRaw === 'string' ? titleRaw : 'Task',
+    description: typeof descriptionRaw === 'string' ? descriptionRaw : '',
+    priority,
+    status,
+    createdDate,
+    dueDate,
+    sourceAdviceId,
+    sourceAlertId,
+    progressPercentage,
+    confidenceScore,
+  } satisfies TaskItem;
+}
+
 export function createApiDashboardService(): DashboardService {
   return {
     async load() {
@@ -125,11 +236,11 @@ export function createApiDashboardService(): DashboardService {
           }
           return [] as AdviceItem[];
         }),
-        fetchList<TaskItem>(TASKS_URL, headers, 'tasks').catch((error) => {
+        fetchList<Record<string, unknown>>(TASKS_URL, headers, 'tasks').catch((error) => {
           if (import.meta.env?.MODE !== 'production') {
             console.warn('Dashboard API tasks fetch failed; defaulting to empty list', error);
           }
-          return [] as TaskItem[];
+          return [] as Record<string, unknown>[];
         }),
       ]);
 
@@ -142,15 +253,11 @@ export function createApiDashboardService(): DashboardService {
         insights: dto.insights ?? [],
         alerts,
         advice,
-        tasks,
+        tasks: tasks.map(normalizeTaskPayload),
       } satisfies DashboardData;
     },
     async createFollowUpTask(request: CreateFollowUpTaskRequest) {
-      const headers: HeadersInit = {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        ...(await resolveAuthHeaders()),
-      };
+      const headers = await buildJsonHeaders();
       const resp = await fetch(TASKS_CREATE_URL, {
         method: 'POST',
         headers,
@@ -164,6 +271,41 @@ export function createApiDashboardService(): DashboardService {
         return { taskId: (payload as { taskId: number }).taskId };
       }
       return { taskId: null };
+    },
+    async updateTaskStatus(request: UpdateTaskStatusRequest) {
+      const headers = await buildJsonHeaders();
+      const statusEnum = TASK_STATUS_TO_ENUM[request.status] ?? TASK_STATUS_TO_ENUM['Pending'];
+      const resp = await fetch(TASK_STATUS_URL(request.taskId), {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(statusEnum),
+      });
+      if (!resp.ok) {
+        throw new Error(`Failed to update dashboard task status (${resp.status})`);
+      }
+    },
+    async updateTaskProgress(request: UpdateTaskProgressRequest) {
+      const headers = await buildJsonHeaders();
+      const progress = Math.max(0, Math.min(100, Math.round(request.progressPercentage)));
+      const resp = await fetch(TASK_PROGRESS_URL(request.taskId), {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(progress),
+      });
+      if (!resp.ok) {
+        throw new Error(`Failed to update dashboard task progress (${resp.status})`);
+      }
+    },
+    async completeTask(request: CompleteTaskRequestPayload) {
+      const headers = await buildJsonHeaders();
+      const resp = await fetch(TASK_COMPLETE_URL(request.taskId), {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ completionNotes: request.completionNotes ?? null }),
+      });
+      if (!resp.ok) {
+        throw new Error(`Failed to complete dashboard task (${resp.status})`);
+      }
     },
   };
 }
