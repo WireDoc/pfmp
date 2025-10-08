@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { isFeatureEnabled } from '../../flags/featureFlags';
 // Using only msal-browser to avoid peer dependency mismatch of @azure/msal-react with React 19.
 import { InteractionRequiredAuthError } from '@azure/msal-browser';
@@ -27,6 +27,15 @@ export const AuthProvider: React.FC<InternalAuthProviderProps> = ({ children, __
     const [user, setUser] = useState<AccountInfo | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const setAuthenticationState = useCallback((response: AuthenticationResult) => {
+        if (response.account) {
+            msalInstance.setActiveAccount(response.account);
+            setUser(response.account);
+            setIsAuthenticated(true);
+            setError(null);
+        }
+    }, []);
 
     useEffect(() => {
         const initializeAuth = async () => {
@@ -62,16 +71,7 @@ export const AuthProvider: React.FC<InternalAuthProviderProps> = ({ children, __
             }
         };
         initializeAuth();
-    }, []);
-
-    const setAuthenticationState = (response: AuthenticationResult) => {
-        if (response.account) {
-            msalInstance.setActiveAccount(response.account);
-            setUser(response.account);
-            setIsAuthenticated(true);
-            setError(null);
-        }
-    };
+    }, [__forceDevOff, setAuthenticationState]);
 
     const login = async () => {
         try {

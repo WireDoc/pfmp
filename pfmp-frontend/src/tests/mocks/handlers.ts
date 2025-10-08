@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import type { OnboardingProgressDTO } from '../../onboarding/persistence';
+import type { AlertCard, AdviceItem, TaskItem } from '../../services/dashboard';
 
 const emptyModule = () =>
   HttpResponse.text('export {}\n', {
@@ -78,17 +79,17 @@ export const defaultHandlers = [
   http.post(onboardingResetMatcher, () => HttpResponse.json({}, { status: 204 })),
 ];
 
-export const mockDashboardSummary = (data: any, init?: ResponseInit) =>
-  createDashboardSummaryHandlers(() => HttpResponse.json(data, init));
+export const mockDashboardSummary = <T>(data: T, init?: ResponseInit) =>
+  createDashboardSummaryHandlers(() => HttpResponse.json<T>(data, init));
 
-export const mockDashboardAlerts = (data: any[], init?: ResponseInit) =>
-  createAlertsHandlers(() => HttpResponse.json(data, init ?? { status: 200 }));
+export const mockDashboardAlerts = (data: AlertCard[], init?: ResponseInit) =>
+  createAlertsHandlers(() => HttpResponse.json<AlertCard[]>(data, init ?? { status: 200 }));
 
-export const mockDashboardAdvice = (data: any[], init?: ResponseInit) =>
-  createAdviceHandlers(() => HttpResponse.json(data, init ?? { status: 200 }));
+export const mockDashboardAdvice = (data: AdviceItem[], init?: ResponseInit) =>
+  createAdviceHandlers(() => HttpResponse.json<AdviceItem[]>(data, init ?? { status: 200 }));
 
-export const mockDashboardTasks = (data: any[], init?: ResponseInit) =>
-  createTasksHandlers(() => HttpResponse.json(data, init ?? { status: 200 }));
+export const mockDashboardTasks = (data: TaskItem[], init?: ResponseInit) =>
+  createTasksHandlers(() => HttpResponse.json<TaskItem[]>(data, init ?? { status: 200 }));
 
 export interface OnboardingApiMock {
   handlers: ReturnType<typeof http.get>[];

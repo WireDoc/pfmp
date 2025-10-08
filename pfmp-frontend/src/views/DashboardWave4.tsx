@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Box, Typography, Paper, Alert, Skeleton, Snackbar } from '@mui/material';
 import Grid from '@mui/material/Grid';
-import { useOnboarding } from '../onboarding/useOnboarding';
+import { OnboardingContext } from '../onboarding/OnboardingContext.shared';
 import { Navigate } from 'react-router-dom';
 import { useDashboardData } from '../services/dashboard/useDashboardData';
 import { OverviewPanel } from './dashboard/OverviewPanel';
@@ -19,6 +19,7 @@ import type {
   TaskItem,
   CreateFollowUpTaskRequest,
 } from '../services/dashboard';
+import type { OnboardingStepId } from '../onboarding/steps';
 
 function resolveTaskTypeFromCategory(category: AlertCard['category']): number {
   const normalized = `${category ?? ''}`.toLowerCase();
@@ -44,42 +45,33 @@ function resolveTaskTypeFromCategory(category: AlertCard['category']): number {
 
 export const DashboardWave4: React.FC = () => {
   const { user } = useAuth();
-  let onboardingComplete = true;
-  let hydrated = true;
-  let completedCount = 0;
-  let totalSteps = 0;
-  let nextStepTitle: string | null = null;
-  try {
-    const ob = useOnboarding();
-    hydrated = ob.hydrated;
-    onboardingComplete = ob.completed.size >= ob.steps.length;
-    completedCount = ob.completed.size;
-    totalSteps = ob.steps.length;
-    const pendingStep = ob.steps.find(step => !ob.completed.has(step.id));
-    nextStepTitle = pendingStep?.title ?? null;
-  } catch {
-    // OnboardingProvider not mounted; treat as complete to avoid blocking dev usage.
-  }
+  const onboarding = useContext(OnboardingContext);
+  const completedSteps = onboarding?.completed ?? new Set<OnboardingStepId>();
+  const onboardingSteps = onboarding?.steps ?? [];
+  const totalSteps = onboardingSteps.length;
+  const completedCount = completedSteps.size;
+  const onboardingHydrated = onboarding?.hydrated ?? true;
+  const onboardingComplete = onboarding ? completedCount >= totalSteps : true;
+  const nextStepTitle = onboardingSteps.find(step => !completedSteps.has(step.id))?.title ?? null;
 
-  if (!hydrated) {
-    return <Box p={4}><Typography variant="body1">Preparing dashboard…</Typography></Box>;
-  }
-  if (!onboardingComplete) {
-    return <Navigate to="/onboarding" replace />;
-  }
-
-  const hasProgressMetrics = totalSteps > 0;
-  const completionPercent = hasProgressMetrics ? Math.round((completedCount / totalSteps) * 100) : 100;
-  const stepsSummaryText = hasProgressMetrics
-    ? `${completionPercent}% of onboarding steps complete (${completedCount}/${totalSteps}).`
-    : 'Onboarding summary unavailable in this context.';
-  const onboardingStatusText = hasProgressMetrics
-    ? (onboardingComplete
-      ? `Onboarding complete (${completedCount}/${totalSteps} steps).`
-      : `Onboarding ${completedCount}/${totalSteps} complete — next up: ${nextStepTitle ?? 'Continue onboarding'}.`)
-    : 'Onboarding provider not attached; dashboard unlocked for development.';
-  const onboardingStatusColor = hasProgressMetrics ? (onboardingComplete ? 'success.main' : 'warning.main') : 'text.secondary';
-  const displayName = user?.name ?? user?.username ?? 'PFMP Member';
+  const displayName = user?.name ?? user?.username ?? 'Client';
+  const stepsSummaryText = onboardingHydrated
+    ? onboardingComplete
+      ? 'Onboarding complete. Great job staying on track.'
+      : totalSteps > 0
+        ? `Onboarding ${completedCount} of ${totalSteps} steps complete${nextStepTitle ? ` — next: ${nextStepTitle}` : ''}.`
+        : 'Onboarding setup is still in progress.'
+    : 'Checking onboarding progress…';
+  const onboardingStatusText = onboardingHydrated
+    ? onboardingComplete
+      ? 'Onboarding complete'
+      : totalSteps > 0
+        ? `Onboarding in progress (${completedCount}/${totalSteps})`
+        : 'Onboarding status unavailable'
+    : 'Syncing onboarding status…';
+  const onboardingStatusColor = onboardingHydrated
+    ? (onboardingComplete ? 'success.main' : 'warning.main')
+    : 'text.secondary';
 
   const { data, loading, error } = useDashboardData();
   const [viewData, setViewData] = useState<DashboardData | null>(null);
@@ -421,6 +413,22 @@ export const DashboardWave4: React.FC = () => {
         setToastMessage(`Couldn't update progress for “${snapshot.title}”. Please try again.`);
       });
   }, [markTaskPending, restoreTaskSnapshot, updateTaskInState]);
+
+  if (!onboardingHydrated) {
+    return (
+      <Box data-testid="wave4-dashboard-root" p={3} display="flex" flexDirection="column" gap={3}>
+        <Typography variant="h4" gutterBottom>Dashboard (Wave 4)</Typography>
+        <Paper variant="outlined" sx={{ p: 2 }}>
+          <Typography variant="body1" gutterBottom>Preparing your dashboard…</Typography>
+          <Skeleton variant="rounded" height={120} />
+        </Paper>
+      </Box>
+    );
+  }
+
+  if (!onboardingComplete) {
+    return <Navigate to="/onboarding" replace />;
+  }
 
   const displayData = viewData ?? data ?? null;
   const alerts = displayData?.alerts ?? [];

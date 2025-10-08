@@ -20,6 +20,18 @@ import {
   TASK_TYPE_FROM_ENUM,
 } from './types';
 
+interface TaskCreateResponseDto {
+  taskId: number;
+}
+
+function isTaskCreateResponseDto(payload: unknown): payload is TaskCreateResponseDto {
+  if (typeof payload !== 'object' || payload === null) {
+    return false;
+  }
+  const candidate = payload as { taskId?: unknown };
+  return typeof candidate.taskId === 'number';
+}
+
 interface ApiDashboardSummaryResponse {
   netWorth: DashboardData['netWorth'];
   accounts?: DashboardData['accounts'];
@@ -267,8 +279,8 @@ export function createApiDashboardService(): DashboardService {
         throw new Error(`Failed to create dashboard task (${resp.status})`);
       }
       const payload = await safeJson<unknown>(resp);
-      if (payload && typeof payload === 'object' && 'taskId' in payload && typeof (payload as any).taskId === 'number') {
-        return { taskId: (payload as { taskId: number }).taskId };
+      if (isTaskCreateResponseDto(payload)) {
+        return { taskId: payload.taskId };
       }
       return { taskId: null };
     },
