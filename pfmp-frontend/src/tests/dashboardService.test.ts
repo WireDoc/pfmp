@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { mockDashboardSummary, http, HttpResponse } from './mocks/handlers';
+import { mockDashboardSummary, mockDashboardAlerts, mockDashboardAdvice, mockDashboardTasks, http, HttpResponse } from './mocks/handlers';
 import { mswServer } from './mocks/server';
 import { createApiDashboardService } from '../services/dashboard/apiDashboardService';
 import { getDashboardService, __resetDashboardServiceForTest } from '../services/dashboard';
@@ -7,15 +7,10 @@ import { updateFlags } from '../flags/featureFlags';
 import { msalInstance } from '../contexts/auth/msalInstance';
 import type { AccountInfo, AuthenticationResult } from '@azure/msal-browser';
 
-const originalFetch = global.fetch;
-
 afterEach(() => {
   updateFlags({ dashboard_wave4_real_data: false, use_simulated_auth: true });
   __resetDashboardServiceForTest();
   vi.restoreAllMocks();
-  if (originalFetch) {
-    global.fetch = originalFetch;
-  }
   mswServer.resetHandlers();
 });
 
@@ -39,87 +34,68 @@ describe('Dashboard services', () => {
       insights: [],
     } as const;
 
-    const fetchSpy = vi.spyOn(global, 'fetch').mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-      if (url.includes('/api/alerts')) {
-        return new Response(JSON.stringify([
-          {
-            alertId: 1,
-            userId: 1,
-            title: 'Alert',
-            message: 'Check this out',
-            severity: 'High',
-            category: 'Portfolio',
-            isActionable: true,
-            portfolioImpactScore: 50,
-            createdAt: '2025-10-06T12:00:00Z',
-            isRead: false,
-            isDismissed: false,
-            expiresAt: null,
-            actionUrl: null,
-          },
-        ]), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-      if (url.toLowerCase().includes('/api/advice/user/')) {
-        return new Response(JSON.stringify([
-          {
-            adviceId: 10,
-            userId: 1,
-            theme: 'General',
-            status: 'Proposed',
-            consensusText: 'Do thing',
-            confidenceScore: 70,
-            sourceAlertId: 1,
-            linkedTaskId: null,
-            createdAt: '2025-10-06T12:05:00Z',
-          },
-        ]), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-      if (url.includes('/api/Tasks') || url.includes('/api/tasks')) {
-        return new Response(JSON.stringify([
-          {
-            taskId: 20,
-            userId: 1,
-            type: 'GoalAdjustment',
-            title: 'Task',
-            description: 'Complete task',
-            priority: 'Medium',
-            status: 'Pending',
-            createdDate: '2025-10-06T12:06:00Z',
-            dueDate: null,
-            sourceAdviceId: 10,
-            sourceAlertId: 1,
-            progressPercentage: 0,
-            confidenceScore: 80,
-          },
-        ]), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-      if (originalFetch) {
-        return originalFetch(input, init);
-      }
-      return Promise.reject(new Error('No fetch available'));
-    });
+    const fetchSpy = vi.spyOn(global, 'fetch');
 
-    mswServer.use(...mockDashboardSummary(summary));
+    mswServer.use(
+      ...mockDashboardSummary(summary),
+      ...mockDashboardAlerts([
+        {
+          alertId: 1,
+          userId: 1,
+          title: 'Alert',
+          message: 'Check this out',
+          severity: 'High',
+          category: 'Portfolio',
+          isActionable: true,
+          portfolioImpactScore: 50,
+          createdAt: '2025-10-06T12:00:00Z',
+          isRead: false,
+          isDismissed: false,
+          expiresAt: null,
+          actionUrl: null,
+        },
+      ]),
+      ...mockDashboardAdvice([
+        {
+          adviceId: 10,
+          userId: 1,
+          theme: 'General',
+          status: 'Proposed',
+          consensusText: 'Do thing',
+          confidenceScore: 70,
+          sourceAlertId: 1,
+          linkedTaskId: null,
+          createdAt: '2025-10-06T12:05:00Z',
+        },
+      ]),
+      ...mockDashboardTasks([
+        {
+          taskId: 20,
+          userId: 1,
+          type: 'GoalAdjustment',
+          title: 'Task',
+          description: 'Complete task',
+          priority: 'Medium',
+          status: 'Pending',
+          createdDate: '2025-10-06T12:06:00Z',
+          dueDate: null,
+          sourceAdviceId: 10,
+          sourceAlertId: 1,
+          progressPercentage: 0,
+          confidenceScore: 80,
+        },
+      ]),
+    );
 
     const apiService = createApiDashboardService();
     const data = await apiService.load();
 
-  expect(fetchSpy).toHaveBeenCalledTimes(4);
-  const urls = fetchSpy.mock.calls.map(call => String(call?.[0]));
-  expect(urls[0]).toContain('/api/dashboard/summary');
-  expect(urls.some(url => url.includes('/api/alerts'))).toBe(true);
-  expect(urls.some(url => url.toLowerCase().includes('/api/advice/user/'))).toBe(true);
-  expect(urls.some(url => url.includes('/api/Tasks') || url.includes('/api/tasks'))).toBe(true);
+    expect(fetchSpy).toHaveBeenCalledTimes(4);
+    const urls = fetchSpy.mock.calls.map(call => String(call?.[0]));
+    expect(urls[0]).toContain('/api/dashboard/summary');
+    expect(urls.some(url => url.includes('/api/alerts'))).toBe(true);
+    expect(urls.some(url => url.toLowerCase().includes('/api/advice/user/'))).toBe(true);
+    expect(urls.some(url => url.includes('/api/Tasks') || url.includes('/api/tasks'))).toBe(true);
     expect(data.netWorth.netWorth.amount).toBe(900);
     expect(data.accounts).toEqual([]);
     expect(data.insights).toEqual([]);

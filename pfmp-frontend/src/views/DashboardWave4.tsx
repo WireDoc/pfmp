@@ -41,6 +41,13 @@ function resolveTaskTypeFromCategory(category: AlertCard['category']): number {
   return 5; // GoalAdjustment as a sensible default
 }
 
+function monotonicNow(): number {
+  if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+    return performance.now();
+  }
+  return Date.now();
+}
+
 // (Removed old sections placeholder list; replaced by dedicated panel components.)
 
 export const DashboardWave4: React.FC = () => {
@@ -78,6 +85,12 @@ export const DashboardWave4: React.FC = () => {
   const [recentTaskIds, setRecentTaskIds] = useState<Set<number>>(new Set());
   const [pendingTaskIds, setPendingTaskIds] = useState<Set<number>>(new Set());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const logTelemetry = useCallback((event: string, payload: Record<string, unknown> = {}) => {
+    if (typeof console !== 'undefined' && typeof console.debug === 'function') {
+      console.debug('[telemetry][dashboard-wave4]', event, payload);
+    }
+  }, []);
 
   useEffect(() => {
     if (data) {
@@ -153,6 +166,7 @@ export const DashboardWave4: React.FC = () => {
     const baseline = viewData ?? data ?? null;
     if (!baseline) {
       setToastMessage('Dashboard data still loading — please try again in a moment.');
+      logTelemetry('alert_task_create_blocked', { reason: 'no-data', alertId: alert.alertId });
       return;
     }
 
@@ -161,6 +175,10 @@ export const DashboardWave4: React.FC = () => {
     );
     if (existingFollowUpTask) {
       setToastMessage(`Task already exists for “${alert.title}”`);
+      logTelemetry('alert_task_create_duplicate', {
+        alertId: alert.alertId,
+        existingTaskId: existingFollowUpTask.taskId,
+      });
       return;
     }
 
@@ -223,13 +241,20 @@ export const DashboardWave4: React.FC = () => {
     });
     setToastMessage('Creating follow-up task…');
 
+    const attemptStartedAt = monotonicNow();
+    logTelemetry('alert_task_create_attempt', {
+      alertId: alert.alertId,
+      severity: alert.severity,
+      category: alert.category,
+    });
+
     const service = getDashboardService();
     const requestPayload: CreateFollowUpTaskRequest = {
       userId: alert.userId,
       type: resolveTaskTypeFromCategory(alert.category),
       title: newTask.title,
       description: newTask.description,
-  priority: TASK_PRIORITY_TO_ENUM[priority] ?? DEFAULT_TASK_PRIORITY_ENUM,
+      priority: TASK_PRIORITY_TO_ENUM[priority] ?? DEFAULT_TASK_PRIORITY_ENUM,
       dueDate: null,
       sourceAlertId: alert.alertId,
       confidenceScore: alert.portfolioImpactScore ?? null,
@@ -239,12 +264,22 @@ export const DashboardWave4: React.FC = () => {
 
     if (!persistPromise) {
       setToastMessage(`Created task “${alert.title}”`);
+      logTelemetry('alert_task_create_local_only', {
+        alertId: alert.alertId,
+        taskId: newTaskId,
+      });
       return;
     }
 
     persistPromise
       .then(({ taskId }) => {
-  if (taskId && taskId !== newTaskId) {
+        const durationMs = Math.max(0, Math.round(monotonicNow() - attemptStartedAt));
+        logTelemetry('alert_task_create_success', {
+          alertId: alert.alertId,
+          durationMs,
+          taskId: taskId ?? newTaskId,
+        });
+        if (taskId && taskId !== newTaskId) {
           setViewData(prev => {
             if (!prev) {
               return prev;
@@ -269,16 +304,32 @@ export const DashboardWave4: React.FC = () => {
             next.add(taskId);
             return next;
           });
+          logTelemetry('alert_task_id_swap', {
+            temporaryTaskId: newTaskId,
+            persistedTaskId: taskId,
+            alertId: alert.alertId,
+          });
         }
         setToastMessage(`Created task “${alert.title}”`);
-      })
-  .catch(error => {
+    })
+    .catch(error => {
+        const durationMs = Math.max(0, Math.round(monotonicNow() - attemptStartedAt));
         console.error('Failed to persist follow-up task', error);
         setToastMessage(`Couldn't save “${alert.title}”. Please try again.`);
         setRecentTaskIds(prevIds => {
           const next = new Set(prevIds);
           next.delete(newTaskId);
           return next;
+        });
+        logTelemetry('alert_task_create_failure', {
+          alertId: alert.alertId,
+          durationMs,
+          error:
+            error instanceof Error
+              ? error.message
+              : typeof error === 'string'
+                ? error
+                : 'unknown',
         });
         setViewData(prev => {
           if (!prev) {
@@ -309,20 +360,24 @@ export const DashboardWave4: React.FC = () => {
     const baseline = (viewData ?? data) ?? null;
     if (!baseline) {
       setToastMessage('Dashboard data still loading — please try again in a moment.');
+      logTelemetry('task_status_update_blocked', { taskId, reason: 'no-data' });
       return;
     }
     const existing = baseline.tasks.find(task => task.taskId === taskId);
     if (!existing) {
       setToastMessage('Task is no longer available.');
+      logTelemetry('task_status_update_blocked', { taskId, reason: 'missing-task' });
       return;
     }
     if (existing.status === nextStatus) {
+      logTelemetry('task_status_update_skipped', { taskId, status: nextStatus, reason: 'no-op' });
       return;
     }
 
     const canComplete = nextStatus === 'Completed' && service.completeTask;
     if (!canComplete && !service.updateTaskStatus) {
       setToastMessage('Task updates are unavailable in the current mode.');
+      logTelemetry('task_status_update_blocked', { taskId, reason: 'no-service' });
       return;
     }
 
@@ -338,8 +393,16 @@ export const DashboardWave4: React.FC = () => {
 
     if (!snapshot) {
       setToastMessage('Task is no longer available.');
+      logTelemetry('task_status_update_blocked', { taskId, reason: 'missing-snapshot' });
       return;
     }
+
+    const attemptStartedAt = monotonicNow();
+    logTelemetry('task_status_update_attempt', {
+      taskId,
+      fromStatus: existing.status,
+      toStatus: nextStatus,
+    });
 
     markTaskPending(taskId, true);
 
@@ -358,12 +421,27 @@ export const DashboardWave4: React.FC = () => {
           });
         }
         setToastMessage(`Updated “${snapshot.title}”`);
+        logTelemetry('task_status_update_success', {
+          taskId,
+          toStatus: nextStatus,
+          durationMs: Math.max(0, Math.round(monotonicNow() - attemptStartedAt)),
+        });
       })
       .catch(error => {
         console.error('Failed to update dashboard task status', error);
         markTaskPending(taskId, false);
         restoreTaskSnapshot(taskId, snapshot);
         setToastMessage(`Couldn't update “${snapshot.title}”. Please try again.`);
+        logTelemetry('task_status_update_failure', {
+          taskId,
+          toStatus: nextStatus,
+          error:
+            error instanceof Error
+              ? error.message
+              : typeof error === 'string'
+                ? error
+                : 'unknown',
+        });
       });
   }, [data, viewData, markTaskPending, restoreTaskSnapshot, updateTaskInState]);
 
@@ -371,6 +449,7 @@ export const DashboardWave4: React.FC = () => {
     const service = getDashboardService();
     if (!service.updateTaskProgress) {
       setToastMessage('Task progress updates are unavailable in the current mode.');
+      logTelemetry('task_progress_update_blocked', { taskId, reason: 'no-service' });
       return;
     }
 
@@ -389,10 +468,18 @@ export const DashboardWave4: React.FC = () => {
 
     if (!snapshot) {
       setToastMessage('Task is no longer available.');
+      logTelemetry('task_progress_update_blocked', { taskId, reason: 'missing-snapshot' });
       return;
     }
 
     markTaskPending(taskId, true);
+
+    const attemptStartedAt = monotonicNow();
+    logTelemetry('task_progress_update_attempt', {
+      taskId,
+      progress: clamped,
+      derivedStatus,
+    });
 
     service.updateTaskProgress({ taskId, progressPercentage: clamped })
       .then(() => {
@@ -405,12 +492,27 @@ export const DashboardWave4: React.FC = () => {
           });
         }
         setToastMessage(`Updated progress for “${snapshot.title}”`);
+        logTelemetry('task_progress_update_success', {
+          taskId,
+          progress: clamped,
+          durationMs: Math.max(0, Math.round(monotonicNow() - attemptStartedAt)),
+        });
       })
       .catch(error => {
         console.error('Failed to update dashboard task progress', error);
         markTaskPending(taskId, false);
         restoreTaskSnapshot(taskId, snapshot);
         setToastMessage(`Couldn't update progress for “${snapshot.title}”. Please try again.`);
+        logTelemetry('task_progress_update_failure', {
+          taskId,
+          progress: clamped,
+          error:
+            error instanceof Error
+              ? error.message
+              : typeof error === 'string'
+                ? error
+                : 'unknown',
+        });
       });
   }, [markTaskPending, restoreTaskSnapshot, updateTaskInState]);
 

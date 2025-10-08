@@ -21,9 +21,9 @@ Reintroduce the higher-order frontend orchestration layer (authenticated shell, 
   - ✅ Implemented real service adapter (flagged) with unit + selection coverage verifying API/mocked mode swaps.
   - Extend integration tests (MSW) to assert loading/error/empty flows with both mock and real adapters.
 3. **Alerts → Tasks interaction**
-  - Design alert list UI states (empty, loading, error) and optimistic task-creation flow.
-  - Wire to existing Alerts/Tasks endpoints behind `enableDashboardWave4`.
-  - Capture telemetry stub (`console.debug('[telemetry]', ...)`) for conversion latency pending Wave 6 instrumentation.
+  - Design alert list UI states (empty, loading, error) and optimistic task-creation flow. ✅ Implemented with optimistic create + rollback handling in `DashboardWave4`.
+  - Wire to existing Alerts/Tasks endpoints behind `enableDashboardWave4`. ✅ API adapter + follow-up task orchestration now live under the Wave 4 flag.
+  - Capture telemetry stub (`console.debug('[telemetry]', ...)`) for conversion latency pending Wave 6 instrumentation. ✅ `DashboardWave4` now emits `[telemetry][dashboard-wave4]` events for create/update success & failure paths.
 
 ## Scope Inclusions
 - Routing shell (React Router v6) with protected layout
@@ -112,7 +112,7 @@ Add lightweight timing logs around fetch & patch once stable.
 - [ ] Validate onboarding persistence end-to-end (see `docs/testing/onboarding-persistence.md`).
 - [ ] Draft & sign off dashboard contract doc (`docs/api/dashboard-contract.md`) with backend.
 - [x] Implement real dashboard adapter behind `enableDashboardWave4`/`dashboard_wave4_real_data` and cover API vs mock selection in Vitest. *(MSW fixture coverage tracked separately below.)*
-- [ ] Design and wire alert → task optimistic flow with telemetry stub.
+- [x] Design and wire alert → task optimistic flow with telemetry stub. *(Covered by `DashboardWave4` alert → task orchestration + new Vitest integration coverage.)*
 - [ ] Update README Wave tracker once dashboard feature flag defaults to on.
 - [ ] Add MSW fixtures + integration tests for dashboard service (happy path + error + empty).
 - [ ] Publish dashboard real-data rollout runbook (`docs/runbooks/ENABLE-DASHBOARD-REAL-DATA.md`) with QA checklist and flag enablement steps.

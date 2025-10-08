@@ -12,27 +12,25 @@ const emptyModule = () =>
 
 const moduleRouteExpressions = [
   /\/src\/.*/,
-  'http://localhost/src/:path*',
+  /^https?:\/\/localhost(?::\d+)?\/src\/.*/,
+  /^https?:\/\/(?:127\.0\.0\.1|\[::1])(?::\d+)?\/src\/.*/,
 ] as const;
 
 const dashboardSummaryMatchers = [
-  'http://localhost/api/dashboard/summary',
-  'http://localhost:3000/api/dashboard/summary',
-  'http://127.0.0.1:3000/api/dashboard/summary',
-  'http://[::1]:3000/api/dashboard/summary',
+  /^https?:\/\/(?:localhost|127\.0\.0\.1|\[::1])(?::\d+)?\/api\/dashboard\/summary$/i,
   /\/api\/dashboard\/summary$/,
 ] as const;
 
 const alertsMatchers = [
-  /\/api\/alerts\/?(?:\?.*)?$/i,
+  /\/api\/alerts(\/|\?.*)?$/i,
 ] as const;
 
 const adviceMatchers = [
-  /\/api\/advice\/user\/\d+\/?(?:\?.*)?$/i,
+  /\/api\/advice\/user\/\d+(\/|\?.*)?$/i,
 ] as const;
 
 const tasksMatchers = [
-  /\/api\/tasks\/?(?:\?.*)?$/i,
+  /\/api\/tasks(\/|\?.*)?$/i,
 ] as const;
 
 const onboardingProgressMatcher = /\/api\/onboarding\/progress(?:\?.*)?$/;
