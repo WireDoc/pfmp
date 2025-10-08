@@ -147,10 +147,10 @@ Accepting advice triggers `POST /api/Advice/{adviceId}/accept`, which in turn cr
 
 - [ ] Backend: confirm composite `GET /api/dashboard/summary` payload + auth scopes (owner: API team)
 - [x] Frontend: update `DashboardService` to choose between mock and live endpoints behind the feature flag (owner: Wave 4 squad)
-- [ ] Frontend: extend service to fetch alerts/advice/tasks feeds (Wave 4.2)
+- [x] Frontend: extend service to fetch alerts/advice/tasks feeds (Wave 4.2) *(verified via `DashboardWave4` alert → task integration tests)*
 - [ ] Frontend: attach MSAL bearer token to real-data requests once scopes finalized (owner: Wave 4 squad)
 - [x] QA: add contract validation tests (MSW fixtures) covering success, empty, and error payloads for summary (2025-10-07)
-- [ ] QA: add MSW fixtures for alerts/advice/tasks endpoints once UI panels are wired (owner: QA/dev pairing)
+- [x] QA: add MSW fixtures for alerts/advice/tasks endpoints once UI panels are wired (owner: QA/dev pairing)
 - [ ] DX: document sample requests in `PFMP-API.http` for quick local smoke checks (owner: dev rel)
 - [ ] Ops: follow rollout runbook for enabling `dashboard_wave4_real_data` in higher environments (see forthcoming runbook)
 

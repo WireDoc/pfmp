@@ -10,6 +10,7 @@ Modular testing references grouped by subject. Each guide provides:
 - [Advice Testing](./advice-testing.md) - Generate, list, accept (auto-creates task), dismiss, provenance fields
 - [Task Testing](./tasks-testing.md) - Direct task CRUD, status transitions, linkage from accepted advice
 - [Onboarding Testing](./onboarding-testing.md) - Wave 3 persistence (GET/PUT/PATCH/RESET) + dev user switching
+- [Dashboard MSW Handlers](./dashboard-msw-handlers.md) - Troubleshooting matcher patterns and shared fixtures for dashboard API
 
 ## Conventions
 - Base API URL: `http://localhost:5052/api`
