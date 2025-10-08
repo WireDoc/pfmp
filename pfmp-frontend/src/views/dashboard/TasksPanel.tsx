@@ -1,9 +1,10 @@
 import React from 'react';
 import {
   Box,
+  Button,
   Chip,
   Divider,
-  LinearProgress,
+  Slider,
   Stack,
   Tooltip,
   Typography,
@@ -14,6 +15,9 @@ interface TasksPanelProps {
   tasks: TaskItem[];
   loading: boolean;
   recentTaskIds?: Set<number>;
+  pendingTaskIds?: Set<number>;
+  onUpdateStatus?: (taskId: number, status: TaskItem['status']) => void;
+  onUpdateProgress?: (taskId: number, progress: number) => void;
 }
 
 function resolvePriorityColor(priority: TaskItem['priority']): 'default' | 'warning' | 'error' | 'info' {
@@ -24,7 +28,14 @@ function resolvePriorityColor(priority: TaskItem['priority']): 'default' | 'warn
   return 'default';
 }
 
-export const TasksPanel: React.FC<TasksPanelProps> = ({ tasks, loading, recentTaskIds }) => {
+export const TasksPanel: React.FC<TasksPanelProps> = ({
+  tasks,
+  loading,
+  recentTaskIds,
+  pendingTaskIds,
+  onUpdateStatus,
+  onUpdateProgress,
+}) => {
   if (loading && tasks.length === 0) {
     return (
       <Stack spacing={1.5} data-testid="tasks-panel">
@@ -46,6 +57,36 @@ export const TasksPanel: React.FC<TasksPanelProps> = ({ tasks, loading, recentTa
       {tasks.slice(0, 5).map((task, idx) => {
         const progress = task.progressPercentage ?? undefined;
         const isRecent = recentTaskIds?.has(task.taskId);
+        const isPending = pendingTaskIds?.has(task.taskId) ?? false;
+
+        const showProgressControls = onUpdateProgress && task.status !== 'Dismissed';
+
+        const actionButtons: Array<{ label: string; status: TaskItem['status']; testId: string }> = [];
+
+        if (onUpdateStatus) {
+          const normalizedStatus = (task.status ?? 'Pending').toString();
+
+          if (normalizedStatus !== 'InProgress' && normalizedStatus !== 'Completed' && normalizedStatus !== 'Dismissed') {
+            actionButtons.push({ label: 'Start', status: 'InProgress', testId: 'start' });
+          }
+
+          if (normalizedStatus !== 'Pending' && normalizedStatus !== 'Completed' && normalizedStatus !== 'Dismissed') {
+            actionButtons.push({ label: 'Mark pending', status: 'Pending', testId: 'pending' });
+          }
+
+          if (normalizedStatus !== 'Completed') {
+            actionButtons.push({ label: 'Complete', status: 'Completed', testId: 'complete' });
+          }
+
+          if (normalizedStatus !== 'Dismissed') {
+            actionButtons.push({ label: 'Dismiss', status: 'Dismissed', testId: 'dismiss' });
+          }
+
+          if (normalizedStatus === 'Completed' || normalizedStatus === 'Dismissed') {
+            actionButtons.push({ label: 'Reopen', status: 'Pending', testId: 'reopen' });
+          }
+        }
+
         return (
           <React.Fragment key={task.taskId}>
             <Box
@@ -78,15 +119,26 @@ export const TasksPanel: React.FC<TasksPanelProps> = ({ tasks, loading, recentTa
               <Typography variant="body2" color="text.secondary">
                 {task.description}
               </Typography>
-              {progress !== undefined && (
+              {showProgressControls && (
                 <Box display="flex" alignItems="center" gap={1}>
-                  <LinearProgress
-                    variant="determinate"
-                    value={Math.max(0, Math.min(100, progress))}
-                    sx={{ flexGrow: 1, height: 6, borderRadius: 3 }}
+                  <Slider
+                    size="small"
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={Math.max(0, Math.min(100, progress ?? 0))}
+                    disabled={isPending}
+                    onChangeCommitted={(_event, value) => {
+                      if (typeof value === 'number') {
+                        onUpdateProgress?.(task.taskId, value);
+                      }
+                    }}
+                    valueLabelDisplay="auto"
+                    aria-label={`Progress for ${task.title}`}
+                    data-testid={`task-progress-slider-${task.taskId}`}
                   />
                   <Typography variant="caption" color="text.secondary">
-                    {progress}%
+                    {Math.max(0, Math.min(100, progress ?? 0))}%
                   </Typography>
                 </Box>
               )}
@@ -98,6 +150,23 @@ export const TasksPanel: React.FC<TasksPanelProps> = ({ tasks, loading, recentTa
                 <Typography variant="caption" color="text.secondary">
                   Originated from alert #{task.sourceAlertId}
                 </Typography>
+              )}
+              {actionButtons.length > 0 && (
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  {actionButtons.map(action => (
+                    <Button
+                      key={`${task.taskId}-${action.testId}`}
+                      size="small"
+                      variant={action.status === 'Completed' ? 'contained' : 'outlined'}
+                      color={action.status === 'Dismissed' ? 'inherit' : action.status === 'Completed' ? 'primary' : 'secondary'}
+                      disabled={isPending}
+                      onClick={() => onUpdateStatus?.(task.taskId, action.status)}
+                      data-testid={`task-action-${action.testId}-${task.taskId}`}
+                    >
+                      {action.label}
+                    </Button>
+                  ))}
+                </Stack>
               )}
             </Box>
             {idx < Math.min(tasks.length, 5) - 1 && <Divider flexItem light />}

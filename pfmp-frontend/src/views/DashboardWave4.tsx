@@ -11,17 +11,14 @@ import { AlertsPanel } from './dashboard/AlertsPanel';
 import { AdvicePanel } from './dashboard/AdvicePanel';
 import { TasksPanel } from './dashboard/TasksPanel';
 import { useAuth } from '../contexts/auth/useAuth';
-import { getDashboardService } from '../services/dashboard';
-import type { AdviceItem, AlertCard, DashboardData, TaskItem, CreateFollowUpTaskRequest } from '../services/dashboard';
-
-const TASK_PRIORITY_TO_ENUM: Record<TaskItem['priority'], number> = {
-  Low: 1,
-  Medium: 2,
-  High: 3,
-  Critical: 4,
-};
-
-const DEFAULT_PRIORITY_ENUM = TASK_PRIORITY_TO_ENUM['Medium'];
+import { getDashboardService, TASK_PRIORITY_TO_ENUM, DEFAULT_TASK_PRIORITY_ENUM } from '../services/dashboard';
+import type {
+  AdviceItem,
+  AlertCard,
+  DashboardData,
+  TaskItem,
+  CreateFollowUpTaskRequest,
+} from '../services/dashboard';
 
 function resolveTaskTypeFromCategory(category: AlertCard['category']): number {
   const normalized = `${category ?? ''}`.toLowerCase();
@@ -87,6 +84,7 @@ export const DashboardWave4: React.FC = () => {
   const { data, loading, error } = useDashboardData();
   const [viewData, setViewData] = useState<DashboardData | null>(null);
   const [recentTaskIds, setRecentTaskIds] = useState<Set<number>>(new Set());
+  const [pendingTaskIds, setPendingTaskIds] = useState<Set<number>>(new Set());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -102,6 +100,62 @@ export const DashboardWave4: React.FC = () => {
     High: 'High',
     Critical: 'High',
   } satisfies Record<AlertCard['severity'], TaskItem['priority']>), []);
+
+  const markTaskPending = useCallback((taskId: number, pending: boolean) => {
+    setPendingTaskIds(prev => {
+      const next = new Set(prev);
+      if (pending) {
+        next.add(taskId);
+      } else {
+        next.delete(taskId);
+      }
+      return next;
+    });
+  }, []);
+
+  const updateTaskInState = useCallback((taskId: number, mutator: (task: TaskItem) => TaskItem) => {
+    const baseline = (viewData ?? data) ?? null;
+    if (!baseline) {
+      return null;
+    }
+    const target = baseline.tasks.find(task => task.taskId === taskId);
+    if (!target) {
+      return null;
+    }
+    const snapshot = { ...target };
+    setViewData(prev => {
+      const source = prev ?? baseline;
+      if (!source) {
+        return prev;
+      }
+      return {
+        ...source,
+        tasks: source.tasks.map(task => (
+          task.taskId === taskId ? mutator({ ...task }) : task
+        )),
+      } satisfies DashboardData;
+    });
+    return snapshot;
+  }, [viewData, data]);
+
+  const restoreTaskSnapshot = useCallback((taskId: number, snapshot: TaskItem) => {
+    const baseline = (viewData ?? data) ?? null;
+    if (!baseline) {
+      return;
+    }
+    setViewData(prev => {
+      const source = prev ?? baseline;
+      if (!source) {
+        return prev;
+      }
+      return {
+        ...source,
+        tasks: source.tasks.map(task => (
+          task.taskId === taskId ? { ...snapshot } : task
+        )),
+      } satisfies DashboardData;
+    });
+  }, [viewData, data]);
 
   const handleCreateTaskFromAlert = useCallback((alert: AlertCard) => {
     const baseline = viewData ?? data ?? null;
@@ -183,7 +237,7 @@ export const DashboardWave4: React.FC = () => {
       type: resolveTaskTypeFromCategory(alert.category),
       title: newTask.title,
       description: newTask.description,
-      priority: TASK_PRIORITY_TO_ENUM[priority] ?? DEFAULT_PRIORITY_ENUM,
+  priority: TASK_PRIORITY_TO_ENUM[priority] ?? DEFAULT_TASK_PRIORITY_ENUM,
       dueDate: null,
       sourceAlertId: alert.alertId,
       confidenceScore: alert.portfolioImpactScore ?? null,
@@ -198,7 +252,7 @@ export const DashboardWave4: React.FC = () => {
 
     persistPromise
       .then(({ taskId }) => {
-        if (taskId && taskId !== newTaskId) {
+  if (taskId && taskId !== newTaskId) {
           setViewData(prev => {
             if (!prev) {
               return prev;
@@ -226,7 +280,7 @@ export const DashboardWave4: React.FC = () => {
         }
         setToastMessage(`Created task “${alert.title}”`);
       })
-      .catch(error => {
+  .catch(error => {
         console.error('Failed to persist follow-up task', error);
         setToastMessage(`Couldn't save “${alert.title}”. Please try again.`);
         setRecentTaskIds(prevIds => {
@@ -257,6 +311,116 @@ export const DashboardWave4: React.FC = () => {
         });
       });
   }, [data, viewData, severityToPriority]);
+
+  const handleTaskStatusChange = useCallback((taskId: number, nextStatus: TaskItem['status']) => {
+    const service = getDashboardService();
+    const baseline = (viewData ?? data) ?? null;
+    if (!baseline) {
+      setToastMessage('Dashboard data still loading — please try again in a moment.');
+      return;
+    }
+    const existing = baseline.tasks.find(task => task.taskId === taskId);
+    if (!existing) {
+      setToastMessage('Task is no longer available.');
+      return;
+    }
+    if (existing.status === nextStatus) {
+      return;
+    }
+
+    const canComplete = nextStatus === 'Completed' && service.completeTask;
+    if (!canComplete && !service.updateTaskStatus) {
+      setToastMessage('Task updates are unavailable in the current mode.');
+      return;
+    }
+
+    const snapshot = updateTaskInState(taskId, task => ({
+      ...task,
+      status: nextStatus,
+      progressPercentage: nextStatus === 'Completed'
+        ? 100
+        : nextStatus === 'Pending'
+          ? 0
+          : task.progressPercentage ?? 0,
+    }));
+
+    if (!snapshot) {
+      setToastMessage('Task is no longer available.');
+      return;
+    }
+
+    markTaskPending(taskId, true);
+
+    const persistPromise = nextStatus === 'Completed' && service.completeTask
+      ? service.completeTask({ taskId })
+      : service.updateTaskStatus?.({ taskId, status: nextStatus }) ?? Promise.resolve();
+
+    persistPromise
+      .then(() => {
+        markTaskPending(taskId, false);
+        if (nextStatus === 'Completed' || nextStatus === 'Dismissed') {
+          setRecentTaskIds(prevIds => {
+            const next = new Set(prevIds);
+            next.delete(taskId);
+            return next;
+          });
+        }
+        setToastMessage(`Updated “${snapshot.title}”`);
+      })
+      .catch(error => {
+        console.error('Failed to update dashboard task status', error);
+        markTaskPending(taskId, false);
+        restoreTaskSnapshot(taskId, snapshot);
+        setToastMessage(`Couldn't update “${snapshot.title}”. Please try again.`);
+      });
+  }, [data, viewData, markTaskPending, restoreTaskSnapshot, updateTaskInState]);
+
+  const handleTaskProgressChange = useCallback((taskId: number, nextProgress: number) => {
+    const service = getDashboardService();
+    if (!service.updateTaskProgress) {
+      setToastMessage('Task progress updates are unavailable in the current mode.');
+      return;
+    }
+
+    const clamped = Math.max(0, Math.min(100, Math.round(nextProgress)));
+    const derivedStatus: TaskItem['status'] = clamped >= 100
+      ? 'Completed'
+      : clamped > 0
+        ? 'InProgress'
+        : 'Pending';
+
+    const snapshot = updateTaskInState(taskId, task => ({
+      ...task,
+      progressPercentage: clamped,
+      status: derivedStatus,
+    }));
+
+    if (!snapshot) {
+      setToastMessage('Task is no longer available.');
+      return;
+    }
+
+    markTaskPending(taskId, true);
+
+    service.updateTaskProgress({ taskId, progressPercentage: clamped })
+      .then(() => {
+        markTaskPending(taskId, false);
+        if (derivedStatus === 'Completed') {
+          setRecentTaskIds(prevIds => {
+            const next = new Set(prevIds);
+            next.delete(taskId);
+            return next;
+          });
+        }
+        setToastMessage(`Updated progress for “${snapshot.title}”`);
+      })
+      .catch(error => {
+        console.error('Failed to update dashboard task progress', error);
+        markTaskPending(taskId, false);
+        restoreTaskSnapshot(taskId, snapshot);
+        setToastMessage(`Couldn't update progress for “${snapshot.title}”. Please try again.`);
+      });
+  }, [markTaskPending, restoreTaskSnapshot, updateTaskInState]);
 
   const displayData = viewData ?? data ?? null;
   const alerts = displayData?.alerts ?? [];
@@ -323,7 +487,18 @@ export const DashboardWave4: React.FC = () => {
         <Grid size={{ xs: 12, md: 6 }}>
           <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography variant="h6" gutterBottom>Tasks</Typography>
-            {loading ? <Skeleton variant="rectangular" height={140} /> : <TasksPanel tasks={tasks} loading={loading} recentTaskIds={recentTaskIds} />}
+            {loading ? (
+              <Skeleton variant="rectangular" height={140} />
+            ) : (
+              <TasksPanel
+                tasks={tasks}
+                loading={loading}
+                recentTaskIds={recentTaskIds}
+                pendingTaskIds={pendingTaskIds}
+                onUpdateStatus={handleTaskStatusChange}
+                onUpdateProgress={handleTaskProgressChange}
+              />
+            )}
           </Paper>
         </Grid>
       </Grid>

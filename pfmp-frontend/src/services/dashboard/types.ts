@@ -111,6 +111,9 @@ export interface DashboardData {
 export interface DashboardService {
   load(): Promise<DashboardData>;
   createFollowUpTask?(request: CreateFollowUpTaskRequest): Promise<{ taskId: number | null }>;
+  updateTaskStatus?(request: UpdateTaskStatusRequest): Promise<void>;
+  updateTaskProgress?(request: UpdateTaskProgressRequest): Promise<void>;
+  completeTask?(request: CompleteTaskRequestPayload): Promise<void>;
   // Future: subscribe(cb: (partial: Partial<DashboardData>) => void): () => void;
 }
 
@@ -126,3 +129,61 @@ export interface CreateFollowUpTaskRequest {
   impactDescription?: string | null;
   confidenceScore?: number | null;
 }
+
+export interface UpdateTaskStatusRequest {
+  taskId: number;
+  status: TaskStatus;
+}
+
+export interface UpdateTaskProgressRequest {
+  taskId: number;
+  progressPercentage: number;
+}
+
+export interface CompleteTaskRequestPayload {
+  taskId: number;
+  completionNotes?: string | null;
+}
+
+export const TASK_PRIORITY_TO_ENUM: Record<TaskPriority, number> = {
+  Low: 1,
+  Medium: 2,
+  High: 3,
+  Critical: 4,
+};
+
+export const TASK_PRIORITY_FROM_ENUM: Record<number, TaskPriority> = {
+  1: 'Low',
+  2: 'Medium',
+  3: 'High',
+  4: 'Critical',
+};
+
+export const DEFAULT_TASK_PRIORITY_ENUM = TASK_PRIORITY_TO_ENUM['Medium'];
+
+export const TASK_STATUS_TO_ENUM: Record<TaskStatus, number> = {
+  Pending: 1,
+  Accepted: 2,
+  InProgress: 3,
+  Completed: 4,
+  Dismissed: 5,
+};
+
+export const TASK_STATUS_FROM_ENUM: Record<number, TaskStatus> = {
+  1: 'Pending',
+  2: 'Accepted',
+  3: 'InProgress',
+  4: 'Completed',
+  5: 'Dismissed',
+};
+
+export const TASK_TYPE_FROM_ENUM: Record<number, string> = {
+  1: 'Rebalancing',
+  2: 'StockPurchase',
+  3: 'TaxLossHarvesting',
+  4: 'CashOptimization',
+  5: 'GoalAdjustment',
+  6: 'InsuranceReview',
+  7: 'EmergencyFundContribution',
+  8: 'TSPAllocationChange',
+};
