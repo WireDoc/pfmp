@@ -103,7 +103,10 @@ describe('Dashboard services', () => {
           headers: { 'Content-Type': 'application/json' },
         });
       }
-      return originalFetch ? originalFetch(input as any, init as any) : Promise.reject(new Error('No fetch available'));
+      if (originalFetch) {
+        return originalFetch(input, init);
+      }
+      return Promise.reject(new Error('No fetch available'));
     });
 
     mswServer.use(...mockDashboardSummary(summary));

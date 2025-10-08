@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { createBrowserRouter, createMemoryRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { useFeatureFlag } from './flags/featureFlags';
-import { staticChildRoutes, staticNotFound } from './routes/staticRoutes';
+import { staticChildRoutes, StaticNotFoundComponent } from './routes/staticRoutes';
 import { ProtectedRoute } from './components/routing/ProtectedRoute';
 import { AppLayout } from './layout/AppLayout';
 import { PageSpinner } from './components/common/PageSpinner';
@@ -33,7 +33,8 @@ export function AppRouter(props: AppRouterProps) {
     .filter(r => enableWave4 || r.id !== 'dashboard-wave4')
     .map(r => {
       const isWave4 = r.id === 'dashboard-wave4';
-      let element = r.element;
+      const RouteComponent = r.Component;
+      let element = <RouteComponent />;
       if (isWave4) {
         if (!enableWave4) {
           element = <Navigate to="/" replace />;
@@ -67,7 +68,7 @@ export function AppRouter(props: AppRouterProps) {
       errorElement: <RouteErrorBoundary><div style={{padding:24}}>Root error</div></RouteErrorBoundary>,
       children: baseChildren
     },
-  { path: '*', element: <Suspense fallback={<PageSpinner />}>{staticNotFound}</Suspense> }
+  { path: '*', element: <Suspense fallback={<PageSpinner />}><StaticNotFoundComponent /></Suspense> }
   ];
 
   const router = props.initialEntries

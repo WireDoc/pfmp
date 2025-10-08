@@ -79,7 +79,10 @@ function renderDashboardWithRealData({ summary, alerts, advice, tasks }: ApiFixt
     if (url.includes('/api/Tasks')) {
       return jsonResponse(tasks ?? []);
     }
-    return originalFetch(input as any, init);
+    if (originalFetch) {
+      return originalFetch(input, init);
+    }
+    return Promise.reject(new Error('No fetch available'));
   });
   return render(
     <AuthProvider>
@@ -463,7 +466,7 @@ describe('DashboardWave4 direct component render', () => {
 
     const tasksPanel = await screen.findByTestId('tasks-panel');
     const sliderRoot = within(tasksPanel).getByTestId('task-progress-slider-555');
-    const rectSpy = vi.spyOn(sliderRoot, 'getBoundingClientRect' as any).mockReturnValue({
+  const rectSpy = vi.spyOn(sliderRoot, 'getBoundingClientRect').mockReturnValue({
       width: 200,
       height: 16,
       top: 0,
@@ -498,7 +501,7 @@ describe('DashboardWave4 direct component render', () => {
 
     const tasksPanel = await screen.findByTestId('tasks-panel');
     const sliderRoot = within(tasksPanel).getByTestId('task-progress-slider-555');
-    const rectSpy = vi.spyOn(sliderRoot, 'getBoundingClientRect' as any).mockReturnValue({
+  const rectSpy = vi.spyOn(sliderRoot, 'getBoundingClientRect').mockReturnValue({
       width: 200,
       height: 16,
       top: 0,

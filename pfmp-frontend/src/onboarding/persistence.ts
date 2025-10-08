@@ -57,9 +57,9 @@ export async function patchStep(stepId: OnboardingStepId, payload: { data?: unkn
 }
 
 // Debounce utility (simple trailing debounce)
-function debounce<F extends (...args: any[]) => void>(fn: F, ms: number) {
+function debounce<Args extends unknown[]>(fn: (...args: Args) => void | Promise<void>, ms: number) {
   let handle: ReturnType<typeof setTimeout> | null = null;
-  return (...args: Parameters<F>) => {
+  return (...args: Args) => {
     if (handle) clearTimeout(handle);
     handle = setTimeout(() => fn(...args), ms);
   };
