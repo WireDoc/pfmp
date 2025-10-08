@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Typography, Paper, Alert, Skeleton, Snackbar } from '@mui/material';
 import Grid from '@mui/material/Grid';
-import { useOnboarding } from '../onboarding/OnboardingContext';
+import { useOnboarding } from '../onboarding/useOnboarding';
 import { Navigate } from 'react-router-dom';
 import { useDashboardData } from '../services/dashboard/useDashboardData';
 import { OverviewPanel } from './dashboard/OverviewPanel';

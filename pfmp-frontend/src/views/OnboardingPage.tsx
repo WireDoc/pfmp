@@ -1,4 +1,4 @@
-import { useOnboarding } from '../onboarding/OnboardingContext';
+import { useOnboarding } from '../onboarding/useOnboarding';
 import { useEffect } from 'react';
 
 export default function OnboardingPage() {

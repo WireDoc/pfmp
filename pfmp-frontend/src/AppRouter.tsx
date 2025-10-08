@@ -6,7 +6,7 @@ import { ProtectedRoute } from './components/routing/ProtectedRoute';
 import { AppLayout } from './layout/AppLayout';
 import { PageSpinner } from './components/common/PageSpinner';
 import { RouteErrorBoundary } from './components/common/RouteErrorBoundary';
-import { useOnboarding } from './onboarding/OnboardingContext';
+import { useOnboarding } from './onboarding/useOnboarding';
 
 // NotFound lazy component supplied via staticRoutes (staticNotFound)
 
@@ -50,8 +50,7 @@ export function AppRouter(props: AppRouterProps) {
       if (protectedIds.has(r.id)) {
         element = <ProtectedRoute>{element}</ProtectedRoute>;
       }
-      let finalElement: React.ReactElement;
-      finalElement = <Suspense fallback={<PageSpinner />}>{element}</Suspense>;
+  const finalElement: React.ReactElement = <Suspense fallback={<PageSpinner />}>{element}</Suspense>;
       // Test logging removed after stabilization
       return r.index ? { index: true, element: finalElement } : { path: r.path!, element: finalElement };
     });

@@ -1,35 +1,42 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { setDevUserId } from './devUserState';
 
 interface DevUserInfo { userId: number; email: string; isDefault: boolean; }
 
+interface DevUsersResponse { users: DevUserInfo[] }
+
 export const DevUserSwitcher: React.FC = () => {
-  if (import.meta.env.MODE === 'test') {
-    // Skip dev user orchestration during Vitest runs to avoid network noise
-    // and act() warnings triggered by async state updates.
-    return null;
-  }
+  const isTestMode = import.meta.env.MODE === 'test';
   const [users, setUsers] = useState<DevUserInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true); setError(null);
     try {
       const resp = await fetch('/api/dev/users');
       if (!resp.ok) throw new Error('Failed to fetch dev users');
-      const data = await resp.json();
-    setUsers(data.users);
-    const def = data.users.find((u: DevUserInfo) => u.isDefault);
-    setDevUserId(def?.userId ?? null);
-    } catch (e:any) {
-      setError(e.message);
+      const data = await resp.json() as DevUsersResponse;
+      setUsers(data.users);
+      const def = data.users.find((u) => u.isDefault);
+      setDevUserId(def?.userId ?? null);
+    } catch (rawError: unknown) {
+      if (rawError instanceof Error) {
+        setError(rawError.message);
+      } else {
+        setError('Unexpected error');
+      }
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    if (isTestMode) {
+      return;
+    }
+    void load();
+  }, [isTestMode, load]);
 
   async function setDefault(userId: number) {
     await fetch(`/api/dev/users/default/${userId}`, { method: 'POST' });
@@ -41,6 +48,12 @@ export const DevUserSwitcher: React.FC = () => {
     await fetch(`/api/onboarding/progress/reset?userId=${userId}`, { method: 'POST' });
     setDevUserId(userId);
     // No explicit confirmation; re-hydration occurs on next GET by context
+  }
+
+  if (isTestMode) {
+    // Skip dev user orchestration during Vitest runs to avoid network noise
+    // and act() warnings triggered by async state updates.
+    return null;
   }
 
   return (

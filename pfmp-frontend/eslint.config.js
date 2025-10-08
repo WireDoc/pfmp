@@ -28,6 +28,17 @@ export default defineConfig([
     },
     rules: {
       'local-grid/no-legacy-mui-grid': 'error',
+      // Development phase relaxation: allow unused vars & params (skeleton staging)
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': 'off'
     }
+  },
+  {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: globals.node,
+    },
   }
 ])

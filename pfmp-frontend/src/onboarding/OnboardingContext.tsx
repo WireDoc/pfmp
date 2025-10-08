@@ -1,28 +1,15 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { sortedSteps, type OnboardingStepId } from './steps';
 import { fetchProgress, debouncedPatchStep, putProgress, resetProgress } from './persistence';
 import { useFeatureFlag } from '../flags/featureFlags';
 import { useDevUserId } from '../dev/devUserState';
+import { OnboardingContext } from './OnboardingContext.shared';
+import type { OnboardingContextValue } from './OnboardingContext.shared';
 
 interface OnboardingState {
   currentIndex: number;
   completed: Set<OnboardingStepId>;
 }
-
-interface OnboardingContextValue {
-  steps: ReturnType<typeof sortedSteps>;
-  current: { id: OnboardingStepId; index: number; isLast: boolean; isFirst: boolean };
-  completed: Set<OnboardingStepId>;
-  goNext: () => void;
-  goPrev: () => void;
-  markComplete: (id?: OnboardingStepId) => void;
-  reset: () => Promise<void>;
-  refresh: () => Promise<void>;
-  progressPercent: number;
-  hydrated: boolean;
-}
-
-const OnboardingContext = createContext<OnboardingContextValue | null>(null);
 
 const stepsArr = sortedSteps();
 
@@ -192,8 +179,3 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
   return <OnboardingContext.Provider value={value}>{children}</OnboardingContext.Provider>;
 };
 
-export function useOnboarding(): OnboardingContextValue {
-  const ctx = useContext(OnboardingContext);
-  if (!ctx) throw new Error('useOnboarding must be used within OnboardingProvider');
-  return ctx;
-}

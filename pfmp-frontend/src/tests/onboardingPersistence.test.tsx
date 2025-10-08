@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { render, screen, act, waitFor } from '@testing-library/react';
-import { OnboardingProvider, useOnboarding } from '../onboarding/OnboardingContext';
+import { OnboardingProvider } from '../onboarding/OnboardingContext';
+import { useOnboarding } from '../onboarding/useOnboarding';
 import { updateFlags } from '../flags/featureFlags';
 import { setDevUserId } from '../dev/devUserState';
 import { createOnboardingApiMock, http, HttpResponse } from './mocks/handlers';
