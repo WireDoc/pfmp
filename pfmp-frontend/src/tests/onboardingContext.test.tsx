@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { OnboardingProvider, useOnboarding } from '../onboarding/OnboardingContext';
+import { OnboardingProvider } from '../onboarding/OnboardingContext';
+import { useOnboarding } from '../onboarding/useOnboarding';
 import { renderHook, act } from '@testing-library/react';
 
 function setup() {

@@ -1,12 +1,16 @@
 import { useState } from 'react';
-import { useFeatureFlags, updateFlags, getFeatureFlags } from '../../flags/featureFlags';
+import { useFeatureFlags, updateFlags, getFeatureFlags, type FeatureFlagsState } from '../../flags/featureFlags';
 
 export function DevFlagsPanel() {
   const flags = useFeatureFlags();
   const [open, setOpen] = useState(false);
   const toggle = () => setOpen(o => !o);
 
-  const entries = Object.entries(flags) as [keyof typeof flags, boolean][];
+  const entries = Object.entries(flags) as [keyof FeatureFlagsState, boolean][];
+
+  const applyFlagUpdate = <K extends keyof FeatureFlagsState>(key: K, value: FeatureFlagsState[K]) => {
+    updateFlags({ [key]: value } as Pick<FeatureFlagsState, K>);
+  };
 
   return (
     <div style={{ position: 'fixed', bottom: 8, right: 8, fontSize: 12, zIndex: 9999 }}>
@@ -21,7 +25,7 @@ export function DevFlagsPanel() {
               <input
                 type="checkbox"
                 checked={v}
-                onChange={e => updateFlags({ [k]: e.target.checked } as any)}
+                onChange={e => applyFlagUpdate(k, e.target.checked)}
               />
               <span>{k}</span>
             </label>

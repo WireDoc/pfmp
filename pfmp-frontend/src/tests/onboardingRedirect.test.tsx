@@ -2,7 +2,8 @@ import { legacyDashboardTestId } from './helpers/mockStaticRoutes';
 import { useEffect, type ReactNode } from 'react';
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
-import { OnboardingProvider, useOnboarding } from '../onboarding/OnboardingContext';
+import { OnboardingProvider } from '../onboarding/OnboardingContext';
+import { useOnboarding } from '../onboarding/useOnboarding';
 import { updateFlags } from '../flags/featureFlags';
 import { AuthProvider } from '../contexts/AuthContext';
 

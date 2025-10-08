@@ -1,5 +1,5 @@
 import React from 'react';
-import { useOnboarding } from '../onboarding/OnboardingContext';
+import { useOnboarding } from '../onboarding/useOnboarding';
 
 export default function OnboardingPlaceholder() {
   let info: string;
