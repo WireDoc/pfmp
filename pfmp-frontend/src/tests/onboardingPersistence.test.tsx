@@ -19,6 +19,7 @@ function TestConsumer() {
       <div data-testid="hydrated">{ob.hydrated ? 'yes' : 'no'}</div>
       <button onClick={() => { ob.markComplete(); ob.goNext(); }}>advance</button>
       <button onClick={() => { void ob.reset(); }} data-testid="reset-button">reset</button>
+      <button onClick={() => { void ob.refresh(); }} data-testid="refresh-button">refresh</button>
     </div>
   );
 }
@@ -151,6 +152,38 @@ describe('Onboarding persistence integration', () => {
 
     await waitFor(() => expect(screen.getByTestId('hydrated').textContent).toBe('yes'));
     expect(screen.getByTestId('current-step').textContent).toBe('demographics');
+  });
+
+  it('supports manual refresh after transient fetch failures', async () => {
+    const dto: OnboardingProgressDTO = {
+      userId: 'dev-user',
+      completedStepIds: ['demographics', 'risk'] as OnboardingStepId[],
+      currentStepId: 'tsp',
+      updatedUtc: new Date().toISOString(),
+    };
+    let callCount = 0;
+    mswServer.use(
+      http.get(/\/api\/onboarding\/progress(?:\?.*)?$/, () => {
+        callCount += 1;
+        if (callCount === 1) {
+          return HttpResponse.json({ message: 'temporary' }, { status: 503 });
+        }
+        return HttpResponse.json(dto, { status: 200 });
+      }),
+    );
+
+    render(<OnboardingProvider><TestConsumer /></OnboardingProvider>);
+
+    await waitFor(() => expect(screen.getByTestId('hydrated').textContent).toBe('yes'));
+    expect(screen.getByTestId('current-step').textContent).toBe('demographics');
+    expect(callCount).toBe(1);
+
+    await act(async () => {
+      screen.getByTestId('refresh-button').click();
+    });
+
+    await waitFor(() => expect(screen.getByTestId('current-step').textContent).toBe('tsp'));
+    expect(callCount).toBeGreaterThanOrEqual(2);
   });
 
   afterEach(() => {

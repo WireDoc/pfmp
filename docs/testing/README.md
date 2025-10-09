@@ -11,6 +11,7 @@ Modular testing references grouped by subject. Each guide provides:
 - [Task Testing](./tasks-testing.md) - Direct task CRUD, status transitions, linkage from accepted advice
 - [Onboarding Testing](./onboarding-testing.md) - Wave 3 persistence (GET/PUT/PATCH/RESET) + dev user switching
 - [Dashboard MSW Handlers](./dashboard-msw-handlers.md) - Troubleshooting matcher patterns and shared fixtures for dashboard API
+- [Dashboard Wave 4 Manual Smoke](./dashboard-wave4-manual-checks.md) - Run the app with mock data to validate end-to-end UX before enabling real data
 
 ## Conventions
 - Base API URL: `http://localhost:5052/api`

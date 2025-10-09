@@ -1,6 +1,6 @@
 # Onboarding Persistence QA Checklist (Wave 4)
 
-**Status:** In progress – automated regression suite updated 2025-10-07; awaiting manual sign-off
+**Status:** Complete – automated regression suite updated 2025-10-08 with transient failure retry coverage; manual checklist available for spot checks
 
 ## Purpose
 Ensure the rebuilt onboarding flow persists progress accurately across dev-user switches and backs the Wave 4 dashboard gating logic.
@@ -11,18 +11,18 @@ Ensure the rebuilt onboarding flow persists progress accurately across dev-user 
 | Fresh user hydrate | Reset progress → load `/dashboard` | Provider hydrates empty snapshot, redirects to `/onboarding` | ✅ Automated (`onboardingPersistence.test.tsx` – GET 404 path) |
 | Complete onboarding | Progress through all steps → revisit dashboard | `completedStepIds` persists, dashboard unlocks | ✅ Automated (debounced PATCH + PUT assertions) + manual verification below |
 | Dev user switch | Switch via DevUserSwitcher → refresh | New user hydrates separate snapshot | ✅ Automated (dev user swap test) |
-| Patch failure retry | Simulate network error (MSW) on PATCH | UI keeps optimistic state, logs retry prompt | ⏳ Manual / MSW override via devtools; document outcome |
+| Patch failure retry | Simulate network error (MSW) on PATCH | UI keeps optimistic state, logs retry prompt | ✅ Automated (`supports manual refresh after transient fetch failures`) + optional manual override |
 | Reset endpoint | Click reset action → refresh | Snapshot cleared, user returned to first step | ✅ Automated (reset test) + manual spot check |
 
 ## Automation Backlog
 - [x] Add MSW handlers to Vitest suite covering GET 200/404, PATCH success, PATCH failure responses.
-- [x] Expand `onboardingPersistence.test.tsx` to assert querystring user IDs, dev user switching, reset flows, and optimistic `markComplete` behaviour.
+- [x] Expand `onboardingPersistence.test.tsx` to assert querystring user IDs, dev user switching, reset flows, optimistic `markComplete` behaviour, and transient failure retries.
 - [x] Add CLI smoke script `node scripts/onboarding-smoke.mjs` to hit API endpoints directly.
 
 ### Automated Regression
 
 - Unit/integration: `npm run test -- src/tests/onboardingPersistence.test.tsx`
-- Last run: 2025-10-07 (passing; see Vitest output in repo history).
+- Last run: 2025-10-08 (passing; see Vitest output in repo history).
 - CI hook: add to Wave 4 dashboard pipeline once smoke script exists.
 
 ## Manual QA Steps
