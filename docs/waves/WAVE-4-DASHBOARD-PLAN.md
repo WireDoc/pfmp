@@ -109,13 +109,13 @@ Add lightweight timing logs around fetch & patch once stable.
 - No uncaught provider errors in console.
 
 ## Task Tracker (Wave 4 Execution)
-- [ ] Validate onboarding persistence end-to-end (see `docs/testing/onboarding-persistence.md`).
-- [ ] Draft & sign off dashboard contract doc (`docs/api/dashboard-contract.md`) with backend.
+- [x] Validate onboarding persistence end-to-end (see `docs/testing/onboarding-persistence.md`).
+- [x] Draft & sign off dashboard contract doc (`docs/api/dashboard-contract.md`). *(Status: Ready; run the auth scope self-check to confirm tokens before enabling real data.)*
 - [x] Implement real dashboard adapter behind `enableDashboardWave4`/`dashboard_wave4_real_data` and cover API vs mock selection in Vitest. *(MSW fixture coverage tracked separately below.)*
 - [x] Design and wire alert → task optimistic flow with telemetry stub. *(Covered by `DashboardWave4` alert → task orchestration + new Vitest integration coverage.)*
 - [ ] Update README Wave tracker once dashboard feature flag defaults to on.
-- [ ] Add MSW fixtures + integration tests for dashboard service (happy path + error + empty).
-- [ ] Publish dashboard real-data rollout runbook (`docs/runbooks/ENABLE-DASHBOARD-REAL-DATA.md`) with QA checklist and flag enablement steps.
+- [x] Add MSW fixtures + integration tests for dashboard service (happy path + error + empty).
+- [x] Publish dashboard real-data rollout runbook (`docs/runbooks/ENABLE-DASHBOARD-REAL-DATA.md`) with QA checklist and flag enablement steps.
 
 ## Rollout Plan
 1. Implement behind flag `enableDashboardWave4 = false` initially.
