@@ -110,7 +110,7 @@ Add lightweight timing logs around fetch & patch once stable.
 
 ## Task Tracker (Wave 4 Execution)
 - [x] Validate onboarding persistence end-to-end (see `docs/testing/onboarding-persistence.md`).
-- [x] Draft & sign off dashboard contract doc (`docs/api/dashboard-contract.md`). *(Status: Ready; run the auth scope self-check to confirm tokens before enabling real data.)*
+- [x] Draft & sign off dashboard contract doc (`docs/api/dashboard-contract.md`). *(Status: Ready for demo-mode rollout; tokenized auth deferred to later wave.)*
 - [x] Implement real dashboard adapter behind `enableDashboardWave4`/`dashboard_wave4_real_data` and cover API vs mock selection in Vitest. *(MSW fixture coverage tracked separately below.)*
 - [x] Design and wire alert → task optimistic flow with telemetry stub. *(Covered by `DashboardWave4` alert → task orchestration + new Vitest integration coverage.)*
 - [ ] Update README Wave tracker once dashboard feature flag defaults to on.

@@ -1,477 +1,111 @@
-# PFMP - Personal Financial Management Platform (v0.7.0-alpha)
+# PFMP – Personal Financial Management Platform
 
-> **Wave Rebuild Context**  
-> Frontend orchestration layers (routing shell, onboarding wizard, protected layout, future intelligence dashboards) are being rebuilt in deliberate waves. Backend APIs and advanced leaf components remain stable.
+PFMP is an AI-assisted financial planning platform for government employees and service members. The solution combines a .NET 9 backend, a React 19 frontend, and Azure Entra ID authentication to deliver tailored advice, alerts, and portfolio management.
 
-An AI-powered financial advisor platform designed for government employees and military members, providing personalized investment recommendations, portfolio management, and retirement planning with specialized TSP and government benefit integration.
+## Overview
 
-## Documentation Map
-- Core Backend & Domain: (this README)  
-- Frontend Architecture & Feature Flags: `pfmp-frontend/README.md`  
-- Wave Design & Kickoff Docs: `docs/waves/`  
-- Testing Guides: `docs/testing/`  
-- Persistence / Onboarding Design: `docs/waves/WAVE-3-PERSISTENCE-DESIGN.md`  
-- Changelog: `CHANGELOG.md`  
-- Storybook & Visual Regression Plan (scaffolds): `docs/storybook-setup.md`, `docs/visual-regression-plan.md`
+- **Backend**: `PFMP-API/` (.NET 9 Web API, PostgreSQL 15)
+- **Frontend**: `pfmp-frontend/` (React 19 + TypeScript + Vite)
+- **Authentication**: Azure Entra ID with local bypass mode for development
+- **Focus Areas**: Portfolio intelligence, alerts & tasks, onboarding wizard, wave-based rebuild plan
 
-## Changelog
-See `CHANGELOG.md` for version history (current: v0.7.0-alpha).
+The platform is currently in the Wave rebuild effort. Implementation details, historical notes, and migration guidance now live inside the reorganized `docs/` directory.
 
-## 🧪 Testing Documentation
-Core manual testing flows live under `docs/testing/`:
-- `docs/testing/alerts-advice-testing.md` – CURRENT simplified lifecycle (Alert → Advice:Proposed → Accept (creates Task) OR Dismiss)
-- `docs/testing/advice-testing.md` – Legacy (Deprecated) lifecycle reference (Retained for historical context only)
-- `docs/testing/tasks-testing.md` – Task CRUD, status workflow, provenance verification
-- `docs/testing/README.md` – Index & conventions
-
-Current Advice Lifecycle (Simplified):
-```
-Alert --[generate-advice]--> Advice (Proposed) --[accept]--> Advice (Accepted, task auto-created)
-                                             \--[dismiss]--> Advice (Dismissed)
-```
-Legacy endpoints `/reject` & `/convert-to-task` now return 410 Gone.
-
-Validator / Provenance:
-- Acceptance creates a Task if none exists and backfills `SourceAdviceId` + `SourceType="Advice"`.
-- `acceptedAt`, `dismissedAt`, `previousStatus`, `sourceAlertId`, `generationMethod`, and optional `sourceAlertSnapshot` enrich auditability.
-
-Quick Start (User 1):
-```powershell
-# Generate generic portfolio advice
-Invoke-RestMethod -Method POST http://localhost:5052/api/Advice/generate/1 | Select-Object adviceId,status
-
-# Generate advice from alert 1
-Invoke-RestMethod -Method POST http://localhost:5052/api/Alerts/1/generate-advice | Select-Object adviceId,sourceAlertId,status
-
-# Accept advice (replace 123 with real id) – creates linked task automatically
-Invoke-RestMethod -Method POST http://localhost:5052/api/Advice/123/accept | Select-Object adviceId,status,linkedTaskId
-
-# Dismiss another proposed advice
-Invoke-RestMethod -Method POST http://localhost:5052/api/Advice/124/dismiss | Select-Object adviceId,status
-
-# List all advice (user 1)
-Invoke-RestMethod http://localhost:5052/api/Advice/user/1 | Format-Table adviceId,status,linkedTaskId,sourceAlertId
-```
-See the dedicated guide (`alerts-advice-testing.md`) for deeper verification queries (SQL + troubleshooting).
-
-### Recent Additions (Oct 2025)
-* Wave 0 closed (documentation alignment complete) → Version bump to v0.7.0-alpha
-* Backup script & policy (ALWAYS backup before migrations/seeding)
-* Docker marked experimental (mapped drive build instability; use native `dotnet run` for daily dev)
-* OpenAPI → TypeScript generation pipeline scaffolded (`npm run generate:api` / `scripts/generate-openapi.ps1`)
-* Wave 1 kickoff: routing & protection scaffolding scheduled next
-
-## 🚀 Feature Snapshot (Current vs Rebuild)
-
-### Currently Active (Verified 2025-09-27)
-- Auth: Custom `AuthProvider` + development bypass (MSAL wrapper removed; direct `@azure/msal-browser` retained)
-- Leaf frontend components still present: `SmartInvestmentRecommendations`, `RealBankAccountDashboard`, `ProtectedDashboardSections`
-
-### Missing During Rebuild (To Be Recreated)
-- Protected routing guard & routed layout shell
-- Market dashboards (`LiveMarketDashboard`, `MarketIntelligencePanel`)
-- `FinancialIntelligenceCenter` aggregation hub UI
-- Frontend `SmartAlertsSystem` (visual + interaction layer)
-- Auth UI suite: AuthHeader, SignInPrompt, UserProfileCard, AuthDebugPanel
-- Dual-AI consensus pipeline surface (advisor + validator)
-- Developer diagnostics / debug panel
-
-### Strategic Additions Planned
-- Feature flags for cost-bearing AI calls & experimental intelligence modules
-
-### Rebuild Guiding Principles
-1. Preserve validated backend + leaf logic; rebuild orchestration only
-2. Narrow-scoped waves with explicit acceptance criteria
-3. Introduce dual-AI abstraction before scaling AI usage costs
-4. Defer heavy performance work (beyond existing chunks) to final wave
-- **Frontend Runtime**: React 19 + TypeScript + Vite (minimal shell while rebuilding)
-- **UI Library**: MUI v7 (Grid v2 migration complete)
-- **Backend**: .NET 9 Web API (stable multi-domain controllers)
-### Frontend Layout Standard: MUI Grid v2 ✅
-We enforce a single, consistent layout system using the **stable MUI Grid v2 API**.
-
-4. (Critical) Run a manual backup before first local migration if modifying schema
-Rationale:
-- Removes legacy Grid / `Grid2` ambiguity
-- Stronger typing via `size` prop object form
-- Cleaner responsive intent (`size={{ xs: 12, md: 6 }}` vs scattered `item xs={12} md={6}`)
-- Prevents regression to deprecated `item` + breakpoint prop usage
-
-Allowed Pattern (Grid v2):
-```tsx
-import { Grid } from '@mui/material'
-
-<Grid container spacing={3}>
-  <Grid size={{ xs: 12, md: 6 }}>
-    <AccountSummary />
-  </Grid>
-  <Grid size={{ xs: 12, md: 6 }}>
-    <PerformancePanel />
-  </Grid>
-</Grid>
-```
-
-Forbidden (will fail ESLint):
-```tsx
-<Grid container>
-  <Grid item xs={12} md={6}> ... </Grid>
-</Grid>
-
-<Grid2 container> ... </Grid2>
-```
-
-Migration Notes:
-- All existing components have been normalized (2025-09-28)
-- Any new code must use `size` (number or object). Acceptable: `size={12}` or `size={{ xs: 12, sm: 6 }}`
-- Do NOT mix legacy `item` API with `size` in the same file
-
-Enforcement:
-- Custom ESLint rule (`eslint-plugin-local-grid-rules` inline config) blocks `<Grid item ...>` and direct breakpoint props (`xs=`, `md=`, etc.) on `Grid`
-- Build pipeline updated so `npm run build` fails on violation
-
-Exception Process:
-- NONE. If a limitation arises (e.g., third-party snippet), refactor or wrap with compliant component
-
-Future Enhancements:
-- Add codemod script if external contributions introduce legacy patterns
-- Consider storybook examples enforcing standard in visual docs
-
-Last Validated: 2025-09-28 (no legacy patterns present)
-
-### Development Environment
-- **API**: .NET 9 Web API running on http://0.0.0.0:5052
-- **Database**: PostgreSQL 15 on Synology NAS (192.168.1.108:5433)
-- **Frontend**: React development server (to be configured)
-
-## 🚦 Development Status
-
-### Phase 1: MVP Foundation (✅ Complete)
-- ✅ PostgreSQL 15 deployed on Synology NAS
-- ✅ .NET 9 Web API project configured and tested
-- ✅ Entity Framework Core with Npgsql provider
-- ✅ Network accessibility configured (API on 0.0.0.0:5052)
-- ✅ Git repository setup and GitHub integration
-- ✅ React 19.1.1 + TypeScript frontend framework setup
-
-### Phase 2: Core Portfolio Management (✅ 100% Complete)
-- ✅ **Entity Framework Models**: Complete financial data models (11+ tables)
-- ✅ **Database Schema**: Applied migrations, full PostgreSQL schema deployed
-- ✅ **API Controllers**: CRUD operations for Users, Accounts, Goals, Income Sources
-- ✅ **TSP Integration**: Complete 16-fund TSP allocation system
-- ✅ **Manual Data Entry**: Government employee focused forms and interfaces
-- ✅ **Frontend Components**: TSP allocation form with Material-UI, validation, preset strategies
-- ✅ **End-to-End Testing**: Complete data flow verified from frontend to database
-- ✅ **API-Frontend Integration**: Proxy configuration working, all endpoints accessible
-
-### Phase 3: Task Management System (✅ 100% Complete)
-- ✅ **Task System**: Complete CRUD operations for financial tasks
-- ✅ **Task Types**: 8 specialized types (Rebalancing, Stock Purchase, Tax Loss Harvesting, etc.)
-- ✅ **Task Status Workflow**: Pending → Accepted → In Progress → Completed/Dismissed
-- ✅ **Priority System**: Low, Medium, High, Critical with AI-driven prioritization
-- ✅ **Task Analytics**: Comprehensive completion tracking and performance metrics
-- ✅ **AI Integration Ready**: Foundation for AI-powered task recommendations
-
-### Phase 4: AI Integration & Alerts (✅ 100% Complete)
-- ✅ **Azure OpenAI Service**: Full integration with GPT-4 for financial analysis
-- ✅ **AI Task Intelligence**: 5 AI endpoints for task recommendations and prioritization
-  - Task recommendations based on user profile
-  - Priority suggestions for existing tasks
-  - Task categorization and risk assessment
-  - Portfolio analysis with actionable insights
-  - Market alerts with AI-driven insights
-- ✅ **Intelligent Alert System**: Complete lifecycle management
-  - Granular state management (Read vs Dismissed vs Expired)
-  - Direct task generation from actionable alerts
-  - 7 alert categories with 4 severity levels
-  - Comprehensive analytics and audit trails
-- ✅ **Enhanced User Profiles**: Demographics-aware recommendations
-  - Age-based investment strategies (22 vs 43 vs 28-year scenarios tested)
-  - Service computation date for retirement planning
-- ✅ **Comprehensive AI Testing**: Production-ready validation
-  - Complete testing framework with 356-line methodology guide
-  - 100% endpoint functionality validation with performance benchmarks
-  - Intelligent fallback logic providing sophisticated recommendations without OpenAI
-  - Sample account data: $45K, $260K, $110K portfolios across user demographics
-  - Government employment type considerations
-  - Setup wizard foundation for new user onboarding
-
-### Phase 5: Market Data Integration & Real-Time Portfolio Valuation (✅ 100% Complete)
-- ✅ **Market Data Service**: Real-time financial data integration with Financial Modeling Prep API
-  - Stock prices, market indices (S&P 500, NASDAQ, DOW, Russell 2000, VIX)
-  - TSP fund prices with government employee-specific proxy mapping
-  - Economic indicators (Treasury yields, Fed rates, commodities, crypto)
-  - Market status detection (OPEN, CLOSED, PRE_MARKET, AFTER_HOURS)
-  - Intelligent fallback system providing realistic test data
-- ✅ **Market-Aware AI Recommendations**: Enhanced AI service with real-time market integration
-  - Portfolio analysis incorporating live market conditions and volatility
-  - Market-based alert generation (high volatility, economic indicators, TSP movements)
-  - Demographics integration with market context (age-based risk during market stress)
-  - Government employee focus (TSP recommendations, federal employment considerations)
-- ✅ **Real-Time Portfolio Valuation**: Comprehensive portfolio tracking and performance system
-  - Live portfolio value calculation with current market prices ($45K test portfolio validated)
-  - Account-level detailed valuations with holdings breakdown
-  - Performance metrics with ROI calculations and allocation percentages
-  - Complete net worth summary with asset categorization and income context
-  - Tax-advantaged account categorization (taxable, tax-deferred, tax-free)
-- ✅ **Professional API Suite**: 18+ production-ready endpoints across 3 controllers
-  - Market Data API: 7 endpoints for real-time financial information
-  - Enhanced AI API: 5 endpoints for market-aware recommendations
-  - Portfolio API: 6 endpoints for comprehensive portfolio management
-- ✅ **Production Authentication System**: Enterprise-grade Azure EntraID integration
-  - Complete OIDC authentication with Microsoft Azure AD
-  - JWT Bearer token authentication and validation
-  - Personal Microsoft account integration (wiredoc@outlook.com)
-  - Automated Azure AD App Registration setup via PowerShell
-  - Developer bypass mode with comprehensive documentation
-  - Database schema with authentication fields and user management
-  - JSON serialization optimization with circular reference handling
-
-### Complete TSP Fund Coverage
-**16 Total Funds Implemented:**
-- **Individual Funds**: G Fund, F Fund, C Fund, S Fund, I Fund
-- **Lifecycle Funds**: L Income, L2030, L2035, L2040, L2045, L2050, L2055, L2060, L2065, L2070, L2075
-- **Features**: Preset allocation strategies, real-time percentage validation, professional interface
-
-### Current Government Employee Features
-- ✅ Complete TSP allocation management (all 16 funds)
-- ✅ VA disability income tracking and guaranteed income integration
-- ✅ Emergency fund target setting and progress monitoring
-- ✅ Cash account APR/APY optimization tracking
-- ✅ Federal employee focused manual data entry systems
-
-## 🛠️ Development Setup
+## Quick start
 
 ### Prerequisites
+- Windows with PowerShell 5.1+
 - .NET 9 SDK
 - Node.js 18+
-- PostgreSQL 15
-- Git
+- PostgreSQL 15 (remote instance available at `192.168.1.108:5433` for development)
 
-### PowerShell Development Guidelines
-**Important**: When working with PowerShell, follow these guidelines to avoid terminal conflicts:
+### Preferred startup
 
-#### .NET Commands
-- Always use fully qualified paths with `dotnet` commands in PowerShell
-- Example: `dotnet run --project W:\pfmp\PFMP-API\PFMP-API.csproj --launch-profile http`
-
-#### Running API Server in Isolated Terminal
-To avoid terminal conflicts, start the API server in a separate PowerShell window:
 ```powershell
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd W:\pfmp\PFMP-API; dotnet run --launch-profile http" -WindowStyle Normal
+cd P:\
+./start-dev-servers.bat
 ```
 
-**Important**: Before starting a new server instance:
-- Manually close any existing PowerShell windows running the API server, OR
-- Stop the process: `Get-Process -Name "PFMP-API" | Stop-Process -Force`
+The batch script launches the API (`http://localhost:5052`) and the Vite dev server (`http://localhost:3000`) in separate PowerShell windows. Close those windows to stop the services.
 
-#### Running React Frontend in Isolated Terminal
+### Manual startup
+
 ```powershell
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd W:\pfmp\pfmp-frontend; npm run dev" -WindowStyle Normal
-```
-
-#### Service Management Best Practices
-- Use isolated terminal windows to prevent targeting conflicts
-- Always terminate existing services before starting new instances
-- Monitor both frontend (port 3000) and API (port 5052) during development
-- Use the batch file for reliable service startup
-- **CRITICAL**: Restart backend service after any controller/model/DTO changes
-
-### ⚠️ Service Restart Requirements
-The following changes require a **complete backend service restart** to take effect:
-- Controller method signature changes
-- New DTO classes or model classes
-- Entity Framework model changes (adding `[JsonIgnore]`, navigation properties)
-- Program.cs configuration changes
-- New API endpoints or route changes
-
-**Always restart services using your batch file when making these types of changes!**
-
-### Development Workflow
-1. **Before rebuilding**: Always stop running services to avoid file locks
-2. **Process termination**: Either close terminal windows manually or use PowerShell to stop processes
-3. **Build verification**: Run `dotnet build` to confirm no file locks before starting services
-4. **Migration workflow**: Stop services → Build → Apply migrations → Restart services
-
-This command:
-- Opens a new PowerShell window (`Start-Process powershell`)
-- Keeps the window open after execution (`-NoExit`)
-- Changes to the API directory and runs the server
-- Uses normal window style for easy monitoring
-
-### Backend Setup (.NET API)
-```bash
-cd PFMP-API
-dotnet restore
-dotnet build
+# API
+cd P:\PFMP-API
 dotnet run --launch-profile http
-```
-API will be available at: http://localhost:5052
 
-### Database Setup
-PostgreSQL database is running on Synology NAS:
-- Host: 192.168.1.108:5433
-- Database: pfmp_dev
-- User: pfmp_user
-
-### Frontend Setup (✅ Complete)
-```bash
-cd pfmp-frontend
-npm install
+# Frontend (new window)
+cd P:\pfmp-frontend
 npm run dev
 ```
-React development server runs on: http://localhost:3000  
-API proxy configured for `/api` requests → http://localhost:5052
 
-### End-to-End Testing
-The complete stack has been tested and verified:
-- ✅ Frontend (React) ↔ API (ASP.NET Core) ↔ Database (PostgreSQL)
-- ✅ User CRUD operations working through all layers
-- ✅ Proxy configuration routing requests correctly
-- ✅ Database migrations applied successfully
+### Health checks
 
-## 📝 Project Documentation
-
-- `pfmp.txt` - Comprehensive project plan and technical specifications
-- `pfmp-log.md` - Detailed development session logs and progress tracking
-- `PFMP-API/` - .NET 9 Web API backend application
-- `docs/AI-ADVISOR-WAVE-PLAN.md` - Dual-AI advisor architecture & phased wave roadmap (Waves 1–7)
-
-## 🤝 Contributing
-
-This is a personal project currently in active development. The codebase is being built incrementally following a structured 4-phase development plan.
-
-## 📄 License
-
-Private project - All rights reserved
-
-## 🧪 Development Test Users
-
-The system includes 4 pre-configured test users for development and testing purposes. These users have `BypassAuthentication = true` and `IsTestAccount = true` for development workflow.
-
-### Test User Profiles
-
-#### 1. Sarah Johnson (UserId: 1) - Young Federal Employee
-- **Age**: 22 years old (born 2003)
-- **Employment**: Federal (GS-07, Department of Defense)
-- **Service**: 1 year (Service Computation Date: 2024)
-- **Retirement System**: FERS
-- **Annual Income**: $42,000
-- **Risk Tolerance**: 8/10 (High - appropriate for young age)
-- **Retirement Goal**: $1.5M by age 62 (2065)
-- **Profile Status**: 100% Complete
-- **Use Case**: Testing aggressive investment strategies, long-term growth recommendations
-
-#### 2. Michael Smith (UserId: 2) - Mid-Career Federal Employee
-- **Age**: 43 years old (born 1982) 
-- **Employment**: Federal (GS-13, Department of Veterans Affairs)
-- **Service**: 15 years (Service Computation Date: 2010)
-- **Retirement System**: FERS
-- **Annual Income**: $92,000
-- **VA Disability**: 30% ($524.31/month guaranteed income)
-- **Risk Tolerance**: 6/10 (Moderate - appropriate for mid-career)
-- **Retirement Goal**: $2.2M by age 60 (2042)
-- **Profile Status**: 100% Complete
-- **Use Case**: Testing balanced strategies, VA disability integration, catch-up contributions
-
-#### 3. Jessica Rodriguez (UserId: 3) - Military Member
-- **Age**: 28 years old (born 1997)
-- **Employment**: Military (E-6, U.S. Air Force)
-- **Service**: 8 years (Service Computation Date: 2017)
-- **Retirement System**: Military
-- **Annual Income**: $65,000
-- **Risk Tolerance**: 7/10 (Moderate-High)
-- **Retirement Goal**: $1.8M by 20-year retirement (2037)
-- **Profile Status**: 100% Complete
-- **Use Case**: Testing military-specific features, TSP with military benefits
-
-#### 4. David Wilson (UserId: 4) - New User (Incomplete Setup)
-- **Age**: 26 years old (born 1999)
-- **Employment**: Federal (GS-09)
-- **Annual Income**: $55,000
-- **Profile Status**: 25% Complete (demographics only)
-- **Setup Steps Completed**: ["demographics"]
-- **Use Case**: Testing setup wizard, new user onboarding flows
-
-### Testing Guidelines
-
-**Authentication Bypass**: All test users have `BypassAuthentication = true` - no login required during development.
-
-**API Testing Examples**:
-```bash
-# Get young employee recommendations
-GET /api/tasks/ai/recommendations?userId=1
-
-# Get mid-career portfolio analysis  
-GET /api/tasks/ai/portfolio-analysis?userId=2
-
-# Get military member alerts
-GET /api/alerts?userId=3&isActive=true
-
-# Test setup wizard with incomplete user
-GET /api/profile/setup/progress?userId=4
+```powershell
+cd P:\
+Invoke-WebRequest -Uri "http://localhost:5052/weatherforecast" | Select-Object StatusCode
+Invoke-WebRequest -Uri "http://localhost:3000" | Select-Object StatusCode
+Invoke-WebRequest -Uri "http://localhost:5052/api/auth/config" | Select-Object Content
 ```
 
-**Production Transition**: Set `Development:BypassAuthentication: false` in configuration to enable real authentication. Test accounts will be filtered out by `IsTestAccount = true`.
+Restart the API whenever controllers, DTOs, or EF models change. Database migrations should be applied with services stopped to avoid file locks.
 
-## 👤 ProfileController API
+## Documentation
 
-### Profile Management Endpoints
-```bash
-# Get complete user profile with calculated demographics
-GET /api/profile/{userId}
+All in-depth documentation now lives under `docs/` by subject. Highlights:
 
-# Update user profile information
-PUT /api/profile/{userId}
-```
+- `docs/documentation-map.md` – consolidated index (generated during the documentation overhaul)
+- `docs/api/reference.md` – backend endpoints and payloads
+- `docs/auth/overview.md` & `docs/auth/getting-started.md` – platform authentication, Azure setup, and bypass guidance
+- `docs/dev/library-version-guidelines.md` & `docs/dev/storybook-setup.md` – frontend tooling standards
+- `docs/history/changelog.md` & `docs/history/roadmap.md` – release notes and direction
+- `docs/ops/runbooks/database-backup.md` – operational runbooks
+- `docs/testing/` – manual QA plans and visual regression strategy
+- `docs/waves/` – rebuild plan, migration status, and session archives
+- `.github/instructions/instructions.md` – PowerShell workflow and service management cheat sheet for GitHub Copilot
 
-### Setup Wizard Endpoints
-```bash
-# Get setup progress and next steps
-GET /api/profile/setup/progress/{userId}
+For anything missing, add a focused markdown file inside the relevant subject folder and update the documentation map accordingly.
 
-# Complete a setup step
-POST /api/profile/setup/complete-step/{userId}
-Body: { "stepName": "employment" }
+## Development notes
 
-# Reset setup progress (testing/support)
-POST /api/profile/setup/reset/{userId}
-```
+- Use PowerShell for local workflows and chain commands with `;`
+- Keep backend and frontend running in dedicated terminals (see `start-dev-servers.bat`)
+- MUI Grid v2 `size` API is mandatory; ESLint blocks legacy `<Grid item>` usage
+- Feature development follows conventional commits (e.g., `feat(auth): enable azure callback logging`)
+- Run sanity checks before committing:
+  - `dotnet build P:\PFMP-API\PFMP-API.csproj`
+  - `npm run lint` / `npm run build` inside `pfmp-frontend`
 
-### Example Profile Response
-```json
-{
-  "userId": 1,
-  "firstName": "Sarah",
-  "lastName": "Johnson", 
-  "age": 22,
-  "employmentType": "Federal",
-  "payGrade": "GS-07",
-  "annualIncome": 42000.00,
-  "yearsOfService": "1.0",
-  "profileSetupComplete": true,
-  "setupProgressPercentage": 100,
-  "setupStepsCompleted": ["demographics", "tsp", "goals", "risk-assessment"]
-}
-```
+## Status & roadmap
 
----
+- Active version: **v0.7.0-alpha**
+- Wave alignment, routing shell rebuild, and onboarding polish are the current focus areas
+- Track progress, migration notes, and future waves in `docs/waves/`
 
-## 🧭 Rebuild Waves Overview
+## Testing resources
 
-| Wave | Focus | Key Deliverables |
-|------|-------|------------------|
-| 0 | Documentation Alignment | Updated README, log entry, wave plan doc, migration addendum |
-| 1 | Routing & Protection | React Router setup, `ProtectedRoute`, layout frame, nav skeleton, suspense boundaries |
-| 2 | User Setup Layer | `UserSetupContext`, multi-step onboarding wizard, progress persistence, resumable steps |
-| 3 | Auth & Profile UX | AuthHeader, SignInPrompt, ProfileCard, AuthDebugPanel, Dev diagnostics panel |
-| 4 | Intelligence Dashboards | Market dashboards, FinancialIntelligenceCenter, SmartAlertsSystem UI, alert-task UX integration |
-| 5 | Dual-AI Pipeline | Advisor + Validator abstraction, consensus scoring, policy rule evaluation hooks |
-| 6 | Performance & A11y | Bundle audit, deeper code splitting, accessibility pass, test harness expansion |
+- Manual test flows, advice lifecycle validation, and visual regression strategy live in `docs/testing/`
+- Run targeted API requests with PowerShell `Invoke-RestMethod` or the `PFMP-API.http` scratch file
+- Jest/React Testing Library scaffolding is planned for a future wave
 
-Status: Wave 0 in progress – implementation code changes deliberately deferred until documentation and planning artifacts are committed for traceability.
+## Test users (development only)
 
-**Last Updated**: September 27, 2025  
-**Current Version**: v0.6.1-alpha (Rebuild Wave 0)  
-**Rebuild Mode**: Frontend orchestration reconstruction (backend stable)
+Four seeded accounts simplify local testing. All have `BypassAuthentication = true`:
 
-**🎯 Immediate Focus**: Wave 2 (onboarding polish) → Wave 3 (persistence implementation)
+| User | Profile | Notes |
+|------|---------|-------|
+| Sarah Johnson (1) | 22yo GS-07 | High-risk TSP strategies |
+| Michael Smith (2) | 43yo GS-13 + VA disability | Balanced portfolio focus |
+| Jessica Rodriguez (3) | 28yo USAF | Military integrations |
+| David Wilson (4) | 26yo GS-09 | Onboarding wizard exercise |
+
+See `docs/data/` and `docs/auth/implementation-complete.md` for deeper setup, advisory flows, and production hardening steps.
+
+## Contributing
+
+The project is currently private and under active development. Follow the established docs, keep commits scoped, and update the documentation map whenever you add or relocate material.
+
+## License
+
+Private project – all rights reserved.

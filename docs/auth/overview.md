@@ -4,6 +4,14 @@
 
 The PFMP (Personal Financial Management Platform) authentication system provides both Azure EntraID (Azure AD) OIDC integration and local username/password authentication with a developer bypass mode for testing.
 
+## Phase 1 (Oct 2025) Direction
+
+- **Primary Path:** Focus on local user accounts (registration + JWT login) for onboarding rebuild.
+- **Azure SSO:** Deferred until after Phase 1; existing tenant/client identifiers remain preserved under `appsettings.Development.json` for future activation.
+- **Developer Bypass:** Keep disabled (`Development:BypassAuthentication = false`) except for targeted frontend work.
+
+> ℹ️ The Azure app registration TenantId (`90c3ba91-a0c4-4816-9f8f-beeefbfc33d2`) and ClientId (`efe3c2da-c4bb-45ff-b85b-e965de54f910`) are already stored in configuration. Only the client secret will need re-seeding when we re-enable Azure login.
+
 ## Features
 
 - ✅ **Azure EntraID OIDC Integration** - Single Sign-On with Microsoft accounts
@@ -47,10 +55,10 @@ Run the PowerShell setup script:
 
 ```powershell
 # Basic setup
-.\Setup-AzureAD.ps1
+./Setup-AzureAD.ps1
 
 # Custom configuration
-.\Setup-AzureAD.ps1 -AppName "PFMP-Production" -RedirectUri "https://yourapp.com/auth/callback" -Production
+./Setup-AzureAD.ps1 -AppName "PFMP-Production" -RedirectUri "https://yourapp.com/auth/callback" -Production
 ```
 
 #### Manual Setup

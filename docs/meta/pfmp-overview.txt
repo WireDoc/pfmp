@@ -1,0 +1,227 @@
+# Personal Financial Management Platform (PFMP)
+
+## Project Description
+A comprehensive AI-powered wealth management and retirement planning platform that aggregates all financial accounts, provides intelligent analysis, and creates personalized strategies for achieving financial independence through optimized passive income generation. This system serves as a unified financial command center that tracks your complete financial picture, leverages advanced AI for holistic recommendations, and guides strategic decision-making toward retirement goals.
+
+## Enhanced Goals & Objectives
+- **Comprehensive Portfolio Aggregation**: Connect to trading platforms (Binance, TD Ameritrade, E*TRADE, Schwab) via APIs plus manual entry for accounts without API access (TSP, traditional banks)
+- **Retirement Planning Focus**: Set dollar amount OR monthly passive income targets with timeline-based milestone tracking and Monte Carlo probability modeling
+- **Multi-Asset Tracking**: Stocks, bonds, crypto, real estate, precious metals, collectibles with automated valuation updates
+- **Income Source Management**: Track all income streams including employment, VA disability, dividends, rental income, business income
+- **Real Estate Integration**: Home value tracking vs. mortgage balance, rental property management, equity calculations
+- **AI-Powered Holistic Analysis**: Complete financial picture analysis incorporating news sentiment, modern investment strategies, and risk tolerance
+- **Smart Automation**: Scheduled data pulls, rebalancing alerts, tax loss harvesting opportunities, dividend calendars
+- **Goal-Oriented Recommendations**: AI suggestions based on available capital, current allocations, risk tolerance, and retirement timeline
+- **Advanced Dashboard**: Real-time net worth tracking, interactive charts, performance attribution, custom views
+- **Intelligent Alerts**: Push notifications and email alerts for rebalancing opportunities, market events, goal milestones
+
+## Target Use Case
+Personal comprehensive wealth management system designed for an individual investor focused on achieving financial independence through optimized passive income strategies. Tracks complete financial picture across all account types and asset classes, providing AI-driven guidance for retirement planning and investment optimization.
+
+## Technology Stack
+
+### Frontend: React with TypeScript
+- **Framework**: React 18 with TypeScript
+- **Build Tool**: Vite for fast development and building
+- **UI Library**: Material-UI or Ant Design for professional components
+- **Charting**: TradingView widgets for advanced charts, Chart.js for portfolio charts
+- **State Management**: React Query for API state management
+- **Real-time**: SignalR client for live market data
+- **PWA**: Progressive Web App capabilities for mobile-like experience
+- **Deployment**: Azure Static Web Apps
+
+### Backend: .NET 9 Web API
+- **Framework**: .NET 9 Web API with C#
+- **Database**: Entity Framework Core with PostgreSQL
+- **Background Services**: .NET Background Services + Hangfire for scheduling
+- **Real-time**: SignalR hubs for push notifications
+- **AI Integration**: Azure OpenAI SDK for GPT-4 integration
+- **API Integrations**: Yahoo Finance, Alpha Vantage, News APIs
+- **Deployment**: Azure App Service (Linux)
+- **Upgrade Path**: Migrate to .NET 10 when it reaches stable/LTS status
+
+### Database Strategy
+- **Primary**: Azure PostgreSQL Flexible Server for structured financial data (production)
+- **Development**: PostgreSQL 15 on Synology NAS via Docker Container
+  - **Host**: 192.168.1.108:5433
+  - **Database**: pfmp_dev
+  - **Container**: pfmp-postgresql (official postgres:15 image)
+  - **Volume**: Docker-managed persistent storage
+  - **Network**: Local network access via synobridge mode
+- **Caching**: Azure Redis Cache for session storage and real-time data
+- **Vector Storage**: Azure Cognitive Search or Pinecone for AI memory
+- **Backup**: Synology NAS for local backups during development
+
+### AI & Memory Architecture
+- **Primary AI**: OpenAI GPT-5 via Azure OpenAI Service (daily summaries, data processing, Azure integration)
+- **Secondary AI**: Anthropic Claude 4 Sonnet (complex analysis, risk assessment, validation)
+- **AI Strategy**: Hybrid approach leveraging each model's strengths for optimal financial advice
+- **Upgrade Rationale**: Latest models provide superior financial reasoning, market analysis, and risk assessment capabilities
+- **Memory System**: Vector database for conversation history and preferences
+- **Context Loading**: Automatic injection of portfolio state, market conditions, and user preferences
+- **Persona**: Persistent financial advisor personality with memory of past conversations
+- **Learning**: Track recommendation outcomes and user preferences over time
+- **Validation Layer**: Cross-reference critical recommendations between AI providers
+
+## Infrastructure & Hosting
+
+### Development Environment
+- **Local Development**: Windows laptop for primary development
+- **Database**: PostgreSQL on Synology NAS (192.168.1.108:5433)
+- **Container Management**: Synology Container Manager with Docker Compose
+- **External Access**: FQDN configured for external testing
+- **Version Control**: Git with GitHub repository (https://github.com/WireDoc/pfmp)
+- **IDE**: Visual Studio 2022 for .NET development
+- **GitHub Integration**: GitHub CLI authenticated, automated workflows ready
+
+### Production Hosting (Azure)
+- **API Hosting**: Azure App Service (Linux)
+- **Frontend Hosting**: Azure Static Web Apps
+- **Database**: Azure PostgreSQL Flexible Server
+- **Scheduling**: Azure Functions for daily market updates
+- **Monitoring**: Azure Application Insights
+- **Security**: Azure Key Vault for secrets management
+- **Alerts**: Azure Communication Services for SMS/email notifications
+
+### Hybrid Approach
+- **Development**: Windows laptop + PostgreSQL on Synology NAS
+- **Staging**: Ubuntu server for integration testing (future)
+- **Production**: Azure cloud services
+- **Backup**: Maintain local backups on Synology
+- **Scaling**: Cloud-first with ability to scale up/out as needed
+
+## Execution Themes
+
+PFMP delivers the long-term vision in staged waves that map directly to the product roadmap. Each theme preserves the holistic, AI-driven wealth management outcomes described above:
+
+- **Onboarding foundation** – Collect demographics, risk posture, retirement income targets, and Thrift Savings Plan details so every subsequent insight is grounded in the user’s real profile.
+- **Unified aggregation** – Ingest banking, brokerage, cash, real estate, collectibles, insurance, and income streams, blending APIs with manual entry to maintain a complete balance sheet.
+- **Intelligence & automation** – Activate the dual-model AI pipeline, generate Monte Carlo retirement projections, surface tax-loss harvesting and cash-yield optimizations, and turn accepted advice into scheduled tasks.
+- **Daily experience** – Deliver recurring digests, goal progress, alert feeds, and trend visualizations that keep the user engaged with their passive-income strategy.
+- **Production readiness** – Harden authentication, compliance, and observability to support secure, multi-user deployment without sacrificing speed of iteration.
+
+## Execution References
+
+- `docs/history/roadmap.md` – Live roadmap with dated milestones and deliverables.
+- `docs/waves/REBUILD-WAVE-PLAN.md` – Frontend rebuild waves and acceptance criteria.
+- `docs/waves/MIGRATION_STATUS.md` – Snapshot of migration progress and blockers.
+
+Use these artifacts to track execution progress while keeping this overview focused on the enduring product vision.
+
+## Data Sources & APIs
+
+### Market Data
+- **Yahoo Finance API**: Primary source for stock prices and basic data
+- **Alpha Vantage**: Advanced technical indicators and fundamental data
+- **Polygon.io**: Real-time market data (if budget allows)
+- **CoinGecko**: Cryptocurrency prices and market data
+
+### News & Analysis
+- **NewsAPI**: General financial news aggregation
+- **Alpha Vantage News**: Financial news with sentiment analysis
+- **Reddit API**: Social sentiment from investment subreddits
+- **Twitter/X API**: Market sentiment and trending topics
+
+### Economic Data
+- **FRED API**: Federal Reserve economic data
+- **Treasury.gov**: Bond yields and rates
+- **SEC EDGAR**: Company filings and fundamental data
+
+## Security & Compliance
+
+### Data Protection
+- All sensitive data encrypted at rest and in transit
+- Azure Key Vault for API keys and connection strings
+- Personal financial data remains private and secure
+- Regular security audits and updates
+
+### Authentication & Authorization
+- Azure AD B2C for user authentication (even for personal use)
+- Role-based access control for different features
+- Secure API endpoints with JWT tokens
+- Multi-factor authentication support
+
+### Privacy
+- No third-party data sharing
+- Local backup options for data sovereignty
+- Clear data retention policies
+- GDPR-compliant data handling (even for personal use)
+
+## Success Metrics
+
+### Technical Metrics
+- **Uptime**: 99.9% availability target
+Use these artifacts to track execution progress while keeping this overview focused on the enduring product vision.
+
+## Data Sources & APIs
+## Rebuild Interlude (Added 2025-09-27)
+
+### Context
+Post-migration (MUI Grid v2 + auth refactor) review uncovered that higher-order frontend orchestration layers (routing shell, onboarding wizard, protected layout, intelligence dashboards, alert UI) were absent while backend domains and several advanced leaf components persisted. To avoid ad hoc, undocumented reinstatement, a structured wave-based rebuild plan was adopted and documented before reintroducing code.
+
+### Still Present / Intact
+- Backend domain: Users, Accounts, Goals, IncomeSources, Alerts, Tasks, AI scaffolds
+- TSP 16-fund allocation logic & form code
+- Leaf components: SmartInvestmentRecommendations, RealBankAccountDashboard, ProtectedDashboardSections
+- Auth foundation: Custom provider using `@azure/msal-browser` (wrapper removed) with dev bypass
+- Build optimization: Manual Rollup chunk splitting & selective lazy loading
+
+### Missing (Deliberately Scheduled for Rebuild)
+- ProtectedRoute & routed layout/navigation frame
+- Onboarding wizard (`WelcomeOnboardingFlow`) + `UserSetupContext` + progress tracking
+- Auth UI: AuthHeader, SignInPrompt, UserProfileCard, AuthDebugPanel
+- Market dashboards (live & intelligence panels)
+- FinancialIntelligenceCenter aggregation hub
+- SmartAlertsSystem frontend layer
+- Dual-AI pipeline (advisor + validator abstraction & consensus surface)
+- Developer diagnostics / debug panel
+
+### Rebuild Waves
+| Wave | Scope | Abbrev. Definition of Done |
+|------|-------|----------------------------|
+| 0 | Documentation Alignment | README/log/pfmp.txt interlude/wave plan/migration note committed |
+| 1 | Routing & Protection | React Router, ProtectedRoute, layout shell, nav skeleton, suspense guards |
+| 2 | User Setup Layer | UserSetupContext, multi-step wizard (demographics, risk, TSP, income), persisted progress |
+| 3 | Auth & Profile UX | AuthHeader, SignInPrompt, ProfileCard, AuthDebugPanel, DebugComponent |
+| 4 | Intelligence Dashboards | Market dashboards, FinancialIntelligenceCenter, SmartAlertsSystem UI |
+| 5 | Dual-AI Pipeline | Advisor + Validator abstraction, consensus scoring & policy gates |
+| 6 | Performance & A11y | Bundle audit, route-level splitting validation, accessibility pass, test harness expansion |
+
+### Dual-AI Pipeline Vision (Wave 5 Target)
+1. Primary model generates structured recommendation set.  
+2. Validation model reviews for risk alignment, redundancy, temporal relevance.  
+3. Consensus engine merges or flags dissent; attaches confidence & rationale.  
+4. Policy gate (configurable) can suppress low-confidence or conflicting outputs.  
+Early iterations will mock inference responses to validate UX & telemetry before real API cost exposure.
+
+### Principles
+1. Incremental orchestration reintroduction (reduce regression risk).  
+2. Mock before real AI expenses.  
+3. Explicit acceptance criteria per wave (tracked in dedicated wave plan doc).  
+4. Feature flags for experimental dashboards / dual-AI modules.  
+5. Performance polishing deferred to Wave 6 except critical regressions.
+
+### Risks & Mitigations
+| Risk | Mitigation |
+|------|------------|
+| Scope creep inside a wave | Freeze scope at wave start; defer extras |
+| Undocumented architectural shifts | Maintain log + wave docs pre-implementation |
+| AI cost spikes | Mock + usage guard rails before enabling keys |
+| Fragmented onboarding state | Centralized UserSetupContext + idempotent backend APIs |
+| Premature optimization churn | Perf tasks isolated to Wave 6 |
+
+### Immediate Wave 0 Tasks
+1. Create `REBUILD-WAVE-PLAN.md` (detailed acceptance criteria).  
+2. Annotate `MIGRATION_STATUS.md` with rebuild notice.  
+3. Commit documentation as atomic change.  
+4. Begin Wave 1 branch & scaffold routing + guards.
+
+### Exit Criteria (Wave 0)
+- Documentation reflects present vs planned state unambiguously.  
+- Missing components clearly marked as intentional rebuild items.  
+- Wave sequencing & scope published for traceable future commits.
+
+### Tracking
+Progress logged in `pfmp-log.md`; tasks mirrored in internal TODO system.
+
+---

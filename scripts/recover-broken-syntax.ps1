@@ -1,5 +1,5 @@
-# Recovery script to fix all broken Grid syntax
-$sourceDir = "W:\pfmp\pfmp-frontend\src"
+﻿# Recovery script to fix all broken Grid syntax
+$sourceDir = "P:\pfmp-frontend\src"
 
 Get-ChildItem -Path $sourceDir -Recurse -Include "*.tsx" | ForEach-Object {
     $content = Get-Content $_.FullName -Raw

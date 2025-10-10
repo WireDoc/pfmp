@@ -1,5 +1,5 @@
-# Complete Grid v1 to v2 migration - Replace all Grid with Grid2
-$sourceDir = "W:\pfmp\pfmp-frontend\src"
+﻿# Complete Grid v1 to v2 migration - Replace all Grid with Grid2
+$sourceDir = "P:\pfmp-frontend\src"
 
 Get-ChildItem -Path $sourceDir -Recurse -Include "*.tsx" | ForEach-Object {
     $content = Get-Content $_.FullName -Raw

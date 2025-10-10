@@ -1,4 +1,4 @@
-# Troubleshooting & Reference
+﻿# Troubleshooting & Reference
 
 ## Common Issues
 | Symptom | Cause | Fix |
@@ -31,7 +31,7 @@ Stop-Process -Name "node" -Force -ErrorAction SilentlyContinue
 
 ## Quick Commands
 ```powershell
-cd W:\pfmp; git status; git log --oneline -5
+cd P:; git status; git log --oneline -5
 Invoke-WebRequest -Uri "http://localhost:5052/weatherforecast"
 Invoke-WebRequest -Uri "http://localhost:5052/api/Advice/user/1"
 Invoke-WebRequest -Uri "http://localhost:5052/api/onboarding/progress"
@@ -44,7 +44,7 @@ Invoke-WebRequest -Uri "http://localhost:5052/api/dev/users"
 - Treat connection strings with care
 
 ## Performance Snapshot
-- Current main bundle ~590 kB (gz ~182 kB) – pre code-splitting target
+- Current main bundle ~590 kB (gz ~182 kB) â€“ pre code-splitting target
 
 ## Reference URLs
 - Swagger UI: `http://localhost:5052/swagger`
@@ -65,3 +65,4 @@ Advantages: deterministic, explicit, scriptable.
 ## Future Enhancements (Pointers)
 - Dual-AI consensus: see `docs/waves/REBUILD-WAVE-PLAN.md`
 - Additional dashboards reinstatement timeline also in waves plan
+

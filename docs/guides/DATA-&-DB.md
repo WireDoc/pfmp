@@ -1,4 +1,4 @@
-# Data & Database Guide
+﻿# Data & Database Guide
 
 ## Connection
 Remote dev PostgreSQL: `192.168.1.108:5433` (user: `pfmp_user`, db: `pfmp_dev`)
@@ -43,9 +43,10 @@ function Invoke-PgQuery {
 ## Migrations
 EF migrations are in `PFMP-API/Migrations/` plus snapshot. Add new one:
 ```powershell
-cd W:\pfmp\PFMP-API; dotnet ef migrations add MeaningfulName; dotnet ef database update
+cd P:\PFMP-API; dotnet ef migrations add MeaningfulName; dotnet ef database update
 ```
 
 ## Safety
 - Never commit real passwords in plain text (rotate if exposed)
 - Use file-based queries for anything long/complex
+

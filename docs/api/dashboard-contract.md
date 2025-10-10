@@ -1,6 +1,6 @@
 # Dashboard Service Contract (Wave 4)
 
-**Status:** Ready for sign-off – client adapter + MSW contract tests landed 2025-10-08; auth/token validation pending (see "Auth scope self-check" below)
+**Status:** Ready for sign-off – client adapter + MSW contract tests landed 2025-10-08; demo-user auth path active (see "Demo auth checklist" below)
 
 ## Purpose
 Define the shared payload structure for the Wave 4 dashboard service so the frontend can switch from mocks to live data without further schema churn.
@@ -153,26 +153,19 @@ Accepting advice triggers `POST /api/Advice/{adviceId}/accept`, which in turn cr
 - ✅ Feature flag fallbacks verified (`dashboardServiceSelection.test.ts`).
 - ✅ Error handling (summary 500, task persistence failure) surfaces toasts + telemetry.
 
-### Auth scope self-check (owner steps)
+### Demo auth checklist (no external scopes)
 
-1. **Verify JWT audience/issuer alignment**
-  - Inspect `PFMP-API/Program.cs` and confirm `JWT:Issuer` (`PFMP-API`) and `JWT:Audience` (`PFMP-Frontend`).
-  - In `appsettings.Development.json` (or secrets store), ensure these values match what your token issuer is producing. Defaults already align with the included authentication service.
-2. **Mint a token locally**
-  - Run the API and hit `POST /api/Auth/login` with a seeded user (see `docs/testing/login-fixtures.md` if available) to obtain a JWT.
-  - Decode the token (jwt.io or `npx jwt-decode <token>`) and confirm the `aud` claim is `PFMP-Frontend` and `iss` is `PFMP-API`.
-3. **Exercise a protected call**
-  - Call `GET /api/dashboard/summary` with the `Authorization: Bearer <token>` header; expect a `200` response.
-  - Repeat without the header and confirm you receive `401` (if the endpoint is decorated with `[Authorize]`; add the attribute if you want enforcement before enabling real data).
-4. **Decide on Azure AD integration**
-  - If you plan to use Azure Entra ID, populate `PFMP-API/azure-ad-config.json` and update `Program.cs` scopes. For the personal setup, you can keep using local JWTs until Azure is wired.
+- ✅ Keep `Development:BypassAuthentication = true` (see `PFMP-API/appsettings.Development.json`) so demo users auto-auth in dev/test.
+- ✅ Seed switchable demo users via `/api/DevUsers/*` endpoints and expose the Dev User Switcher in the UI.
+- ✅ Ensure `DashboardService` continues to call the API without bearer tokens while bypass mode is on.
+- ✅ When ready to revisit Entra ID, restore the token injection steps and remove the bypass flag (deferred to a later wave).
 
 ### Open Items
 
-- [ ] Confirm composite `GET /api/dashboard/summary` payload + auth scopes by running the self-check above (owner: you)
+- [ ] Confirm composite `GET /api/dashboard/summary` payload matches contract using bypassed demo auth (owner: you)
 - [x] Frontend: update `DashboardService` to choose between mock and live endpoints behind the feature flag (owner: Wave 4 squad)
 - [x] Frontend: extend service to fetch alerts/advice/tasks feeds (Wave 4.2) *(verified via `DashboardWave4` alert → task integration tests)*
-- [ ] Frontend: attach bearer token to real-data requests once JWT/Azure flow finalized (owner: you)
+- [ ] Frontend: attach bearer token to real-data requests once JWT/Azure flow reinstated (deferred)
 - [x] QA: add contract validation tests (MSW fixtures) covering success, empty, and error payloads for summary (2025-10-07)
 - [x] QA: add MSW fixtures for alerts/advice/tasks endpoints once UI panels are wired (owner: QA/dev pairing)
 - [ ] DX: document sample requests in `PFMP-API.http` for quick local smoke checks (owner: you)
