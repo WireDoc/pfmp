@@ -1,5 +1,5 @@
-# Fix remaining Grid components to Grid2 in all files
-$sourceDir = "W:\pfmp\pfmp-frontend\src"
+﻿# Fix remaining Grid components to Grid2 in all files
+$sourceDir = "P:\pfmp-frontend\src"
 
 Get-ChildItem -Path $sourceDir -Recurse -Include "*.tsx" | ForEach-Object {
     $content = Get-Content $_.FullName -Raw

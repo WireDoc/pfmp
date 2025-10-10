@@ -1,4 +1,4 @@
-# Add Redirect URI to Azure AD App Registration
+﻿# Add Redirect URI to Azure AD App Registration
 
 You need to add the redirect URI to your Azure AD App Registration. Here are the steps:
 
@@ -34,7 +34,7 @@ Alternatively, run this PowerShell script to add the redirect URIs automatically
 
 ```powershell
 # Add-RedirectUris.ps1
-# Run this from W:\pfmp\PFMP-API directory
+# Run this from P:\PFMP-API directory
 
 # Connect to Microsoft Graph
 Connect-MgGraph -Scopes "Application.ReadWrite.All"
@@ -70,10 +70,10 @@ if ($app) {
     
     Update-MgApplication -ApplicationId $app.Id -Spa $spaSettings
     
-    Write-Host "✅ Successfully updated redirect URIs:"
+    Write-Host "âœ… Successfully updated redirect URIs:"
     $allUris | ForEach-Object { Write-Host "  - $_" }
 } else {
-    Write-Host "❌ Application not found with Client ID: $appId"
+    Write-Host "âŒ Application not found with Client ID: $appId"
 }
 ```
 

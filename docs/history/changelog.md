@@ -5,18 +5,32 @@ All notable changes to this project will be documented in this file.
 The format loosely follows [Conventional Commits](https://www.conventionalcommits.org/) and groups backend + frontend wave work.
 
 ## [Unreleased]
-- feat(api): add database-backed onboarding progress (GET/PUT/PATCH/RESET)
-- feat(api): reset endpoint POST /api/onboarding/progress/reset for manual testing
-- chore(api): add OnboardingProgress EF entity & migration (jsonb storage)
-- chore(dev): scaffold DevelopmentDataSeeder (baseline + onboarding scenario users)
-- feat(dev): add DevUserRegistry with dynamic default test user id
-- feat(dev): dev users listing & default selection endpoints (/api/dev/users)
-- feat(frontend): DevUserSwitcher component & onboarding flags enabled by default
-- feat(api): onboarding progress controller supports ?email= lookup
-- test(api): add onboarding & dev users controller tests
-- docs: add onboarding testing guide, updated frontend-backend & troubleshooting guides
-- Wave 2 onboarding refinement (validation schemas) – pending
-- Wave 3 persistence implementation (server endpoints, DTO normalization) – pending
+
+### Added
+- docs: subject-based documentation map at `docs/documentation-map.md`
+- docs: dedicated `docs/scripts/` folder consolidating automation references
+- docs: `docs/auth/overview.md` capturing platform-wide auth architecture
+- docs: `docs/data/runbooks/database-backup.md` for PostgreSQL + Synology flows
+- docs: onboarding testing guide and troubleshooting updates (Wave 2 support)
+- feat(api): database-backed onboarding progress (GET/PUT/PATCH/RESET)
+- feat(api): reset endpoint POST `/api/onboarding/progress/reset` for manual testing
+- feat(dev): DevUserRegistry with dynamic default test user id
+- feat(dev): dev users listing & default selection endpoints (`/api/dev/users`)
+- feat(frontend): DevUserSwitcher component & default onboarding flags
+- test(api): onboarding & dev users controller coverage
+
+### Changed
+- docs: migrated legacy root files (`BUILD.md`, `DEV-SCRIPTS.md`, `pfmp.txt`, `CHANGELOG.md`) into subject folders
+- docs: README and instructions rewritten to describe the new taxonomy
+- docs: instructions relocated to `.github/instructions/instructions.md` for Copilot indexing
+- docs: auth guidance consolidated under `docs/auth/`
+- chore(api): OnboardingProgress EF entity + migration (jsonb storage)
+- chore(dev): DevelopmentDataSeeder baseline + onboarding scenarios
+- feat(api): onboarding progress controller now supports `?email=` lookup
+
+### Planned / Pending
+- Wave 2 onboarding refinement (validation schemas)
+- Wave 3 persistence implementation (server endpoints, DTO normalization)
 - Performance baseline + visual regression harness
 
 ## [0.7.0-alpha] - 2025-10-03

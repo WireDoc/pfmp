@@ -1,5 +1,5 @@
-# Complete Grid2 import fix for MUI v7
-$sourceDir = "W:\pfmp\pfmp-frontend\src"
+﻿# Complete Grid2 import fix for MUI v7
+$sourceDir = "P:\pfmp-frontend\src"
 
 Get-ChildItem -Path $sourceDir -Recurse -Include "*.tsx" | ForEach-Object {
     $content = Get-Content $_.FullName -Raw

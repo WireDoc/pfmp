@@ -1,5 +1,5 @@
-# Fix all Grid components to use MUI v7 Grid with new syntax
-$sourceDir = "W:\pfmp\pfmp-frontend\src"
+﻿# Fix all Grid components to use MUI v7 Grid with new syntax
+$sourceDir = "P:\pfmp-frontend\src"
 
 Get-ChildItem -Path $sourceDir -Recurse -Include "*.tsx" | ForEach-Object {
     $content = Get-Content $_.FullName -Raw

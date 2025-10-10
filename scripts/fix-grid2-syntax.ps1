@@ -1,5 +1,5 @@
-# Final Grid2 syntax fix - Convert remaining xs={} md={} to size={{ xs: , md:  }}
-$sourceDir = "W:\pfmp\pfmp-frontend\src"
+﻿# Final Grid2 syntax fix - Convert remaining xs={} md={} to size={{ xs: , md:  }}
+$sourceDir = "P:\pfmp-frontend\src"
 
 Get-ChildItem -Path $sourceDir -Recurse -Include "*.tsx" | ForEach-Object {
     $content = Get-Content $_.FullName -Raw

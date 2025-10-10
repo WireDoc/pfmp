@@ -1,5 +1,5 @@
-# PowerShell script to update Grid v1 to Grid v2 throughout the application
-$sourceDir = "W:\pfmp\pfmp-frontend\src"
+﻿# PowerShell script to update Grid v1 to Grid v2 throughout the application
+$sourceDir = "P:\pfmp-frontend\src"
 
 # Get all TypeScript React files that need Grid v2 conversion
 $files = Get-ChildItem -Path $sourceDir -Recurse -Include "*.tsx" 

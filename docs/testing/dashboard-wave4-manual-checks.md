@@ -5,13 +5,13 @@
 These steps help you exercise the current Wave 4 dashboard experience with mock data before enabling the real-data adapter.
 
 ## Prerequisites
-- Backend (`PFMP-API`) running locally: `dotnet run --project PFMP-API/PFMP-API.csproj`
-- Frontend running in dev mode: `npm install` (first time) then `npm run dev` from `pfmp-frontend`
+- Backend (`PFMP-API`) running locally at `http://localhost:5052`: `dotnet run --project PFMP-API/PFMP-API.csproj`
+- Frontend running in dev mode at `http://localhost:3000`: `npm install` (first time) then `npm run dev` from `pfmp-frontend`
 - Feature flags: `enableDashboardWave4 = true`, `dashboard_wave4_real_data = false`, `onboarding_persistence_enabled = true`
 - Dev user seeded (use Dev User Switcher or `POST /api/DevUsers/seed-basic` if needed)
 
 ## Happy-path tour
-1. Navigate to `http://localhost:5173/dashboard`
+1. Navigate to `http://localhost:3000/dashboard`
 2. The onboarding gate should redirect you to `/onboarding` if the selected dev user is incomplete. Complete the steps using the UI buttons.
 3. Once onboarding is complete, you should land on the Wave 4 dashboard:
    - Welcome banner shows completed step count

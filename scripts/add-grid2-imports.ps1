@@ -1,5 +1,5 @@
-# Add Grid2 import to files that use Grid2 but don't have the import
-$sourceDir = "W:\pfmp\pfmp-frontend\src"
+﻿# Add Grid2 import to files that use Grid2 but don't have the import
+$sourceDir = "P:\pfmp-frontend\src"
 
 Get-ChildItem -Path $sourceDir -Recurse -Include "*.tsx" | ForEach-Object {
     $content = Get-Content $_.FullName -Raw
