@@ -298,6 +298,411 @@ namespace PFMP_API.Migrations
                     b.ToTable("Alerts");
                 });
 
+            modelBuilder.Entity("PFMP_API.Models.FinancialProfile.CashAccount", b =>
+                {
+                    b.Property<Guid>("CashAccountId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AccountType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<decimal>("Balance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Institution")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<decimal?>("InterestRateApr")
+                        .HasColumnType("decimal(8,4)");
+
+                    b.Property<bool>("IsEmergencyFund")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Nickname")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("RateLastChecked")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("CashAccountId");
+
+                    b.HasIndex("UserId", "Nickname", "AccountType");
+
+                    b.ToTable("CashAccounts");
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.FinancialProfile.FinancialProfileInsurancePolicy", b =>
+                {
+                    b.Property<Guid>("InsurancePolicyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Carrier")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<decimal?>("CoverageAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsAdequateCoverage")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PolicyName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PolicyType")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<decimal?>("PremiumAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("PremiumFrequency")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<decimal?>("RecommendedCoverage")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("RenewalDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("InsurancePolicyId");
+
+                    b.HasIndex("UserId", "PolicyType", "PolicyName");
+
+                    b.ToTable("FinancialProfileInsurancePolicies");
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.FinancialProfile.FinancialProfileSectionStatus", b =>
+                {
+                    b.Property<Guid>("SectionStatusId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DataChecksum")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<DateTime?>("OptOutAcknowledgedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OptOutReason")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("SectionKey")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("SectionStatusId");
+
+                    b.HasIndex("UserId", "SectionKey")
+                        .IsUnique();
+
+                    b.ToTable("FinancialProfileSectionStatuses");
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.FinancialProfile.FinancialProfileSnapshot", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CalculatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CompletedSectionCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CompletedSectionsJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<decimal>("CompletionPercent")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("MonthlyCashFlowEstimate")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("NetWorthEstimate")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("OptedOutSectionCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("OptedOutSectionsJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<int>("OutstandingSectionCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("OutstandingSectionsJson")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime?>("ProfileCompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("FinancialProfileSnapshots");
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.FinancialProfile.IncomeStreamProfile", b =>
+                {
+                    b.Property<Guid>("IncomeStreamId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AnnualAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IncomeType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsGuaranteed")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("MonthlyAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("IncomeStreamId");
+
+                    b.HasIndex("UserId", "Name", "IncomeType");
+
+                    b.ToTable("IncomeStreams");
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.FinancialProfile.InvestmentAccount", b =>
+                {
+                    b.Property<Guid>("InvestmentAccountId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AccountCategory")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<string>("AccountName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("AssetClass")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<decimal?>("ContributionRatePercent")
+                        .HasColumnType("decimal(8,4)");
+
+                    b.Property<decimal?>("CostBasis")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("CurrentValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Institution")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<bool>("IsTaxAdvantaged")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastContributionDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("InvestmentAccountId");
+
+                    b.HasIndex("UserId", "AccountName", "AccountCategory");
+
+                    b.ToTable("InvestmentAccounts");
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.FinancialProfile.PropertyProfile", b =>
+                {
+                    b.Property<Guid>("PropertyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("EstimatedValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("HasHeloc")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal?>("MonthlyExpenses")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("MonthlyMortgagePayment")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("MonthlyRentalIncome")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("MortgageBalance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Occupancy")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<string>("PropertyName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PropertyType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("PropertyId");
+
+                    b.HasIndex("UserId", "PropertyName");
+
+                    b.ToTable("Properties");
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.FinancialProfile.TspProfile", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("CFundPercent")
+                        .HasColumnType("decimal(8,4)");
+
+                    b.Property<decimal>("ContributionRatePercent")
+                        .HasColumnType("decimal(8,4)");
+
+                    b.Property<decimal>("CurrentBalance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("EmployerMatchPercent")
+                        .HasColumnType("decimal(8,4)");
+
+                    b.Property<decimal>("FFundPercent")
+                        .HasColumnType("decimal(8,4)");
+
+                    b.Property<decimal>("GFundPercent")
+                        .HasColumnType("decimal(8,4)");
+
+                    b.Property<decimal>("IFundPercent")
+                        .HasColumnType("decimal(8,4)");
+
+                    b.Property<bool>("IsOptedOut")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("LastUpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("LifecycleBalance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("LifecyclePercent")
+                        .HasColumnType("decimal(8,4)");
+
+                    b.Property<DateTime?>("OptOutAcknowledgedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OptOutReason")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<decimal>("SFundPercent")
+                        .HasColumnType("decimal(8,4)");
+
+                    b.Property<decimal>("TargetBalance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("TspProfiles");
+                });
+
             modelBuilder.Entity("PFMP_API.Models.Goal", b =>
                 {
                     b.Property<int>("GoalId")
@@ -1010,6 +1415,9 @@ namespace PFMP_API.Migrations
                     b.Property<DateTime?>("DateOfBirth")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("DependentCount")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -1044,6 +1452,10 @@ namespace PFMP_API.Migrations
                     b.Property<string>("GovernmentAgency")
                         .HasColumnType("text");
 
+                    b.Property<string>("HouseholdServiceNotes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
@@ -1064,6 +1476,10 @@ namespace PFMP_API.Migrations
                     b.Property<DateTime?>("LastRiskAssessment")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("MaritalStatus")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text");
 
@@ -1073,6 +1489,10 @@ namespace PFMP_API.Migrations
                     b.Property<string>("PhoneNumber")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<string>("PreferredName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<DateTime?>("ProfileCompletedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1320,6 +1740,78 @@ namespace PFMP_API.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.FinancialProfile.CashAccount", b =>
+                {
+                    b.HasOne("PFMP_API.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.FinancialProfile.FinancialProfileInsurancePolicy", b =>
+                {
+                    b.HasOne("PFMP_API.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.FinancialProfile.FinancialProfileSectionStatus", b =>
+                {
+                    b.HasOne("PFMP_API.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.FinancialProfile.FinancialProfileSnapshot", b =>
+                {
+                    b.HasOne("PFMP_API.Models.User", null)
+                        .WithOne()
+                        .HasForeignKey("PFMP_API.Models.FinancialProfile.FinancialProfileSnapshot", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.FinancialProfile.IncomeStreamProfile", b =>
+                {
+                    b.HasOne("PFMP_API.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.FinancialProfile.InvestmentAccount", b =>
+                {
+                    b.HasOne("PFMP_API.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.FinancialProfile.PropertyProfile", b =>
+                {
+                    b.HasOne("PFMP_API.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.FinancialProfile.TspProfile", b =>
+                {
+                    b.HasOne("PFMP_API.Models.User", null)
+                        .WithOne()
+                        .HasForeignKey("PFMP_API.Models.FinancialProfile.TspProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("PFMP_API.Models.Goal", b =>

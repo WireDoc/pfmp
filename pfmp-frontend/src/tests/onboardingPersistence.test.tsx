@@ -5,10 +5,28 @@ import { OnboardingProvider } from '../onboarding/OnboardingContext';
 import { useOnboarding } from '../onboarding/useOnboarding';
 import { updateFlags } from '../flags/featureFlags';
 import { setDevUserId } from '../dev/devUserState';
-import { createOnboardingApiMock, http, HttpResponse } from './mocks/handlers';
+import { http, HttpResponse } from './mocks/handlers';
 import { mswServer } from './mocks/server';
-import type { OnboardingProgressDTO } from '../onboarding/persistence';
-import type { OnboardingStepId } from '../onboarding/steps';
+import type { FinancialProfileSectionKey, FinancialProfileSectionStatus, FinancialProfileSectionStatusValue } from '../services/financialProfileApi';
+
+type StatusOverrides = Partial<Record<FinancialProfileSectionKey, FinancialProfileSectionStatusValue>>;
+
+function buildStatuses(userId: number, overrides: StatusOverrides = {}): FinancialProfileSectionStatus[] {
+  const now = new Date().toISOString();
+  return Object.entries(overrides).map(([sectionKey, status], index) => ({
+    sectionStatusId: `${userId}-${sectionKey}-${index}`,
+    userId,
+    sectionKey: sectionKey as FinancialProfileSectionKey,
+    status: status ?? 'needs_info',
+    optOutReason: null,
+    optOutAcknowledgedAt: null,
+    dataChecksum: null,
+    updatedAt: now,
+    createdAt: now,
+  }));
+}
+
+const sectionsEndpoint = 'http://localhost:5052/api/financial-profile/:userId/sections';
 
 function TestConsumer() {
   const ob = useOnboarding();
@@ -34,68 +52,67 @@ describe('Onboarding persistence integration', () => {
     });
   });
 
-  it('hydrates from existing progress DTO', async () => {
-    const dto: OnboardingProgressDTO = {
-      userId: 'dev-user',
-      completedStepIds: ['demographics'] as OnboardingStepId[],
-      currentStepId: 'risk',
-      updatedUtc: new Date().toISOString(),
-    };
-    const api = createOnboardingApiMock({ 'dev-user': dto });
-    mswServer.use(...api.handlers);
+  it('hydrates from backend section statuses', async () => {
+    const statusStore = new Map<number, StatusOverrides>([[1, { household: 'completed', 'risk-goals': 'completed' }]]);
+    mswServer.use(
+      http.get(sectionsEndpoint, ({ params }) => {
+        const userId = Number(params.userId);
+        return HttpResponse.json(buildStatuses(userId, statusStore.get(userId)));
+      }),
+    );
 
     render(<OnboardingProvider><TestConsumer /></OnboardingProvider>);
 
     await waitFor(() => expect(screen.getByTestId('hydrated').textContent).toBe('yes'));
-    expect(screen.getByTestId('hydrated').textContent).toBe('yes');
-    expect(screen.getByTestId('current-step').textContent).toBe('risk');
-    expect(screen.getByTestId('completed-count').textContent).toBe('1');
+    expect(screen.getByTestId('current-step').textContent).toBe('tsp');
+    expect(screen.getByTestId('completed-count').textContent).toBe('2');
   });
 
   it('treats 404 as fresh start', async () => {
-    const api = createOnboardingApiMock();
-    mswServer.use(...api.handlers);
+    mswServer.use(
+      http.get(sectionsEndpoint, () =>
+        HttpResponse.json({ message: 'not found' }, { status: 404 }),
+      ),
+    );
+
     render(<OnboardingProvider><TestConsumer /></OnboardingProvider>);
+
     await waitFor(() => expect(screen.getByTestId('hydrated').textContent).toBe('yes'));
-    expect(screen.getByTestId('hydrated').textContent).toBe('yes');
-    expect(screen.getByTestId('current-step').textContent).toBe('demographics');
+    expect(screen.getByTestId('current-step').textContent).toBe('household');
+    expect(screen.getByTestId('completed-count').textContent).toBe('0');
   });
 
-  it('PATCH called on step completion + NEXT (debounced)', async () => {
-    const api = createOnboardingApiMock();
-    mswServer.use(...api.handlers);
+  it('marks completion locally when advancing', async () => {
+    mswServer.use(
+      http.get(sectionsEndpoint, ({ params }) => HttpResponse.json(buildStatuses(Number(params.userId)))),
+    );
 
     render(<OnboardingProvider><TestConsumer /></OnboardingProvider>);
+
     await waitFor(() => expect(screen.getByTestId('hydrated').textContent).toBe('yes'));
+    expect(screen.getByTestId('completed-count').textContent).toBe('0');
+    expect(screen.getByTestId('current-step').textContent).toBe('household');
 
     await act(async () => {
       screen.getByText('advance').click();
     });
 
-    await waitFor(() => {
-      expect(api.patchLog.length).toBeGreaterThan(0);
-      expect(api.putLog.length).toBeGreaterThan(0);
-    }, { timeout: 3000 });
+    expect(screen.getByTestId('completed-count').textContent).toBe('1');
+    expect(screen.getByTestId('current-step').textContent).toBe('risk-goals');
   });
 
   it('rehydrates when dev user switches', async () => {
-    const firstDto: OnboardingProgressDTO = {
-      userId: '101',
-      completedStepIds: ['demographics'] as OnboardingStepId[],
-      currentStepId: 'risk',
-      updatedUtc: new Date().toISOString(),
-    };
-    const secondDto: OnboardingProgressDTO = {
-      userId: '202',
-      completedStepIds: ['demographics', 'risk'] as OnboardingStepId[],
-      currentStepId: 'income',
-      updatedUtc: new Date().toISOString(),
-    };
-    const api = createOnboardingApiMock({
-      '101': firstDto,
-      '202': secondDto,
-    });
-    mswServer.use(...api.handlers);
+    const statusStore = new Map<number, StatusOverrides>([
+      [101, { household: 'completed' }],
+      [202, { household: 'completed', 'risk-goals': 'completed' }],
+    ]);
+
+    mswServer.use(
+      http.get(sectionsEndpoint, ({ params }) => {
+        const userId = Number(params.userId);
+        return HttpResponse.json(buildStatuses(userId, statusStore.get(userId)));
+      }),
+    );
 
     await act(async () => {
       setDevUserId(101);
@@ -103,79 +120,68 @@ describe('Onboarding persistence integration', () => {
 
     render(<OnboardingProvider><TestConsumer /></OnboardingProvider>);
 
-    await waitFor(() => expect(screen.getByTestId('current-step').textContent).toBe('risk'));
+    await waitFor(() => expect(screen.getByTestId('current-step').textContent).toBe('risk-goals'));
 
     await act(async () => {
       setDevUserId(202);
     });
 
-    await waitFor(() => expect(screen.getByTestId('current-step').textContent).toBe('income'));
-    expect(api.getState('101')?.currentStepId).toBe('risk');
-    expect(api.getState('202')?.currentStepId).toBe('income');
+    await waitFor(() => expect(screen.getByTestId('current-step').textContent).toBe('tsp'));
   });
 
-  it('reset API clears progress and rehydrates baseline', async () => {
-    const initialDto: OnboardingProgressDTO = {
-      userId: 'dev-user',
-      completedStepIds: ['demographics', 'risk'] as OnboardingStepId[],
-      currentStepId: 'tsp',
-      updatedUtc: new Date().toISOString(),
-    };
-    const api = createOnboardingApiMock({ 'dev-user': initialDto });
-    mswServer.use(...api.handlers);
+  it('reset rehydrates using latest section statuses', async () => {
+    const statusStore = new Map<number, StatusOverrides>([[1, { household: 'completed', 'risk-goals': 'completed', tsp: 'completed' }]]);
+
+    mswServer.use(
+      http.get(sectionsEndpoint, ({ params }) => {
+        const userId = Number(params.userId);
+        return HttpResponse.json(buildStatuses(userId, statusStore.get(userId)));
+      }),
+    );
 
     render(<OnboardingProvider><TestConsumer /></OnboardingProvider>);
 
-    await waitFor(() => expect(screen.getByTestId('current-step').textContent).toBe('tsp'));
+    await waitFor(() => expect(screen.getByTestId('current-step').textContent).toBe('cash'));
+
+    statusStore.set(1, {});
 
     await act(async () => {
       screen.getByTestId('reset-button').click();
     });
 
-    await waitFor(() => {
-      expect(api.resetLog.length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByTestId('current-step').textContent).toBe('demographics');
-    });
-    const snapshot = api.getState('dev-user');
-    expect(snapshot?.currentStepId).toBe('demographics');
-    expect(snapshot?.completedStepIds).toEqual([]);
+    await waitFor(() => expect(screen.getByTestId('current-step').textContent).toBe('household'));
+    expect(screen.getByTestId('completed-count').textContent).toBe('0');
   });
 
-  it('surfaces default state when fetch fails', async () => {
+  it('surfaces baseline state when fetch fails', async () => {
     mswServer.use(
-      http.get('http://localhost/api/onboarding/progress', () =>
-        HttpResponse.json({ message: 'oops' }, { status: 500 }),
-      ),
+      http.get(sectionsEndpoint, () => HttpResponse.json({ message: 'oops' }, { status: 500 })),
     );
 
     render(<OnboardingProvider><TestConsumer /></OnboardingProvider>);
 
     await waitFor(() => expect(screen.getByTestId('hydrated').textContent).toBe('yes'));
-    expect(screen.getByTestId('current-step').textContent).toBe('demographics');
+    expect(screen.getByTestId('current-step').textContent).toBe('household');
+    expect(screen.getByTestId('completed-count').textContent).toBe('0');
   });
 
-  it('supports manual refresh after transient fetch failures', async () => {
-    const dto: OnboardingProgressDTO = {
-      userId: 'dev-user',
-      completedStepIds: ['demographics', 'risk'] as OnboardingStepId[],
-      currentStepId: 'tsp',
-      updatedUtc: new Date().toISOString(),
-    };
+  it('supports manual refresh after transient failures', async () => {
     let callCount = 0;
     mswServer.use(
-      http.get(/\/api\/onboarding\/progress(?:\?.*)?$/, () => {
+      http.get(sectionsEndpoint, ({ params }) => {
         callCount += 1;
+        const userId = Number(params.userId);
         if (callCount === 1) {
           return HttpResponse.json({ message: 'temporary' }, { status: 503 });
         }
-        return HttpResponse.json(dto, { status: 200 });
+        return HttpResponse.json(buildStatuses(userId, { household: 'completed', 'risk-goals': 'completed' }));
       }),
     );
 
     render(<OnboardingProvider><TestConsumer /></OnboardingProvider>);
 
     await waitFor(() => expect(screen.getByTestId('hydrated').textContent).toBe('yes'));
-    expect(screen.getByTestId('current-step').textContent).toBe('demographics');
+    expect(screen.getByTestId('current-step').textContent).toBe('household');
     expect(callCount).toBe(1);
 
     await act(async () => {
@@ -187,6 +193,7 @@ describe('Onboarding persistence integration', () => {
   });
 
   afterEach(() => {
+    mswServer.resetHandlers();
     act(() => {
       setDevUserId(null);
     });

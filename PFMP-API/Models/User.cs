@@ -61,6 +61,12 @@ namespace PFMP_API.Models
         public bool IsGovernmentEmployee { get; set; } = true;
         public string? GovernmentAgency { get; set; }
 
+    // Household & profile identity
+    public string? PreferredName { get; set; }
+    public string? MaritalStatus { get; set; }
+    public int? DependentCount { get; set; }
+    public string? HouseholdServiceNotes { get; set; }
+
         // Profile & Demographics (NEW FIELDS)
         public DateTime? DateOfBirth { get; set; }
         public string? EmploymentType { get; set; } // Federal, Military, Contractor, Private
