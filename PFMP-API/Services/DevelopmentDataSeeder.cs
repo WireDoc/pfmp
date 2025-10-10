@@ -1,5 +1,8 @@
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using PFMP_API.Models;
+using PFMP_API.Services.FinancialProfile;
 
 namespace PFMP_API.Services;
 
@@ -23,6 +26,7 @@ public static class DevelopmentDataSeeder
         {
             DevUserRegistry.Register(baselineUser.UserId, baselineUser.Email);
             DevUserRegistry.SetDefault(baselineUser.UserId);
+            await SeedFinancialProfileSampleAsync(db, baselineUser.UserId);
         }
         await SeedOnboardingScenarioUsers(db);
         // Portfolio variants placeholder for future expansion
@@ -99,6 +103,196 @@ public static class DevelopmentDataSeeder
             });
             progress.UpdatedUtc = DateTime.UtcNow;
             await db.SaveChangesAsync();
+
+            await SeedFinancialProfileSampleAsync(db, user.UserId);
         }
+    }
+
+    private static async Task SeedFinancialProfileSampleAsync(ApplicationDbContext db, int userId)
+    {
+        if (await db.FinancialProfileSectionStatuses.AnyAsync(s => s.UserId == userId))
+        {
+            return;
+        }
+
+        var profileService = new FinancialProfileService(db, NullLogger<FinancialProfileService>.Instance);
+
+        await profileService.UpsertHouseholdAsync(userId, new HouseholdProfileInput
+        {
+            PreferredName = "Dev Household",
+            MaritalStatus = "Married",
+            DependentCount = 2,
+            ServiceNotes = "Seeded sample household profile"
+        });
+
+        await profileService.UpsertRiskGoalsAsync(userId, new RiskGoalsInput
+        {
+            RiskTolerance = 6,
+            TargetRetirementDate = DateTime.UtcNow.AddYears(15),
+            PassiveIncomeGoal = 4500m,
+            EmergencyFundTarget = 25000m
+        });
+
+        await profileService.UpsertTspAsync(userId, new TspAllocationInput
+        {
+            ContributionRatePercent = 12.5m,
+            EmployerMatchPercent = 5m,
+            CurrentBalance = 185000m,
+            TargetBalance = 750000m,
+            GFundPercent = 5m,
+            FFundPercent = 10m,
+            CFundPercent = 45m,
+            SFundPercent = 20m,
+            IFundPercent = 10m,
+            LifecyclePercent = 10m,
+            LifecycleBalance = 18500m
+        });
+
+        await profileService.UpsertCashAccountsAsync(userId, new CashAccountsInput
+        {
+            Accounts = new List<CashAccountInput>
+            {
+                new CashAccountInput
+                {
+                    Nickname = "Emergency Fund",
+                    AccountType = "high-yield",
+                    Institution = "Ally Bank",
+                    Balance = 18000m,
+                    InterestRateApr = 4.25m,
+                    IsEmergencyFund = true,
+                    RateLastChecked = DateTime.UtcNow.AddDays(-14)
+                },
+                new CashAccountInput
+                {
+                    Nickname = "Checking",
+                    AccountType = "checking",
+                    Institution = "Navy Federal",
+                    Balance = 5200m,
+                    InterestRateApr = 0.10m,
+                    IsEmergencyFund = false,
+                    RateLastChecked = DateTime.UtcNow.AddMonths(-1)
+                }
+            }
+        });
+
+        await profileService.UpsertInvestmentAccountsAsync(userId, new InvestmentAccountsInput
+        {
+            Accounts = new List<InvestmentAccountInput>
+            {
+                new InvestmentAccountInput
+                {
+                    AccountName = "Brokerage - Vanguard",
+                    AccountCategory = "brokerage",
+                    Institution = "Vanguard",
+                    AssetClass = "index-fund",
+                    CurrentValue = 95000m,
+                    CostBasis = 72500m,
+                    ContributionRatePercent = 6m,
+                    IsTaxAdvantaged = false,
+                    LastContributionDate = DateTime.UtcNow.AddDays(-12)
+                },
+                new InvestmentAccountInput
+                {
+                    AccountName = "Roth IRA - Fidelity",
+                    AccountCategory = "ira",
+                    Institution = "Fidelity",
+                    AssetClass = "target-date",
+                    CurrentValue = 68000m,
+                    CostBasis = 54000m,
+                    ContributionRatePercent = 5m,
+                    IsTaxAdvantaged = true,
+                    LastContributionDate = DateTime.UtcNow.AddDays(-25)
+                }
+            }
+        });
+
+        await profileService.UpsertPropertiesAsync(userId, new PropertiesInput
+        {
+            Properties = new List<PropertyInput>
+            {
+                new PropertyInput
+                {
+                    PropertyName = "Primary Residence",
+                    PropertyType = "residential",
+                    Occupancy = "owner",
+                    EstimatedValue = 525000m,
+                    MortgageBalance = 312000m,
+                    MonthlyMortgagePayment = 2450m,
+                    MonthlyRentalIncome = 0m,
+                    MonthlyExpenses = 350m,
+                    HasHeloc = false
+                },
+                new PropertyInput
+                {
+                    PropertyName = "Rental Duplex",
+                    PropertyType = "residential",
+                    Occupancy = "rental",
+                    EstimatedValue = 410000m,
+                    MortgageBalance = 265000m,
+                    MonthlyMortgagePayment = 1980m,
+                    MonthlyRentalIncome = 3200m,
+                    MonthlyExpenses = 600m,
+                    HasHeloc = true
+                }
+            }
+        });
+
+        await profileService.UpsertInsurancePoliciesAsync(userId, new InsurancePoliciesInput
+        {
+            Policies = new List<InsurancePolicyInput>
+            {
+                new InsurancePolicyInput
+                {
+                    PolicyType = "life",
+                    Carrier = "USAA",
+                    PolicyName = "Term Life 30yr",
+                    CoverageAmount = 750000m,
+                    PremiumAmount = 68.50m,
+                    PremiumFrequency = "monthly",
+                    RenewalDate = DateTime.UtcNow.AddMonths(6),
+                    IsAdequateCoverage = true,
+                    RecommendedCoverage = 750000m
+                },
+                new InsurancePolicyInput
+                {
+                    PolicyType = "disability",
+                    Carrier = "Guardian",
+                    PolicyName = "Own Occupation",
+                    CoverageAmount = 5000m,
+                    PremiumAmount = 120.00m,
+                    PremiumFrequency = "monthly",
+                    RenewalDate = DateTime.UtcNow.AddMonths(10),
+                    IsAdequateCoverage = true,
+                    RecommendedCoverage = 5000m
+                }
+            }
+        });
+
+        await profileService.UpsertIncomeStreamsAsync(userId, new IncomeStreamsInput
+        {
+            Streams = new List<IncomeStreamInput>
+            {
+                new IncomeStreamInput
+                {
+                    Name = "GS Salary",
+                    IncomeType = "salary",
+                    MonthlyAmount = 8500m,
+                    AnnualAmount = 102000m,
+                    IsGuaranteed = true,
+                    StartDate = DateTime.UtcNow.AddYears(-5),
+                    IsActive = true
+                },
+                new IncomeStreamInput
+                {
+                    Name = "Rental Income",
+                    IncomeType = "rental",
+                    MonthlyAmount = 3200m,
+                    AnnualAmount = 38400m,
+                    IsGuaranteed = false,
+                    StartDate = DateTime.UtcNow.AddYears(-2),
+                    IsActive = true
+                }
+            }
+        });
     }
 }

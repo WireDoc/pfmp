@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
+using PFMP_API.Models.FinancialProfile;
 
 namespace PFMP_API
 {
@@ -34,8 +35,18 @@ namespace PFMP_API
     // Advisory / Recommendations
     public DbSet<Advice> Advice { get; set; }
 
-        // Onboarding (Wave 3)
+    // Onboarding (Wave 3)
         public DbSet<OnboardingProgress> OnboardingProgress { get; set; }
+
+    // Financial profile (Wave 5)
+    public DbSet<FinancialProfileSectionStatus> FinancialProfileSectionStatuses { get; set; }
+    public DbSet<FinancialProfileSnapshot> FinancialProfileSnapshots { get; set; }
+    public DbSet<CashAccount> CashAccounts { get; set; }
+    public DbSet<InvestmentAccount> InvestmentAccounts { get; set; }
+    public DbSet<PropertyProfile> Properties { get; set; }
+    public DbSet<FinancialProfileInsurancePolicy> FinancialProfileInsurancePolicies { get; set; }
+    public DbSet<IncomeStreamProfile> IncomeStreams { get; set; }
+    public DbSet<TspProfile> TspProfiles { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -49,6 +60,9 @@ namespace PFMP_API
                 entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
                 entity.Property(e => e.FirstName).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.LastName).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.PreferredName).HasMaxLength(100);
+                entity.Property(e => e.MaritalStatus).HasMaxLength(60);
+                entity.Property(e => e.HouseholdServiceNotes).HasMaxLength(500);
             });
 
             // Account Configuration
@@ -232,6 +246,132 @@ namespace PFMP_API
                 entity.Property(e => e.UpdatedUtc).IsRequired();
 
                 entity.HasIndex(e => e.UpdatedUtc);
+            });
+
+            // Financial profile configuration
+            modelBuilder.Entity<FinancialProfileSectionStatus>(entity =>
+            {
+                entity.HasIndex(e => new { e.UserId, e.SectionKey }).IsUnique();
+                entity.Property(e => e.SectionKey).IsRequired().HasMaxLength(60);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.OptOutReason).HasMaxLength(255);
+                entity.Property(e => e.DataChecksum).HasMaxLength(80);
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.Property(e => e.UpdatedAt).IsRequired();
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<FinancialProfileSnapshot>(entity =>
+            {
+                entity.HasKey(e => e.UserId);
+                entity.Property(e => e.UserId).ValueGeneratedNever();
+                entity.Property(e => e.CompletedSectionsJson).HasColumnType("jsonb");
+                entity.Property(e => e.OptedOutSectionsJson).HasColumnType("jsonb");
+                entity.Property(e => e.OutstandingSectionsJson).HasColumnType("jsonb");
+                entity.HasOne<User>()
+                    .WithOne()
+                    .HasForeignKey<FinancialProfileSnapshot>(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<CashAccount>(entity =>
+            {
+                entity.HasIndex(e => new { e.UserId, e.Nickname, e.AccountType });
+                entity.Property(e => e.Nickname).HasMaxLength(200).IsRequired();
+                entity.Property(e => e.AccountType).HasMaxLength(40);
+                entity.Property(e => e.Institution).HasMaxLength(150);
+                entity.Property(e => e.Balance).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.InterestRateApr).HasColumnType("decimal(8,4)");
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<InvestmentAccount>(entity =>
+            {
+                entity.HasIndex(e => new { e.UserId, e.AccountName, e.AccountCategory });
+                entity.Property(e => e.AccountName).HasMaxLength(200).IsRequired();
+                entity.Property(e => e.AccountCategory).HasMaxLength(60);
+                entity.Property(e => e.AssetClass).HasMaxLength(60);
+                entity.Property(e => e.CurrentValue).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.CostBasis).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.ContributionRatePercent).HasColumnType("decimal(8,4)");
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<PropertyProfile>(entity =>
+            {
+                entity.HasIndex(e => new { e.UserId, e.PropertyName });
+                entity.Property(e => e.PropertyName).HasMaxLength(200).IsRequired();
+                entity.Property(e => e.PropertyType).HasMaxLength(100);
+                entity.Property(e => e.Occupancy).HasMaxLength(60);
+                entity.Property(e => e.EstimatedValue).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.MortgageBalance).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.MonthlyMortgagePayment).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.MonthlyRentalIncome).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.MonthlyExpenses).HasColumnType("decimal(18,2)");
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<FinancialProfileInsurancePolicy>(entity =>
+            {
+                entity.HasIndex(e => new { e.UserId, e.PolicyType, e.PolicyName });
+                entity.Property(e => e.PolicyType).HasMaxLength(120).IsRequired();
+                entity.Property(e => e.PolicyName).HasMaxLength(200);
+                entity.Property(e => e.Carrier).HasMaxLength(120);
+                entity.Property(e => e.PremiumFrequency).HasMaxLength(30);
+                entity.Property(e => e.CoverageAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.PremiumAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.RecommendedCoverage).HasColumnType("decimal(18,2)");
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<IncomeStreamProfile>(entity =>
+            {
+                entity.HasIndex(e => new { e.UserId, e.Name, e.IncomeType });
+                entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+                entity.Property(e => e.IncomeType).HasMaxLength(100);
+                entity.Property(e => e.MonthlyAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.AnnualAmount).HasColumnType("decimal(18,2)");
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<TspProfile>(entity =>
+            {
+                entity.HasKey(e => e.UserId);
+                entity.Property(e => e.UserId).ValueGeneratedNever();
+                entity.Property(e => e.ContributionRatePercent).HasColumnType("decimal(8,4)");
+                entity.Property(e => e.EmployerMatchPercent).HasColumnType("decimal(8,4)");
+                entity.Property(e => e.CurrentBalance).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TargetBalance).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.GFundPercent).HasColumnType("decimal(8,4)");
+                entity.Property(e => e.FFundPercent).HasColumnType("decimal(8,4)");
+                entity.Property(e => e.CFundPercent).HasColumnType("decimal(8,4)");
+                entity.Property(e => e.SFundPercent).HasColumnType("decimal(8,4)");
+                entity.Property(e => e.IFundPercent).HasColumnType("decimal(8,4)");
+                entity.Property(e => e.LifecycleBalance).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.LifecyclePercent).HasColumnType("decimal(8,4)");
+                entity.Property(e => e.OptOutReason).HasMaxLength(255);
+                entity.HasOne<User>()
+                    .WithOne()
+                    .HasForeignKey<TspProfile>(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Configure decimal precision globally

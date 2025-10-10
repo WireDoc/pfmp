@@ -41,13 +41,20 @@ function createAuthContext(): AuthContextType {
 function createOnboardingContext(): OnboardingContextValue {
   const steps = sortedSteps();
   const completed = new Set(steps.map(step => step.id));
+  const statuses = steps.reduce<OnboardingContextValue['statuses']>((acc, step) => {
+    acc[step.id] = 'completed';
+    return acc;
+  }, {} as OnboardingContextValue['statuses']);
   return {
+    userId: 1,
     steps,
     current: { id: steps[steps.length - 1].id, index: steps.length - 1, isFirst: false, isLast: true },
     completed,
+    statuses,
     goNext: () => {},
     goPrev: () => {},
     markComplete: () => {},
+    updateStatus: () => {},
     reset: async () => {},
     refresh: async () => {},
     progressPercent: 100,

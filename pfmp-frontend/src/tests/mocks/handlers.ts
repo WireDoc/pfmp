@@ -2,6 +2,8 @@ import { http, HttpResponse } from 'msw';
 import type { OnboardingProgressDTO } from '../../onboarding/persistence';
 import type { AlertCard, AdviceItem, TaskItem } from '../../services/dashboard';
 
+type JsonValue = string | number | boolean | null | { [key: string]: JsonValue } | JsonValue[];
+
 const emptyModule = () =>
   HttpResponse.text('export {}\n', {
     status: 200,
@@ -36,6 +38,9 @@ const tasksMatchers = [
 const onboardingProgressMatcher = /\/api\/onboarding\/progress(?:\?.*)?$/;
 const onboardingStepMatcher = /\/api\/onboarding\/progress\/step\/(?:[^/?]+)(?:\?.*)?$/;
 const onboardingResetMatcher = /\/api\/onboarding\/progress\/reset(?:\?.*)?$/;
+const financialProfileSectionsMatcher = /\/financial-profile\/\d+\/sections(?:\?.*)?$/;
+const financialProfileSnapshotMatcher = /\/financial-profile\/\d+\/snapshot(?:\?.*)?$/;
+const financialProfileHouseholdMatcher = /\/financial-profile\/\d+\/household(?:\?.*)?$/;
 
 const createDashboardSummaryHandlers = (
   resolver: Parameters<typeof http.get>[1],
@@ -75,19 +80,27 @@ export const defaultHandlers = [
   http.put(onboardingProgressMatcher, () => HttpResponse.json({}, { status: 204 })),
   http.patch(onboardingStepMatcher, () => HttpResponse.json({}, { status: 204 })),
   http.post(onboardingResetMatcher, () => HttpResponse.json({}, { status: 204 })),
+  http.get(financialProfileSectionsMatcher, () => HttpResponse.json([], { status: 200 })),
+  http.get(financialProfileSnapshotMatcher, () =>
+    HttpResponse.json(
+      { message: 'No mock registered for financial profile snapshot' },
+      { status: 404 },
+    ),
+  ),
+  http.post(financialProfileHouseholdMatcher, () => HttpResponse.json({}, { status: 204 })),
 ];
 
-export const mockDashboardSummary = <T>(data: T, init?: ResponseInit) =>
-  createDashboardSummaryHandlers(() => HttpResponse.json<T>(data, init));
+export const mockDashboardSummary = (data: JsonValue, init?: ResponseInit) =>
+  createDashboardSummaryHandlers(() => HttpResponse.json(data, init));
 
 export const mockDashboardAlerts = (data: AlertCard[], init?: ResponseInit) =>
-  createAlertsHandlers(() => HttpResponse.json<AlertCard[]>(data, init ?? { status: 200 }));
+  createAlertsHandlers(() => HttpResponse.json(data, init ?? { status: 200 }));
 
 export const mockDashboardAdvice = (data: AdviceItem[], init?: ResponseInit) =>
-  createAdviceHandlers(() => HttpResponse.json<AdviceItem[]>(data, init ?? { status: 200 }));
+  createAdviceHandlers(() => HttpResponse.json(data, init ?? { status: 200 }));
 
 export const mockDashboardTasks = (data: TaskItem[], init?: ResponseInit) =>
-  createTasksHandlers(() => HttpResponse.json<TaskItem[]>(data, init ?? { status: 200 }));
+  createTasksHandlers(() => HttpResponse.json(data, init ?? { status: 200 }));
 
 export interface OnboardingApiMock {
   handlers: ReturnType<typeof http.get>[];

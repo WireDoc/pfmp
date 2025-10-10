@@ -7,7 +7,7 @@ using PFMP_API.Services;
 using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.OpenApi.Models;
-using PFMP_API.Services; // Ensure onboarding service types are visible
+using PFMP_API.Services.FinancialProfile;
 
 namespace PFMP_API
 {
@@ -39,6 +39,9 @@ namespace PFMP_API
 
             // Onboarding Progress Service (Wave 3)
             builder.Services.AddScoped<IOnboardingProgressService, OnboardingProgressService>();
+
+            // Financial Profile Service (Wave 5)
+            builder.Services.AddScoped<IFinancialProfileService, FinancialProfileService>();
 
             // Add Authentication Services
             builder.Services.AddScoped<IPasswordHashService, PasswordHashService>();
