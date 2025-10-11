@@ -2,6 +2,9 @@ import { useOnboarding } from '../onboarding/useOnboarding';
 import { useMemo } from 'react';
 import HouseholdSectionForm from '../onboarding/sections/HouseholdSectionForm';
 import RiskGoalsSectionForm from '../onboarding/sections/RiskGoalsSectionForm';
+import TspSectionForm from '../onboarding/sections/TspSectionForm';
+import CashAccountsSectionForm from '../onboarding/sections/CashAccountsSectionForm';
+import InvestmentAccountsSectionForm from '../onboarding/sections/InvestmentAccountsSectionForm';
 import type { FinancialProfileSectionStatusValue } from '../services/financialProfileApi';
 
 function formatStatus(status: string): string {
@@ -114,6 +117,30 @@ export default function OnboardingPage() {
                 case 'risk-goals':
                   return (
                     <RiskGoalsSectionForm
+                      userId={userId}
+                      currentStatus={currentStatus}
+                      onStatusChange={handleStatusChange}
+                    />
+                  );
+                case 'tsp':
+                  return (
+                    <TspSectionForm
+                      userId={userId}
+                      currentStatus={currentStatus}
+                      onStatusChange={handleStatusChange}
+                    />
+                  );
+                case 'cash':
+                  return (
+                    <CashAccountsSectionForm
+                      userId={userId}
+                      currentStatus={currentStatus}
+                      onStatusChange={handleStatusChange}
+                    />
+                  );
+                case 'investments':
+                  return (
+                    <InvestmentAccountsSectionForm
                       userId={userId}
                       currentStatus={currentStatus}
                       onStatusChange={handleStatusChange}

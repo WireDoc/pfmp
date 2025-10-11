@@ -1,0 +1,107 @@
+import { fireEvent, screen, within } from '@testing-library/react';
+import type userEvent from '@testing-library/user-event';
+
+export interface AdvanceOptions {
+  household?: 'complete' | 'optOut';
+  riskGoals?: 'complete' | 'optOut';
+  tsp?: 'complete' | 'optOut';
+  cash?: 'complete' | 'optOut';
+}
+
+const defaultOptions: Required<AdvanceOptions> = {
+  household: 'optOut',
+  riskGoals: 'complete',
+  tsp: 'optOut',
+  cash: 'optOut',
+};
+
+function assertHeading(name: string) {
+  return screen.findByRole('heading', { level: 2, name });
+}
+
+async function completeHousehold(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
+  if (mode === 'optOut') {
+    await user.click(screen.getByLabelText('I want to skip this section for now'));
+    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'Will revisit later' } });
+  } else {
+    fireEvent.change(screen.getByLabelText('Preferred name'), { target: { value: 'Helper User' } });
+    await user.click(screen.getByLabelText('Marital status'));
+    await user.click(screen.getByText('Single'));
+  }
+
+  await user.click(screen.getByTestId('household-submit'));
+  await assertHeading('Risk & Goals');
+}
+
+async function completeRiskGoals(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
+  if (mode === 'optOut') {
+    await user.click(screen.getByLabelText('I want to skip this section for now'));
+    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'Need to consult advisor' } });
+  } else {
+    await user.click(screen.getByLabelText('Risk tolerance'));
+    await user.click(screen.getByText('3 · Balanced'));
+    fireEvent.change(screen.getByLabelText('Passive income goal (monthly)'), { target: { value: '1500' } });
+  }
+
+  await user.click(screen.getByTestId('risk-goals-submit'));
+  await assertHeading('TSP Snapshot');
+}
+
+async function completeTsp(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
+  if (mode === 'optOut') {
+    await user.click(screen.getByLabelText('I don’t invest in the Thrift Savings Plan'));
+    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'No TSP access' } });
+  } else {
+    fireEvent.change(screen.getByLabelText('Contribution rate (%)'), { target: { value: '10' } });
+    fireEvent.change(screen.getByLabelText('Employer match (%)'), { target: { value: '5' } });
+  }
+
+  await user.click(screen.getByTestId('tsp-submit'));
+  await assertHeading('Cash Accounts');
+}
+
+async function completeCash(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
+  if (mode === 'optOut') {
+    await user.click(screen.getByLabelText('I don’t have additional cash accounts'));
+    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'Handled elsewhere' } });
+  } else {
+    fireEvent.change(screen.getByLabelText('Nickname'), { target: { value: 'Primary checking' } });
+    fireEvent.change(screen.getByLabelText('Institution'), { target: { value: 'Ally Bank' } });
+    fireEvent.change(screen.getByLabelText('Account type'), { target: { value: 'checking' } });
+    fireEvent.change(screen.getByLabelText('Balance ($)'), { target: { value: '15000' } });
+  }
+
+  await user.click(screen.getByTestId('cash-submit'));
+  await assertHeading('Investments');
+}
+
+export async function advanceToCashSection(
+  user: ReturnType<typeof userEvent.setup>,
+  options: AdvanceOptions = {},
+) {
+  const merged = { ...defaultOptions, ...options };
+  await completeHousehold(user, merged.household);
+  await completeRiskGoals(user, merged.riskGoals);
+  await completeTsp(user, merged.tsp);
+}
+
+export async function advanceToInvestmentsSection(
+  user: ReturnType<typeof userEvent.setup>,
+  options: AdvanceOptions = {},
+) {
+  const merged = { ...defaultOptions, ...options };
+  await completeHousehold(user, merged.household);
+  await completeRiskGoals(user, merged.riskGoals);
+  await completeTsp(user, merged.tsp);
+  await completeCash(user, merged.cash);
+}
+
+export async function expectSectionStatus(
+  sectionTitle: string,
+  status: 'Completed' | 'Opted Out' | 'Needs Info',
+) {
+  const row = screen.getByText(sectionTitle).closest('li');
+  if (!row) throw new Error(`Section row not found for ${sectionTitle}`);
+  const statusNode = await within(row as HTMLElement).findByText(status);
+  return statusNode;
+}

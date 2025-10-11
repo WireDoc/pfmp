@@ -48,6 +48,53 @@ export interface RiskGoalsProfilePayload {
   optOut?: SectionOptOutPayload | null;
 }
 
+export interface TspProfilePayload {
+  contributionRatePercent?: number | null;
+  employerMatchPercent?: number | null;
+  currentBalance?: number | null;
+  targetBalance?: number | null;
+  gFundPercent?: number | null;
+  fFundPercent?: number | null;
+  cFundPercent?: number | null;
+  sFundPercent?: number | null;
+  iFundPercent?: number | null;
+  lifecyclePercent?: number | null;
+  lifecycleBalance?: number | null;
+  optOut?: SectionOptOutPayload | null;
+}
+
+export interface CashAccountPayload {
+  nickname?: string | null;
+  accountType?: string | null;
+  institution?: string | null;
+  balance?: number | null;
+  interestRateApr?: number | null;
+  isEmergencyFund?: boolean | null;
+  rateLastChecked?: string | null;
+}
+
+export interface CashAccountsProfilePayload {
+  accounts: CashAccountPayload[];
+  optOut?: SectionOptOutPayload | null;
+}
+
+export interface InvestmentAccountPayload {
+  accountName?: string | null;
+  accountCategory?: string | null;
+  institution?: string | null;
+  assetClass?: string | null;
+  currentValue?: number | null;
+  costBasis?: number | null;
+  contributionRatePercent?: number | null;
+  isTaxAdvantaged?: boolean | null;
+  lastContributionDate?: string | null;
+}
+
+export interface InvestmentAccountsProfilePayload {
+  accounts: InvestmentAccountPayload[];
+  optOut?: SectionOptOutPayload | null;
+}
+
 interface FinancialProfileSectionStatusDto {
   sectionStatusId: string;
   userId: number;
@@ -169,4 +216,16 @@ export async function upsertHouseholdProfile(userId: number, payload: HouseholdP
 
 export async function upsertRiskGoalsProfile(userId: number, payload: RiskGoalsProfilePayload): Promise<void> {
   await apiClient.post(`/financial-profile/${userId}/risk-goals`, payload);
+}
+
+export async function upsertTspProfile(userId: number, payload: TspProfilePayload): Promise<void> {
+  await apiClient.post(`/financial-profile/${userId}/tsp`, payload);
+}
+
+export async function upsertCashAccountsProfile(userId: number, payload: CashAccountsProfilePayload): Promise<void> {
+  await apiClient.post(`/financial-profile/${userId}/cash`, payload);
+}
+
+export async function upsertInvestmentAccountsProfile(userId: number, payload: InvestmentAccountsProfilePayload): Promise<void> {
+  await apiClient.post(`/financial-profile/${userId}/investments`, payload);
 }
