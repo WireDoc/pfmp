@@ -7,7 +7,8 @@ PFMP is an AI-assisted financial planning platform for government employees and 
 - **Backend**: `PFMP-API/` (.NET 9 Web API, PostgreSQL 15)
 - **Frontend**: `pfmp-frontend/` (React 19 + TypeScript + Vite)
 - **Authentication**: Azure Entra ID with local bypass mode for development
-- **Focus Areas**: Portfolio intelligence, alerts & tasks, onboarding wizard, wave-based rebuild plan
+- **Current Highlights**: Rebuilt onboarding wizard through long-term obligations, updated API client + tests, live documentation map and QA playbooks
+- **Planning Frames**: Wave 0–6 rebuild plan (tactical) aligned with roadmap Phases 1–5 (product milestones)
 
 The platform is currently in the Wave rebuild effort. Implementation details, historical notes, and migration guidance now live inside the reorganized `docs/` directory.
 
@@ -18,6 +19,8 @@ The platform is currently in the Wave rebuild effort. Implementation details, hi
 - .NET 9 SDK
 - Node.js 18+
 - PostgreSQL 15 (remote instance available at `192.168.1.108:5433` for development)
+
+> **Package manager**: npm is the supported frontend runner. The repo does not use pnpm or yarn.
 
 ### Preferred startup
 
@@ -53,19 +56,17 @@ Restart the API whenever controllers, DTOs, or EF models change. Database migrat
 
 ## Documentation
 
-All in-depth documentation now lives under `docs/` by subject. Highlights:
+All in-depth documentation lives under `docs/`, organised by subject. Start with:
 
-- `docs/documentation-map.md` – consolidated index (generated during the documentation overhaul)
-- `docs/api/reference.md` – backend endpoints and payloads
-- `docs/auth/overview.md` & `docs/auth/getting-started.md` – platform authentication, Azure setup, and bypass guidance
-- `docs/dev/library-version-guidelines.md` & `docs/dev/storybook-setup.md` – frontend tooling standards
-- `docs/history/changelog.md` & `docs/history/roadmap.md` – release notes and direction
-- `docs/ops/runbooks/database-backup.md` – operational runbooks
-- `docs/testing/` – manual QA plans and visual regression strategy
-- `docs/waves/` – rebuild plan, migration status, and session archives
-- `.github/instructions/instructions.md` – PowerShell workflow and service management cheat sheet for GitHub Copilot
+- `docs/documentation-map.md` – canonical index
+- `docs/history/roadmap.md` – product phases (Onboarding MVP → Intelligence engine)
+- `docs/waves/REBUILD-WAVE-PLAN.md` – tactical wave breakdown and current status
+- `docs/waves/MIGRATION_STATUS.md` – latest migration + onboarding updates (including long-term obligations support)
+- `docs/testing/onboarding-persistence.md` – QA checklist + integration test commands for the onboarding flow
+- `docs/auth/overview.md` and `docs/auth/getting-started.md` – authentication guidance & bypass mode
+- `.github/instructions/instructions.md` – PowerShell workflow, daily startup, npm-only note
 
-For anything missing, add a focused markdown file inside the relevant subject folder and update the documentation map accordingly.
+Update the documentation map whenever you add or relocate material.
 
 ## Development notes
 
@@ -75,12 +76,13 @@ For anything missing, add a focused markdown file inside the relevant subject fo
 - Feature development follows conventional commits (e.g., `feat(auth): enable azure callback logging`)
 - Run sanity checks before committing:
   - `dotnet build P:\PFMP-API\PFMP-API.csproj`
-  - `npm run lint` / `npm run build` inside `pfmp-frontend`
+  - `npm run lint`
+  - `npm run test -- onboardingLongTermObligations.integration.test.tsx`
 
 ## Status & roadmap
 
 - Active version: **v0.7.0-alpha**
-- Wave alignment, routing shell rebuild, and onboarding polish are the current focus areas
+- Roadmap Phase 1 (Onboarding MVP) is active, driven by Wave 5 onboarding enhancements and a short Wave 4 follow-up to surface new snapshot metrics
 - Track progress, migration notes, and future waves in `docs/waves/`
 
 ## Testing resources

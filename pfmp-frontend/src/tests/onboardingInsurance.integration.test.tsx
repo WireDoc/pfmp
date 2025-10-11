@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { OnboardingProvider } from '../onboarding/OnboardingContext';
@@ -15,6 +16,9 @@ describe('Insurance onboarding section', () => {
     vi.spyOn(financialProfileApi, 'upsertCashAccountsProfile').mockResolvedValue();
     vi.spyOn(financialProfileApi, 'upsertInvestmentAccountsProfile').mockResolvedValue();
     vi.spyOn(financialProfileApi, 'upsertPropertiesProfile').mockResolvedValue();
+    vi.spyOn(financialProfileApi, 'upsertLiabilitiesProfile').mockResolvedValue();
+    vi.spyOn(financialProfileApi, 'upsertExpensesProfile').mockResolvedValue();
+    vi.spyOn(financialProfileApi, 'upsertTaxProfile').mockResolvedValue();
   });
 
   afterEach(() => {
@@ -32,9 +36,11 @@ describe('Insurance onboarding section', () => {
     const user = userEvent.setup({ delay: 0 });
 
     render(
-      <OnboardingProvider skipAutoHydrate userId={1}>
-        <OnboardingPage />
-      </OnboardingProvider>,
+      <MemoryRouter initialEntries={['/onboarding']}>
+        <OnboardingProvider skipAutoHydrate userId={1}>
+          <OnboardingPage />
+        </OnboardingProvider>
+      </MemoryRouter>,
     );
 
     await advanceToInsuranceSection(user, { realEstate: 'optOut' });
@@ -67,7 +73,7 @@ describe('Insurance onboarding section', () => {
     });
     expect(latest.policies[0]?.renewalDate ?? '').toContain('2026-05-01');
 
-    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Income Streams' })).toBeInTheDocument());
+  await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Benefits & Programs' })).toBeInTheDocument());
 
     await expectSectionStatus('Insurance Coverage', 'Completed');
   }, 25000);
@@ -83,9 +89,11 @@ describe('Insurance onboarding section', () => {
     const user = userEvent.setup({ delay: 0 });
 
     render(
-      <OnboardingProvider skipAutoHydrate userId={1}>
-        <OnboardingPage />
-      </OnboardingProvider>,
+      <MemoryRouter initialEntries={['/onboarding']}>
+        <OnboardingProvider skipAutoHydrate userId={1}>
+          <OnboardingPage />
+        </OnboardingProvider>
+      </MemoryRouter>,
     );
 
     await advanceToInsuranceSection(user, { realEstate: 'optOut' });
@@ -105,7 +113,7 @@ describe('Insurance onboarding section', () => {
       reason: 'Coverage handled by employer',
     });
 
-    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Income Streams' })).toBeInTheDocument());
+  await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Benefits & Programs' })).toBeInTheDocument());
 
     await expectSectionStatus('Insurance Coverage', 'Opted Out');
   }, 20000);

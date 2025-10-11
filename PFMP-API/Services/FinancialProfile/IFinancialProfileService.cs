@@ -12,6 +12,12 @@ namespace PFMP_API.Services.FinancialProfile
         Task UpsertPropertiesAsync(int userId, PropertiesInput input, CancellationToken ct = default);
         Task UpsertInsurancePoliciesAsync(int userId, InsurancePoliciesInput input, CancellationToken ct = default);
         Task UpsertIncomeStreamsAsync(int userId, IncomeStreamsInput input, CancellationToken ct = default);
+        Task UpsertLiabilitiesAsync(int userId, LiabilitiesInput input, CancellationToken ct = default);
+        Task UpsertExpensesAsync(int userId, ExpensesInput input, CancellationToken ct = default);
+        Task UpsertTaxProfileAsync(int userId, TaxProfileInput input, CancellationToken ct = default);
+        Task UpsertBenefitsAsync(int userId, BenefitsInput input, CancellationToken ct = default);
+        Task UpsertLongTermObligationsAsync(int userId, LongTermObligationsInput input, CancellationToken ct = default);
+        Task UpsertEquityInterestAsync(int userId, EquityInterestInput input, CancellationToken ct = default);
         Task<FinancialProfileSnapshot?> GetSnapshotAsync(int userId, CancellationToken ct = default);
     }
 }

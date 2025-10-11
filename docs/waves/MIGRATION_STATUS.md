@@ -243,3 +243,30 @@ npm run build
 
 ## âœ… Handoff Complete
 This documentation provides complete context for any future development session. The codebase is in a stable, development-ready state with only minor TypeScript warnings remaining (no compilation blockers).
+
+---
+
+## 2025-10-11 · Financial profile schema expansion (liabilities/expenses/tax/benefits)
+
+**Migration**: `20251011182621_AddLiabilitiesExpensesTaxBenefits`
+
+| Layer | Details |
+| --- | --- |
+| Backend | Adds EF Core tables for benefit coverages, expense budgets, liability accounts, tax profiles, and equity tracking interest. Extends `FinancialProfileSnapshots` with debt, expense, and tax metrics. |
+| Context snapshot | `ApplicationDbContextModelSnapshot` updated to include new entities and snapshot fields. |
+| Status | âœ… Generated via `dotnet ef migrations add AddLiabilitiesExpensesTaxBenefits` (dotnet 9). Pending application to shared environments. |
+| Follow-up | Align persistence service logic + onboarding API wiring, and update frontend onboarding steps to submit new sections. |
+
+> Note: This migration lands immediately after `AddLongTermObligations`. Apply both in sequence when updating databases.
+
+## 2025-10-11 · Frontend onboarding support for long-term obligations
+
+**Summary**: The onboarding wizard now exposes the long-term obligations section with end-to-end wiring to the API and regression coverage.
+
+| Layer | Details |
+| --- | --- |
+| Frontend UI | Added `LongTermObligationsSectionForm` (opt-out aware form with dynamic rows), registered the step in `onboarding/steps.ts`, and surfaced it within `OnboardingPage` between Benefits and Income. |
+| API client | Extended `financialProfileApi.ts` with payload types, snapshot metrics, and `upsertLongTermObligationsProfile` helper mirroring backend contract. |
+| Test harness | Updated onboarding helpers for the new step and introduced `onboardingLongTermObligations.integration.test.tsx` to validate completion + opt-out flows. |
+| Docs & QA | Refreshed `docs/testing/onboarding-persistence.md` to include the new section and reference the integration test. |
+| Follow-up | Monitor MSW handlers once backend seeds real data; ensure dashboard snapshot card renders the new metrics during Wave 4 dashboard work. |

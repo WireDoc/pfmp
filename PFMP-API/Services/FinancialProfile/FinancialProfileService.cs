@@ -15,8 +15,14 @@ namespace PFMP_API.Services.FinancialProfile
             "cash",
             "investments",
             "real-estate",
+            "liabilities",
+            "expenses",
+            "tax",
             "insurance",
-            "income"
+            "benefits",
+            "income",
+            "long-term-obligations",
+            "equity"
         };
 
         private readonly ApplicationDbContext _db;
@@ -244,6 +250,209 @@ namespace PFMP_API.Services.FinancialProfile
             await RecalculateSnapshotAsync(userId, ct);
         }
 
+        public async Task UpsertLiabilitiesAsync(int userId, LiabilitiesInput input, CancellationToken ct = default)
+        {
+            await using var tx = await _db.Database.BeginTransactionAsync(ct);
+
+            await _db.LiabilityAccounts.Where(l => l.UserId == userId).ExecuteDeleteAsync(ct);
+
+            if (input.OptOut?.IsOptedOut != true)
+            {
+                var now = DateTime.UtcNow;
+                foreach (var liability in input.Liabilities)
+                {
+                    _db.LiabilityAccounts.Add(new LiabilityAccount
+                    {
+                        UserId = userId,
+                        LiabilityType = string.IsNullOrWhiteSpace(liability.LiabilityType) ? "other" : liability.LiabilityType.Trim(),
+                        Lender = string.IsNullOrWhiteSpace(liability.Lender) ? null : liability.Lender.Trim(),
+                        CurrentBalance = liability.CurrentBalance,
+                        InterestRateApr = liability.InterestRateApr,
+                        MinimumPayment = liability.MinimumPayment,
+                        PayoffTargetDate = liability.PayoffTargetDate,
+                        IsPriorityToEliminate = liability.IsPriorityToEliminate,
+                        CreatedAt = now,
+                        UpdatedAt = now
+                    });
+                }
+            }
+
+            await UpdateSectionStatusAsync(userId, "liabilities", input.OptOut, input.OptOut?.IsOptedOut != true && input.Liabilities.Count > 0, ct);
+            await _db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+            await RecalculateSnapshotAsync(userId, ct);
+        }
+
+        public async Task UpsertExpensesAsync(int userId, ExpensesInput input, CancellationToken ct = default)
+        {
+            await using var tx = await _db.Database.BeginTransactionAsync(ct);
+
+            await _db.ExpenseBudgets.Where(e => e.UserId == userId).ExecuteDeleteAsync(ct);
+
+            if (input.OptOut?.IsOptedOut != true)
+            {
+                var now = DateTime.UtcNow;
+                foreach (var expense in input.Expenses)
+                {
+                    _db.ExpenseBudgets.Add(new ExpenseBudget
+                    {
+                        UserId = userId,
+                        Category = string.IsNullOrWhiteSpace(expense.Category) ? "general" : expense.Category.Trim(),
+                        MonthlyAmount = expense.MonthlyAmount,
+                        IsEstimated = expense.IsEstimated,
+                        Notes = string.IsNullOrWhiteSpace(expense.Notes) ? null : expense.Notes.Trim(),
+                        CreatedAt = now,
+                        UpdatedAt = now
+                    });
+                }
+            }
+
+            await UpdateSectionStatusAsync(userId, "expenses", input.OptOut, input.OptOut?.IsOptedOut != true && input.Expenses.Count > 0, ct);
+            await _db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+            await RecalculateSnapshotAsync(userId, ct);
+        }
+
+        public async Task UpsertTaxProfileAsync(int userId, TaxProfileInput input, CancellationToken ct = default)
+        {
+            if (input.OptOut?.IsOptedOut == true)
+            {
+                await _db.TaxProfiles.Where(t => t.UserId == userId).ExecuteDeleteAsync(ct);
+                await UpdateSectionStatusAsync(userId, "tax", input.OptOut, false, ct);
+                await _db.SaveChangesAsync(ct);
+                await RecalculateSnapshotAsync(userId, ct);
+                return;
+            }
+
+            var profile = await _db.TaxProfiles.FirstOrDefaultAsync(t => t.UserId == userId, ct);
+            if (profile == null)
+            {
+                profile = new TaxProfile { UserId = userId };
+                _db.TaxProfiles.Add(profile);
+            }
+
+            profile.FilingStatus = string.IsNullOrWhiteSpace(input.FilingStatus) ? "single" : input.FilingStatus.Trim();
+            profile.StateOfResidence = string.IsNullOrWhiteSpace(input.StateOfResidence) ? null : input.StateOfResidence.Trim();
+            profile.MarginalRatePercent = input.MarginalRatePercent;
+            profile.EffectiveRatePercent = input.EffectiveRatePercent;
+            profile.FederalWithholdingPercent = input.FederalWithholdingPercent;
+            profile.ExpectedRefundAmount = input.ExpectedRefundAmount;
+            profile.ExpectedPaymentAmount = input.ExpectedPaymentAmount;
+            profile.UsesCpaOrPreparer = input.UsesCpaOrPreparer;
+            profile.Notes = NormalizeReason(input.Notes);
+            profile.UpdatedAt = DateTime.UtcNow;
+
+            if (profile.CreatedAt == default)
+            {
+                profile.CreatedAt = DateTime.UtcNow;
+            }
+
+            await UpdateSectionStatusAsync(userId, "tax", input.OptOut, true, ct);
+            await _db.SaveChangesAsync(ct);
+            await RecalculateSnapshotAsync(userId, ct);
+        }
+
+        public async Task UpsertBenefitsAsync(int userId, BenefitsInput input, CancellationToken ct = default)
+        {
+            await using var tx = await _db.Database.BeginTransactionAsync(ct);
+
+            await _db.BenefitCoverages.Where(b => b.UserId == userId).ExecuteDeleteAsync(ct);
+
+            if (input.OptOut?.IsOptedOut != true)
+            {
+                var now = DateTime.UtcNow;
+                foreach (var benefit in input.Benefits)
+                {
+                    _db.BenefitCoverages.Add(new BenefitCoverage
+                    {
+                        UserId = userId,
+                        BenefitType = string.IsNullOrWhiteSpace(benefit.BenefitType) ? "benefit" : benefit.BenefitType.Trim(),
+                        Provider = string.IsNullOrWhiteSpace(benefit.Provider) ? null : benefit.Provider.Trim(),
+                        IsEnrolled = benefit.IsEnrolled,
+                        EmployerContributionPercent = benefit.EmployerContributionPercent,
+                        MonthlyCost = benefit.MonthlyCost,
+                        Notes = string.IsNullOrWhiteSpace(benefit.Notes) ? null : benefit.Notes.Trim(),
+                        CreatedAt = now,
+                        UpdatedAt = now
+                    });
+                }
+            }
+
+            await UpdateSectionStatusAsync(userId, "benefits", input.OptOut, input.OptOut?.IsOptedOut != true && input.Benefits.Count > 0, ct);
+            await _db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+            await RecalculateSnapshotAsync(userId, ct);
+        }
+
+        public async Task UpsertLongTermObligationsAsync(int userId, LongTermObligationsInput input, CancellationToken ct = default)
+        {
+            await using var tx = await _db.Database.BeginTransactionAsync(ct);
+
+            await _db.LongTermObligations.Where(o => o.UserId == userId).ExecuteDeleteAsync(ct);
+
+            if (input.OptOut?.IsOptedOut != true)
+            {
+                var now = DateTime.UtcNow;
+                foreach (var obligation in input.Obligations)
+                {
+                    var normalizedName = string.IsNullOrWhiteSpace(obligation.ObligationName)
+                        ? "Future obligation"
+                        : obligation.ObligationName.Trim();
+
+                    _db.LongTermObligations.Add(new LongTermObligation
+                    {
+                        UserId = userId,
+                        ObligationName = normalizedName,
+                        ObligationType = string.IsNullOrWhiteSpace(obligation.ObligationType) ? "general" : obligation.ObligationType.Trim(),
+                        TargetDate = obligation.TargetDate,
+                        EstimatedCost = obligation.EstimatedCost,
+                        FundsAllocated = obligation.FundsAllocated,
+                        FundingStatus = string.IsNullOrWhiteSpace(obligation.FundingStatus) ? null : obligation.FundingStatus.Trim(),
+                        IsCritical = obligation.IsCritical,
+                        Notes = NormalizeReason(obligation.Notes),
+                        CreatedAt = now,
+                        UpdatedAt = now
+                    });
+                }
+            }
+
+            await UpdateSectionStatusAsync(userId, "long-term-obligations", input.OptOut, input.OptOut?.IsOptedOut != true && input.Obligations.Count > 0, ct);
+            await _db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+            await RecalculateSnapshotAsync(userId, ct);
+        }
+
+        public async Task UpsertEquityInterestAsync(int userId, EquityInterestInput input, CancellationToken ct = default)
+        {
+            if (input.OptOut?.IsOptedOut == true)
+            {
+                await _db.EquityCompensationInterests.Where(e => e.UserId == userId).ExecuteDeleteAsync(ct);
+                await UpdateSectionStatusAsync(userId, "equity", input.OptOut, false, ct);
+                await _db.SaveChangesAsync(ct);
+                await RecalculateSnapshotAsync(userId, ct);
+                return;
+            }
+
+            var existing = await _db.EquityCompensationInterests.FirstOrDefaultAsync(e => e.UserId == userId, ct);
+            if (existing == null)
+            {
+                existing = new EquityCompensationInterest { UserId = userId };
+                _db.EquityCompensationInterests.Add(existing);
+            }
+
+            existing.IsInterestedInTracking = input.IsInterestedInTracking;
+            existing.Notes = NormalizeReason(input.Notes);
+            existing.UpdatedAt = DateTime.UtcNow;
+            if (existing.CreatedAt == default)
+            {
+                existing.CreatedAt = DateTime.UtcNow;
+            }
+
+            await UpdateSectionStatusAsync(userId, "equity", input.OptOut, true, ct);
+            await _db.SaveChangesAsync(ct);
+            await RecalculateSnapshotAsync(userId, ct);
+        }
+
         public async Task UpsertInsurancePoliciesAsync(int userId, InsurancePoliciesInput input, CancellationToken ct = default)
         {
             await using var tx = await _db.Database.BeginTransactionAsync(ct);
@@ -395,9 +604,23 @@ namespace PFMP_API.Services.FinancialProfile
             var investmentTotal = await _db.InvestmentAccounts.Where(c => c.UserId == userId).SumAsync(c => (decimal?)c.CurrentValue, ct) ?? 0m;
             var propertyValue = await _db.Properties.Where(c => c.UserId == userId).SumAsync(c => (decimal?)c.EstimatedValue, ct) ?? 0m;
             var propertyDebt = await _db.Properties.Where(c => c.UserId == userId).SumAsync(c => (decimal?)(c.MortgageBalance ?? 0m), ct) ?? 0m;
-            var netWorth = cashTotal + investmentTotal + propertyValue - propertyDebt;
+            var liabilityTotal = await _db.LiabilityAccounts.Where(c => c.UserId == userId).SumAsync(c => (decimal?)c.CurrentBalance, ct) ?? 0m;
+            var monthlyDebtService = await _db.LiabilityAccounts.Where(c => c.UserId == userId).SumAsync(c => (decimal?)(c.MinimumPayment ?? 0m), ct) ?? 0m;
+            var monthlyMortgagePayments = await _db.Properties.Where(c => c.UserId == userId).SumAsync(c => (decimal?)(c.MonthlyMortgagePayment ?? 0m), ct) ?? 0m;
+            var monthlyExpenses = await _db.ExpenseBudgets.Where(c => c.UserId == userId).SumAsync(c => (decimal?)c.MonthlyAmount, ct) ?? 0m;
+            var taxProfile = await _db.TaxProfiles.FirstOrDefaultAsync(t => t.UserId == userId, ct);
+            var obligations = await _db.LongTermObligations.Where(o => o.UserId == userId).ToListAsync(ct);
 
-            var monthlyCashFlow = await _db.IncomeStreams.Where(c => c.UserId == userId && c.IsActive).SumAsync(c => (decimal?)c.MonthlyAmount, ct) ?? 0m;
+            var netWorth = cashTotal + investmentTotal + propertyValue - propertyDebt - liabilityTotal;
+
+            var monthlyIncome = await _db.IncomeStreams.Where(c => c.UserId == userId && c.IsActive).SumAsync(c => (decimal?)c.MonthlyAmount, ct) ?? 0m;
+            var monthlyCashFlow = monthlyIncome - monthlyExpenses - monthlyDebtService - monthlyMortgagePayments;
+            var obligationTotal = obligations.Sum(o => o.EstimatedCost ?? 0m);
+            var nextObligationDate = obligations
+                .Where(o => o.TargetDate.HasValue)
+                .OrderBy(o => o.TargetDate)
+                .Select(o => o.TargetDate)
+                .FirstOrDefault();
 
             var snapshot = await _db.FinancialProfileSnapshots.FirstOrDefaultAsync(s => s.UserId == userId, ct);
             if (snapshot == null)
@@ -415,6 +638,16 @@ namespace PFMP_API.Services.FinancialProfile
             snapshot.OutstandingSectionsJson = JsonSerializer.Serialize(outstanding);
             snapshot.NetWorthEstimate = netWorth;
             snapshot.MonthlyCashFlowEstimate = monthlyCashFlow;
+            snapshot.TotalLiabilityBalance = liabilityTotal + propertyDebt;
+            snapshot.MonthlyDebtServiceEstimate = monthlyDebtService + monthlyMortgagePayments;
+            snapshot.MonthlyExpenseEstimate = monthlyExpenses;
+            snapshot.MarginalTaxRatePercent = taxProfile?.MarginalRatePercent;
+            snapshot.EffectiveTaxRatePercent = taxProfile?.EffectiveRatePercent;
+            snapshot.FederalWithholdingPercent = taxProfile?.FederalWithholdingPercent;
+            snapshot.UsesCpaOrPreparer = taxProfile?.UsesCpaOrPreparer ?? false;
+            snapshot.LongTermObligationCount = obligations.Count;
+            snapshot.LongTermObligationEstimate = obligationTotal;
+            snapshot.NextObligationDueDate = nextObligationDate;
             snapshot.CalculatedAt = DateTime.UtcNow;
             snapshot.ProfileCompletedAt = outstanding.Count == 0 ? snapshot.ProfileCompletedAt ?? DateTime.UtcNow : null;
 

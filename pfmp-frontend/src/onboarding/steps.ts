@@ -50,22 +50,58 @@ export const ONBOARDING_STEPS: OnboardingStepDef[] = [
     order: 6,
   },
   {
+    id: 'liabilities',
+    title: 'Liabilities & Credit',
+    description: 'Mortgages, loans, and revolving debts so we can surface payoff priorities.',
+    order: 7,
+  },
+  {
+    id: 'expenses',
+    title: 'Monthly Expenses',
+    description: 'Map out core living expenses and estimates to understand cash burn.',
+    order: 8,
+  },
+  {
+    id: 'tax',
+    title: 'Tax Posture',
+    description: 'Filing status, withholding, and expectations to tune cashflow recommendations.',
+    order: 9,
+  },
+  {
     id: 'insurance',
     title: 'Insurance Coverage',
     description: 'Life, disability, and specialty coverage to surface protection gaps.',
-    order: 7,
+    order: 10,
+  },
+  {
+    id: 'benefits',
+    title: 'Benefits & Programs',
+    description: 'Capture employer and federal benefits so we can highlight unused perks.',
+    order: 11,
+  },
+  {
+    id: 'long-term-obligations',
+    title: 'Long-Term Obligations',
+    description: 'Major future purchases and milestones so we can track funding progress.',
+    order: 12,
   },
   {
     id: 'income',
     title: 'Income Streams',
-    description: 'Salary, pensions, and rental income to chart monthly cashflow.',
-    order: 8,
+    description: 'Salary, VA disability, pensions, and side hustles to chart monthly cashflow.',
+    order: 13,
+  },
+  {
+    id: 'equity',
+    title: 'Equity & Private Holdings',
+    description: 'RSUs, stock options, and private equity support (coming soon) so we can prep guidance.',
+    order: 14,
   },
   {
     id: 'review',
     title: 'Review & Finalize',
     description: 'Double-check each section, acknowledge opt-outs, and unlock your dashboard.',
-    order: 9,
+    order: 15,
   },
 ];
 

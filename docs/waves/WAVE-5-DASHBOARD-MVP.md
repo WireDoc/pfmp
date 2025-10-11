@@ -17,10 +17,14 @@
    3. **Thrift Savings Plan** – contribution rate, current allocation per fund, employer match, target allocation. Include opt-out toggle **“I don’t invest in the Thrift Savings Plan”**; store boolean + reason.
    4. **Bank & cash accounts** – add multiple checking/savings/CD/MMA accounts with balances, APR, institution. Provide option **“I don’t have additional cash accounts”** and allow quick import via CSV placeholder. See the enrichment roadmap in [`WAVE-6-CASH-ACCOUNTS-ENRICHMENT.md`](./WAVE-6-CASH-ACCOUNTS-ENRICHMENT.md).
    5. **Brokerage & retirement** – non-TSP investments (401(k), IRA, taxable brokerage, crypto, precious metals). Include asset-class classification + cost basis. Opt-out per category.
-   6. **Real estate & liabilities** – primary residence, rentals, mortgages, HELOCs, property values, occupancy. Opt-out toggles for renters/non-owners. See the detailed rollout in [`WAVE-5-REAL-ESTATE-ENRICHMENT.md`](./WAVE-5-REAL-ESTATE-ENRICHMENT.md).
-   7. **Insurance coverage** – life, disability, long-term care, umbrella, property insurance with coverage amounts and premiums. Opt-out capture for uninsured areas.
-   8. **Income & benefits** – salary/wages, VA disability, pensions, business income, side hustles, annuities. Provide toggle **“List later”** while marking outstanding tasks.
-   9. **Review & finalize** – summary of sections with badges (Completed / Opted Out / Needs Info) and CTA “Unlock my dashboard”. Allow editing any section before finalizing.
+   6. **Real estate** – primary residence and rentals to track equity, cash flow, leverage, and occupancy. Opt-out toggles for renters/non-owners; continue referencing [`WAVE-5-REAL-ESTATE-ENRICHMENT.md`](./WAVE-5-REAL-ESTATE-ENRICHMENT.md).
+   7. **Liabilities & credit** – mortgages, HELOCs, student loans, credit cards, and other debt obligations with balances, minimum payments, interest rates, and payoff focus. Capture opt-out for debt-free households.
+   8. **Monthly expenses** – core household spending categories (housing, transportation, childcare, healthcare, lifestyle) plus seasonal/irregular expenses with monthly normalization. Provide quick “Estimate for now” helper + opt-out acknowledgement.
+   9. **Tax posture** – filing status, state of residence, marginal tax rate range, and withholding summary. Include capture for pending refunds/owed balances and opt-out for “Handled by CPA”.
+   10. **Benefits & protections** – employer benefits (401k match, HSA/FSA, health plans), federal programs, and veteran benefits coverage. Toggle for “Review later” with note capture.
+   11. **Income & cashflow** – salary/wages, VA and other disability income, pensions, business income, side hustles, annuities. Provide toggle **“List later”** while marking outstanding tasks.
+   12. **Equity compensation & private holdings** – placeholder panel explaining upcoming support for RSUs, stock options, private business equity, and angel investments. Marked **“Not yet implemented”** with CTA disabled but tracked in status for future wiring.
+   13. **Review & finalize** – summary of sections with badges (Completed / Opted Out / Needs Info) and CTA “Unlock my dashboard”. Allow editing any section before finalizing.
 
 - **Interaction patterns**
    - Each step presents primary CTA (“Continue”, “Complete & continue”) plus secondary link (“Skip / I don’t have this”). Skips require lightweight justification dropdown to refine future recommendations.
@@ -30,13 +34,13 @@
 
 - **Data model considerations**
    - Extend onboarding DTO to include opt-out metadata `{ reason?: string; acknowledgedAt: Date }` for each section.
-   - Persist detailed entries in their respective domain tables: `CashAccounts`, `InvestmentAccounts`, `Properties`, `InsurancePolicies`, `IncomeStreams`. Seed migration scripts can create placeholder tables/columns where absent.
-   - Maintain a `FinancialProfileSnapshot` aggregate to quickly determine completion status and feed the dashboard hero card.
+   - Persist detailed entries in their respective domain tables: `CashAccounts`, `InvestmentAccounts`, `Properties`, `InsurancePolicies`, `IncomeStreams`, **plus new** `LiabilityAccounts`, `ExpenseBudgets`, and `TaxProfiles`. Track benefit elections in `BenefitCoverages` (one-to-many) and stage equity placeholders for later enrichment via `EquityCompensationPlaceholders`.
+   - Maintain a `FinancialProfileSnapshot` aggregate to quickly determine completion status and feed the dashboard hero card. Snapshot math must include liabilities (total debt), expenses (monthly outflow), and tax posture indicators.
 
 - **Backend/API work**
-   - Build section-specific endpoints (`POST /api/profile/cash`, `POST /api/profile/tsp`, etc.) that accept arrays of entries and opt-out flags.
+   - Build section-specific endpoints (`POST /api/profile/cash`, `POST /api/profile/liabilities`, `POST /api/profile/expenses`, `POST /api/profile/tax`, etc.) that accept arrays of entries and opt-out flags.
    - Update onboarding persistence endpoints to reflect new schema and expose `profileCompletion` percentage + outstanding sections.
-   - Provide mutation for explicit opt-out toggles and events that flag future revisit suggestions.
+   - Provide mutation for explicit opt-out toggles and events that flag future revisit suggestions. Equity-comp placeholder endpoint can return 501/Not Implemented while still registering section status.
 
 - **Completion gating & unlock**
    - Dashboard, advice, and alerts routes stay hidden until review step hits “Unlock my dashboard”.

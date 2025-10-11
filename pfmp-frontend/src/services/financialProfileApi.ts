@@ -8,8 +8,14 @@ export type FinancialProfileSectionKey =
   | 'cash'
   | 'investments'
   | 'real-estate'
+  | 'long-term-obligations'
+  | 'liabilities'
+  | 'expenses'
+  | 'tax'
   | 'insurance'
-  | 'income';
+  | 'benefits'
+  | 'income'
+  | 'equity';
 
 export type FinancialProfileSectionStatusValue = 'completed' | 'opted_out' | 'needs_info';
 
@@ -129,6 +135,82 @@ export interface InsurancePoliciesProfilePayload {
   optOut?: SectionOptOutPayload | null;
 }
 
+export interface LongTermObligationPayload {
+  obligationName?: string | null;
+  obligationType?: string | null;
+  targetDate?: string | null;
+  estimatedCost?: number | null;
+  fundsAllocated?: number | null;
+  fundingStatus?: string | null;
+  isCritical?: boolean | null;
+  notes?: string | null;
+}
+
+export interface LongTermObligationsProfilePayload {
+  obligations: LongTermObligationPayload[];
+  optOut?: SectionOptOutPayload | null;
+}
+
+export interface LiabilityPayload {
+  liabilityType?: string | null;
+  lender?: string | null;
+  currentBalance?: number | null;
+  interestRateApr?: number | null;
+  minimumPayment?: number | null;
+  payoffTargetDate?: string | null;
+  isPriorityToEliminate?: boolean | null;
+}
+
+export interface LiabilitiesProfilePayload {
+  liabilities: LiabilityPayload[];
+  optOut?: SectionOptOutPayload | null;
+}
+
+export interface ExpenseBudgetPayload {
+  category?: string | null;
+  monthlyAmount?: number | null;
+  isEstimated?: boolean | null;
+  notes?: string | null;
+}
+
+export interface ExpensesProfilePayload {
+  expenses: ExpenseBudgetPayload[];
+  optOut?: SectionOptOutPayload | null;
+}
+
+export interface TaxProfilePayload {
+  filingStatus?: string | null;
+  stateOfResidence?: string | null;
+  marginalRatePercent?: number | null;
+  effectiveRatePercent?: number | null;
+  federalWithholdingPercent?: number | null;
+  expectedRefundAmount?: number | null;
+  expectedPaymentAmount?: number | null;
+  usesCpaOrPreparer?: boolean | null;
+  notes?: string | null;
+  optOut?: SectionOptOutPayload | null;
+}
+
+export interface BenefitCoveragePayload {
+  benefitType?: string | null;
+  provider?: string | null;
+  isEnrolled?: boolean | null;
+  employerContributionPercent?: number | null;
+  monthlyCost?: number | null;
+  notes?: string | null;
+}
+
+export interface BenefitsProfilePayload {
+  benefits: BenefitCoveragePayload[];
+  optOut?: SectionOptOutPayload | null;
+}
+
+export interface EquityInterestPayload {
+  isInterestedInTracking?: boolean | null;
+  notes?: string | null;
+  optOut?: SectionOptOutPayload | null;
+}
+
 export interface IncomeStreamPayload {
   name?: string | null;
   incomeType?: string | null;
@@ -166,6 +248,16 @@ export interface FinancialProfileSnapshot {
   profileCompletedAt: string | null;
   netWorthEstimate: number;
   monthlyCashFlowEstimate: number;
+  longTermObligationCount: number;
+  longTermObligationEstimate: number;
+  nextObligationDueDate: string | null;
+  totalLiabilityBalance: number;
+  monthlyDebtServiceEstimate: number;
+  monthlyExpenseEstimate: number;
+  marginalTaxRatePercent: number | null;
+  effectiveTaxRatePercent: number | null;
+  federalWithholdingPercent: number | null;
+  usesCpaOrPreparer: boolean;
   completedSections: FinancialProfileSectionKey[];
   optedOutSections: FinancialProfileSectionKey[];
   outstandingSections: FinancialProfileSectionKey[];
@@ -181,6 +273,16 @@ interface FinancialProfileSnapshotDto {
   profileCompletedAt?: string | null;
   netWorthEstimate: number;
   monthlyCashFlowEstimate: number;
+  longTermObligationCount?: number;
+  longTermObligationEstimate?: number;
+  nextObligationDueDate?: string | null;
+  totalLiabilityBalance?: number;
+  monthlyDebtServiceEstimate?: number;
+  monthlyExpenseEstimate?: number;
+  marginalTaxRatePercent?: number | null;
+  effectiveTaxRatePercent?: number | null;
+  federalWithholdingPercent?: number | null;
+  usesCpaOrPreparer?: boolean;
   completedSectionsJson?: string | null;
   optedOutSectionsJson?: string | null;
   outstandingSectionsJson?: string | null;
@@ -195,8 +297,14 @@ function assertSectionKey(value: string): value is FinancialProfileSectionKey {
     value === 'cash' ||
     value === 'investments' ||
     value === 'real-estate' ||
+  value === 'long-term-obligations' ||
+    value === 'liabilities' ||
+    value === 'expenses' ||
+    value === 'tax' ||
     value === 'insurance' ||
-    value === 'income'
+    value === 'benefits' ||
+    value === 'income' ||
+    value === 'equity'
   );
 }
 
@@ -236,6 +344,16 @@ function mapSnapshotDto(dto: FinancialProfileSnapshotDto): FinancialProfileSnaps
     profileCompletedAt: dto.profileCompletedAt ?? null,
     netWorthEstimate: Number(dto.netWorthEstimate ?? 0),
     monthlyCashFlowEstimate: Number(dto.monthlyCashFlowEstimate ?? 0),
+  longTermObligationCount: Number(dto.longTermObligationCount ?? 0),
+  longTermObligationEstimate: Number(dto.longTermObligationEstimate ?? 0),
+  nextObligationDueDate: dto.nextObligationDueDate ?? null,
+    totalLiabilityBalance: Number(dto.totalLiabilityBalance ?? 0),
+    monthlyDebtServiceEstimate: Number(dto.monthlyDebtServiceEstimate ?? 0),
+    monthlyExpenseEstimate: Number(dto.monthlyExpenseEstimate ?? 0),
+    marginalTaxRatePercent: dto.marginalTaxRatePercent ?? null,
+    effectiveTaxRatePercent: dto.effectiveTaxRatePercent ?? null,
+    federalWithholdingPercent: dto.federalWithholdingPercent ?? null,
+    usesCpaOrPreparer: dto.usesCpaOrPreparer ?? false,
     completedSections: parseSectionList(dto.completedSectionsJson),
     optedOutSections: parseSectionList(dto.optedOutSectionsJson),
     outstandingSections: parseSectionList(dto.outstandingSectionsJson),
@@ -284,10 +402,34 @@ export async function upsertPropertiesProfile(userId: number, payload: Propertie
   await apiClient.post(`/financial-profile/${userId}/real-estate`, payload);
 }
 
+export async function upsertLongTermObligationsProfile(userId: number, payload: LongTermObligationsProfilePayload): Promise<void> {
+  await apiClient.post(`/financial-profile/${userId}/long-term-obligations`, payload);
+}
+
+export async function upsertLiabilitiesProfile(userId: number, payload: LiabilitiesProfilePayload): Promise<void> {
+  await apiClient.post(`/financial-profile/${userId}/liabilities`, payload);
+}
+
+export async function upsertExpensesProfile(userId: number, payload: ExpensesProfilePayload): Promise<void> {
+  await apiClient.post(`/financial-profile/${userId}/expenses`, payload);
+}
+
+export async function upsertTaxProfile(userId: number, payload: TaxProfilePayload): Promise<void> {
+  await apiClient.post(`/financial-profile/${userId}/tax`, payload);
+}
+
 export async function upsertInsurancePoliciesProfile(userId: number, payload: InsurancePoliciesProfilePayload): Promise<void> {
   await apiClient.post(`/financial-profile/${userId}/insurance`, payload);
 }
 
+export async function upsertBenefitsProfile(userId: number, payload: BenefitsProfilePayload): Promise<void> {
+  await apiClient.post(`/financial-profile/${userId}/benefits`, payload);
+}
+
 export async function upsertIncomeStreamsProfile(userId: number, payload: IncomeStreamsProfilePayload): Promise<void> {
   await apiClient.post(`/financial-profile/${userId}/income`, payload);
+}
+
+export async function upsertEquityInterest(userId: number, payload: EquityInterestPayload): Promise<void> {
+  await apiClient.post(`/financial-profile/${userId}/equity`, payload);
 }

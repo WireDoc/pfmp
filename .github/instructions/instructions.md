@@ -30,6 +30,7 @@
    ```
    - API: http://localhost:5052
    - Frontend: http://localhost:3000
+   - Package management: use **npm** for all frontend scripts; pnpm and yarn are not supported in this repo.
 4. Close the spawned windows to stop services. Restart the API window after any controller, DTO, or EF model change.
 
 ## 3. Manual service control & probes
@@ -67,7 +68,7 @@ Invoke-WebRequest -Uri "http://localhost:3000"
 ## 5. Handy command patterns
 
 ```powershell
-# Build + lint sanity check
+# Build + lint sanity check (npm is the standard package runner—do not substitute pnpm)
 cd P:; dotnet build PFMP-API/PFMP-API.csproj; npm run lint --prefix pfmp-frontend
 
 # Restart helper (after edits)
