@@ -95,6 +95,40 @@ export interface InvestmentAccountsProfilePayload {
   optOut?: SectionOptOutPayload | null;
 }
 
+export interface PropertyPayload {
+  propertyName?: string | null;
+  propertyType?: string | null;
+  occupancy?: string | null;
+  estimatedValue?: number | null;
+  mortgageBalance?: number | null;
+  monthlyMortgagePayment?: number | null;
+  monthlyRentalIncome?: number | null;
+  monthlyExpenses?: number | null;
+  hasHeloc?: boolean | null;
+}
+
+export interface PropertiesProfilePayload {
+  properties: PropertyPayload[];
+  optOut?: SectionOptOutPayload | null;
+}
+
+export interface InsurancePolicyPayload {
+  policyType?: string | null;
+  carrier?: string | null;
+  policyName?: string | null;
+  coverageAmount?: number | null;
+  premiumAmount?: number | null;
+  premiumFrequency?: string | null;
+  renewalDate?: string | null;
+  isAdequateCoverage?: boolean | null;
+  recommendedCoverage?: number | null;
+}
+
+export interface InsurancePoliciesProfilePayload {
+  policies: InsurancePolicyPayload[];
+  optOut?: SectionOptOutPayload | null;
+}
+
 interface FinancialProfileSectionStatusDto {
   sectionStatusId: string;
   userId: number;
@@ -228,4 +262,12 @@ export async function upsertCashAccountsProfile(userId: number, payload: CashAcc
 
 export async function upsertInvestmentAccountsProfile(userId: number, payload: InvestmentAccountsProfilePayload): Promise<void> {
   await apiClient.post(`/financial-profile/${userId}/investments`, payload);
+}
+
+export async function upsertPropertiesProfile(userId: number, payload: PropertiesProfilePayload): Promise<void> {
+  await apiClient.post(`/financial-profile/${userId}/real-estate`, payload);
+}
+
+export async function upsertInsurancePoliciesProfile(userId: number, payload: InsurancePoliciesProfilePayload): Promise<void> {
+  await apiClient.post(`/financial-profile/${userId}/insurance`, payload);
 }

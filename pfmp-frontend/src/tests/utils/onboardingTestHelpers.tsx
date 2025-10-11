@@ -6,6 +6,9 @@ export interface AdvanceOptions {
   riskGoals?: 'complete' | 'optOut';
   tsp?: 'complete' | 'optOut';
   cash?: 'complete' | 'optOut';
+  investments?: 'complete' | 'optOut';
+  realEstate?: 'complete' | 'optOut';
+  insurance?: 'complete' | 'optOut';
 }
 
 const defaultOptions: Required<AdvanceOptions> = {
@@ -13,6 +16,9 @@ const defaultOptions: Required<AdvanceOptions> = {
   riskGoals: 'complete',
   tsp: 'optOut',
   cash: 'optOut',
+  investments: 'optOut',
+  realEstate: 'optOut',
+  insurance: 'optOut',
 };
 
 function assertHeading(name: string) {
@@ -75,6 +81,49 @@ async function completeCash(user: ReturnType<typeof userEvent.setup>, mode: 'com
   await assertHeading('Investments');
 }
 
+async function completeInvestments(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
+  if (mode === 'optOut') {
+    await user.click(screen.getByLabelText('I don’t have non-TSP investment accounts'));
+    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'No assets outside TSP' } });
+  } else {
+    fireEvent.change(screen.getByLabelText('Account name'), { target: { value: 'Test brokerage' } });
+    fireEvent.change(screen.getByLabelText('Institution'), { target: { value: 'Vanguard' } });
+    fireEvent.change(screen.getByLabelText('Current balance ($)'), { target: { value: '25000' } });
+  }
+
+  await user.click(screen.getByTestId('investments-submit'));
+  await assertHeading('Real Estate');
+}
+
+async function completeRealEstate(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
+  if (mode === 'optOut') {
+    await user.click(screen.getByLabelText('I don’t have real estate assets'));
+    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'Currently renting' } });
+  } else {
+    fireEvent.change(screen.getByLabelText('Property name'), { target: { value: 'Primary home' } });
+    fireEvent.change(screen.getByLabelText('Estimated value ($)'), { target: { value: '450000' } });
+    fireEvent.change(screen.getByLabelText('Mortgage balance ($)'), { target: { value: '280000' } });
+  }
+
+  await user.click(screen.getByTestId('properties-submit'));
+  await assertHeading('Insurance Coverage');
+}
+
+async function completeInsurance(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
+  if (mode === 'optOut') {
+    await user.click(screen.getByLabelText('I don’t have insurance details to add'));
+    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'Will provide later' } });
+  } else {
+    fireEvent.change(screen.getByLabelText('Policy name or number'), { target: { value: 'Term Life 2040' } });
+    fireEvent.change(screen.getByLabelText('Coverage amount ($)'), { target: { value: '750000' } });
+    fireEvent.change(screen.getByLabelText('Premium amount ($)'), { target: { value: '65' } });
+    await user.click(screen.getByLabelText('Coverage meets my needs'));
+  }
+
+  await user.click(screen.getByTestId('insurance-submit'));
+  await assertHeading('Income Streams');
+}
+
 export async function advanceToCashSection(
   user: ReturnType<typeof userEvent.setup>,
   options: AdvanceOptions = {},
@@ -94,6 +143,45 @@ export async function advanceToInvestmentsSection(
   await completeRiskGoals(user, merged.riskGoals);
   await completeTsp(user, merged.tsp);
   await completeCash(user, merged.cash);
+}
+
+export async function advanceToRealEstateSection(
+  user: ReturnType<typeof userEvent.setup>,
+  options: AdvanceOptions = {},
+) {
+  const merged = { ...defaultOptions, ...options };
+  await completeHousehold(user, merged.household);
+  await completeRiskGoals(user, merged.riskGoals);
+  await completeTsp(user, merged.tsp);
+  await completeCash(user, merged.cash);
+  await completeInvestments(user, merged.investments);
+}
+
+export async function advanceToInsuranceSection(
+  user: ReturnType<typeof userEvent.setup>,
+  options: AdvanceOptions = {},
+) {
+  const merged = { ...defaultOptions, ...options };
+  await completeHousehold(user, merged.household);
+  await completeRiskGoals(user, merged.riskGoals);
+  await completeTsp(user, merged.tsp);
+  await completeCash(user, merged.cash);
+  await completeInvestments(user, merged.investments);
+  await completeRealEstate(user, merged.realEstate);
+}
+
+export async function advanceToIncomeSection(
+  user: ReturnType<typeof userEvent.setup>,
+  options: AdvanceOptions = {},
+) {
+  const merged = { ...defaultOptions, ...options };
+  await completeHousehold(user, merged.household);
+  await completeRiskGoals(user, merged.riskGoals);
+  await completeTsp(user, merged.tsp);
+  await completeCash(user, merged.cash);
+  await completeInvestments(user, merged.investments);
+  await completeRealEstate(user, merged.realEstate);
+  await completeInsurance(user, merged.insurance);
 }
 
 export async function expectSectionStatus(

@@ -91,6 +91,7 @@ This index lists every active document under `docs/` following the subject-first
 - `docs/waves/WAVE-3-PERSISTENCE-DESIGN.md`
 - `docs/waves/WAVE-4-DASHBOARD-PLAN.md`
 - `docs/waves/WAVE-5-DASHBOARD-MVP.md`
+- `docs/waves/WAVE-5-REAL-ESTATE-ENRICHMENT.md`
 - `docs/waves/ai-advisor-wave-plan.md`
 - `docs/waves/archive/` *(reserved)*
 
