@@ -29,6 +29,33 @@ namespace PFMP_API.Models.FinancialProfile
         [Column(TypeName = "decimal(18,2)")]
         public decimal MonthlyCashFlowEstimate { get; set; }
 
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal TotalLiabilityBalance { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal MonthlyDebtServiceEstimate { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal MonthlyExpenseEstimate { get; set; }
+
+    [Column(TypeName = "decimal(8,4)")]
+    public decimal? MarginalTaxRatePercent { get; set; }
+
+    [Column(TypeName = "decimal(8,4)")]
+    public decimal? EffectiveTaxRatePercent { get; set; }
+
+    [Column(TypeName = "decimal(8,4)")]
+    public decimal? FederalWithholdingPercent { get; set; }
+
+    public bool UsesCpaOrPreparer { get; set; }
+
+    public int LongTermObligationCount { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal LongTermObligationEstimate { get; set; }
+
+    public DateTime? NextObligationDueDate { get; set; }
+
         /// <summary>
         /// JSON (text) column storing arrays of section keys for quick dashboard display.
         /// </summary>

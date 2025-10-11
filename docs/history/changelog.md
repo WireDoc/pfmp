@@ -7,6 +7,8 @@ The format loosely follows [Conventional Commits](https://www.conventionalcommit
 ## [Unreleased]
 
 ### Added
+- docs: `docs/testing/onboarding-persistence.md` refreshed with long-term obligations coverage and regression commands
+- docs: `README.md` updated with npm-only workflow note and current onboarding highlights
 - docs: subject-based documentation map at `docs/documentation-map.md`
 - docs: dedicated `docs/scripts/` folder consolidating automation references
 - docs: `docs/auth/overview.md` capturing platform-wide auth architecture
@@ -17,9 +19,12 @@ The format loosely follows [Conventional Commits](https://www.conventionalcommit
 - feat(dev): DevUserRegistry with dynamic default test user id
 - feat(dev): dev users listing & default selection endpoints (`/api/dev/users`)
 - feat(frontend): DevUserSwitcher component & default onboarding flags
+- feat(frontend): long-term obligations onboarding section, API client wiring, and snapshot fields
 - test(api): onboarding & dev users controller coverage
+- test(frontend): `onboardingLongTermObligations.integration.test.tsx` for complete + opt-out flows
 
 ### Changed
+- docs: `docs/waves/MIGRATION_STATUS.md` now captures frontend support for long-term obligations
 - docs: migrated legacy root files (`BUILD.md`, `DEV-SCRIPTS.md`, `pfmp.txt`, `CHANGELOG.md`) into subject folders
 - docs: README and instructions rewritten to describe the new taxonomy
 - docs: instructions relocated to `.github/instructions/instructions.md` for Copilot indexing

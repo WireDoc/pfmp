@@ -22,14 +22,15 @@ Ensure the rebuilt onboarding flow persists progress accurately across dev-user 
 ### Automated Regression
 
 - Unit/integration: `npm run test -- src/tests/onboardingPersistence.test.tsx`
-- Last run: 2025-10-08 (passing; see Vitest output in repo history).
+- Onboarding UI coverage: `npm run test -- onboardingLongTermObligations.integration.test.tsx` (long-term obligations section added 2025-10-11)
+- Last run: 2025-10-08 (persistence suite) / 2025-10-11 (long-term obligations integration) – both passing locally.
 - CI hook: add to Wave 4 dashboard pipeline once smoke script exists.
 
 ## Manual QA Steps
 1. Run backend + frontend locally (`start-dev-servers.bat`). Optionally execute `node scripts/onboarding-smoke.mjs http://localhost:5052 1` from `pfmp-frontend/` to validate API readiness before UI checks.
 2. Ensure flags `enableDashboardWave4` and `onboarding_persistence_enabled` are true (use `/flags` dev panel or `featureFlags.json`).
 3. Load `/dashboard`; confirm redirect to onboarding occurs after hydrate spinner clears.
-4. Complete each step (Demographics → Risk → TSP → Income). After each completion, verify `debouncedPatchStep` request succeeds (network tab) and the dashboard unlocks when finished.
+4. Complete each data section in sequence — Household → Risk & Goals → TSP → Cash → Investments → Real Estate → Liabilities → Expenses → Tax → Insurance → Benefits → Long-Term Obligations → Income → Equity placeholder. After each completion, verify the corresponding POST call succeeds (network tab) and the dashboard unlocks when finished.
 5. Open `PFMP-API.http` and execute `GET /api/onboarding/progress` for the active dev user to confirm the snapshot matches UI state.
 6. Use DevUserSwitcher to select a different dev user; confirm onboarding resets to the first step and the API GET shows that user’s independent snapshot.
 7. Trigger reset from the onboarding UI, reload `/dashboard`, and confirm the API `POST /progress/reset` logs plus fresh hydrate.

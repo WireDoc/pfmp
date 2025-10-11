@@ -44,8 +44,14 @@ namespace PFMP_API
     public DbSet<CashAccount> CashAccounts { get; set; }
     public DbSet<InvestmentAccount> InvestmentAccounts { get; set; }
     public DbSet<PropertyProfile> Properties { get; set; }
+    public DbSet<LiabilityAccount> LiabilityAccounts { get; set; }
+    public DbSet<ExpenseBudget> ExpenseBudgets { get; set; }
+    public DbSet<TaxProfile> TaxProfiles { get; set; }
     public DbSet<FinancialProfileInsurancePolicy> FinancialProfileInsurancePolicies { get; set; }
+    public DbSet<BenefitCoverage> BenefitCoverages { get; set; }
     public DbSet<IncomeStreamProfile> IncomeStreams { get; set; }
+    public DbSet<EquityCompensationInterest> EquityCompensationInterests { get; set; }
+    public DbSet<LongTermObligation> LongTermObligations { get; set; }
     public DbSet<TspProfile> TspProfiles { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -323,6 +329,32 @@ namespace PFMP_API
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
+            modelBuilder.Entity<LiabilityAccount>(entity =>
+            {
+                entity.HasIndex(e => new { e.UserId, e.LiabilityType, e.Lender });
+                entity.Property(e => e.LiabilityType).HasMaxLength(80).IsRequired();
+                entity.Property(e => e.Lender).HasMaxLength(150);
+                entity.Property(e => e.CurrentBalance).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.InterestRateApr).HasColumnType("decimal(8,4)");
+                entity.Property(e => e.MinimumPayment).HasColumnType("decimal(18,2)");
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<ExpenseBudget>(entity =>
+            {
+                entity.HasIndex(e => new { e.UserId, e.Category });
+                entity.Property(e => e.Category).HasMaxLength(100).IsRequired();
+                entity.Property(e => e.MonthlyAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.Notes).HasMaxLength(300);
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
             modelBuilder.Entity<FinancialProfileInsurancePolicy>(entity =>
             {
                 entity.HasIndex(e => new { e.UserId, e.PolicyType, e.PolicyName });
@@ -339,6 +371,20 @@ namespace PFMP_API
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
+            modelBuilder.Entity<BenefitCoverage>(entity =>
+            {
+                entity.HasIndex(e => new { e.UserId, e.BenefitType, e.Provider });
+                entity.Property(e => e.BenefitType).HasMaxLength(120).IsRequired();
+                entity.Property(e => e.Provider).HasMaxLength(120);
+                entity.Property(e => e.EmployerContributionPercent).HasColumnType("decimal(8,4)");
+                entity.Property(e => e.MonthlyCost).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.Notes).HasMaxLength(300);
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
             modelBuilder.Entity<IncomeStreamProfile>(entity =>
             {
                 entity.HasIndex(e => new { e.UserId, e.Name, e.IncomeType });
@@ -349,6 +395,23 @@ namespace PFMP_API
                 entity.HasOne<User>()
                     .WithMany()
                     .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<TaxProfile>(entity =>
+            {
+                entity.HasKey(e => e.UserId);
+                entity.Property(e => e.FilingStatus).HasMaxLength(40);
+                entity.Property(e => e.StateOfResidence).HasMaxLength(80);
+                entity.Property(e => e.MarginalRatePercent).HasColumnType("decimal(8,4)");
+                entity.Property(e => e.EffectiveRatePercent).HasColumnType("decimal(8,4)");
+                entity.Property(e => e.FederalWithholdingPercent).HasColumnType("decimal(8,4)");
+                entity.Property(e => e.ExpectedRefundAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.ExpectedPaymentAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.Notes).HasMaxLength(300);
+                entity.HasOne<User>()
+                    .WithOne()
+                    .HasForeignKey<TaxProfile>(e => e.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
@@ -371,6 +434,31 @@ namespace PFMP_API
                 entity.HasOne<User>()
                     .WithOne()
                     .HasForeignKey<TspProfile>(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<EquityCompensationInterest>(entity =>
+            {
+                entity.HasKey(e => e.UserId);
+                entity.Property(e => e.Notes).HasMaxLength(300);
+                entity.HasOne<User>()
+                    .WithOne()
+                    .HasForeignKey<EquityCompensationInterest>(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<LongTermObligation>(entity =>
+            {
+                entity.HasIndex(e => new { e.UserId, e.ObligationName });
+                entity.Property(e => e.ObligationName).HasMaxLength(150).IsRequired();
+                entity.Property(e => e.ObligationType).HasMaxLength(80);
+                entity.Property(e => e.FundingStatus).HasMaxLength(60);
+                entity.Property(e => e.EstimatedCost).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.FundsAllocated).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.Notes).HasMaxLength(400);
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 

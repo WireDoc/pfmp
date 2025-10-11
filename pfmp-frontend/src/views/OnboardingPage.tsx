@@ -7,8 +7,14 @@ import TspSectionForm from '../onboarding/sections/TspSectionForm';
 import CashAccountsSectionForm from '../onboarding/sections/CashAccountsSectionForm';
 import InvestmentAccountsSectionForm from '../onboarding/sections/InvestmentAccountsSectionForm';
 import PropertiesSectionForm from '../onboarding/sections/PropertiesSectionForm';
+import LiabilitiesSectionForm from '../onboarding/sections/LiabilitiesSectionForm';
+import ExpensesSectionForm from '../onboarding/sections/ExpensesSectionForm';
+import TaxPostureSectionForm from '../onboarding/sections/TaxPostureSectionForm';
 import InsuranceSectionForm from '../onboarding/sections/InsuranceSectionForm';
+import BenefitsSectionForm from '../onboarding/sections/BenefitsSectionForm';
+import LongTermObligationsSectionForm from '../onboarding/sections/LongTermObligationsSectionForm';
 import IncomeSectionForm from '../onboarding/sections/IncomeSectionForm';
+import EquityPlaceholderPanel from '../onboarding/sections/EquityPlaceholderPanel';
 import ReviewSectionPanel from '../onboarding/sections/ReviewSectionPanel';
 import type { FinancialProfileSectionStatusValue } from '../services/financialProfileApi';
 import { buildRoute } from '../routes/routeDefs';
@@ -173,6 +179,30 @@ export default function OnboardingPage() {
                       onStatusChange={handleStatusChange}
                     />
                   );
+                case 'liabilities':
+                  return (
+                    <LiabilitiesSectionForm
+                      userId={userId}
+                      currentStatus={currentStatus}
+                      onStatusChange={handleStatusChange}
+                    />
+                  );
+                case 'expenses':
+                  return (
+                    <ExpensesSectionForm
+                      userId={userId}
+                      currentStatus={currentStatus}
+                      onStatusChange={handleStatusChange}
+                    />
+                  );
+                case 'tax':
+                  return (
+                    <TaxPostureSectionForm
+                      userId={userId}
+                      currentStatus={currentStatus}
+                      onStatusChange={handleStatusChange}
+                    />
+                  );
                 case 'insurance':
                   return (
                     <InsuranceSectionForm
@@ -181,9 +211,33 @@ export default function OnboardingPage() {
                       onStatusChange={handleStatusChange}
                     />
                   );
+                case 'benefits':
+                  return (
+                    <BenefitsSectionForm
+                      userId={userId}
+                      currentStatus={currentStatus}
+                      onStatusChange={handleStatusChange}
+                    />
+                  );
+                case 'long-term-obligations':
+                  return (
+                    <LongTermObligationsSectionForm
+                      userId={userId}
+                      currentStatus={currentStatus}
+                      onStatusChange={handleStatusChange}
+                    />
+                  );
                 case 'income':
                   return (
                     <IncomeSectionForm
+                      userId={userId}
+                      currentStatus={currentStatus}
+                      onStatusChange={handleStatusChange}
+                    />
+                  );
+                case 'equity':
+                  return (
+                    <EquityPlaceholderPanel
                       userId={userId}
                       currentStatus={currentStatus}
                       onStatusChange={handleStatusChange}

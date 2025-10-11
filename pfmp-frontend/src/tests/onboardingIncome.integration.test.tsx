@@ -16,7 +16,13 @@ describe('Income onboarding section', () => {
     vi.spyOn(financialProfileApi, 'upsertCashAccountsProfile').mockResolvedValue();
     vi.spyOn(financialProfileApi, 'upsertInvestmentAccountsProfile').mockResolvedValue();
     vi.spyOn(financialProfileApi, 'upsertPropertiesProfile').mockResolvedValue();
+    vi.spyOn(financialProfileApi, 'upsertLiabilitiesProfile').mockResolvedValue();
+    vi.spyOn(financialProfileApi, 'upsertExpensesProfile').mockResolvedValue();
+    vi.spyOn(financialProfileApi, 'upsertTaxProfile').mockResolvedValue();
     vi.spyOn(financialProfileApi, 'upsertInsurancePoliciesProfile').mockResolvedValue();
+    vi.spyOn(financialProfileApi, 'upsertBenefitsProfile').mockResolvedValue();
+    vi.spyOn(financialProfileApi, 'upsertLongTermObligationsProfile').mockResolvedValue();
+    vi.spyOn(financialProfileApi, 'upsertEquityInterest').mockResolvedValue();
   });
 
   afterEach(() => {
@@ -71,13 +77,20 @@ describe('Income onboarding section', () => {
     });
     expect(latest.streams[0]?.startDate ?? '').toContain('2018-04-01');
 
+    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Equity & Private Holdings' })).toBeInTheDocument());
+
+    await user.click(screen.getByLabelText('I don’t need this yet'));
+    fireEvent.change(screen.getByLabelText('Add context (optional)'), { target: { value: 'Income covered in payroll; no equity yet.' } });
+    await user.click(screen.getByTestId('equity-submit'));
+
     await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Review & Finalize' })).toBeInTheDocument());
     const finalizeButton = screen.getByTestId('review-finalize');
     expect(finalizeButton).toBeEnabled();
 
     await expectSectionStatus('Income Streams', 'Completed');
+    await expectSectionStatus('Equity & Private Holdings', 'Opted Out');
     await expectSectionStatus('Review & Finalize', 'Needs Info');
-  }, 25000);
+  }, 45000);
 
   it('allows opting out of income with a reason', async () => {
     const incomeSpy = vi.spyOn(financialProfileApi, 'upsertIncomeStreamsProfile');
@@ -114,11 +127,18 @@ describe('Income onboarding section', () => {
       reason: 'Income handled in payroll system',
     });
 
+    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Equity & Private Holdings' })).toBeInTheDocument());
+
+    await user.click(screen.getByLabelText('I don’t need this yet'));
+    fireEvent.change(screen.getByLabelText('Add context (optional)'), { target: { value: 'Income only for now' } });
+    await user.click(screen.getByTestId('equity-submit'));
+
     await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Review & Finalize' })).toBeInTheDocument());
     const finalizeButton = screen.getByTestId('review-finalize');
     expect(finalizeButton).toBeEnabled();
 
     await expectSectionStatus('Income Streams', 'Opted Out');
+    await expectSectionStatus('Equity & Private Holdings', 'Opted Out');
     await expectSectionStatus('Review & Finalize', 'Needs Info');
-  }, 20000);
+  }, 45000);
 });

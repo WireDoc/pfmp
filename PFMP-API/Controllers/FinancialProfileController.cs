@@ -72,6 +72,27 @@ namespace PFMP_API.Controllers
             return NoContent();
         }
 
+        [HttpPost("{userId:int}/liabilities")]
+        public async Task<ActionResult> UpsertLiabilities(int userId, [FromBody] LiabilitiesRequest request, CancellationToken ct = default)
+        {
+            await _service.UpsertLiabilitiesAsync(userId, request.ToInput(), ct);
+            return NoContent();
+        }
+
+        [HttpPost("{userId:int}/expenses")]
+        public async Task<ActionResult> UpsertExpenses(int userId, [FromBody] ExpensesRequest request, CancellationToken ct = default)
+        {
+            await _service.UpsertExpensesAsync(userId, request.ToInput(), ct);
+            return NoContent();
+        }
+
+        [HttpPost("{userId:int}/tax")]
+        public async Task<ActionResult> UpsertTax(int userId, [FromBody] TaxProfileRequestV2 request, CancellationToken ct = default)
+        {
+            await _service.UpsertTaxProfileAsync(userId, request.ToInput(), ct);
+            return NoContent();
+        }
+
         [HttpPost("{userId:int}/insurance")]
         public async Task<ActionResult> UpsertInsurance(int userId, [FromBody] InsurancePoliciesRequest request, CancellationToken ct = default)
         {
@@ -79,10 +100,31 @@ namespace PFMP_API.Controllers
             return NoContent();
         }
 
+        [HttpPost("{userId:int}/benefits")]
+        public async Task<ActionResult> UpsertBenefits(int userId, [FromBody] BenefitsRequest request, CancellationToken ct = default)
+        {
+            await _service.UpsertBenefitsAsync(userId, request.ToInput(), ct);
+            return NoContent();
+        }
+
+        [HttpPost("{userId:int}/long-term-obligations")]
+        public async Task<ActionResult> UpsertLongTermObligations(int userId, [FromBody] LongTermObligationsRequest request, CancellationToken ct = default)
+        {
+            await _service.UpsertLongTermObligationsAsync(userId, request.ToInput(), ct);
+            return NoContent();
+        }
+
         [HttpPost("{userId:int}/income")]
         public async Task<ActionResult> UpsertIncome(int userId, [FromBody] IncomeStreamsRequest request, CancellationToken ct = default)
         {
             await _service.UpsertIncomeStreamsAsync(userId, request.ToInput(), ct);
+            return NoContent();
+        }
+
+        [HttpPost("{userId:int}/equity")]
+        public async Task<ActionResult> UpsertEquityInterest(int userId, [FromBody] EquityInterestRequest request, CancellationToken ct = default)
+        {
+            await _service.UpsertEquityInterestAsync(userId, request.ToInput(), ct);
             return NoContent();
         }
 
@@ -276,6 +318,96 @@ namespace PFMP_API.Controllers
         };
     }
 
+    public class LiabilitiesRequest
+    {
+        public List<LiabilityAccountRequest> Liabilities { get; set; } = new();
+        public SectionOptOutRequest? OptOut { get; set; }
+
+        public LiabilitiesInput ToInput() => new()
+        {
+            Liabilities = Liabilities.Select(l => l.ToInput()).ToList(),
+            OptOut = OptOut?.ToOptOut()
+        };
+    }
+
+    public class LiabilityAccountRequest
+    {
+        public string LiabilityType { get; set; } = string.Empty;
+        public string? Lender { get; set; }
+        public decimal CurrentBalance { get; set; }
+        public decimal? InterestRateApr { get; set; }
+        public decimal? MinimumPayment { get; set; }
+        public DateTime? PayoffTargetDate { get; set; }
+        public bool IsPriorityToEliminate { get; set; }
+
+        public LiabilityAccountInput ToInput() => new()
+        {
+            LiabilityType = LiabilityType,
+            Lender = Lender,
+            CurrentBalance = CurrentBalance,
+            InterestRateApr = InterestRateApr,
+            MinimumPayment = MinimumPayment,
+            PayoffTargetDate = PayoffTargetDate,
+            IsPriorityToEliminate = IsPriorityToEliminate
+        };
+    }
+
+    public class ExpensesRequest
+    {
+        public List<ExpenseBudgetRequest> Expenses { get; set; } = new();
+        public SectionOptOutRequest? OptOut { get; set; }
+
+        public ExpensesInput ToInput() => new()
+        {
+            Expenses = Expenses.Select(e => e.ToInput()).ToList(),
+            OptOut = OptOut?.ToOptOut()
+        };
+    }
+
+    public class ExpenseBudgetRequest
+    {
+        public string Category { get; set; } = string.Empty;
+        public decimal MonthlyAmount { get; set; }
+        public bool IsEstimated { get; set; }
+        public string? Notes { get; set; }
+
+        public ExpenseBudgetInput ToInput() => new()
+        {
+            Category = Category,
+            MonthlyAmount = MonthlyAmount,
+            IsEstimated = IsEstimated,
+            Notes = Notes
+        };
+    }
+
+    public class TaxProfileRequestV2
+    {
+        public string FilingStatus { get; set; } = "single";
+        public string? StateOfResidence { get; set; }
+        public decimal? MarginalRatePercent { get; set; }
+        public decimal? EffectiveRatePercent { get; set; }
+        public decimal? FederalWithholdingPercent { get; set; }
+        public decimal? ExpectedRefundAmount { get; set; }
+        public decimal? ExpectedPaymentAmount { get; set; }
+        public bool UsesCpaOrPreparer { get; set; }
+        public string? Notes { get; set; }
+        public SectionOptOutRequest? OptOut { get; set; }
+
+        public TaxProfileInput ToInput() => new()
+        {
+            FilingStatus = FilingStatus,
+            StateOfResidence = StateOfResidence,
+            MarginalRatePercent = MarginalRatePercent,
+            EffectiveRatePercent = EffectiveRatePercent,
+            FederalWithholdingPercent = FederalWithholdingPercent,
+            ExpectedRefundAmount = ExpectedRefundAmount,
+            ExpectedPaymentAmount = ExpectedPaymentAmount,
+            UsesCpaOrPreparer = UsesCpaOrPreparer,
+            Notes = Notes,
+            OptOut = OptOut?.ToOptOut()
+        };
+    }
+
     public class InsurancePoliciesRequest
     {
         public List<InsurancePolicyRequest> Policies { get; set; } = new();
@@ -314,6 +446,74 @@ namespace PFMP_API.Controllers
         };
     }
 
+    public class BenefitsRequest
+    {
+        public List<BenefitCoverageRequest> Benefits { get; set; } = new();
+        public SectionOptOutRequest? OptOut { get; set; }
+
+        public BenefitsInput ToInput() => new()
+        {
+            Benefits = Benefits.Select(b => b.ToInput()).ToList(),
+            OptOut = OptOut?.ToOptOut()
+        };
+    }
+
+    public class LongTermObligationsRequest
+    {
+        public List<LongTermObligationRequest> Obligations { get; set; } = new();
+        public SectionOptOutRequest? OptOut { get; set; }
+
+        public LongTermObligationsInput ToInput() => new()
+        {
+            Obligations = Obligations.Select(o => o.ToInput()).ToList(),
+            OptOut = OptOut?.ToOptOut()
+        };
+    }
+
+    public class BenefitCoverageRequest
+    {
+        public string BenefitType { get; set; } = string.Empty;
+        public string? Provider { get; set; }
+        public bool IsEnrolled { get; set; }
+        public decimal? EmployerContributionPercent { get; set; }
+        public decimal? MonthlyCost { get; set; }
+        public string? Notes { get; set; }
+
+        public BenefitCoverageInput ToInput() => new()
+        {
+            BenefitType = BenefitType,
+            Provider = Provider,
+            IsEnrolled = IsEnrolled,
+            EmployerContributionPercent = EmployerContributionPercent,
+            MonthlyCost = MonthlyCost,
+            Notes = Notes
+        };
+    }
+
+    public class LongTermObligationRequest
+    {
+        public string ObligationName { get; set; } = string.Empty;
+        public string ObligationType { get; set; } = "general";
+        public DateTime? TargetDate { get; set; }
+        public decimal? EstimatedCost { get; set; }
+        public decimal? FundsAllocated { get; set; }
+        public string? FundingStatus { get; set; }
+        public bool IsCritical { get; set; }
+        public string? Notes { get; set; }
+
+        public LongTermObligationInput ToInput() => new()
+        {
+            ObligationName = ObligationName,
+            ObligationType = ObligationType,
+            TargetDate = TargetDate,
+            EstimatedCost = EstimatedCost,
+            FundsAllocated = FundsAllocated,
+            FundingStatus = FundingStatus,
+            IsCritical = IsCritical,
+            Notes = Notes
+        };
+    }
+
     public class IncomeStreamsRequest
     {
         public List<IncomeStreamRequest> Streams { get; set; } = new();
@@ -347,6 +547,20 @@ namespace PFMP_API.Controllers
             StartDate = StartDate,
             EndDate = EndDate,
             IsActive = IsActive
+        };
+    }
+
+    public class EquityInterestRequest
+    {
+        public bool IsInterestedInTracking { get; set; }
+        public string? Notes { get; set; }
+        public SectionOptOutRequest? OptOut { get; set; }
+
+        public EquityInterestInput ToInput() => new()
+        {
+            IsInterestedInTracking = IsInterestedInTracking,
+            Notes = Notes,
+            OptOut = OptOut?.ToOptOut()
         };
     }
 

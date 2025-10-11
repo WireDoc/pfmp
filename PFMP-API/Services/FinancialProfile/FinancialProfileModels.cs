@@ -138,4 +138,90 @@ namespace PFMP_API.Services.FinancialProfile
         public List<IncomeStreamInput> Streams { get; set; } = new();
         public SectionOptOut? OptOut { get; set; }
     }
+
+    public class LiabilityAccountInput
+    {
+        public string LiabilityType { get; set; } = string.Empty;
+        public string? Lender { get; set; }
+        public decimal CurrentBalance { get; set; }
+        public decimal? InterestRateApr { get; set; }
+        public decimal? MinimumPayment { get; set; }
+        public DateTime? PayoffTargetDate { get; set; }
+        public bool IsPriorityToEliminate { get; set; }
+    }
+
+    public class LiabilitiesInput
+    {
+        public List<LiabilityAccountInput> Liabilities { get; set; } = new();
+        public SectionOptOut? OptOut { get; set; }
+    }
+
+    public class ExpenseBudgetInput
+    {
+        public string Category { get; set; } = string.Empty;
+        public decimal MonthlyAmount { get; set; }
+        public bool IsEstimated { get; set; }
+        public string? Notes { get; set; }
+    }
+
+    public class ExpensesInput
+    {
+        public List<ExpenseBudgetInput> Expenses { get; set; } = new();
+        public SectionOptOut? OptOut { get; set; }
+    }
+
+    public class TaxProfileInput
+    {
+        public string FilingStatus { get; set; } = "single";
+        public string? StateOfResidence { get; set; }
+        public decimal? MarginalRatePercent { get; set; }
+        public decimal? EffectiveRatePercent { get; set; }
+        public decimal? FederalWithholdingPercent { get; set; }
+        public decimal? ExpectedRefundAmount { get; set; }
+        public decimal? ExpectedPaymentAmount { get; set; }
+        public bool UsesCpaOrPreparer { get; set; }
+        public string? Notes { get; set; }
+        public SectionOptOut? OptOut { get; set; }
+    }
+
+    public class BenefitCoverageInput
+    {
+        public string BenefitType { get; set; } = string.Empty;
+        public string? Provider { get; set; }
+        public bool IsEnrolled { get; set; }
+        public decimal? EmployerContributionPercent { get; set; }
+        public decimal? MonthlyCost { get; set; }
+        public string? Notes { get; set; }
+    }
+
+    public class BenefitsInput
+    {
+        public List<BenefitCoverageInput> Benefits { get; set; } = new();
+        public SectionOptOut? OptOut { get; set; }
+    }
+
+    public class LongTermObligationInput
+    {
+        public string ObligationName { get; set; } = string.Empty;
+        public string ObligationType { get; set; } = "general";
+        public DateTime? TargetDate { get; set; }
+        public decimal? EstimatedCost { get; set; }
+        public decimal? FundsAllocated { get; set; }
+        public string? FundingStatus { get; set; }
+        public bool IsCritical { get; set; }
+        public string? Notes { get; set; }
+    }
+
+    public class LongTermObligationsInput
+    {
+        public List<LongTermObligationInput> Obligations { get; set; } = new();
+        public SectionOptOut? OptOut { get; set; }
+    }
+
+    public class EquityInterestInput
+    {
+        public bool IsInterestedInTracking { get; set; }
+        public string? Notes { get; set; }
+        public SectionOptOut? OptOut { get; set; }
+    }
 }

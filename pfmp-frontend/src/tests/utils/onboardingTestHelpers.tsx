@@ -8,7 +8,12 @@ export interface AdvanceOptions {
   cash?: 'complete' | 'optOut';
   investments?: 'complete' | 'optOut';
   realEstate?: 'complete' | 'optOut';
+  liabilities?: 'complete' | 'optOut';
+  expenses?: 'complete' | 'optOut';
+  tax?: 'complete' | 'optOut';
+  longTermObligations?: 'complete' | 'optOut';
   insurance?: 'complete' | 'optOut';
+  benefits?: 'complete' | 'optOut';
 }
 
 const defaultOptions: Required<AdvanceOptions> = {
@@ -18,7 +23,12 @@ const defaultOptions: Required<AdvanceOptions> = {
   cash: 'optOut',
   investments: 'optOut',
   realEstate: 'optOut',
+  liabilities: 'optOut',
+  expenses: 'optOut',
+  tax: 'optOut',
+  longTermObligations: 'optOut',
   insurance: 'optOut',
+  benefits: 'optOut',
 };
 
 function assertHeading(name: string) {
@@ -106,6 +116,47 @@ async function completeRealEstate(user: ReturnType<typeof userEvent.setup>, mode
   }
 
   await user.click(screen.getByTestId('properties-submit'));
+  await assertHeading('Liabilities & Credit');
+}
+
+async function completeLiabilities(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
+  if (mode === 'optOut') {
+    await user.click(screen.getByLabelText('I’m not tracking debts right now'));
+    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'No debts' } });
+  } else {
+    fireEvent.change(screen.getByLabelText('Lender / account name'), { target: { value: 'Sample Card' } });
+    fireEvent.change(screen.getByLabelText('Current balance ($)'), { target: { value: '4200' } });
+    fireEvent.change(screen.getByLabelText('Minimum payment ($)'), { target: { value: '120' } });
+  }
+
+  await user.click(screen.getByTestId('liabilities-submit'));
+  await assertHeading('Monthly Expenses');
+}
+
+async function completeExpenses(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
+  if (mode === 'optOut') {
+    await user.click(screen.getByLabelText('I’ll estimate my expenses later'));
+    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'Need to pull statements' } });
+  } else {
+    fireEvent.change(screen.getByLabelText('Monthly amount ($)'), { target: { value: '3200' } });
+    fireEvent.change(screen.getByLabelText('Notes'), { target: { value: 'Includes utilities estimate' } });
+  }
+
+  await user.click(screen.getByTestId('expenses-submit'));
+  await assertHeading('Tax Posture');
+}
+
+async function completeTax(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
+  if (mode === 'optOut') {
+    await user.click(screen.getByLabelText('A CPA handles this for me'));
+    fireEvent.change(screen.getByLabelText('Add context so we can follow up later'), { target: { value: 'Working with CPA firm' } });
+  } else {
+    fireEvent.change(screen.getByLabelText('Marginal rate (%)'), { target: { value: '24' } });
+    fireEvent.change(screen.getByLabelText('Effective rate (%)'), { target: { value: '18' } });
+    fireEvent.change(screen.getByLabelText('Withholding (%)'), { target: { value: '20' } });
+  }
+
+  await user.click(screen.getByTestId('tax-submit'));
   await assertHeading('Insurance Coverage');
 }
 
@@ -121,6 +172,34 @@ async function completeInsurance(user: ReturnType<typeof userEvent.setup>, mode:
   }
 
   await user.click(screen.getByTestId('insurance-submit'));
+  await assertHeading('Benefits & Programs');
+}
+
+async function completeBenefits(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
+  if (mode === 'optOut') {
+    await user.click(screen.getByLabelText('I’ll review benefits later'));
+    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'Need time to collect info' } });
+  } else {
+    fireEvent.change(screen.getByLabelText('Provider'), { target: { value: 'Employer' } });
+    fireEvent.change(screen.getByLabelText('Monthly cost / premium ($)'), { target: { value: '200' } });
+  }
+
+  await user.click(screen.getByTestId('benefits-submit'));
+  await assertHeading('Long-Term Obligations');
+}
+
+async function completeLongTermObligations(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
+  if (mode === 'optOut') {
+    await user.click(screen.getByLabelText('I don’t have long-term obligations right now'));
+    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'No major milestones' } });
+  } else {
+    fireEvent.change(screen.getByLabelText('Obligation name'), { target: { value: 'Home renovation' } });
+    fireEvent.change(screen.getByLabelText('Estimated cost ($)'), { target: { value: '25000' } });
+    fireEvent.change(screen.getByLabelText('Funds allocated ($)'), { target: { value: '5000' } });
+    await user.click(screen.getByLabelText('Critical milestone'));
+  }
+
+  await user.click(screen.getByTestId('long-term-obligations-submit'));
   await assertHeading('Income Streams');
 }
 
@@ -168,6 +247,27 @@ export async function advanceToInsuranceSection(
   await completeCash(user, merged.cash);
   await completeInvestments(user, merged.investments);
   await completeRealEstate(user, merged.realEstate);
+  await completeLiabilities(user, merged.liabilities);
+  await completeExpenses(user, merged.expenses);
+  await completeTax(user, merged.tax);
+}
+
+export async function advanceToLongTermObligationsSection(
+  user: ReturnType<typeof userEvent.setup>,
+  options: AdvanceOptions = {},
+) {
+  const merged = { ...defaultOptions, ...options };
+  await completeHousehold(user, merged.household);
+  await completeRiskGoals(user, merged.riskGoals);
+  await completeTsp(user, merged.tsp);
+  await completeCash(user, merged.cash);
+  await completeInvestments(user, merged.investments);
+  await completeRealEstate(user, merged.realEstate);
+  await completeLiabilities(user, merged.liabilities);
+  await completeExpenses(user, merged.expenses);
+  await completeTax(user, merged.tax);
+  await completeInsurance(user, merged.insurance);
+  await completeBenefits(user, merged.benefits);
 }
 
 export async function advanceToIncomeSection(
@@ -181,7 +281,12 @@ export async function advanceToIncomeSection(
   await completeCash(user, merged.cash);
   await completeInvestments(user, merged.investments);
   await completeRealEstate(user, merged.realEstate);
+  await completeLiabilities(user, merged.liabilities);
+  await completeExpenses(user, merged.expenses);
+  await completeTax(user, merged.tax);
   await completeInsurance(user, merged.insurance);
+  await completeBenefits(user, merged.benefits);
+  await completeLongTermObligations(user, merged.longTermObligations);
 }
 
 export async function expectSectionStatus(
