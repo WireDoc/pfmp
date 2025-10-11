@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { OnboardingProvider } from '../onboarding/OnboardingContext';
@@ -33,9 +34,11 @@ describe('Income onboarding section', () => {
     const user = userEvent.setup({ delay: 0 });
 
     render(
-      <OnboardingProvider skipAutoHydrate userId={1}>
-        <OnboardingPage />
-      </OnboardingProvider>,
+      <MemoryRouter initialEntries={['/onboarding']}>
+        <OnboardingProvider skipAutoHydrate userId={1}>
+          <OnboardingPage />
+        </OnboardingProvider>
+      </MemoryRouter>,
     );
 
     await advanceToIncomeSection(user, { realEstate: 'optOut', insurance: 'complete' });
@@ -68,7 +71,7 @@ describe('Income onboarding section', () => {
     });
     expect(latest.streams[0]?.startDate ?? '').toContain('2018-04-01');
 
-    expect(screen.getByRole('button', { name: 'Continue to dashboard' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Unlock my dashboard' })).toBeInTheDocument();
 
     await expectSectionStatus('Income Streams', 'Completed');
   }, 25000);
@@ -84,9 +87,11 @@ describe('Income onboarding section', () => {
     const user = userEvent.setup({ delay: 0 });
 
     render(
-      <OnboardingProvider skipAutoHydrate userId={1}>
-        <OnboardingPage />
-      </OnboardingProvider>,
+      <MemoryRouter initialEntries={['/onboarding']}>
+        <OnboardingProvider skipAutoHydrate userId={1}>
+          <OnboardingPage />
+        </OnboardingProvider>
+      </MemoryRouter>,
     );
 
     await advanceToIncomeSection(user, { realEstate: 'optOut', insurance: 'optOut' });
@@ -106,7 +111,7 @@ describe('Income onboarding section', () => {
       reason: 'Income handled in payroll system',
     });
 
-    expect(screen.getByRole('button', { name: 'Continue to dashboard' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Unlock my dashboard' })).toBeInTheDocument();
 
     await expectSectionStatus('Income Streams', 'Opted Out');
   }, 20000);
