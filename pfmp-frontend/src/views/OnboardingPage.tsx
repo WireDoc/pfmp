@@ -1,5 +1,6 @@
-import { useOnboarding } from '../onboarding/useOnboarding';
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useOnboarding } from '../onboarding/useOnboarding';
 import HouseholdSectionForm from '../onboarding/sections/HouseholdSectionForm';
 import RiskGoalsSectionForm from '../onboarding/sections/RiskGoalsSectionForm';
 import TspSectionForm from '../onboarding/sections/TspSectionForm';
@@ -9,6 +10,7 @@ import PropertiesSectionForm from '../onboarding/sections/PropertiesSectionForm'
 import InsuranceSectionForm from '../onboarding/sections/InsuranceSectionForm';
 import IncomeSectionForm from '../onboarding/sections/IncomeSectionForm';
 import type { FinancialProfileSectionStatusValue } from '../services/financialProfileApi';
+import { buildRoute } from '../routes/routeDefs';
 
 function formatStatus(status: string): string {
   switch (status) {
@@ -22,12 +24,30 @@ function formatStatus(status: string): string {
 }
 
 export default function OnboardingPage() {
+  const navigate = useNavigate();
   const { steps, current, goNext, goPrev, updateStatus, statuses, progressPercent, hydrated, userId } = useOnboarding();
 
   const currentDef = steps[current.index];
   const currentStatus = statuses[current.id] ?? 'needs_info';
 
   const outstandingCount = useMemo(() => steps.filter(step => statuses[step.id] === 'needs_info').length, [steps, statuses]);
+  const allSectionsComplete = hydrated && outstandingCount === 0;
+
+  const handlePrimaryAction = () => {
+    if (current.isLast) {
+      if (allSectionsComplete) {
+        navigate(buildRoute('root'));
+      }
+      return;
+    }
+    goNext();
+  };
+
+  const primaryButtonLabel = current.isLast
+    ? allSectionsComplete
+      ? 'Unlock my dashboard'
+      : 'Review outstanding sections'
+    : 'Next section';
 
   const handleStatusChange = (status: FinancialProfileSectionStatusValue) => {
     updateStatus(current.id, status);
@@ -185,7 +205,7 @@ export default function OnboardingPage() {
             })()}
           </div>
 
-          <div style={{ marginTop: 32, display: 'flex', gap: 12 }}>
+          <div style={{ marginTop: 32, display: 'flex', gap: 12, alignItems: 'center' }}>
             <button
               type="button"
               onClick={() => goPrev()}
@@ -196,16 +216,42 @@ export default function OnboardingPage() {
             </button>
             <button
               type="button"
-              onClick={() => {
-                if (!current.isLast) {
-                  goNext();
-                }
+              onClick={handlePrimaryAction}
+              disabled={current.isLast && !allSectionsComplete}
+              style={{
+                padding: '10px 24px',
+                borderRadius: 999,
+                border: 'none',
+                background: current.isLast && !allSectionsComplete ? '#b0bec5' : '#1565c0',
+                color: '#fff',
+                fontWeight: 600,
+                cursor: current.isLast && !allSectionsComplete ? 'not-allowed' : 'pointer',
+                boxShadow: '0 8px 20px rgba(21, 101, 192, 0.2)'
               }}
-              style={{ padding: '10px 24px', borderRadius: 999, border: 'none', background: '#1565c0', color: '#fff', fontWeight: 600, cursor: 'pointer', boxShadow: '0 8px 20px rgba(21, 101, 192, 0.2)' }}
             >
-              {current.isLast ? 'Continue to dashboard' : 'Next section'}
+              {primaryButtonLabel}
             </button>
           </div>
+          {current.isLast && !allSectionsComplete && (
+            <p style={{ marginTop: 12, fontSize: 13, color: '#607d8b' }}>
+              Complete the remaining sections from the checklist on the left to unlock your dashboard.
+            </p>
+          )}
+          {allSectionsComplete && (
+            <div style={{ marginTop: 24, padding: '18px 20px', borderRadius: 12, border: '1px solid #c8e6c9', background: '#f1f8e9' }}>
+              <h3 style={{ margin: '0 0 8px', fontSize: 20, color: '#2e7d32' }}>You&apos;re all set!</h3>
+              <p style={{ margin: '0 0 12px', fontSize: 14, color: '#33691e' }}>
+                Every section is either completed or acknowledged. Unlock your dashboard to see tailored insights and next steps.
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {steps.map(step => (
+                  <span key={step.id} style={{ padding: '6px 12px', borderRadius: 999, background: '#e8f5e9', color: '#2e7d32', fontSize: 12, fontWeight: 600 }}>
+                    {step.title}: {formatStatus(statuses[step.id] ?? 'needs_info')}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
       </div>
     </div>
