@@ -71,9 +71,12 @@ describe('Income onboarding section', () => {
     });
     expect(latest.streams[0]?.startDate ?? '').toContain('2018-04-01');
 
-  expect(screen.getByRole('button', { name: 'Unlock my dashboard' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Review & Finalize' })).toBeInTheDocument());
+    const finalizeButton = screen.getByTestId('review-finalize');
+    expect(finalizeButton).toBeEnabled();
 
     await expectSectionStatus('Income Streams', 'Completed');
+    await expectSectionStatus('Review & Finalize', 'Needs Info');
   }, 25000);
 
   it('allows opting out of income with a reason', async () => {
@@ -111,8 +114,11 @@ describe('Income onboarding section', () => {
       reason: 'Income handled in payroll system',
     });
 
-  expect(screen.getByRole('button', { name: 'Unlock my dashboard' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Review & Finalize' })).toBeInTheDocument());
+    const finalizeButton = screen.getByTestId('review-finalize');
+    expect(finalizeButton).toBeEnabled();
 
     await expectSectionStatus('Income Streams', 'Opted Out');
+    await expectSectionStatus('Review & Finalize', 'Needs Info');
   }, 20000);
 });

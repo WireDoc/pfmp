@@ -9,6 +9,7 @@ import InvestmentAccountsSectionForm from '../onboarding/sections/InvestmentAcco
 import PropertiesSectionForm from '../onboarding/sections/PropertiesSectionForm';
 import InsuranceSectionForm from '../onboarding/sections/InsuranceSectionForm';
 import IncomeSectionForm from '../onboarding/sections/IncomeSectionForm';
+import ReviewSectionPanel from '../onboarding/sections/ReviewSectionPanel';
 import type { FinancialProfileSectionStatusValue } from '../services/financialProfileApi';
 import { buildRoute } from '../routes/routeDefs';
 
@@ -30,30 +31,25 @@ export default function OnboardingPage() {
   const currentDef = steps[current.index];
   const currentStatus = statuses[current.id] ?? 'needs_info';
 
+  const dataSteps = useMemo(() => steps.filter(step => step.id !== 'review'), [steps]);
   const outstandingCount = useMemo(() => steps.filter(step => statuses[step.id] === 'needs_info').length, [steps, statuses]);
-  const allSectionsComplete = hydrated && outstandingCount === 0;
-
-  const handlePrimaryAction = () => {
-    if (current.isLast) {
-      if (allSectionsComplete) {
-        navigate(buildRoute('root'));
-      }
-      return;
-    }
-    goNext();
-  };
-
-  const primaryButtonLabel = current.isLast
-    ? allSectionsComplete
-      ? 'Unlock my dashboard'
-      : 'Review outstanding sections'
-    : 'Next section';
+  const outstandingDataCount = useMemo(
+    () => dataSteps.filter(step => statuses[step.id] === 'needs_info').length,
+    [dataSteps, statuses],
+  );
+  const reviewStatus = statuses.review ?? 'needs_info';
+  const canFinalize = outstandingDataCount === 0;
 
   const handleStatusChange = (status: FinancialProfileSectionStatusValue) => {
     updateStatus(current.id, status);
     if ((status === 'completed' || status === 'opted_out') && !current.isLast) {
       goNext();
     }
+  };
+
+  const handleFinalize = () => {
+    updateStatus('review', 'completed');
+    navigate(buildRoute('root'));
   };
 
   if (!hydrated) {
@@ -193,6 +189,16 @@ export default function OnboardingPage() {
                       onStatusChange={handleStatusChange}
                     />
                   );
+                case 'review':
+                  return (
+                    <ReviewSectionPanel
+                      steps={dataSteps}
+                      statuses={statuses}
+                      canFinalize={canFinalize}
+                      reviewStatus={reviewStatus}
+                      onFinalize={handleFinalize}
+                    />
+                  );
                 default:
                   return (
                     <div style={{ padding: '24px 20px', borderRadius: 12, border: '1px dashed #b0bec5', background: '#fafcff' }}>
@@ -205,51 +211,23 @@ export default function OnboardingPage() {
             })()}
           </div>
 
-          <div style={{ marginTop: 32, display: 'flex', gap: 12, alignItems: 'center' }}>
-            <button
-              type="button"
-              onClick={() => goPrev()}
-              disabled={current.isFirst}
-              style={{ padding: '10px 22px', borderRadius: 999, border: '1px solid #bbdefb', background: '#fff', color: '#1565c0', fontWeight: 600, cursor: current.isFirst ? 'not-allowed' : 'pointer' }}
-            >
-              Back
-            </button>
-            <button
-              type="button"
-              onClick={handlePrimaryAction}
-              disabled={current.isLast && !allSectionsComplete}
-              style={{
-                padding: '10px 24px',
-                borderRadius: 999,
-                border: 'none',
-                background: current.isLast && !allSectionsComplete ? '#b0bec5' : '#1565c0',
-                color: '#fff',
-                fontWeight: 600,
-                cursor: current.isLast && !allSectionsComplete ? 'not-allowed' : 'pointer',
-                boxShadow: '0 8px 20px rgba(21, 101, 192, 0.2)'
-              }}
-            >
-              {primaryButtonLabel}
-            </button>
-          </div>
-          {current.isLast && !allSectionsComplete && (
-            <p style={{ marginTop: 12, fontSize: 13, color: '#607d8b' }}>
-              Complete the remaining sections from the checklist on the left to unlock your dashboard.
-            </p>
-          )}
-          {allSectionsComplete && (
-            <div style={{ marginTop: 24, padding: '18px 20px', borderRadius: 12, border: '1px solid #c8e6c9', background: '#f1f8e9' }}>
-              <h3 style={{ margin: '0 0 8px', fontSize: 20, color: '#2e7d32' }}>You&apos;re all set!</h3>
-              <p style={{ margin: '0 0 12px', fontSize: 14, color: '#33691e' }}>
-                Every section is either completed or acknowledged. Unlock your dashboard to see tailored insights and next steps.
-              </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {steps.map(step => (
-                  <span key={step.id} style={{ padding: '6px 12px', borderRadius: 999, background: '#e8f5e9', color: '#2e7d32', fontSize: 12, fontWeight: 600 }}>
-                    {step.title}: {formatStatus(statuses[step.id] ?? 'needs_info')}
-                  </span>
-                ))}
-              </div>
+          {current.id !== 'review' && (
+            <div style={{ marginTop: 32, display: 'flex', gap: 12 }}>
+              <button
+                type="button"
+                onClick={() => goPrev()}
+                disabled={current.isFirst}
+                style={{ padding: '10px 22px', borderRadius: 999, border: '1px solid #bbdefb', background: '#fff', color: '#1565c0', fontWeight: 600, cursor: current.isFirst ? 'not-allowed' : 'pointer' }}
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={() => goNext()}
+                style={{ padding: '10px 24px', borderRadius: 999, border: 'none', background: '#1565c0', color: '#fff', fontWeight: 600, cursor: 'pointer', boxShadow: '0 8px 20px rgba(21, 101, 192, 0.2)' }}
+              >
+                Next section
+              </button>
             </div>
           )}
         </section>

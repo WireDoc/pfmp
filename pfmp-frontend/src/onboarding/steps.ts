@@ -1,8 +1,8 @@
 import type { FinancialProfileSectionKey } from '../services/financialProfileApi';
 
-// Wave 5 Onboarding Step Definitions aligning with backend financial profile sections.
+// Wave 5 Onboarding Step Definitions aligning with backend financial profile sections plus local review phase.
 
-export type OnboardingStepId = FinancialProfileSectionKey;
+export type OnboardingStepId = FinancialProfileSectionKey | 'review';
 
 export interface OnboardingStepDef {
   id: OnboardingStepId;
@@ -60,6 +60,12 @@ export const ONBOARDING_STEPS: OnboardingStepDef[] = [
     title: 'Income Streams',
     description: 'Salary, pensions, and rental income to chart monthly cashflow.',
     order: 8,
+  },
+  {
+    id: 'review',
+    title: 'Review & Finalize',
+    description: 'Double-check each section, acknowledge opt-outs, and unlock your dashboard.',
+    order: 9,
   },
 ];
 
