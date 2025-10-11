@@ -41,6 +41,8 @@ const onboardingResetMatcher = /\/api\/onboarding\/progress\/reset(?:\?.*)?$/;
 const financialProfileSectionsMatcher = /\/financial-profile\/\d+\/sections(?:\?.*)?$/;
 const financialProfileSnapshotMatcher = /\/financial-profile\/\d+\/snapshot(?:\?.*)?$/;
 const financialProfileHouseholdMatcher = /\/financial-profile\/\d+\/household(?:\?.*)?$/;
+const financialProfileTspMatcher = /\/financial-profile\/\d+\/tsp(?:\?.*)?$/;
+const financialProfileCashMatcher = /\/financial-profile\/\d+\/cash(?:\?.*)?$/;
 
 const createDashboardSummaryHandlers = (
   resolver: Parameters<typeof http.get>[1],
@@ -88,6 +90,8 @@ export const defaultHandlers = [
     ),
   ),
   http.post(financialProfileHouseholdMatcher, () => HttpResponse.json({}, { status: 204 })),
+  http.post(financialProfileTspMatcher, () => HttpResponse.json({}, { status: 204 })),
+  http.post(financialProfileCashMatcher, () => HttpResponse.json({}, { status: 204 })),
 ];
 
 export const mockDashboardSummary = (data: JsonValue, init?: ResponseInit) =>
