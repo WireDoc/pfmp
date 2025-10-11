@@ -15,7 +15,7 @@
    1. **Welcome & household** – capture preferred name, marital status, dependents, military/federal service notes. CTA: “Start your profile”.
    2. **Risk & goals** – risk appetite sliders, retirement target (date + passive income goal), liquidity buffer preference.
    3. **Thrift Savings Plan** – contribution rate, current allocation per fund, employer match, target allocation. Include opt-out toggle **“I don’t invest in the Thrift Savings Plan”**; store boolean + reason.
-   4. **Bank & cash accounts** – add multiple checking/savings/CD/MMA accounts with balances, APR, institution. Provide option **“I don’t have additional cash accounts”** and allow quick import via CSV placeholder.
+   4. **Bank & cash accounts** – add multiple checking/savings/CD/MMA accounts with balances, APR, institution. Provide option **“I don’t have additional cash accounts”** and allow quick import via CSV placeholder. See the enrichment roadmap in [`WAVE-6-CASH-ACCOUNTS-ENRICHMENT.md`](./WAVE-6-CASH-ACCOUNTS-ENRICHMENT.md).
    5. **Brokerage & retirement** – non-TSP investments (401(k), IRA, taxable brokerage, crypto, precious metals). Include asset-class classification + cost basis. Opt-out per category.
    6. **Real estate & liabilities** – primary residence, rentals, mortgages, HELOCs, property values, occupancy. Opt-out toggles for renters/non-owners. See the detailed rollout in [`WAVE-5-REAL-ESTATE-ENRICHMENT.md`](./WAVE-5-REAL-ESTATE-ENRICHMENT.md).
    7. **Insurance coverage** – life, disability, long-term care, umbrella, property insurance with coverage amounts and premiums. Opt-out capture for uninsured areas.

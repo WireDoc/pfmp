@@ -7,6 +7,7 @@ import CashAccountsSectionForm from '../onboarding/sections/CashAccountsSectionF
 import InvestmentAccountsSectionForm from '../onboarding/sections/InvestmentAccountsSectionForm';
 import PropertiesSectionForm from '../onboarding/sections/PropertiesSectionForm';
 import InsuranceSectionForm from '../onboarding/sections/InsuranceSectionForm';
+import IncomeSectionForm from '../onboarding/sections/IncomeSectionForm';
 import type { FinancialProfileSectionStatusValue } from '../services/financialProfileApi';
 
 function formatStatus(status: string): string {
@@ -159,6 +160,14 @@ export default function OnboardingPage() {
                 case 'insurance':
                   return (
                     <InsuranceSectionForm
+                      userId={userId}
+                      currentStatus={currentStatus}
+                      onStatusChange={handleStatusChange}
+                    />
+                  );
+                case 'income':
+                  return (
+                    <IncomeSectionForm
                       userId={userId}
                       currentStatus={currentStatus}
                       onStatusChange={handleStatusChange}
