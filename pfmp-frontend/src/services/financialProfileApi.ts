@@ -129,6 +129,22 @@ export interface InsurancePoliciesProfilePayload {
   optOut?: SectionOptOutPayload | null;
 }
 
+export interface IncomeStreamPayload {
+  name?: string | null;
+  incomeType?: string | null;
+  monthlyAmount?: number | null;
+  annualAmount?: number | null;
+  isGuaranteed?: boolean | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  isActive?: boolean | null;
+}
+
+export interface IncomeStreamsProfilePayload {
+  streams: IncomeStreamPayload[];
+  optOut?: SectionOptOutPayload | null;
+}
+
 interface FinancialProfileSectionStatusDto {
   sectionStatusId: string;
   userId: number;
@@ -270,4 +286,8 @@ export async function upsertPropertiesProfile(userId: number, payload: Propertie
 
 export async function upsertInsurancePoliciesProfile(userId: number, payload: InsurancePoliciesProfilePayload): Promise<void> {
   await apiClient.post(`/financial-profile/${userId}/insurance`, payload);
+}
+
+export async function upsertIncomeStreamsProfile(userId: number, payload: IncomeStreamsProfilePayload): Promise<void> {
+  await apiClient.post(`/financial-profile/${userId}/income`, payload);
 }

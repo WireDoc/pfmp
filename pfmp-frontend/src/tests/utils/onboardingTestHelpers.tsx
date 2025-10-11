@@ -188,7 +188,10 @@ export async function expectSectionStatus(
   sectionTitle: string,
   status: 'Completed' | 'Opted Out' | 'Needs Info',
 ) {
-  const row = screen.getByText(sectionTitle).closest('li');
+  const matchingLabels = screen.getAllByText(sectionTitle);
+  const row = matchingLabels
+    .map((node) => node.closest('li'))
+    .find((candidate): candidate is HTMLLIElement => Boolean(candidate));
   if (!row) throw new Error(`Section row not found for ${sectionTitle}`);
   const statusNode = await within(row as HTMLElement).findByText(status);
   return statusNode;
