@@ -5,6 +5,14 @@ import type { DashboardData } from '../../services/dashboard';
 interface Props { data: DashboardData | null; loading: boolean; }
 
 export const OverviewPanel: React.FC<Props> = ({ data, loading }) => {
+  const obligations = data?.longTermObligations;
+  const formatDueDate = (value: string | null) => {
+    if (!value) return 'Not scheduled';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Not scheduled';
+    return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
+  };
+
   return (
     <Box display="flex" gap={4} flexWrap="wrap" data-testid="overview-panel">
       {loading && !data && <Typography variant="body2">Loading overview...</Typography>}
@@ -26,6 +34,13 @@ export const OverviewPanel: React.FC<Props> = ({ data, loading }) => {
             <Box>
               <Typography variant="subtitle2" color="text.secondary">30d Change</Typography>
               <Typography>{data.netWorth.change30dPct.toFixed(2)}%</Typography>
+            </Box>
+          )}
+          {obligations && (
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary">Long-Term Obligations</Typography>
+              <Typography variant="body1">{obligations.count} active · ${obligations.totalEstimate.toLocaleString()}</Typography>
+              <Typography variant="caption" color="text.secondary">Next milestone: {formatDueDate(obligations.nextDueDate)}</Typography>
             </Box>
           )}
         </>

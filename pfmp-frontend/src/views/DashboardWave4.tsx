@@ -10,6 +10,7 @@ import { InsightsPanel } from './dashboard/InsightsPanel';
 import { AlertsPanel } from './dashboard/AlertsPanel';
 import { AdvicePanel } from './dashboard/AdvicePanel';
 import { TasksPanel } from './dashboard/TasksPanel';
+import { QuickStatsPanel } from './dashboard/QuickStatsPanel';
 import { useAuth } from '../contexts/auth/useAuth';
 import { getDashboardService, TASK_PRIORITY_TO_ENUM, DEFAULT_TASK_PRIORITY_ENUM } from '../services/dashboard';
 import type {
@@ -18,6 +19,7 @@ import type {
   DashboardData,
   TaskItem,
   CreateFollowUpTaskRequest,
+  Insight,
 } from '../services/dashboard';
 import type { OnboardingStepId } from '../onboarding/steps';
 
@@ -85,6 +87,7 @@ export const DashboardWave4: React.FC = () => {
   const [recentTaskIds, setRecentTaskIds] = useState<Set<number>>(new Set());
   const [pendingTaskIds, setPendingTaskIds] = useState<Set<number>>(new Set());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const displayData = viewData ?? data ?? null;
 
   const logTelemetry = useCallback((event: string, payload: Record<string, unknown> = {}) => {
     if (typeof console !== 'undefined' && typeof console.debug === 'function') {
@@ -516,6 +519,121 @@ export const DashboardWave4: React.FC = () => {
       });
   }, [markTaskPending, restoreTaskSnapshot, updateTaskInState]);
 
+  const insightsPanelData = useMemo(() => {
+    if (!displayData) {
+      return displayData;
+    }
+
+    const obligations = displayData.longTermObligations;
+    if (!obligations) {
+      return displayData;
+    }
+
+    const extras: Insight[] = [];
+    const generatedAt = new Date();
+    const timestamp = generatedAt.toISOString();
+    let formatCurrency = (value: number) => `$${value.toLocaleString()}`;
+
+    const currencyCode = displayData.netWorth?.netWorth?.currency ?? 'USD';
+    try {
+      const formatter = new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency: currencyCode,
+        maximumFractionDigits: 0,
+      });
+      formatCurrency = (value: number) => formatter.format(value);
+    } catch {
+      // fall back to basic formatting defined above if Intl.NumberFormat fails
+    }
+
+    if (obligations.count === 0) {
+      extras.push({
+        id: 'derived:obligations:capture',
+        category: 'general',
+        title: 'Capture your long-term obligations',
+        body: 'Add mortgages, loans, and other commitments so the dashboard can project funding needs and reminders.',
+        severity: 'info',
+        generatedAt: timestamp,
+      });
+    } else {
+      const pluralizedLabel = obligations.count === 1 ? 'obligation' : 'obligations';
+      const totalEstimateLabel = obligations.totalEstimate > 0
+        ? formatCurrency(Math.round(obligations.totalEstimate))
+        : `your ${pluralizedLabel}`;
+
+      const nextDueDate = obligations.nextDueDate ? new Date(obligations.nextDueDate) : null;
+      const hasValidDueDate = nextDueDate && !Number.isNaN(nextDueDate.getTime());
+
+      if (hasValidDueDate) {
+        const now = generatedAt;
+        const diffMs = (nextDueDate as Date).getTime() - now.getTime();
+        const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+        const dueLabel = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+          .format(nextDueDate as Date);
+
+        let severity: Insight['severity'] = 'info';
+        let title = 'Upcoming obligation milestone scheduled';
+        let body = `Your next long-term obligation is scheduled for ${dueLabel}. Budgeting ${totalEstimateLabel} keeps those commitments funded.`;
+
+        if (diffDays < 0) {
+          severity = 'critical';
+          title = 'Obligation milestone slipped';
+          body = `An obligation milestone was due on ${dueLabel}. Allocate ${totalEstimateLabel} to catch up and update the plan once paid.`;
+        } else if (diffDays === 0) {
+          severity = 'warn';
+          title = 'Obligation milestone due today';
+          body = `One of your ${pluralizedLabel} is due today (${dueLabel}). Reserving ${totalEstimateLabel} keeps your plan on track.`;
+        } else if (diffDays <= 45) {
+          severity = 'warn';
+          title = 'Obligation milestone coming up';
+          body = `Your next long-term obligation hits in ${diffDays} days (${dueLabel}). Set aside ${totalEstimateLabel} so cash flow stays aligned.`;
+        }
+
+        extras.push({
+          id: 'derived:obligations:next-due',
+          category: 'cashflow',
+          title,
+          body,
+          severity,
+          generatedAt: timestamp,
+        });
+      } else {
+        extras.push({
+          id: 'derived:obligations:missing-due',
+          category: 'general',
+          title: 'Track obligation due dates',
+          body: `Add the next milestone date for your ${pluralizedLabel} to unlock reminders and planning insights.`,
+          severity: 'info',
+          generatedAt: timestamp,
+        });
+      }
+
+      if (obligations.totalEstimate > 0) {
+        const averageEstimate = obligations.totalEstimate / obligations.count;
+        if (Number.isFinite(averageEstimate) && averageEstimate > 0) {
+          const averageLabel = formatCurrency(Math.round(averageEstimate));
+          extras.push({
+            id: 'derived:obligations:average-funding',
+            category: 'savings',
+            title: 'Budget for each obligation',
+            body: `Plan on roughly ${averageLabel} per obligation based on the ${totalEstimateLabel} total you've captured.`,
+            severity: 'info',
+            generatedAt: timestamp,
+          });
+        }
+      }
+    }
+
+    if (extras.length === 0) {
+      return displayData;
+    }
+
+    return {
+      ...displayData,
+      insights: [...displayData.insights, ...extras],
+    } satisfies DashboardData;
+  }, [displayData]);
+
   if (!onboardingHydrated) {
     return (
       <Box data-testid="wave4-dashboard-root" p={3} display="flex" flexDirection="column" gap={3}>
@@ -531,8 +649,6 @@ export const DashboardWave4: React.FC = () => {
   if (!onboardingComplete) {
     return <Navigate to="/onboarding" replace />;
   }
-
-  const displayData = viewData ?? data ?? null;
   const alerts = displayData?.alerts ?? [];
   const advice = displayData?.advice ?? [];
   const tasks = displayData?.tasks ?? [];
@@ -566,6 +682,12 @@ export const DashboardWave4: React.FC = () => {
             {loading ? <Skeleton variant="rectangular" height={60} /> : <OverviewPanel data={displayData} loading={loading} />}
           </Paper>
         </Grid>
+        <Grid size={12}>
+          <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Typography variant="h6" gutterBottom>Quick glance</Typography>
+            <QuickStatsPanel data={displayData} loading={loading} />
+          </Paper>
+        </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
           <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography variant="h6" gutterBottom>Accounts</Typography>
@@ -575,7 +697,7 @@ export const DashboardWave4: React.FC = () => {
         <Grid size={{ xs: 12, md: 6 }}>
           <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography variant="h6" gutterBottom>Insights</Typography>
-            {loading ? <Skeleton variant="rectangular" height={120} /> : <InsightsPanel data={displayData} loading={loading} />}
+            {loading ? <Skeleton variant="rectangular" height={120} /> : <InsightsPanel data={insightsPanelData} loading={loading} />}
           </Paper>
         </Grid>
         <Grid size={12}>

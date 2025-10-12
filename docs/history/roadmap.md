@@ -1,10 +1,10 @@
 # PFMP Product Roadmap (2025–2026)
 
-_Last updated: 2025-10-08_
+_Last updated: 2025-10-12_
 
 ## Current Baseline (Wave 4 rebuild context)
 - **Backend**: Mature .NET 9 API with PostgreSQL, TSP models, task/alert/advice lifecycles, AI analysis endpoints, market data integration, developer bypass auth, seeded demo users.
-- **Frontend**: React 19 shell under reconstruction. Routing, onboarding provider, dashboard mock data, feature flags, Vitest coverage for alerts/tasks orchestration. UI currently minimal (demo controls + telemetry).
+- **Frontend**: React 19 shell under reconstruction. Routing, onboarding provider, dashboard quick glance metrics, live obligation polling (service abstraction), feature flags, and Vitest coverage for alerts/tasks orchestration.
 - **Tooling**: MSW-driven testing harness, docs/testing guides, wave planning artifacts, dev bypass workflow.
 
 The roadmap below transitions the stack from today’s demo experience into a production-ready personal financial management platform.
@@ -139,9 +139,10 @@ These items stay intentionally unscoped until the core roadmap milestones are gr
 ---
 
 ## Immediate Next Steps (Q4 2025)
-1. Finalize Phase 1 scope in `docs/waves/WAVE-5-DASHBOARD-MVP.md` (align tasks with above deliverables).
+1. Finalize Phase 1 scope in `docs/waves/WAVE-5-DASHBOARD-MVP.md` (align tasks with above deliverables and incorporate live dashboard metrics).
 2. Build onboarding forms tied to real endpoints; replace “continue” buttons with actual inputs and submissions.
 3. Seed richer demo datasets (accounts, holdings, goals) so dashboard value appears once forms submit.
-4. Demo walkthrough: Create new user → complete onboarding → view personalized dashboard snapshot.
+4. Draft SignalR rollout plan for Wave 4 follow-up leveraging existing polling abstraction.
+5. Demo walkthrough: Create new user → complete onboarding → view personalized dashboard snapshot.
 
 This roadmap evolves the curiosity build into a production-grade personal financial management platform over the next 12 months while delivering user value at each phase.

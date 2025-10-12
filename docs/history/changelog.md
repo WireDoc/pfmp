@@ -7,6 +7,19 @@ The format loosely follows [Conventional Commits](https://www.conventionalcommit
 ## [Unreleased]
 
 ### Added
+- _No changes yet_
+
+### Changed
+- _No changes yet_
+
+### Planned / Pending
+- Wave 2 onboarding refinement (validation schemas)
+- Wave 3 persistence implementation (server endpoints, DTO normalization)
+- Performance baseline + visual regression harness
+
+## [0.8.0-alpha] - 2025-10-12
+
+### Added
 - docs: `docs/testing/onboarding-persistence.md` refreshed with long-term obligations coverage and regression commands
 - docs: `README.md` updated with npm-only workflow note and current onboarding highlights
 - docs: subject-based documentation map at `docs/documentation-map.md`
@@ -20,8 +33,12 @@ The format loosely follows [Conventional Commits](https://www.conventionalcommit
 - feat(dev): dev users listing & default selection endpoints (`/api/dev/users`)
 - feat(frontend): DevUserSwitcher component & default onboarding flags
 - feat(frontend): long-term obligations onboarding section, API client wiring, and snapshot fields
+- feat(frontend): dashboard derives long-term obligations insights with automated coverage
+- feat(frontend): dashboard long-term obligations polling subscriber with drop-in SignalR path
+- feat(frontend): quick glance metrics on Wave 4 dashboard combining net worth change, outstanding tasks, and upcoming obligation milestones
 - test(api): onboarding & dev users controller coverage
 - test(frontend): `onboardingLongTermObligations.integration.test.tsx` for complete + opt-out flows
+- test(frontend): `dashboardWave4Direct.test.tsx` coverage for live obligation updates
 
 ### Changed
 - docs: `docs/waves/MIGRATION_STATUS.md` now captures frontend support for long-term obligations
@@ -29,14 +46,10 @@ The format loosely follows [Conventional Commits](https://www.conventionalcommit
 - docs: README and instructions rewritten to describe the new taxonomy
 - docs: instructions relocated to `.github/instructions/instructions.md` for Copilot indexing
 - docs: auth guidance consolidated under `docs/auth/`
+- feat(frontend): Wave 4 dashboard layout refreshed with quick glance summary and live obligation polling hooks
 - chore(api): OnboardingProgress EF entity + migration (jsonb storage)
 - chore(dev): DevelopmentDataSeeder baseline + onboarding scenarios
 - feat(api): onboarding progress controller now supports `?email=` lookup
-
-### Planned / Pending
-- Wave 2 onboarding refinement (validation schemas)
-- Wave 3 persistence implementation (server endpoints, DTO normalization)
-- Performance baseline + visual regression harness
 
 ## [0.7.0-alpha] - 2025-10-03
 ### Added

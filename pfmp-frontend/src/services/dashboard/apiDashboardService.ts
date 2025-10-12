@@ -12,6 +12,8 @@ import type {
   UpdateTaskStatusRequest,
   UpdateTaskProgressRequest,
   CompleteTaskRequestPayload,
+  LongTermObligationSummary,
+  LongTermObligationListener,
 } from './types';
 import {
   TASK_PRIORITY_FROM_ENUM,
@@ -36,6 +38,9 @@ interface ApiDashboardSummaryResponse {
   netWorth: DashboardData['netWorth'];
   accounts?: DashboardData['accounts'];
   insights?: DashboardData['insights'];
+  longTermObligationCount?: number | null;
+  longTermObligationEstimate?: number | null;
+  nextObligationDueDate?: string | null;
 }
 
 const API_ORIGIN = (() => {
@@ -55,6 +60,22 @@ const TASKS_CREATE_URL = `${API_ORIGIN}/api/Tasks`;
 const TASK_STATUS_URL = (taskId: number | string) => `${API_ORIGIN}/api/Tasks/${encodeURIComponent(taskId)}/status`;
 const TASK_PROGRESS_URL = (taskId: number | string) => `${API_ORIGIN}/api/Tasks/${encodeURIComponent(taskId)}/progress`;
 const TASK_COMPLETE_URL = (taskId: number | string) => `${API_ORIGIN}/api/Tasks/${encodeURIComponent(taskId)}/complete`;
+const OBLIGATION_POLL_INTERVAL_MS = 45000;
+
+function extractObligations(dto: ApiDashboardSummaryResponse): LongTermObligationSummary | undefined {
+  if (
+    dto.longTermObligationCount != null ||
+    dto.longTermObligationEstimate != null ||
+    dto.nextObligationDueDate != null
+  ) {
+    return {
+      count: dto.longTermObligationCount ?? 0,
+      totalEstimate: dto.longTermObligationEstimate ?? 0,
+      nextDueDate: dto.nextObligationDueDate ?? null,
+    } satisfies LongTermObligationSummary;
+  }
+  return undefined;
+}
 
 async function resolveAuthHeaders(): Promise<Record<string, string>> {
   if (typeof window === 'undefined') {
@@ -227,6 +248,8 @@ function normalizeTaskPayload(payload: Record<string, unknown>): TaskItem {
 }
 
 export function createApiDashboardService(): DashboardService {
+  let lastKnownObligations: LongTermObligationSummary | undefined;
+
   return {
     async load() {
       const headers: HeadersInit = {
@@ -259,14 +282,71 @@ export function createApiDashboardService(): DashboardService {
       if (!dto.netWorth) {
         throw new Error('Dashboard summary response missing netWorth payload');
       }
+      const obligations = extractObligations(dto);
+      lastKnownObligations = obligations;
       return {
         netWorth: dto.netWorth,
         accounts: dto.accounts ?? [],
         insights: dto.insights ?? [],
+        longTermObligations: obligations,
         alerts,
         advice,
         tasks: tasks.map(normalizeTaskPayload),
       } satisfies DashboardData;
+    },
+    subscribeToLongTermObligations(listener: LongTermObligationListener) {
+      if (typeof window === 'undefined') {
+        return () => {};
+      }
+
+      let cancelled = false;
+      let lastSerialized = lastKnownObligations ? JSON.stringify(lastKnownObligations) : null;
+
+      if (lastKnownObligations) {
+        queueMicrotask(() => {
+          if (!cancelled) {
+            listener(lastKnownObligations);
+          }
+        });
+      }
+
+      const poll = async () => {
+        if (cancelled) {
+          return;
+        }
+        try {
+          const headers: HeadersInit = {
+            Accept: 'application/json',
+            ...(await resolveAuthHeaders()),
+          };
+          const dto = await fetchSummary(headers);
+          const next = extractObligations(dto);
+          lastKnownObligations = next;
+          const serialized = next ? JSON.stringify(next) : null;
+          if (serialized !== lastSerialized) {
+            lastSerialized = serialized;
+            if (!cancelled) {
+              listener(next);
+            }
+          }
+        } catch (error) {
+          if (import.meta.env?.MODE !== 'production') {
+            console.warn('Dashboard obligation polling failed', error);
+          }
+        }
+      };
+
+      let intervalId: ReturnType<typeof setInterval> | null = null;
+
+      poll();
+      intervalId = setInterval(poll, OBLIGATION_POLL_INTERVAL_MS);
+
+      return () => {
+        cancelled = true;
+        if (intervalId) {
+          clearInterval(intervalId);
+        }
+      };
     },
     async createFollowUpTask(request: CreateFollowUpTaskRequest) {
       const headers = await buildJsonHeaders();
