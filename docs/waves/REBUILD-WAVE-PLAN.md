@@ -1,6 +1,6 @@
 # PFMP Rebuild Wave Plan
 
-> Status: Wave 0 (Documentation Alignment) IN PROGRESS – This document defines scope, acceptance criteria, risks, metrics, and guardrails for each rebuild wave.
+> Status: Wave 4 (Intelligence Dashboards) IN PROGRESS – Waves 0–3 documentation, routing, onboarding scaffold, and auth/profile UX landed; current focus adds dashboard insights and live obligation signals.
 
 ## Purpose
 Reconstruct missing frontend orchestration layers (routing shell, onboarding, intelligence dashboards, alerts UI, auth presentation) in controlled, auditable increments while preserving a stable backend and existing leaf feature components. Enables dual-AI evolution without uncontrolled scope creep.
@@ -123,10 +123,11 @@ Acceptance Criteria:
 Out of Scope:
 - Advanced charting or streaming updates
 
-Execution Notes (2025-10-06):
+Execution Notes (2025-10-12):
 - Draft `docs/api/dashboard-contract.md` capturing agreed schema for net worth, accounts, and insights payloads.
 - Add `docs/testing/onboarding-persistence.md` outlining manual QA + MSW coverage expectations.
 - Track alert→task optimistic flow telemetry via placeholder logger pending Wave 6 instrumentation.
+- Quick glance metrics panel and live obligation polling subscriber deliver near-real-time dashboard updates; SignalR swap planned as follow-up.
 
 ---
 ## Wave 5 – Dual-AI Pipeline Scaffold

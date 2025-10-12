@@ -120,7 +120,24 @@ describe('DashboardWave4 direct component render', () => {
     expect(screen.getByText(/Dashboard \(Wave 4\)/)).toBeInTheDocument();
     expect(screen.getByText(/Welcome back, John Smith/)).toBeInTheDocument();
     expect(screen.getByTestId('onboarding-summary-text').textContent).toContain('Onboarding complete');
-    expect(await screen.findByTestId('alerts-panel')).toBeInTheDocument();
+    const quickGlanceHeading = await screen.findByText('Quick glance');
+    expect(quickGlanceHeading).toBeInTheDocument();
+  const quickStatsPanel = await screen.findByTestId('quick-stats-panel');
+    const netWorthLabel = await within(quickStatsPanel).findByText(/30-day net worth change/i);
+    const tasksLabel = await within(quickStatsPanel).findByText(/Tasks & follow-ups/i);
+  const obligationsLabel = await within(quickStatsPanel).findByText(/Next milestone/i);
+    const obligationsSummary = await within(quickStatsPanel).findByText(/3 active · \$120,000/);
+
+  const netWorthValue = netWorthLabel.nextElementSibling as HTMLElement | null;
+  expect(netWorthValue).not.toBeNull();
+  expect(netWorthValue?.textContent?.trim()).toMatch(/%/);
+  expect(tasksLabel).toBeInTheDocument();
+  const tasksValue = tasksLabel.nextElementSibling as HTMLElement | null;
+  expect(tasksValue).not.toBeNull();
+  expect(tasksValue?.textContent?.trim()).toMatch(/outstanding/i);
+  expect(obligationsLabel).toBeInTheDocument();
+    expect(obligationsSummary).toBeInTheDocument();
+  expect(await screen.findByTestId('alerts-panel')).toBeInTheDocument();
     expect(screen.getByText(/High credit utilization/)).toBeInTheDocument();
     expect(await screen.findByTestId('advice-panel')).toBeInTheDocument();
   expect(screen.getByText(/Your equity allocation is slightly above target/)).toBeInTheDocument();
@@ -160,6 +177,9 @@ describe('DashboardWave4 direct component render', () => {
             generatedAt: '2025-10-07T00:00:00Z',
           },
         ],
+        longTermObligationCount: 1,
+        longTermObligationEstimate: 4500,
+        nextObligationDueDate: '2025-12-01T00:00:00Z',
       },
       alerts: [
         {
@@ -210,7 +230,11 @@ describe('DashboardWave4 direct component render', () => {
       ],
     });
 
-    expect(await screen.findByText('$200,000')).toBeInTheDocument();
+  expect(await screen.findAllByText('$200,000')).not.toHaveLength(0);
+  expect(screen.getByText(/Quick glance/)).toBeInTheDocument();
+  const quickStatsPanel = await screen.findByTestId('quick-stats-panel');
+  expect(await within(quickStatsPanel).findByText(/30-day net worth change/i)).toBeInTheDocument();
+  expect(await within(quickStatsPanel).findByText(/1 outstanding/i)).toBeInTheDocument();
     expect(screen.getByText(/Fidelity Brokerage/)).toBeInTheDocument();
     expect(screen.getByText(/Rebalance recommended/)).toBeInTheDocument();
     expect(screen.getByText(/Portfolio drift detected/)).toBeInTheDocument();
@@ -231,12 +255,39 @@ describe('DashboardWave4 direct component render', () => {
       },
     });
 
-    expect(await screen.findByText('$900')).toBeInTheDocument();
+    expect(await screen.findAllByText('$900')).not.toHaveLength(0);
     expect(await screen.findByText('No accounts')).toBeInTheDocument();
     expect(screen.getByText('No insights')).toBeInTheDocument();
     expect(screen.getByText('No active alerts')).toBeInTheDocument();
     expect(screen.getByText('No advice generated yet')).toBeInTheDocument();
     expect(screen.getByText('No tasks yet')).toBeInTheDocument();
+  });
+
+  it('adds derived insights when long-term obligations summary data is present', async () => {
+    const futureDueDate = new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString();
+
+    renderDashboardWithRealData({
+      summary: {
+        netWorth: {
+          totalAssets: { amount: 150000, currency: 'USD' },
+          totalLiabilities: { amount: 40000, currency: 'USD' },
+          netWorth: { amount: 110000, currency: 'USD' },
+          lastUpdated: new Date().toISOString(),
+        },
+        accounts: [],
+        insights: [],
+        longTermObligationCount: 2,
+        longTermObligationEstimate: 20000,
+        nextObligationDueDate: futureDueDate,
+      },
+      alerts: [],
+      advice: [],
+      tasks: [],
+    });
+
+    expect(await screen.findByText('Obligation milestone coming up')).toBeInTheDocument();
+  expect(screen.getByText(/Set aside \$20,000 so cash flow stays aligned/)).toBeInTheDocument();
+    expect(screen.getByText(/Plan on roughly \$10,000 per obligation/)).toBeInTheDocument();
   });
 
   it('surfaces error state when summary request fails', async () => {
@@ -524,5 +575,35 @@ describe('DashboardWave4 direct component render', () => {
 
     consoleSpy.mockRestore();
     rectSpy.mockRestore();
+  });
+
+  it('updates quick glance metrics when obligation watcher emits new data', async () => {
+    const upcomingDate = new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString();
+    const laterDate = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
+    let emitUpdate: ((summary: { count: number; totalEstimate: number; nextDueDate: string | null }) => void) | null = null;
+
+    stubMockDashboardService({
+      subscribeToLongTermObligations: (listener) => {
+        emitUpdate = listener;
+        listener({ count: 3, totalEstimate: 120_000, nextDueDate: upcomingDate });
+        return () => {
+          emitUpdate = null;
+        };
+      },
+    });
+
+    renderDashboard();
+
+    const quickStatsPanel = await screen.findByTestId('quick-stats-panel');
+    await within(quickStatsPanel).findByText(/3 active · \$120,000/);
+
+    expect(emitUpdate).not.toBeNull();
+    act(() => {
+      emitUpdate?.({ count: 5, totalEstimate: 150_000, nextDueDate: laterDate });
+    });
+
+    await waitFor(() => {
+      expect(within(quickStatsPanel).getByText(/5 active · \$150,000/)).toBeInTheDocument();
+    });
   });
 });

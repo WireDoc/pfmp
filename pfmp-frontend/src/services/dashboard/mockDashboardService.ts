@@ -5,6 +5,7 @@ import type {
   UpdateTaskProgressRequest,
   UpdateTaskStatusRequest,
   CompleteTaskRequestPayload,
+  LongTermObligationListener,
 } from './types';
 
 interface MockOptions {
@@ -22,6 +23,8 @@ function generateData(): DashboardData {
   const totalAssets = 250_000;
   const totalLiabilities = 67_500;
   const netWorth = totalAssets - totalLiabilities;
+  const nextMilestone = new Date();
+  nextMilestone.setMonth(nextMilestone.getMonth() + 6);
 
   return {
     netWorth: {
@@ -31,6 +34,11 @@ function generateData(): DashboardData {
       change1dPct: 0.42,
       change30dPct: 2.05,
       lastUpdated: now,
+    },
+    longTermObligations: {
+      count: 3,
+      totalEstimate: 120_000,
+      nextDueDate: nextMilestone.toISOString(),
     },
     accounts: [
       {
@@ -138,6 +146,11 @@ export function createMockDashboardService(opts: MockOptions = {}): DashboardSer
         throw new Error('Mock dashboard service simulated failure');
       }
       return generateData();
+    },
+    subscribeToLongTermObligations(listener: LongTermObligationListener) {
+      const snapshot = generateData().longTermObligations;
+      queueMicrotask(() => listener(snapshot));
+      return () => {};
     },
     async createFollowUpTask(_request: CreateFollowUpTaskRequest) {
       if (latencyMs) await new Promise(r => setTimeout(r, latencyMs));

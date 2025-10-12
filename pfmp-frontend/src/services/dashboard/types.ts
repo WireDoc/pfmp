@@ -99,6 +99,14 @@ export interface TaskItem {
   confidenceScore?: number | null;
 }
 
+export interface LongTermObligationSummary {
+  count: number;
+  totalEstimate: number;
+  nextDueDate: string | null;
+}
+
+export type LongTermObligationListener = (summary: LongTermObligationSummary | undefined) => void;
+
 export interface DashboardData {
   netWorth: NetWorthSummary;
   accounts: AccountSnapshot[];
@@ -106,10 +114,12 @@ export interface DashboardData {
   alerts: AlertCard[];
   advice: AdviceItem[];
   tasks: TaskItem[];
+  longTermObligations?: LongTermObligationSummary;
 }
 
 export interface DashboardService {
   load(): Promise<DashboardData>;
+  subscribeToLongTermObligations?(listener: LongTermObligationListener): () => void;
   createFollowUpTask?(request: CreateFollowUpTaskRequest): Promise<{ taskId: number | null }>;
   updateTaskStatus?(request: UpdateTaskStatusRequest): Promise<void>;
   updateTaskProgress?(request: UpdateTaskProgressRequest): Promise<void>;
