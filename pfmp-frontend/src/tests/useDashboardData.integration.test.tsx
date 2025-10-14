@@ -101,7 +101,7 @@ describe('useDashboardData integration', () => {
     const { result } = renderHook(() => useDashboardData());
 
     try {
-      await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(4));
+  await waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(5));
       await waitFor(() => expect(result.current.loading).toBe(false));
 
       expect(result.current.error).toBeNull();

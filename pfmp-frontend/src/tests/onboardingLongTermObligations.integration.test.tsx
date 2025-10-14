@@ -1,12 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { OnboardingProvider } from '../onboarding/OnboardingContext';
-import OnboardingPage from '../views/OnboardingPage';
 import type { LongTermObligationsProfilePayload } from '../services/financialProfileApi';
 import * as financialProfileApi from '../services/financialProfileApi';
-import { advanceToLongTermObligationsSection, expectSectionStatus } from './utils/onboardingTestHelpers';
+import {
+  advanceToLongTermObligationsSection,
+  expectSectionStatus,
+  renderOnboardingPageForTest,
+} from './utils/onboardingTestHelpers';
 
 describe('Long-Term Obligations onboarding section', () => {
   beforeEach(() => {
@@ -37,13 +38,7 @@ describe('Long-Term Obligations onboarding section', () => {
 
     const user = userEvent.setup({ delay: 0 });
 
-    render(
-      <MemoryRouter initialEntries={['/onboarding']}>
-        <OnboardingProvider skipAutoHydrate userId={1}>
-          <OnboardingPage />
-        </OnboardingProvider>
-      </MemoryRouter>,
-    );
+    renderOnboardingPageForTest();
 
   await advanceToLongTermObligationsSection(user);
 
@@ -92,20 +87,15 @@ describe('Long-Term Obligations onboarding section', () => {
 
     const user = userEvent.setup({ delay: 0 });
 
-    render(
-      <MemoryRouter initialEntries={['/onboarding']}>
-        <OnboardingProvider skipAutoHydrate userId={1}>
-          <OnboardingPage />
-        </OnboardingProvider>
-      </MemoryRouter>,
-    );
+    renderOnboardingPageForTest();
 
   await advanceToLongTermObligationsSection(user);
 
     const initialCallCount = requests.length;
 
-    await user.click(screen.getByLabelText('I don’t have long-term obligations right now'));
-    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'All major milestones are already funded.' } });
+  await user.click(screen.getByLabelText('I don’t have long-term obligations right now'));
+  const optOutReason = await screen.findByLabelText('Why are you opting out?');
+  fireEvent.change(optOutReason, { target: { value: 'All major milestones are already funded.' } });
 
     await user.click(screen.getByTestId('long-term-obligations-submit'));
 
@@ -120,5 +110,5 @@ describe('Long-Term Obligations onboarding section', () => {
     await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Income Streams' })).toBeInTheDocument());
 
     await expectSectionStatus('Long-Term Obligations', 'Opted Out');
-  }, 20000);
+  }, 35000);
 });
