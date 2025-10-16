@@ -1,11 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { OnboardingProvider } from '../onboarding/OnboardingContext';
-import OnboardingPage from '../views/OnboardingPage';
 import type { InvestmentAccountsProfilePayload } from '../services/financialProfileApi';
 import * as financialProfileApi from '../services/financialProfileApi';
-import { advanceToInvestmentsSection, expectSectionStatus } from './utils/onboardingTestHelpers';
+import { advanceToInvestmentsSection, expectSectionStatus, renderOnboardingPageForTest } from './utils/onboardingTestHelpers';
 
 describe('Investments onboarding section', () => {
   beforeEach(() => {
@@ -29,11 +27,7 @@ describe('Investments onboarding section', () => {
 
     const user = userEvent.setup({ delay: 0 });
 
-    render(
-      <OnboardingProvider skipAutoHydrate userId={1}>
-        <OnboardingPage />
-      </OnboardingProvider>,
-    );
+    renderOnboardingPageForTest();
 
     await advanceToInvestmentsSection(user, { tsp: 'complete', cash: 'optOut' });
 
@@ -81,11 +75,7 @@ describe('Investments onboarding section', () => {
 
     const user = userEvent.setup({ delay: 0 });
 
-    render(
-      <OnboardingProvider skipAutoHydrate userId={1}>
-        <OnboardingPage />
-      </OnboardingProvider>,
-    );
+    renderOnboardingPageForTest();
 
     await advanceToInvestmentsSection(user, { cash: 'optOut' });
 

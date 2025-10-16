@@ -2,6 +2,7 @@
 // Future Wave 3 will integrate real schemas (likely zod or custom lightweight validators)
 // Each step exposes: shape (fields), validate(data) returning { valid, issues[] }
 
+import { ONBOARDING_STEPS } from './steps';
 import type { OnboardingStepId } from './steps';
 
 export interface ValidationIssue { field: string; message: string; }
@@ -21,12 +22,13 @@ function makeNoopValidator(id: OnboardingStepId): StepValidator {
   };
 }
 
-export const STEP_VALIDATORS: Record<OnboardingStepId, StepValidator> = {
-  demographics: makeNoopValidator('demographics'),
-  risk: makeNoopValidator('risk'),
-  tsp: makeNoopValidator('tsp'),
-  income: makeNoopValidator('income'),
-};
+export const STEP_VALIDATORS: Record<OnboardingStepId, StepValidator> = ONBOARDING_STEPS.reduce(
+  (acc, step) => {
+    acc[step.id] = makeNoopValidator(step.id);
+    return acc;
+  },
+  {} as Record<OnboardingStepId, StepValidator>,
+);
 
 export function validateStep(id: OnboardingStepId, data: unknown): StepValidationResult {
   return STEP_VALIDATORS[id].validate(data);

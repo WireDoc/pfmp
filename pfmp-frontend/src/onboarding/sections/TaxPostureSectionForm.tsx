@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   Alert,
   Box,
@@ -15,10 +15,12 @@ import {
   Typography,
 } from '@mui/material';
 import {
+  fetchTaxProfile,
   upsertTaxProfile,
   type FinancialProfileSectionStatusValue,
   type TaxProfilePayload,
 } from '../../services/financialProfileApi';
+import { useSectionHydration } from '../hooks/useSectionHydration';
 
 type SaveState = 'idle' | 'saving' | 'success' | 'error';
 
@@ -56,6 +58,63 @@ export default function TaxPostureSectionForm({ userId, onStatusChange, currentS
   const [optOutReason, setOptOutReason] = useState('');
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  type HydratedState = {
+    filingStatus: string;
+    state: string;
+    marginalRate: string;
+    effectiveRate: string;
+    withholding: string;
+    expectedRefund: string;
+    expectedPayment: string;
+    usesCpa: boolean;
+    notes: string;
+    optedOut: boolean;
+    optOutReason: string;
+  };
+
+  const mapPayloadToState = useCallback((payload: TaxProfilePayload): HydratedState => {
+    const optedOutState = payload.optOut?.isOptedOut === true;
+
+    return {
+      filingStatus: payload.filingStatus ?? 'single',
+      state: payload.stateOfResidence ?? '',
+      marginalRate: payload.marginalRatePercent != null ? String(payload.marginalRatePercent) : '',
+      effectiveRate: payload.effectiveRatePercent != null ? String(payload.effectiveRatePercent) : '',
+      withholding: payload.federalWithholdingPercent != null ? String(payload.federalWithholdingPercent) : '',
+      expectedRefund: payload.expectedRefundAmount != null ? String(payload.expectedRefundAmount) : '',
+      expectedPayment: payload.expectedPaymentAmount != null ? String(payload.expectedPaymentAmount) : '',
+      usesCpa: payload.usesCpaOrPreparer ?? false,
+      notes: payload.notes ?? '',
+      optedOut: optedOutState,
+      optOutReason: payload.optOut?.reason ?? '',
+    };
+  }, []);
+
+  const applyHydratedState = useCallback(
+    (next: HydratedState) => {
+      setFilingStatus(next.filingStatus || 'single');
+      setState(next.state ?? '');
+      setMarginalRate(next.marginalRate ?? '');
+      setEffectiveRate(next.effectiveRate ?? '');
+      setWithholding(next.withholding ?? '');
+      setExpectedRefund(next.expectedRefund ?? '');
+      setExpectedPayment(next.expectedPayment ?? '');
+      setUsesCpa(Boolean(next.usesCpa));
+      setNotes(next.notes ?? '');
+      setOptedOut(next.optedOut);
+      setOptOutReason(next.optOutReason ?? '');
+    },
+    [],
+  );
+
+  useSectionHydration({
+    sectionKey: 'tax',
+    userId,
+    fetcher: fetchTaxProfile,
+    mapPayloadToState,
+    applyState: applyHydratedState,
+  });
 
   const handleOptOutToggle = (checked: boolean) => {
     setOptedOut(checked);

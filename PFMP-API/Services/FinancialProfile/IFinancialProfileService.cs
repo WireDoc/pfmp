@@ -19,5 +19,20 @@ namespace PFMP_API.Services.FinancialProfile
         Task UpsertLongTermObligationsAsync(int userId, LongTermObligationsInput input, CancellationToken ct = default);
         Task UpsertEquityInterestAsync(int userId, EquityInterestInput input, CancellationToken ct = default);
         Task<FinancialProfileSnapshot?> GetSnapshotAsync(int userId, CancellationToken ct = default);
+
+        Task<HouseholdProfileInput> GetHouseholdAsync(int userId, CancellationToken ct = default);
+        Task<RiskGoalsInput> GetRiskGoalsAsync(int userId, CancellationToken ct = default);
+        Task<TspAllocationInput> GetTspAsync(int userId, CancellationToken ct = default);
+        Task<CashAccountsInput> GetCashAccountsAsync(int userId, CancellationToken ct = default);
+        Task<InvestmentAccountsInput> GetInvestmentAccountsAsync(int userId, CancellationToken ct = default);
+        Task<PropertiesInput> GetPropertiesAsync(int userId, CancellationToken ct = default);
+        Task<InsurancePoliciesInput> GetInsurancePoliciesAsync(int userId, CancellationToken ct = default);
+        Task<IncomeStreamsInput> GetIncomeStreamsAsync(int userId, CancellationToken ct = default);
+        Task<LiabilitiesInput> GetLiabilitiesAsync(int userId, CancellationToken ct = default);
+        Task<ExpensesInput> GetExpensesAsync(int userId, CancellationToken ct = default);
+        Task<TaxProfileInput> GetTaxProfileAsync(int userId, CancellationToken ct = default);
+        Task<BenefitsInput> GetBenefitsAsync(int userId, CancellationToken ct = default);
+        Task<LongTermObligationsInput> GetLongTermObligationsAsync(int userId, CancellationToken ct = default);
+        Task<EquityInterestInput> GetEquityInterestAsync(int userId, CancellationToken ct = default);
     }
 }

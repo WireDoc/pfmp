@@ -1,9 +1,8 @@
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
   Button,
-  CircularProgress,
   FormControlLabel,
   MenuItem,
   Stack,
@@ -11,13 +10,16 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import AutoSaveIndicator from '../components/AutoSaveIndicator';
+import { useAutoSaveForm } from '../hooks/useAutoSaveForm';
+import { useSectionHydration } from '../hooks/useSectionHydration';
 import {
+  fetchRiskGoalsProfile,
   type FinancialProfileSectionStatusValue,
   type RiskGoalsProfilePayload,
+  type SectionOptOutPayload,
   upsertRiskGoalsProfile,
 } from '../../services/financialProfileApi';
-
-type SaveState = 'idle' | 'saving' | 'success' | 'error';
 
 type RiskGoalsSectionFormProps = {
   userId: number;
@@ -33,29 +35,121 @@ const RISK_TOLERANCE_OPTIONS = [
   { value: 5, label: '5 · Aggressive' },
 ];
 
-export default function RiskGoalsSectionForm({ userId, onStatusChange, currentStatus }: RiskGoalsSectionFormProps) {
-  const [formState, setFormState] = useState<RiskGoalsProfilePayload>(
-    currentStatus === 'opted_out'
-      ? {
-          optOut: {
-            isOptedOut: true,
-            reason: '',
-            acknowledgedAt: new Date().toISOString(),
-          },
-        }
-      : {
-          riskTolerance: undefined,
-          targetRetirementDate: undefined,
-          passiveIncomeGoal: undefined,
-          liquidityBufferMonths: undefined,
-          emergencyFundTarget: undefined,
-          optOut: undefined,
-        },
-  );
-  const [saveState, setSaveState] = useState<SaveState>('idle');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+function createInitialState(currentStatus: FinancialProfileSectionStatusValue): RiskGoalsProfilePayload {
+  if (currentStatus === 'opted_out') {
+    return {
+      optOut: {
+        isOptedOut: true,
+        reason: '',
+        acknowledgedAt: new Date().toISOString(),
+      },
+    };
+  }
 
-  const optedOut = formState.optOut?.isOptedOut === true;
+  return {
+    riskTolerance: undefined,
+    targetRetirementDate: undefined,
+    passiveIncomeGoal: undefined,
+    liquidityBufferMonths: undefined,
+    emergencyFundTarget: undefined,
+    optOut: undefined,
+  };
+}
+
+function hasCompletedRiskGoals(payload: RiskGoalsProfilePayload): boolean {
+  const hasTolerance = typeof payload.riskTolerance === 'number';
+  const hasRetirementDate = Boolean(payload.targetRetirementDate);
+  const hasPassiveIncome = typeof payload.passiveIncomeGoal === 'number';
+  const hasLiquidity = typeof payload.liquidityBufferMonths === 'number';
+  const hasEmergencyFund = typeof payload.emergencyFundTarget === 'number';
+
+  return hasTolerance && hasRetirementDate && hasPassiveIncome && hasLiquidity && hasEmergencyFund;
+}
+
+function deriveStatus(payload: RiskGoalsProfilePayload): FinancialProfileSectionStatusValue {
+  if (payload.optOut?.isOptedOut) {
+    return 'opted_out';
+  }
+
+  return hasCompletedRiskGoals(payload) ? 'completed' : 'needs_info';
+}
+
+function sanitizeOptOut(optOut?: SectionOptOutPayload | null): SectionOptOutPayload | undefined {
+  if (!optOut?.isOptedOut) return undefined;
+  const reason = optOut.reason?.trim();
+  return {
+    isOptedOut: true,
+    reason: reason && reason.length > 0 ? reason : undefined,
+    acknowledgedAt: optOut.acknowledgedAt ?? new Date().toISOString(),
+  };
+}
+
+function sanitizePayload(draft: RiskGoalsProfilePayload): RiskGoalsProfilePayload {
+  if (draft.optOut?.isOptedOut) {
+    return {
+      optOut: sanitizeOptOut(draft.optOut),
+    };
+  }
+
+  return {
+    riskTolerance: draft.riskTolerance ?? undefined,
+    targetRetirementDate: draft.targetRetirementDate ? new Date(draft.targetRetirementDate).toISOString() : undefined,
+    passiveIncomeGoal: draft.passiveIncomeGoal ?? undefined,
+    liquidityBufferMonths: draft.liquidityBufferMonths ?? undefined,
+    emergencyFundTarget: draft.emergencyFundTarget ?? undefined,
+    optOut: undefined,
+  };
+}
+
+export default function RiskGoalsSectionForm({ userId, onStatusChange, currentStatus }: RiskGoalsSectionFormProps) {
+  const [formState, setFormState] = useState<RiskGoalsProfilePayload>(() => createInitialState(currentStatus));
+  const optedOut = useMemo(() => formState.optOut?.isOptedOut === true, [formState.optOut]);
+
+  const persistRiskGoals = useCallback(
+    async (draft: RiskGoalsProfilePayload) => {
+      const payload = sanitizePayload(draft);
+      await upsertRiskGoalsProfile(userId, payload);
+      return deriveStatus(draft);
+    },
+    [userId],
+  );
+
+  const { status: autoStatus, isSaving, isDirty, error: autoError, lastSavedAt, flush, resetBaseline } = useAutoSaveForm({
+    data: formState,
+    persist: persistRiskGoals,
+    determineStatus: deriveStatus,
+    onStatusResolved: onStatusChange,
+  });
+
+  const mapPayloadToState = useCallback((payload: RiskGoalsProfilePayload): RiskGoalsProfilePayload => {
+    if (payload.optOut?.isOptedOut) {
+      return {
+        optOut: {
+          isOptedOut: true,
+          reason: payload.optOut.reason ?? '',
+          acknowledgedAt: payload.optOut.acknowledgedAt ?? new Date().toISOString(),
+        },
+      };
+    }
+
+    return {
+      riskTolerance: typeof payload.riskTolerance === 'number' ? payload.riskTolerance : undefined,
+      targetRetirementDate: payload.targetRetirementDate ? payload.targetRetirementDate.slice(0, 10) : undefined,
+      passiveIncomeGoal: typeof payload.passiveIncomeGoal === 'number' ? payload.passiveIncomeGoal : undefined,
+      liquidityBufferMonths: typeof payload.liquidityBufferMonths === 'number' ? payload.liquidityBufferMonths : undefined,
+      emergencyFundTarget: typeof payload.emergencyFundTarget === 'number' ? payload.emergencyFundTarget : undefined,
+      optOut: undefined,
+    };
+  }, []);
+
+  useSectionHydration({
+    sectionKey: 'risk-goals',
+    userId,
+    fetcher: fetchRiskGoalsProfile,
+    mapPayloadToState,
+    applyState: setFormState,
+    resetBaseline,
+  });
 
   const setField = <K extends keyof RiskGoalsProfilePayload>(key: K, value: RiskGoalsProfilePayload[K]) => {
     setFormState((prev) => ({ ...prev, [key]: value }));
@@ -68,7 +162,7 @@ export default function RiskGoalsSectionForm({ userId, onStatusChange, currentSt
         optOut: {
           isOptedOut: true,
           reason: prev.optOut?.reason ?? '',
-          acknowledgedAt: new Date().toISOString(),
+          acknowledgedAt: prev.optOut?.acknowledgedAt ?? new Date().toISOString(),
         },
       }));
     } else {
@@ -79,42 +173,25 @@ export default function RiskGoalsSectionForm({ userId, onStatusChange, currentSt
     }
   };
 
-  const handleSubmit = async () => {
-    setSaveState('saving');
-    setErrorMessage(null);
-
-    try {
-      const payload: RiskGoalsProfilePayload = optedOut
-        ? {
-            optOut: formState.optOut,
-          }
-        : {
-            riskTolerance: formState.riskTolerance ?? undefined,
-            targetRetirementDate: formState.targetRetirementDate
-              ? new Date(formState.targetRetirementDate).toISOString()
-              : undefined,
-            passiveIncomeGoal: formState.passiveIncomeGoal ?? undefined,
-            liquidityBufferMonths: formState.liquidityBufferMonths ?? undefined,
-            emergencyFundTarget: formState.emergencyFundTarget ?? undefined,
-            optOut: undefined,
-          };
-
-      await upsertRiskGoalsProfile(userId, payload);
-
-      const nextStatus: FinancialProfileSectionStatusValue = optedOut ? 'opted_out' : 'completed';
-      onStatusChange(nextStatus);
-      setSaveState('success');
-      setTimeout(() => setSaveState('idle'), 2500);
-    } catch (error) {
-      console.warn('Failed to save risk goals profile', error);
-      setErrorMessage('We could not save this section. Please try again.');
-      setSaveState('error');
-    }
-  };
+  const errorMessage = autoError instanceof Error ? autoError.message : autoError ? 'We could not save this section. Please try again.' : null;
 
   return (
-    <Box component="form" noValidate onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>
+    <Box
+      component="form"
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault();
+        void flush();
+      }}
+    >
       <Stack spacing={3} sx={{ mt: 3 }}>
+        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+          <Typography variant="caption" color="text.secondary" sx={{ letterSpacing: 0.3 }}>
+            Autosave keeps this section in sync.
+          </Typography>
+          <AutoSaveIndicator status={autoStatus} lastSavedAt={lastSavedAt} isDirty={isDirty} error={autoError} />
+        </Stack>
+
         <FormControlLabel
           control={<Switch checked={optedOut} onChange={(event) => handleOptOutToggle(event.target.checked)} color="primary" />}
           label="I want to skip this section for now"
@@ -128,7 +205,6 @@ export default function RiskGoalsSectionForm({ userId, onStatusChange, currentSt
               setFormState((prev) => ({
                 ...prev,
                 optOut: {
-                  ...prev.optOut,
                   isOptedOut: true,
                   reason: event.target.value,
                   acknowledgedAt: prev.optOut?.acknowledgedAt ?? new Date().toISOString(),
@@ -206,22 +282,17 @@ export default function RiskGoalsSectionForm({ userId, onStatusChange, currentSt
           </Stack>
         )}
 
-        {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
-        {saveState === 'success' && <Alert severity="success">Section saved.</Alert>}
+        {autoStatus === 'error' && errorMessage && <Alert severity="error">{errorMessage}</Alert>}
 
         <Stack direction="row" spacing={2} alignItems="center">
           <Button
             variant="contained"
             color="primary"
-            onClick={() => void handleSubmit()}
-            disabled={saveState === 'saving'}
+            onClick={() => void flush()}
+            disabled={isSaving || !isDirty}
             data-testid="risk-goals-submit"
           >
-            {saveState === 'saving' ? (
-              <>
-                <CircularProgress size={18} sx={{ mr: 1 }} /> Saving
-              </>
-            ) : optedOut ? 'Acknowledge opt-out' : 'Save section'}
+            {optedOut ? 'Acknowledge opt-out' : 'Save now'}
           </Button>
           <Typography variant="body2" color="text.secondary">
             These preferences steer your personalized recommendations.

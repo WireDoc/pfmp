@@ -2,7 +2,7 @@
 // Naming keeps path tokens consistent and enables future helper generation.
 
 import type { ComponentType } from 'react';
-export interface AppRouteModule { default: ComponentType<unknown>; }
+export interface AppRouteModule { default: ComponentType; }
 export interface AppRoute {
   id: string;
   path: string;

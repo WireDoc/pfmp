@@ -32,7 +32,8 @@ type Action =
   | { type: 'PREV' }
   | { type: 'RESET' }
   | { type: 'SET_STATUS'; id: OnboardingStepId; status: FinancialProfileSectionStatusValue }
-  | { type: 'HYDRATE'; currentIndex: number; statuses: StatusMap };
+  | { type: 'HYDRATE'; currentIndex: number; statuses: StatusMap }
+  | { type: 'SET_INDEX'; index: number };
 
 function reducer(state: OnboardingState, action: Action): OnboardingState {
   switch (action.type) {
@@ -61,6 +62,11 @@ function reducer(state: OnboardingState, action: Action): OnboardingState {
         }
       });
       return { currentIndex: action.currentIndex, statuses, completed };
+    }
+    case 'SET_INDEX': {
+      const nextIndex = Math.max(0, Math.min(action.index, stepsArr.length - 1));
+      if (nextIndex === state.currentIndex) return state;
+      return { ...state, currentIndex: nextIndex };
     }
     default:
       return state;
@@ -155,6 +161,12 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
 
   const goNext = useCallback(() => dispatch({ type: 'NEXT' }), []);
   const goPrev = useCallback(() => dispatch({ type: 'PREV' }), []);
+  const goToStep = useCallback((stepId: OnboardingStepId) => {
+    const index = stepsArr.findIndex((step) => step.id === stepId);
+    if (index >= 0) {
+      dispatch({ type: 'SET_INDEX', index });
+    }
+  }, []);
 
   const updateStatus = useCallback((id: OnboardingStepId, status: FinancialProfileSectionStatusValue) => {
     dispatch({ type: 'SET_STATUS', id, status });
@@ -192,6 +204,7 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
     statuses: state.statuses,
     goNext,
     goPrev,
+    goToStep,
     markComplete,
     updateStatus,
     reset,

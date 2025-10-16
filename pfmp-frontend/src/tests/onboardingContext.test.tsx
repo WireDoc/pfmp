@@ -32,4 +32,12 @@ describe('OnboardingContext', () => {
     }
     expect(result.current.current.index).toBe(result.current.steps.length - 1);
   });
+
+  it('can jump directly to a selected step', () => {
+    const { result } = setup();
+    act(() => { result.current.goToStep('cash'); });
+    expect(result.current.current.id).toBe('cash');
+    act(() => { result.current.goToStep('review'); });
+    expect(result.current.current.id).toBe('review');
+  });
 });

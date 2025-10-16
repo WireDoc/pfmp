@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -21,11 +21,13 @@ import {
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
 import {
+  fetchIncomeStreamsProfile,
   upsertIncomeStreamsProfile,
   type FinancialProfileSectionStatusValue,
   type IncomeStreamsProfilePayload,
   type IncomeStreamPayload,
 } from '../../services/financialProfileApi';
+import { useSectionHydration } from '../hooks/useSectionHydration';
 
 type SaveState = 'idle' | 'saving' | 'success' | 'error';
 
@@ -82,33 +84,35 @@ function parseNumber(value: string): number | undefined {
 }
 
 function buildPayloadStreams(streams: IncomeStreamFormState[]): IncomeStreamPayload[] {
-  return streams
-    .map((stream) => {
-      const hasValues =
-        stream.name.trim() !== '' ||
-        stream.monthlyAmount.trim() !== '' ||
-        stream.annualAmount.trim() !== '' ||
-        stream.startDate.trim() !== '' ||
-        stream.endDate.trim() !== '' ||
-        stream.isGuaranteed ||
-        stream.isActive === false;
+  const payloads: IncomeStreamPayload[] = [];
 
-      if (!hasValues) {
-        return null;
-      }
+  streams.forEach((stream) => {
+    const hasValues =
+      stream.name.trim() !== '' ||
+      stream.monthlyAmount.trim() !== '' ||
+      stream.annualAmount.trim() !== '' ||
+      stream.startDate.trim() !== '' ||
+      stream.endDate.trim() !== '' ||
+      stream.isGuaranteed ||
+      stream.isActive === false;
 
-      return {
-        name: stream.name.trim() || null,
-        incomeType: stream.incomeType || 'salary',
-        monthlyAmount: parseNumber(stream.monthlyAmount) ?? null,
-        annualAmount: parseNumber(stream.annualAmount) ?? null,
-        isGuaranteed: stream.isGuaranteed,
-        startDate: stream.startDate ? new Date(stream.startDate).toISOString() : null,
-        endDate: stream.endDate ? new Date(stream.endDate).toISOString() : null,
-        isActive: stream.isActive,
-      } satisfies IncomeStreamPayload;
-    })
-    .filter((stream): stream is IncomeStreamPayload => stream !== null);
+    if (!hasValues) {
+      return;
+    }
+
+    payloads.push({
+      name: stream.name.trim() || null,
+      incomeType: stream.incomeType || 'salary',
+      monthlyAmount: parseNumber(stream.monthlyAmount) ?? null,
+      annualAmount: parseNumber(stream.annualAmount) ?? null,
+      isGuaranteed: stream.isGuaranteed,
+      startDate: stream.startDate ? new Date(stream.startDate).toISOString() : null,
+      endDate: stream.endDate ? new Date(stream.endDate).toISOString() : null,
+      isActive: stream.isActive,
+    });
+  });
+
+  return payloads;
 }
 
 export default function IncomeSectionForm({ userId, onStatusChange, currentStatus }: IncomeSectionFormProps) {
@@ -120,6 +124,51 @@ export default function IncomeSectionForm({ userId, onStatusChange, currentStatu
 
   const payloadStreams = useMemo(() => buildPayloadStreams(streams), [streams]);
   const canRemoveStreams = streams.length > 1;
+
+  type HydratedState = {
+    streams: IncomeStreamFormState[];
+    optedOut: boolean;
+    optOutReason: string;
+  };
+
+  const mapPayloadToState = useCallback((payload: IncomeStreamsProfilePayload): HydratedState => {
+    const hydratedStreams = (payload.streams ?? []).map((stream, index) => ({
+      id: `income-${index + 1}`,
+      name: stream.name ?? '',
+      incomeType: stream.incomeType ?? 'salary',
+      monthlyAmount: stream.monthlyAmount != null ? String(stream.monthlyAmount) : '',
+      annualAmount: stream.annualAmount != null ? String(stream.annualAmount) : '',
+      isGuaranteed: stream.isGuaranteed ?? false,
+      startDate: stream.startDate ? stream.startDate.slice(0, 10) : '',
+      endDate: stream.endDate ? stream.endDate.slice(0, 10) : '',
+      isActive: stream.isActive ?? true,
+    }));
+
+    const optedOutState = payload.optOut?.isOptedOut === true;
+
+    return {
+      streams: hydratedStreams.length > 0 ? hydratedStreams : [createStream(1)],
+      optedOut: optedOutState,
+      optOutReason: payload.optOut?.reason ?? '',
+    };
+  }, []);
+
+  const applyHydratedState = useCallback(
+    ({ streams: nextStreams, optedOut: nextOptedOut, optOutReason: nextReason }: HydratedState) => {
+      setStreams(nextStreams);
+      setOptedOut(nextOptedOut);
+      setOptOutReason(nextReason ?? '');
+    },
+    [],
+  );
+
+  useSectionHydration({
+    sectionKey: 'income',
+    userId,
+    fetcher: fetchIncomeStreamsProfile,
+    mapPayloadToState,
+    applyState: applyHydratedState,
+  });
 
   const handleStreamChange = <K extends keyof IncomeStreamFormState>(id: string, key: K, value: IncomeStreamFormState[K]) => {
     setStreams((prev) => prev.map((stream) => (stream.id === id ? { ...stream, [key]: value } : stream)));

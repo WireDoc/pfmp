@@ -1,7 +1,7 @@
 import type { ComponentType, LazyExoticComponent } from 'react';
 import { lazyWithPreload } from '../utils/lazyWithPreload';
 
-type RouteComponent = ComponentType<unknown> | LazyExoticComponent<ComponentType<unknown>>;
+type RouteComponent = ComponentType | LazyExoticComponent<ComponentType>;
 
 const DashboardLegacyLazy = lazyWithPreload(() => import('../views/DashboardPage'));
 const OnboardingLazy = lazyWithPreload(() => import('../views/OnboardingPage'));

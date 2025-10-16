@@ -1,12 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { OnboardingProvider } from '../onboarding/OnboardingContext';
-import OnboardingPage from '../views/OnboardingPage';
 import type { InsurancePoliciesProfilePayload } from '../services/financialProfileApi';
 import * as financialProfileApi from '../services/financialProfileApi';
-import { advanceToInsuranceSection, expectSectionStatus } from './utils/onboardingTestHelpers';
+import {
+  advanceToInsuranceSection,
+  expectSectionStatus,
+  renderOnboardingPageForTest,
+} from './utils/onboardingTestHelpers';
 
 describe('Insurance onboarding section', () => {
   beforeEach(() => {
@@ -35,13 +36,7 @@ describe('Insurance onboarding section', () => {
 
     const user = userEvent.setup({ delay: 0 });
 
-    render(
-      <MemoryRouter initialEntries={['/onboarding']}>
-        <OnboardingProvider skipAutoHydrate userId={1}>
-          <OnboardingPage />
-        </OnboardingProvider>
-      </MemoryRouter>,
-    );
+    renderOnboardingPageForTest();
 
     await advanceToInsuranceSection(user, { realEstate: 'optOut' });
 
@@ -88,13 +83,7 @@ describe('Insurance onboarding section', () => {
 
     const user = userEvent.setup({ delay: 0 });
 
-    render(
-      <MemoryRouter initialEntries={['/onboarding']}>
-        <OnboardingProvider skipAutoHydrate userId={1}>
-          <OnboardingPage />
-        </OnboardingProvider>
-      </MemoryRouter>,
-    );
+  renderOnboardingPageForTest();
 
     await advanceToInsuranceSection(user, { realEstate: 'optOut' });
 

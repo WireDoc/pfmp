@@ -37,11 +37,25 @@ namespace PFMP_API.Controllers
             return NoContent();
         }
 
+        [HttpGet("{userId:int}/household")]
+        public async Task<ActionResult<HouseholdProfileInput>> GetHousehold(int userId, CancellationToken ct = default)
+        {
+            var payload = await _service.GetHouseholdAsync(userId, ct);
+            return Ok(payload);
+        }
+
         [HttpPost("{userId:int}/risk-goals")]
         public async Task<ActionResult> UpsertRiskGoals(int userId, [FromBody] RiskGoalsRequest request, CancellationToken ct = default)
         {
             await _service.UpsertRiskGoalsAsync(userId, request.ToInput(), ct);
             return NoContent();
+        }
+
+        [HttpGet("{userId:int}/risk-goals")]
+        public async Task<ActionResult<RiskGoalsInput>> GetRiskGoals(int userId, CancellationToken ct = default)
+        {
+            var payload = await _service.GetRiskGoalsAsync(userId, ct);
+            return Ok(payload);
         }
 
         [HttpPost("{userId:int}/tsp")]
@@ -51,11 +65,25 @@ namespace PFMP_API.Controllers
             return NoContent();
         }
 
+        [HttpGet("{userId:int}/tsp")]
+        public async Task<ActionResult<TspAllocationInput>> GetTsp(int userId, CancellationToken ct = default)
+        {
+            var payload = await _service.GetTspAsync(userId, ct);
+            return Ok(payload);
+        }
+
         [HttpPost("{userId:int}/cash")]
         public async Task<ActionResult> UpsertCash(int userId, [FromBody] CashAccountsRequest request, CancellationToken ct = default)
         {
             await _service.UpsertCashAccountsAsync(userId, request.ToInput(), ct);
             return NoContent();
+        }
+
+        [HttpGet("{userId:int}/cash")]
+        public async Task<ActionResult<CashAccountsInput>> GetCashAccounts(int userId, CancellationToken ct = default)
+        {
+            var payload = await _service.GetCashAccountsAsync(userId, ct);
+            return Ok(payload);
         }
 
         [HttpPost("{userId:int}/investments")]
@@ -65,11 +93,25 @@ namespace PFMP_API.Controllers
             return NoContent();
         }
 
+        [HttpGet("{userId:int}/investments")]
+        public async Task<ActionResult<InvestmentAccountsInput>> GetInvestmentAccounts(int userId, CancellationToken ct = default)
+        {
+            var payload = await _service.GetInvestmentAccountsAsync(userId, ct);
+            return Ok(payload);
+        }
+
         [HttpPost("{userId:int}/real-estate")]
         public async Task<ActionResult> UpsertRealEstate(int userId, [FromBody] PropertiesRequest request, CancellationToken ct = default)
         {
             await _service.UpsertPropertiesAsync(userId, request.ToInput(), ct);
             return NoContent();
+        }
+
+        [HttpGet("{userId:int}/real-estate")]
+        public async Task<ActionResult<PropertiesInput>> GetRealEstate(int userId, CancellationToken ct = default)
+        {
+            var payload = await _service.GetPropertiesAsync(userId, ct);
+            return Ok(payload);
         }
 
         [HttpPost("{userId:int}/liabilities")]
@@ -79,11 +121,25 @@ namespace PFMP_API.Controllers
             return NoContent();
         }
 
+        [HttpGet("{userId:int}/liabilities")]
+        public async Task<ActionResult<LiabilitiesInput>> GetLiabilities(int userId, CancellationToken ct = default)
+        {
+            var payload = await _service.GetLiabilitiesAsync(userId, ct);
+            return Ok(payload);
+        }
+
         [HttpPost("{userId:int}/expenses")]
         public async Task<ActionResult> UpsertExpenses(int userId, [FromBody] ExpensesRequest request, CancellationToken ct = default)
         {
             await _service.UpsertExpensesAsync(userId, request.ToInput(), ct);
             return NoContent();
+        }
+
+        [HttpGet("{userId:int}/expenses")]
+        public async Task<ActionResult<ExpensesInput>> GetExpenses(int userId, CancellationToken ct = default)
+        {
+            var payload = await _service.GetExpensesAsync(userId, ct);
+            return Ok(payload);
         }
 
         [HttpPost("{userId:int}/tax")]
@@ -93,11 +149,25 @@ namespace PFMP_API.Controllers
             return NoContent();
         }
 
+        [HttpGet("{userId:int}/tax")]
+        public async Task<ActionResult<TaxProfileInput>> GetTaxProfile(int userId, CancellationToken ct = default)
+        {
+            var payload = await _service.GetTaxProfileAsync(userId, ct);
+            return Ok(payload);
+        }
+
         [HttpPost("{userId:int}/insurance")]
         public async Task<ActionResult> UpsertInsurance(int userId, [FromBody] InsurancePoliciesRequest request, CancellationToken ct = default)
         {
             await _service.UpsertInsurancePoliciesAsync(userId, request.ToInput(), ct);
             return NoContent();
+        }
+
+        [HttpGet("{userId:int}/insurance")]
+        public async Task<ActionResult<InsurancePoliciesInput>> GetInsurancePolicies(int userId, CancellationToken ct = default)
+        {
+            var payload = await _service.GetInsurancePoliciesAsync(userId, ct);
+            return Ok(payload);
         }
 
         [HttpPost("{userId:int}/benefits")]
@@ -107,11 +177,25 @@ namespace PFMP_API.Controllers
             return NoContent();
         }
 
+        [HttpGet("{userId:int}/benefits")]
+        public async Task<ActionResult<BenefitsInput>> GetBenefits(int userId, CancellationToken ct = default)
+        {
+            var payload = await _service.GetBenefitsAsync(userId, ct);
+            return Ok(payload);
+        }
+
         [HttpPost("{userId:int}/long-term-obligations")]
         public async Task<ActionResult> UpsertLongTermObligations(int userId, [FromBody] LongTermObligationsRequest request, CancellationToken ct = default)
         {
             await _service.UpsertLongTermObligationsAsync(userId, request.ToInput(), ct);
             return NoContent();
+        }
+
+        [HttpGet("{userId:int}/long-term-obligations")]
+        public async Task<ActionResult<LongTermObligationsInput>> GetLongTermObligations(int userId, CancellationToken ct = default)
+        {
+            var payload = await _service.GetLongTermObligationsAsync(userId, ct);
+            return Ok(payload);
         }
 
         [HttpPost("{userId:int}/income")]
@@ -121,11 +205,25 @@ namespace PFMP_API.Controllers
             return NoContent();
         }
 
+        [HttpGet("{userId:int}/income")]
+        public async Task<ActionResult<IncomeStreamsInput>> GetIncomeStreams(int userId, CancellationToken ct = default)
+        {
+            var payload = await _service.GetIncomeStreamsAsync(userId, ct);
+            return Ok(payload);
+        }
+
         [HttpPost("{userId:int}/equity")]
         public async Task<ActionResult> UpsertEquityInterest(int userId, [FromBody] EquityInterestRequest request, CancellationToken ct = default)
         {
             await _service.UpsertEquityInterestAsync(userId, request.ToInput(), ct);
             return NoContent();
+        }
+
+        [HttpGet("{userId:int}/equity")]
+        public async Task<ActionResult<EquityInterestInput>> GetEquityInterest(int userId, CancellationToken ct = default)
+        {
+            var payload = await _service.GetEquityInterestAsync(userId, ct);
+            return Ok(payload);
         }
 
         [HttpGet("{userId:int}/sections")]

@@ -87,7 +87,7 @@ Checklist:
 - [ ] No stray build artifacts (`dist/`, coverage reports)
 
 ## 11. Versioning
-Alpha cycle: manual bump in `VERSION` + `CHANGELOG.md`. Tag releases (`git tag vX.Y.Z-alpha && git push --tags`).
+Alpha cycle: manual bump in `VERSION` + `CHANGELOG.md`. Tag releases (`git tag vX.Y.Z-alpha; git push --tags`).
 
 ## 12. Performance & A11y (Future Wave 6)
 Will introduce:

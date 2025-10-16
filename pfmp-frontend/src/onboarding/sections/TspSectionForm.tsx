@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   Box,
   Stack,
@@ -11,10 +11,12 @@ import {
   CircularProgress,
 } from '@mui/material';
 import {
+  fetchTspProfile,
   upsertTspProfile,
   type FinancialProfileSectionStatusValue,
   type TspProfilePayload,
 } from '../../services/financialProfileApi';
+import { useSectionHydration } from '../hooks/useSectionHydration';
 
 type SaveState = 'idle' | 'saving' | 'success' | 'error';
 
@@ -54,6 +56,52 @@ export default function TspSectionForm({ userId, onStatusChange, currentStatus }
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const optedOut = formState.optOut?.isOptedOut === true;
+
+  const mapPayloadToState = useCallback((payload: TspProfilePayload): TspProfilePayload => {
+    if (payload.optOut?.isOptedOut) {
+      return {
+        contributionRatePercent: undefined,
+        employerMatchPercent: undefined,
+        currentBalance: undefined,
+        targetBalance: undefined,
+        gFundPercent: undefined,
+        fFundPercent: undefined,
+        cFundPercent: undefined,
+        sFundPercent: undefined,
+        iFundPercent: undefined,
+        lifecyclePercent: undefined,
+        lifecycleBalance: undefined,
+        optOut: {
+          isOptedOut: true,
+          reason: payload.optOut.reason ?? '',
+          acknowledgedAt: payload.optOut.acknowledgedAt ?? new Date().toISOString(),
+        },
+      };
+    }
+
+    return {
+      contributionRatePercent: payload.contributionRatePercent ?? undefined,
+      employerMatchPercent: payload.employerMatchPercent ?? undefined,
+      currentBalance: payload.currentBalance ?? undefined,
+      targetBalance: payload.targetBalance ?? undefined,
+      gFundPercent: payload.gFundPercent ?? undefined,
+      fFundPercent: payload.fFundPercent ?? undefined,
+      cFundPercent: payload.cFundPercent ?? undefined,
+      sFundPercent: payload.sFundPercent ?? undefined,
+      iFundPercent: payload.iFundPercent ?? undefined,
+      lifecyclePercent: payload.lifecyclePercent ?? undefined,
+      lifecycleBalance: payload.lifecycleBalance ?? undefined,
+      optOut: undefined,
+    };
+  }, []);
+
+  useSectionHydration({
+    sectionKey: 'tsp',
+    userId,
+    fetcher: fetchTspProfile,
+    mapPayloadToState,
+    applyState: setFormState,
+  });
 
   const updateField = <K extends keyof TspProfilePayload>(key: K, value: TspProfilePayload[K]) => {
     setFormState((prev) => ({ ...prev, [key]: value }));

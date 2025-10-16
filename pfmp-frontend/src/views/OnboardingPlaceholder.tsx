@@ -1,4 +1,3 @@
-import React from 'react';
 import { useOnboarding } from '../onboarding/useOnboarding';
 
 export default function OnboardingPlaceholder() {

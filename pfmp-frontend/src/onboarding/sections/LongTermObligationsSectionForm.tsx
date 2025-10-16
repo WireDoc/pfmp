@@ -88,33 +88,35 @@ function parseNumber(value: string): number | undefined {
 }
 
 function buildPayloadObligations(obligations: ObligationFormState[]): LongTermObligationPayload[] {
-  return obligations
-    .map((item) => {
-      const hasContent =
-        item.obligationName.trim() !== '' ||
-        item.estimatedCost.trim() !== '' ||
-        item.fundsAllocated.trim() !== '' ||
-        item.targetDate.trim() !== '' ||
-        item.notes.trim() !== '' ||
-        item.isCritical ||
-        item.fundingStatus !== 'planning';
+  const payloads: LongTermObligationPayload[] = [];
 
-      if (!hasContent) {
-        return null;
-      }
+  obligations.forEach((item) => {
+    const hasContent =
+      item.obligationName.trim() !== '' ||
+      item.estimatedCost.trim() !== '' ||
+      item.fundsAllocated.trim() !== '' ||
+      item.targetDate.trim() !== '' ||
+      item.notes.trim() !== '' ||
+      item.isCritical ||
+      item.fundingStatus !== 'planning';
 
-      return {
-        obligationName: item.obligationName.trim() || null,
-        obligationType: item.obligationType || 'other',
-        targetDate: item.targetDate ? new Date(item.targetDate).toISOString() : null,
-        estimatedCost: parseNumber(item.estimatedCost) ?? null,
-        fundsAllocated: parseNumber(item.fundsAllocated) ?? null,
-        fundingStatus: item.fundingStatus || null,
-        isCritical: item.isCritical ?? false,
-        notes: item.notes.trim() || null,
-      } satisfies LongTermObligationPayload;
-    })
-    .filter((entry): entry is LongTermObligationPayload => entry !== null);
+    if (!hasContent) {
+      return;
+    }
+
+    payloads.push({
+      obligationName: item.obligationName.trim() || null,
+      obligationType: item.obligationType || 'other',
+      targetDate: item.targetDate ? new Date(item.targetDate).toISOString() : null,
+      estimatedCost: parseNumber(item.estimatedCost) ?? null,
+      fundsAllocated: parseNumber(item.fundsAllocated) ?? null,
+      fundingStatus: item.fundingStatus || null,
+      isCritical: item.isCritical ?? false,
+      notes: item.notes.trim() || null,
+    });
+  });
+
+  return payloads;
 }
 
 export default function LongTermObligationsSectionForm({

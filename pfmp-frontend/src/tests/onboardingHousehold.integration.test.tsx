@@ -1,14 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from 'vitest';
+import { screen, waitFor, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import React from 'react';
-import { OnboardingProvider } from '../onboarding/OnboardingContext';
-import OnboardingPage from '../views/OnboardingPage';
 import type { HouseholdProfilePayload } from '../services/financialProfileApi';
 import * as financialProfileApi from '../services/financialProfileApi';
+import { renderOnboardingPageForTest } from './utils/onboardingTestHelpers';
 
 describe('Household onboarding section', () => {
-  let upsertSpy: ReturnType<typeof vi.spyOn>;
+  let upsertSpy: MockInstance<typeof financialProfileApi.upsertHouseholdProfile>;
 
   beforeEach(() => {
     upsertSpy = vi.spyOn(financialProfileApi, 'upsertHouseholdProfile');
@@ -20,18 +18,14 @@ describe('Household onboarding section', () => {
 
   it('submits household data and advances to next section', async () => {
     const requests: HouseholdProfilePayload[] = [];
-    upsertSpy.mockImplementation(async (userId, payload) => {
+    upsertSpy.mockImplementation(async (userId: number, payload: HouseholdProfilePayload) => {
       expect(userId).toBe(1);
       requests.push(payload as HouseholdProfilePayload);
     });
 
     const user = userEvent.setup({ delay: 0 });
 
-    render(
-      <OnboardingProvider skipAutoHydrate userId={1}>
-        <OnboardingPage />
-      </OnboardingProvider>,
-    );
+    renderOnboardingPageForTest();
 
     fireEvent.change(screen.getByLabelText('Preferred name'), { target: { value: 'Alex' } });
     await user.click(screen.getByLabelText('Marital status'));
@@ -41,10 +35,14 @@ describe('Household onboarding section', () => {
       target: { value: 'We just moved to D.C.' },
     });
 
-    await user.click(screen.getByTestId('household-submit'));
+    await waitFor(() => expect(requests.length).toBeGreaterThan(0), { timeout: 4000 });
+    const autosaveCalls = requests.length;
 
-    await waitFor(() => expect(requests).toHaveLength(1));
-    expect(requests[0]).toMatchObject({
+    await user.click(screen.getByRole('button', { name: /save now/i }));
+
+    await waitFor(() => expect(requests.length).toBeGreaterThan(autosaveCalls), { timeout: 4000 });
+    const finalRequest = requests[requests.length - 1];
+    expect(finalRequest).toMatchObject({
       preferredName: 'Alex',
       maritalStatus: 'married',
       dependentCount: 2,
@@ -60,26 +58,20 @@ describe('Household onboarding section', () => {
 
   it('allows opting out with a reason', async () => {
     const requests: HouseholdProfilePayload[] = [];
-    upsertSpy.mockImplementation(async (userId, payload) => {
+  upsertSpy.mockImplementation(async (userId: number, payload: HouseholdProfilePayload) => {
       expect(userId).toBe(1);
       requests.push(payload as HouseholdProfilePayload);
     });
 
     const user = userEvent.setup({ delay: 0 });
 
-    render(
-      <OnboardingProvider skipAutoHydrate userId={1}>
-        <OnboardingPage />
-      </OnboardingProvider>,
-    );
+    renderOnboardingPageForTest();
 
     screen.getByLabelText('Preferred name');
     await user.click(screen.getByLabelText('I want to skip this section for now'));
     fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'Discuss with partner' } });
 
-    await user.click(screen.getByTestId('household-submit'));
-
-    await waitFor(() => expect(requests).toHaveLength(1));
+    await waitFor(() => expect(requests).toHaveLength(1), { timeout: 4000 });
     expect(requests[0]).toMatchObject({
       optOut: {
         isOptedOut: true,

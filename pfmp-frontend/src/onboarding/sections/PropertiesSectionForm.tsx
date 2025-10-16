@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -21,11 +21,13 @@ import {
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
 import {
+  fetchPropertiesProfile,
   upsertPropertiesProfile,
   type FinancialProfileSectionStatusValue,
   type PropertiesProfilePayload,
   type PropertyPayload,
 } from '../../services/financialProfileApi';
+import { useSectionHydration } from '../hooks/useSectionHydration';
 
 type SaveState = 'idle' | 'saving' | 'success' | 'error';
 
@@ -86,32 +88,34 @@ function parseNumber(value: string): number | undefined {
 }
 
 function buildPayloadProperties(properties: PropertyFormState[]): PropertyPayload[] {
-  return properties
-    .map((property) => {
-      const hasValues =
-        property.propertyName.trim() !== '' ||
-        property.estimatedValue.trim() !== '' ||
-        property.mortgageBalance.trim() !== '' ||
-        property.monthlyMortgagePayment.trim() !== '' ||
-        property.monthlyRentalIncome.trim() !== '';
+  const payloads: PropertyPayload[] = [];
 
-      if (!hasValues) {
-        return null;
-      }
+  properties.forEach((property) => {
+    const hasValues =
+      property.propertyName.trim() !== '' ||
+      property.estimatedValue.trim() !== '' ||
+      property.mortgageBalance.trim() !== '' ||
+      property.monthlyMortgagePayment.trim() !== '' ||
+      property.monthlyRentalIncome.trim() !== '';
 
-      return {
-        propertyName: property.propertyName.trim() || null,
-        propertyType: property.propertyType || 'primary',
-        occupancy: property.occupancy || 'owner',
-        estimatedValue: parseNumber(property.estimatedValue) ?? null,
-        mortgageBalance: parseNumber(property.mortgageBalance) ?? null,
-        monthlyMortgagePayment: parseNumber(property.monthlyMortgagePayment) ?? null,
-        monthlyRentalIncome: parseNumber(property.monthlyRentalIncome) ?? null,
-        monthlyExpenses: parseNumber(property.monthlyExpenses) ?? null,
-        hasHeloc: property.hasHeloc,
-      } satisfies PropertyPayload;
-    })
-    .filter((property): property is PropertyPayload => property !== null);
+    if (!hasValues) {
+      return;
+    }
+
+    payloads.push({
+      propertyName: property.propertyName.trim() || null,
+      propertyType: property.propertyType || 'primary',
+      occupancy: property.occupancy || 'owner',
+      estimatedValue: parseNumber(property.estimatedValue) ?? null,
+      mortgageBalance: parseNumber(property.mortgageBalance) ?? null,
+      monthlyMortgagePayment: parseNumber(property.monthlyMortgagePayment) ?? null,
+      monthlyRentalIncome: parseNumber(property.monthlyRentalIncome) ?? null,
+      monthlyExpenses: parseNumber(property.monthlyExpenses) ?? null,
+      hasHeloc: property.hasHeloc,
+    });
+  });
+
+  return payloads;
 }
 
 export default function PropertiesSectionForm({ userId, onStatusChange, currentStatus }: PropertiesSectionFormProps) {
@@ -123,6 +127,77 @@ export default function PropertiesSectionForm({ userId, onStatusChange, currentS
 
   const payloadProperties = useMemo(() => buildPayloadProperties(properties), [properties]);
   const canRemoveProperties = properties.length > 1;
+
+  type HydratedState = {
+    properties: PropertyFormState[];
+    optedOut: boolean;
+    optOutReason: string;
+  };
+
+  const hasPropertyContent = useCallback((items: PropertyFormState[]) => {
+    return items.some((property) =>
+      property.propertyName.trim() !== '' ||
+      property.estimatedValue.trim() !== '' ||
+      property.mortgageBalance.trim() !== '' ||
+      property.monthlyMortgagePayment.trim() !== '' ||
+      property.monthlyRentalIncome.trim() !== '' ||
+      property.monthlyExpenses.trim() !== '' ||
+      property.hasHeloc,
+    );
+  }, []);
+
+  const mapPayloadToState = useCallback((payload: PropertiesProfilePayload): HydratedState => {
+    const hydratedProperties = (payload.properties ?? []).map((property, index) => ({
+      id: `property-${index + 1}`,
+      propertyName: property.propertyName ?? '',
+      propertyType: property.propertyType ?? 'primary',
+      occupancy: property.occupancy ?? 'owner',
+      estimatedValue: property.estimatedValue != null ? String(property.estimatedValue) : '',
+      mortgageBalance: property.mortgageBalance != null ? String(property.mortgageBalance) : '',
+      monthlyMortgagePayment: property.monthlyMortgagePayment != null ? String(property.monthlyMortgagePayment) : '',
+      monthlyRentalIncome: property.monthlyRentalIncome != null ? String(property.monthlyRentalIncome) : '',
+      monthlyExpenses: property.monthlyExpenses != null ? String(property.monthlyExpenses) : '',
+      hasHeloc: property.hasHeloc ?? false,
+    }));
+
+    const optedOutState = payload.optOut?.isOptedOut === true;
+
+    return {
+      properties: hydratedProperties.length > 0 ? hydratedProperties : [createProperty(1)],
+      optedOut: optedOutState,
+      optOutReason: payload.optOut?.reason ?? '',
+    };
+  }, []);
+
+  const applyHydratedState = useCallback(
+    ({ properties: nextProperties, optedOut: nextOptedOut, optOutReason: nextReason }: HydratedState) => {
+      const hasMeaningfulData =
+        nextOptedOut || (nextReason?.trim()?.length ?? 0) > 0 || hasPropertyContent(nextProperties);
+
+      if (!hasMeaningfulData) {
+        return { properties, optedOut, optOutReason };
+      }
+
+      setProperties(nextProperties);
+      setOptedOut(nextOptedOut);
+      setOptOutReason(nextReason ?? '');
+
+      return {
+        properties: nextProperties,
+        optedOut: nextOptedOut,
+        optOutReason: nextReason ?? '',
+      };
+    },
+    [hasPropertyContent, optOutReason, optedOut, properties],
+  );
+
+  useSectionHydration({
+    sectionKey: 'real-estate',
+    userId,
+    fetcher: fetchPropertiesProfile,
+    mapPayloadToState,
+    applyState: applyHydratedState,
+  });
 
   const handlePropertyChange = <K extends keyof PropertyFormState>(id: string, key: K, value: PropertyFormState[K]) => {
     setProperties((prev) => prev.map((property) => (property.id === id ? { ...property, [key]: value } : property)));

@@ -2,7 +2,10 @@ import { http, HttpResponse } from 'msw';
 import type { OnboardingProgressDTO } from '../../onboarding/persistence';
 import type { AlertCard, AdviceItem, TaskItem } from '../../services/dashboard';
 
-type JsonValue = string | number | boolean | null | { [key: string]: JsonValue } | JsonValue[];
+type JsonPrimitive = string | number | boolean | null;
+type JsonRecord = { [key: string]: JsonValue } | { readonly [key: string]: JsonValue };
+type JsonArray = JsonValue[] | readonly JsonValue[];
+type JsonValue = JsonPrimitive | JsonRecord | JsonArray;
 
 const emptyModule = () =>
   HttpResponse.text('export {}\n', {
@@ -41,8 +44,19 @@ const onboardingResetMatcher = /\/api\/onboarding\/progress\/reset(?:\?.*)?$/;
 const financialProfileSectionsMatcher = /\/financial-profile\/\d+\/sections(?:\?.*)?$/;
 const financialProfileSnapshotMatcher = /\/financial-profile\/\d+\/snapshot(?:\?.*)?$/;
 const financialProfileHouseholdMatcher = /\/financial-profile\/\d+\/household(?:\?.*)?$/;
+const financialProfileRiskGoalsMatcher = /\/financial-profile\/\d+\/risk-goals(?:\?.*)?$/;
 const financialProfileTspMatcher = /\/financial-profile\/\d+\/tsp(?:\?.*)?$/;
 const financialProfileCashMatcher = /\/financial-profile\/\d+\/cash(?:\?.*)?$/;
+const financialProfileInvestmentsMatcher = /\/financial-profile\/\d+\/investments(?:\?.*)?$/;
+const financialProfileRealEstateMatcher = /\/financial-profile\/\d+\/real-estate(?:\?.*)?$/;
+const financialProfileLongTermObligationsMatcher = /\/financial-profile\/\d+\/long-term-obligations(?:\?.*)?$/;
+const financialProfileLiabilitiesMatcher = /\/financial-profile\/\d+\/liabilities(?:\?.*)?$/;
+const financialProfileExpensesMatcher = /\/financial-profile\/\d+\/expenses(?:\?.*)?$/;
+const financialProfileTaxMatcher = /\/financial-profile\/\d+\/tax(?:\?.*)?$/;
+const financialProfileInsuranceMatcher = /\/financial-profile\/\d+\/insurance(?:\?.*)?$/;
+const financialProfileBenefitsMatcher = /\/financial-profile\/\d+\/benefits(?:\?.*)?$/;
+const financialProfileIncomeMatcher = /\/financial-profile\/\d+\/income(?:\?.*)?$/;
+const financialProfileEquityMatcher = /\/financial-profile\/\d+\/equity(?:\?.*)?$/;
 
 const createDashboardSummaryHandlers = (
   resolver: Parameters<typeof http.get>[1],
@@ -59,6 +73,11 @@ const createAdviceHandlers = (
 const createTasksHandlers = (
   resolver: Parameters<typeof http.get>[1],
 ) => tasksMatchers.map((matcher) => http.get(matcher, resolver));
+
+const createSectionHandlers = (matcher: RegExp, responseBody: JsonValue = {}) => ([
+  http.get(matcher, () => HttpResponse.json(responseBody, { status: 200 })),
+  http.post(matcher, () => HttpResponse.json({}, { status: 204 })),
+]);
 
 export const defaultHandlers = [
   ...moduleRouteExpressions.map((expr) =>
@@ -89,9 +108,20 @@ export const defaultHandlers = [
       { status: 404 },
     ),
   ),
-  http.post(financialProfileHouseholdMatcher, () => HttpResponse.json({}, { status: 204 })),
-  http.post(financialProfileTspMatcher, () => HttpResponse.json({}, { status: 204 })),
-  http.post(financialProfileCashMatcher, () => HttpResponse.json({}, { status: 204 })),
+  ...createSectionHandlers(financialProfileHouseholdMatcher),
+  ...createSectionHandlers(financialProfileRiskGoalsMatcher),
+  ...createSectionHandlers(financialProfileTspMatcher),
+  ...createSectionHandlers(financialProfileCashMatcher, { accounts: [] }),
+  ...createSectionHandlers(financialProfileInvestmentsMatcher, { accounts: [] }),
+  ...createSectionHandlers(financialProfileRealEstateMatcher, { properties: [] }),
+  ...createSectionHandlers(financialProfileLongTermObligationsMatcher, { obligations: [] }),
+  ...createSectionHandlers(financialProfileLiabilitiesMatcher, { liabilities: [] }),
+  ...createSectionHandlers(financialProfileExpensesMatcher, { expenses: [] }),
+  ...createSectionHandlers(financialProfileTaxMatcher),
+  ...createSectionHandlers(financialProfileInsuranceMatcher, { policies: [] }),
+  ...createSectionHandlers(financialProfileBenefitsMatcher, { benefits: [] }),
+  ...createSectionHandlers(financialProfileIncomeMatcher, { streams: [] }),
+  ...createSectionHandlers(financialProfileEquityMatcher),
 ];
 
 export const mockDashboardSummary = (data: JsonValue, init?: ResponseInit) =>

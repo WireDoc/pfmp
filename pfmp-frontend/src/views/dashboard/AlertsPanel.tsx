@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import {
   Box,
   Button,
@@ -25,14 +25,14 @@ interface AlertsPanelProps {
 
 type ChipColor = 'default' | 'success' | 'warning' | 'error' | 'info';
 
-const severityMeta: Record<AlertCard['severity'], { color: ChipColor; icon: React.ReactNode }> = {
-  Low: { color: 'success', icon: <SuccessIcon fontSize="small" /> },
-  Medium: { color: 'warning', icon: <InfoIcon fontSize="small" /> },
-  High: { color: 'error', icon: <WarningIcon fontSize="small" /> },
-  Critical: { color: 'error', icon: <ErrorIcon fontSize="small" /> },
-};
+const severityMeta = {
+  Low: { color: 'success', Icon: SuccessIcon },
+  Medium: { color: 'warning', Icon: InfoIcon },
+  High: { color: 'error', Icon: WarningIcon },
+  Critical: { color: 'error', Icon: ErrorIcon },
+} satisfies Record<AlertCard['severity'], { color: ChipColor; Icon: typeof SuccessIcon }>;
 
-export const AlertsPanel: React.FC<AlertsPanelProps> = ({ alerts, loading, onCreateTask }) => {
+export function AlertsPanel({ alerts, loading, onCreateTask }: AlertsPanelProps) {
   if (loading && alerts.length === 0) {
     return <Typography variant="body2">Loading alerts…</Typography>;
   }
@@ -45,9 +45,10 @@ export const AlertsPanel: React.FC<AlertsPanelProps> = ({ alerts, loading, onCre
     <Stack spacing={1.5} data-testid="alerts-panel">
       {alerts.slice(0, 5).map((alert, idx) => {
         const severity = severityMeta[alert.severity] ?? severityMeta.Medium;
+        const SeverityIcon = severity.Icon;
         const actionable = alert.isActionable && !alert.isDismissed;
         return (
-          <React.Fragment key={alert.alertId}>
+          <Fragment key={alert.alertId}>
             <Box
               sx={{
                 display: 'flex',
@@ -62,7 +63,7 @@ export const AlertsPanel: React.FC<AlertsPanelProps> = ({ alerts, loading, onCre
             >
               <Box display="flex" alignItems="flex-start" gap={1} flexWrap="wrap">
                 <Chip
-                  icon={severity.icon}
+                  icon={<SeverityIcon fontSize="small" />}
                   color={severity.color}
                   size="small"
                   label={alert.severity}
@@ -101,7 +102,7 @@ export const AlertsPanel: React.FC<AlertsPanelProps> = ({ alerts, loading, onCre
               </Box>
             </Box>
             {idx < Math.min(alerts.length, 5) - 1 && <Divider flexItem light />}
-          </React.Fragment>
+          </Fragment>
         );
       })}
       {alerts.length > 5 && (
@@ -111,6 +112,6 @@ export const AlertsPanel: React.FC<AlertsPanelProps> = ({ alerts, loading, onCre
       )}
     </Stack>
   );
-};
+}
 
 export default AlertsPanel;

@@ -1,19 +1,25 @@
-import { useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
-  Box,
-  Stack,
-  TextField,
-  MenuItem,
-  FormControlLabel,
-  Switch,
-  Typography,
-  Button,
   Alert,
-  CircularProgress,
+  Box,
+  Button,
+  FormControlLabel,
+  MenuItem,
+  Stack,
+  Switch,
+  TextField,
+  Typography,
 } from '@mui/material';
-import { upsertHouseholdProfile, type FinancialProfileSectionStatusValue, type HouseholdProfilePayload } from '../../services/financialProfileApi';
-
-type SaveState = 'idle' | 'saving' | 'success' | 'error';
+import AutoSaveIndicator from '../components/AutoSaveIndicator';
+import { useAutoSaveForm } from '../hooks/useAutoSaveForm';
+import { useSectionHydration } from '../hooks/useSectionHydration';
+import {
+  fetchHouseholdProfile,
+  upsertHouseholdProfile,
+  type FinancialProfileSectionStatusValue,
+  type HouseholdProfilePayload,
+  type SectionOptOutPayload,
+} from '../../services/financialProfileApi';
 
 type HouseholdSectionFormProps = {
   userId: number;
@@ -29,20 +35,190 @@ const MARITAL_OPTIONS = [
   { value: 'widowed', label: 'Widowed' },
 ];
 
-export function HouseholdSectionForm({ userId, onStatusChange, currentStatus }: HouseholdSectionFormProps) {
-  const [formState, setFormState] = useState<HouseholdProfilePayload>({
+function createInitialState(currentStatus: FinancialProfileSectionStatusValue): HouseholdProfilePayload {
+  if (currentStatus === 'opted_out') {
+    return {
+      optOut: {
+        isOptedOut: true,
+        reason: '',
+        acknowledgedAt: new Date().toISOString(),
+      },
+    };
+  }
+
+  return {
     preferredName: '',
     maritalStatus: '',
     dependentCount: undefined,
     serviceNotes: '',
-    optOut: currentStatus === 'opted_out'
-      ? { isOptedOut: true, reason: '', acknowledgedAt: new Date().toISOString() }
-      : undefined,
-  });
-  const [saveState, setSaveState] = useState<SaveState>('idle');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    optOut: undefined,
+  };
+}
 
-  const optedOut = formState.optOut?.isOptedOut === true;
+function hasEnteredHouseholdDetails(payload: HouseholdProfilePayload): boolean {
+  const preferredName = payload.preferredName?.trim();
+  const maritalStatus = payload.maritalStatus?.trim();
+  const dependentsProvided = typeof payload.dependentCount === 'number';
+  const notes = payload.serviceNotes?.trim();
+
+  const coreIdentityProvided = Boolean(preferredName && maritalStatus);
+  const supportingDetailsProvided = dependentsProvided || Boolean(notes);
+
+  return coreIdentityProvided || (Boolean(maritalStatus) && supportingDetailsProvided) || (Boolean(preferredName) && supportingDetailsProvided);
+}
+
+
+function sanitizeOptOut(optOut?: SectionOptOutPayload | null): SectionOptOutPayload | undefined {
+  if (!optOut?.isOptedOut) return undefined;
+  const reason = optOut.reason?.trim();
+  return {
+    isOptedOut: true,
+    reason: reason && reason.length > 0 ? reason : undefined,
+    acknowledgedAt: optOut.acknowledgedAt ?? new Date().toISOString(),
+  };
+}
+
+function sanitizePayload(draft: HouseholdProfilePayload): HouseholdProfilePayload {
+  if (draft.optOut?.isOptedOut) {
+    return {
+      optOut: sanitizeOptOut(draft.optOut),
+    };
+  }
+
+  return {
+    preferredName: draft.preferredName?.trim() || undefined,
+    maritalStatus: draft.maritalStatus?.trim() || undefined,
+    dependentCount: draft.dependentCount ?? undefined,
+    serviceNotes: draft.serviceNotes?.trim() || undefined,
+    optOut: undefined,
+  };
+}
+
+export default function HouseholdSectionForm({ userId, onStatusChange, currentStatus }: HouseholdSectionFormProps) {
+  const [formState, setFormState] = useState<HouseholdProfilePayload>(() => createInitialState(currentStatus));
+  const optedOut = useMemo(() => formState.optOut?.isOptedOut === true, [formState.optOut]);
+  const completionIntentRef = useRef(false);
+
+  const persistHousehold = useCallback(
+    async (draft: HouseholdProfilePayload) => {
+      const payload = sanitizePayload(draft);
+      await upsertHouseholdProfile(userId, payload);
+      if (draft.optOut?.isOptedOut) {
+        return 'opted_out';
+      }
+
+      if (completionIntentRef.current && hasEnteredHouseholdDetails(draft)) {
+        return 'completed';
+      }
+
+      return 'needs_info';
+    },
+    [userId],
+  );
+
+  const {
+    status: autoStatus,
+    isSaving,
+    isDirty,
+    error: autoError,
+    lastSavedAt,
+    flush: internalFlush,
+    resetBaseline,
+  } = useAutoSaveForm({
+    data: formState,
+    persist: persistHousehold,
+    onStatusResolved: onStatusChange,
+  });
+
+  const applyHydratedState = useCallback((nextState: HouseholdProfilePayload) => {
+    let applied: HouseholdProfilePayload = nextState;
+
+    setFormState((previous) => {
+      if (nextState.optOut?.isOptedOut) {
+        applied = {
+          optOut: {
+            isOptedOut: true,
+            reason: nextState.optOut?.reason ?? '',
+            acknowledgedAt: nextState.optOut?.acknowledgedAt ?? new Date().toISOString(),
+          },
+        };
+        return applied;
+      }
+
+      const merged: HouseholdProfilePayload = {
+        preferredName: previous.preferredName ?? '',
+        maritalStatus: previous.maritalStatus ?? '',
+        dependentCount: typeof previous.dependentCount === 'number' ? previous.dependentCount : undefined,
+        serviceNotes: previous.serviceNotes ?? '',
+        optOut: undefined,
+      };
+
+      if (typeof nextState.preferredName === 'string' && nextState.preferredName.trim().length > 0) {
+        merged.preferredName = nextState.preferredName;
+      }
+
+      if (typeof nextState.maritalStatus === 'string' && nextState.maritalStatus.trim().length > 0) {
+        merged.maritalStatus = nextState.maritalStatus;
+      }
+
+      if (typeof nextState.dependentCount === 'number') {
+        merged.dependentCount = nextState.dependentCount;
+      }
+
+      if (typeof nextState.serviceNotes === 'string' && nextState.serviceNotes.trim().length > 0) {
+        merged.serviceNotes = nextState.serviceNotes;
+      }
+
+      applied = merged;
+      return merged;
+    });
+
+    return applied;
+  }, []);
+
+  const mapPayloadToState = useCallback((payload: HouseholdProfilePayload): HouseholdProfilePayload => {
+    if (payload.optOut?.isOptedOut) {
+      return {
+        optOut: {
+          isOptedOut: true,
+          reason: payload.optOut.reason ?? '',
+          acknowledgedAt: payload.optOut.acknowledgedAt ?? new Date().toISOString(),
+        },
+      };
+    }
+
+    return {
+      preferredName: payload.preferredName ?? '',
+      maritalStatus: payload.maritalStatus ?? '',
+      dependentCount: typeof payload.dependentCount === 'number' ? payload.dependentCount : undefined,
+      serviceNotes: payload.serviceNotes ?? '',
+      optOut: undefined,
+    };
+  }, []);
+
+  useSectionHydration({
+    sectionKey: 'household',
+    userId,
+    fetcher: fetchHouseholdProfile,
+    mapPayloadToState,
+    applyState: applyHydratedState,
+    resetBaseline,
+  });
+
+  const flush = useCallback(async () => {
+    completionIntentRef.current = true;
+    try {
+      if (isDirty) {
+        await internalFlush();
+      } else {
+        const status = await persistHousehold(formState);
+        onStatusChange(status);
+        resetBaseline(formState);
+      }
+    } finally {
+      completionIntentRef.current = false;
+    }
+  }, [formState, internalFlush, isDirty, onStatusChange, persistHousehold, resetBaseline]);
 
   const handleChange = <K extends keyof HouseholdProfilePayload>(key: K, value: HouseholdProfilePayload[K]) => {
     setFormState((prev) => ({ ...prev, [key]: value }));
@@ -55,7 +231,7 @@ export function HouseholdSectionForm({ userId, onStatusChange, currentStatus }: 
         optOut: {
           isOptedOut: true,
           reason: prev.optOut?.reason ?? '',
-          acknowledgedAt: new Date().toISOString(),
+          acknowledgedAt: prev.optOut?.acknowledgedAt ?? new Date().toISOString(),
         },
       }));
     } else {
@@ -66,32 +242,25 @@ export function HouseholdSectionForm({ userId, onStatusChange, currentStatus }: 
     }
   };
 
-  const handleSubmit = async () => {
-    setSaveState('saving');
-    setErrorMessage(null);
-    try {
-      await upsertHouseholdProfile(userId, {
-        ...formState,
-        preferredName: optedOut ? undefined : formState.preferredName?.trim() || undefined,
-        maritalStatus: optedOut ? undefined : formState.maritalStatus?.trim() || undefined,
-        serviceNotes: optedOut ? undefined : formState.serviceNotes?.trim() || undefined,
-        dependentCount: optedOut ? undefined : formState.dependentCount ?? undefined,
-        optOut: optedOut ? formState.optOut : undefined,
-      });
-      const nextStatus: FinancialProfileSectionStatusValue = optedOut ? 'opted_out' : 'completed';
-      onStatusChange(nextStatus);
-      setSaveState('success');
-      setTimeout(() => setSaveState('idle'), 2500);
-    } catch (error) {
-      console.warn('Failed to save household profile', error);
-      setErrorMessage('We could not save this section. Please try again.');
-      setSaveState('error');
-    }
-  };
+  const errorMessage = autoError instanceof Error ? autoError.message : autoError ? 'We could not save this section. Please try again.' : null;
 
   return (
-    <Box component="form" noValidate onSubmit={(event) => { event.preventDefault(); void handleSubmit(); }}>
+    <Box
+      component="form"
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault();
+        void flush();
+      }}
+    >
       <Stack spacing={3} sx={{ mt: 3 }}>
+        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+          <Typography variant="caption" color="text.secondary" sx={{ letterSpacing: 0.3 }}>
+            Autosave keeps this section in sync.
+          </Typography>
+          <AutoSaveIndicator status={autoStatus} lastSavedAt={lastSavedAt} isDirty={isDirty} error={autoError} />
+        </Stack>
+
         <FormControlLabel
           control={<Switch checked={optedOut} onChange={(event) => handleOptOutToggle(event.target.checked)} color="primary" />}
           label="I want to skip this section for now"
@@ -104,7 +273,11 @@ export function HouseholdSectionForm({ userId, onStatusChange, currentStatus }: 
             onChange={(event) =>
               setFormState((prev) => ({
                 ...prev,
-                optOut: { ...prev.optOut, isOptedOut: true, reason: event.target.value },
+                optOut: {
+                  isOptedOut: true,
+                  reason: event.target.value,
+                  acknowledgedAt: prev.optOut?.acknowledgedAt ?? new Date().toISOString(),
+                },
               }))
             }
             multiline
@@ -159,30 +332,23 @@ export function HouseholdSectionForm({ userId, onStatusChange, currentStatus }: 
           </Stack>
         )}
 
-        {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
-        {saveState === 'success' && <Alert severity="success">Section saved.</Alert>}
+        {autoStatus === 'error' && errorMessage && <Alert severity="error">{errorMessage}</Alert>}
 
         <Stack direction="row" spacing={2} alignItems="center">
           <Button
             variant="contained"
             color="primary"
-            onClick={() => void handleSubmit()}
-            disabled={saveState === 'saving'}
+            onClick={() => void flush()}
+            disabled={isSaving}
             data-testid="household-submit"
           >
-            {saveState === 'saving' ? (
-              <>
-                <CircularProgress size={18} sx={{ mr: 1 }} /> Saving
-              </>
-            ) : optedOut ? 'Acknowledge opt-out' : 'Save section'}
+            {optedOut ? 'Acknowledge opt-out' : 'Save now'}
           </Button>
           <Typography variant="body2" color="text.secondary">
-            We’ll sync this instantly to your secure profile.
+            {optedOut ? "We'll mark this section as acknowledged." : 'Updates sync automatically while you type.'}
           </Typography>
         </Stack>
       </Stack>
     </Box>
   );
 }
-
-export default HouseholdSectionForm;

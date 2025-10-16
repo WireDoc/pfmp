@@ -356,7 +356,7 @@ export const DashboardWave4: React.FC = () => {
           } satisfies DashboardData;
         });
       });
-  }, [data, viewData, severityToPriority]);
+  }, [data, viewData, severityToPriority, logTelemetry]);
 
   const handleTaskStatusChange = useCallback((taskId: number, nextStatus: TaskItem['status']) => {
     const service = getDashboardService();
@@ -446,7 +446,7 @@ export const DashboardWave4: React.FC = () => {
                 : 'unknown',
         });
       });
-  }, [data, viewData, markTaskPending, restoreTaskSnapshot, updateTaskInState]);
+  }, [data, viewData, markTaskPending, restoreTaskSnapshot, updateTaskInState, logTelemetry]);
 
   const handleTaskProgressChange = useCallback((taskId: number, nextProgress: number) => {
     const service = getDashboardService();
@@ -517,7 +517,7 @@ export const DashboardWave4: React.FC = () => {
                 : 'unknown',
         });
       });
-  }, [markTaskPending, restoreTaskSnapshot, updateTaskInState]);
+  }, [markTaskPending, restoreTaskSnapshot, updateTaskInState, logTelemetry]);
 
   const insightsPanelData = useMemo(() => {
     if (!displayData) {

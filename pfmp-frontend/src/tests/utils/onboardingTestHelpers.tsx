@@ -1,5 +1,50 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import type { ComponentProps } from 'react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import type { RenderResult } from '@testing-library/react';
 import type userEvent from '@testing-library/user-event';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { OnboardingProvider } from '../../onboarding/OnboardingContext';
+import OnboardingPage from '../../views/OnboardingPage';
+
+type OnboardingProviderBaseProps = Omit<ComponentProps<typeof OnboardingProvider>, 'children'>;
+
+export interface RenderOnboardingPageOptions extends Partial<OnboardingProviderBaseProps> {
+  /** Override the initial locations pushed into the router history. */
+  initialEntries?: string[];
+}
+
+const defaultProviderProps: Pick<OnboardingProviderBaseProps, 'skipAutoHydrate' | 'userId'> = {
+  skipAutoHydrate: true,
+  userId: 1,
+};
+
+/**
+ * Renders the onboarding workflow inside a MemoryRouter and provider so `useNavigate`
+ * calls function the same way they do in the app.
+ */
+export function renderOnboardingPageForTest(options?: RenderOnboardingPageOptions): RenderResult {
+  const { initialEntries = ['/onboarding'], ...providerOverrides } = options ?? {};
+  const providerProps: OnboardingProviderBaseProps = {
+    ...defaultProviderProps,
+    ...providerOverrides,
+  };
+
+  return render(
+    <MemoryRouter initialEntries={initialEntries}>
+      <Routes>
+        <Route path="/" element={<div data-testid="onboarding-test-dashboard" />} />
+        <Route
+          path="/onboarding"
+          element={
+            <OnboardingProvider {...providerProps}>
+              <OnboardingPage />
+            </OnboardingProvider>
+          }
+        />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
 
 export interface AdvanceOptions {
   household?: 'complete' | 'optOut';
@@ -35,10 +80,15 @@ function assertHeading(name: string) {
   return screen.findByRole('heading', { level: 2, name });
 }
 
+async function fillReason(label: string, value: string) {
+  const input = await screen.findByLabelText(label);
+  fireEvent.change(input, { target: { value } });
+}
+
 async function completeHousehold(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
   if (mode === 'optOut') {
     await user.click(screen.getByLabelText('I want to skip this section for now'));
-    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'Will revisit later' } });
+    await fillReason('Why are you opting out?', 'Will revisit later');
   } else {
     fireEvent.change(screen.getByLabelText('Preferred name'), { target: { value: 'Helper User' } });
     await user.click(screen.getByLabelText('Marital status'));
@@ -52,11 +102,14 @@ async function completeHousehold(user: ReturnType<typeof userEvent.setup>, mode:
 async function completeRiskGoals(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
   if (mode === 'optOut') {
     await user.click(screen.getByLabelText('I want to skip this section for now'));
-    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'Need to consult advisor' } });
+    await fillReason('Why are you opting out?', 'Need to consult advisor');
   } else {
     await user.click(screen.getByLabelText('Risk tolerance'));
     await user.click(screen.getByText('3 · Balanced'));
+    fireEvent.change(screen.getByLabelText('Target retirement date'), { target: { value: '2030-01-01' } });
     fireEvent.change(screen.getByLabelText('Passive income goal (monthly)'), { target: { value: '1500' } });
+    fireEvent.change(screen.getByLabelText('Liquidity buffer (months)'), { target: { value: '6' } });
+    fireEvent.change(screen.getByLabelText('Emergency fund target ($)'), { target: { value: '20000' } });
   }
 
   await user.click(screen.getByTestId('risk-goals-submit'));
@@ -66,7 +119,7 @@ async function completeRiskGoals(user: ReturnType<typeof userEvent.setup>, mode:
 async function completeTsp(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
   if (mode === 'optOut') {
     await user.click(screen.getByLabelText('I don’t invest in the Thrift Savings Plan'));
-    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'No TSP access' } });
+    await fillReason('Why are you opting out?', 'No TSP access');
   } else {
     fireEvent.change(screen.getByLabelText('Contribution rate (%)'), { target: { value: '10' } });
     fireEvent.change(screen.getByLabelText('Employer match (%)'), { target: { value: '5' } });
@@ -79,7 +132,7 @@ async function completeTsp(user: ReturnType<typeof userEvent.setup>, mode: 'comp
 async function completeCash(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
   if (mode === 'optOut') {
     await user.click(screen.getByLabelText('I don’t have additional cash accounts'));
-    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'Handled elsewhere' } });
+    await fillReason('Why are you opting out?', 'Handled elsewhere');
   } else {
     fireEvent.change(screen.getByLabelText('Nickname'), { target: { value: 'Primary checking' } });
     fireEvent.change(screen.getByLabelText('Institution'), { target: { value: 'Ally Bank' } });
@@ -94,7 +147,7 @@ async function completeCash(user: ReturnType<typeof userEvent.setup>, mode: 'com
 async function completeInvestments(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
   if (mode === 'optOut') {
     await user.click(screen.getByLabelText('I don’t have non-TSP investment accounts'));
-    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'No assets outside TSP' } });
+    await fillReason('Why are you opting out?', 'No assets outside TSP');
   } else {
     fireEvent.change(screen.getByLabelText('Account name'), { target: { value: 'Test brokerage' } });
     fireEvent.change(screen.getByLabelText('Institution'), { target: { value: 'Vanguard' } });
@@ -108,7 +161,7 @@ async function completeInvestments(user: ReturnType<typeof userEvent.setup>, mod
 async function completeRealEstate(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
   if (mode === 'optOut') {
     await user.click(screen.getByLabelText('I don’t have real estate assets'));
-    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'Currently renting' } });
+    await fillReason('Why are you opting out?', 'Currently renting');
   } else {
     fireEvent.change(screen.getByLabelText('Property name'), { target: { value: 'Primary home' } });
     fireEvent.change(screen.getByLabelText('Estimated value ($)'), { target: { value: '450000' } });
@@ -122,7 +175,7 @@ async function completeRealEstate(user: ReturnType<typeof userEvent.setup>, mode
 async function completeLiabilities(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
   if (mode === 'optOut') {
     await user.click(screen.getByLabelText('I’m not tracking debts right now'));
-    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'No debts' } });
+    await fillReason('Why are you opting out?', 'No debts');
   } else {
     fireEvent.change(screen.getByLabelText('Lender / account name'), { target: { value: 'Sample Card' } });
     fireEvent.change(screen.getByLabelText('Current balance ($)'), { target: { value: '4200' } });
@@ -136,7 +189,7 @@ async function completeLiabilities(user: ReturnType<typeof userEvent.setup>, mod
 async function completeExpenses(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
   if (mode === 'optOut') {
     await user.click(screen.getByLabelText('I’ll estimate my expenses later'));
-    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'Need to pull statements' } });
+    await fillReason('Why are you opting out?', 'Need to pull statements');
   } else {
     fireEvent.change(screen.getByLabelText('Monthly amount ($)'), { target: { value: '3200' } });
     fireEvent.change(screen.getByLabelText('Notes'), { target: { value: 'Includes utilities estimate' } });
@@ -149,7 +202,7 @@ async function completeExpenses(user: ReturnType<typeof userEvent.setup>, mode: 
 async function completeTax(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
   if (mode === 'optOut') {
     await user.click(screen.getByLabelText('A CPA handles this for me'));
-    fireEvent.change(screen.getByLabelText('Add context so we can follow up later'), { target: { value: 'Working with CPA firm' } });
+    await fillReason('Add context so we can follow up later', 'Working with CPA firm');
   } else {
     fireEvent.change(screen.getByLabelText('Marginal rate (%)'), { target: { value: '24' } });
     fireEvent.change(screen.getByLabelText('Effective rate (%)'), { target: { value: '18' } });
@@ -163,7 +216,7 @@ async function completeTax(user: ReturnType<typeof userEvent.setup>, mode: 'comp
 async function completeInsurance(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
   if (mode === 'optOut') {
     await user.click(screen.getByLabelText('I don’t have insurance details to add'));
-    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'Will provide later' } });
+    await fillReason('Why are you opting out?', 'Will provide later');
   } else {
     fireEvent.change(screen.getByLabelText('Policy name or number'), { target: { value: 'Term Life 2040' } });
     fireEvent.change(screen.getByLabelText('Coverage amount ($)'), { target: { value: '750000' } });
@@ -178,7 +231,7 @@ async function completeInsurance(user: ReturnType<typeof userEvent.setup>, mode:
 async function completeBenefits(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
   if (mode === 'optOut') {
     await user.click(screen.getByLabelText('I’ll review benefits later'));
-    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'Need time to collect info' } });
+    await fillReason('Why are you opting out?', 'Need time to collect info');
   } else {
     fireEvent.change(screen.getByLabelText('Provider'), { target: { value: 'Employer' } });
     fireEvent.change(screen.getByLabelText('Monthly cost / premium ($)'), { target: { value: '200' } });
@@ -191,7 +244,7 @@ async function completeBenefits(user: ReturnType<typeof userEvent.setup>, mode: 
 async function completeLongTermObligations(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
   if (mode === 'optOut') {
     await user.click(screen.getByLabelText('I don’t have long-term obligations right now'));
-    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'No major milestones' } });
+    await fillReason('Why are you opting out?', 'No major milestones');
   } else {
     fireEvent.change(screen.getByLabelText('Obligation name'), { target: { value: 'Home renovation' } });
     fireEvent.change(screen.getByLabelText('Estimated cost ($)'), { target: { value: '25000' } });
