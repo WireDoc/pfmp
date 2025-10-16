@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -21,11 +21,13 @@ import {
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
 import {
+  fetchInvestmentAccountsProfile,
   upsertInvestmentAccountsProfile,
   type FinancialProfileSectionStatusValue,
   type InvestmentAccountPayload,
   type InvestmentAccountsProfilePayload,
 } from '../../services/financialProfileApi';
+import { useSectionHydration } from '../hooks/useSectionHydration';
 
 type SaveState = 'idle' | 'saving' | 'success' | 'error';
 
@@ -83,32 +85,34 @@ function parseNumber(value: string): number | undefined {
 }
 
 function buildPayloadAccounts(accounts: InvestmentAccountFormState[]): InvestmentAccountPayload[] {
-  return accounts
-    .map((account) => {
-      const hasValues =
-        account.accountName.trim() !== '' ||
-        account.institution.trim() !== '' ||
-        account.assetClass.trim() !== '' ||
-        account.currentValue.trim() !== '' ||
-        account.costBasis.trim() !== '';
+  const payloads: InvestmentAccountPayload[] = [];
 
-      if (!hasValues) {
-        return null;
-      }
+  accounts.forEach((account) => {
+    const hasValues =
+      account.accountName.trim() !== '' ||
+      account.institution.trim() !== '' ||
+      account.assetClass.trim() !== '' ||
+      account.currentValue.trim() !== '' ||
+      account.costBasis.trim() !== '';
 
-      return {
-        accountName: account.accountName.trim() || null,
-        institution: account.institution.trim() || null,
-        accountCategory: account.accountCategory.trim() || 'brokerage',
-        assetClass: account.assetClass.trim() || null,
-        currentValue: parseNumber(account.currentValue) ?? null,
-        costBasis: parseNumber(account.costBasis) ?? null,
-        contributionRatePercent: parseNumber(account.contributionRatePercent) ?? null,
-        isTaxAdvantaged: account.isTaxAdvantaged,
-        lastContributionDate: account.lastContributionDate ? new Date(account.lastContributionDate).toISOString() : null,
-      } satisfies InvestmentAccountPayload;
-    })
-    .filter((account): account is InvestmentAccountPayload => account !== null);
+    if (!hasValues) {
+      return;
+    }
+
+    payloads.push({
+      accountName: account.accountName.trim() || null,
+      institution: account.institution.trim() || null,
+      accountCategory: account.accountCategory.trim() || 'brokerage',
+      assetClass: account.assetClass.trim() || null,
+      currentValue: parseNumber(account.currentValue) ?? null,
+      costBasis: parseNumber(account.costBasis) ?? null,
+      contributionRatePercent: parseNumber(account.contributionRatePercent) ?? null,
+      isTaxAdvantaged: account.isTaxAdvantaged,
+      lastContributionDate: account.lastContributionDate ? new Date(account.lastContributionDate).toISOString() : null,
+    });
+  });
+
+  return payloads;
 }
 
 export default function InvestmentAccountsSectionForm({ userId, onStatusChange, currentStatus }: InvestmentAccountsSectionFormProps) {
@@ -120,6 +124,52 @@ export default function InvestmentAccountsSectionForm({ userId, onStatusChange, 
 
   const payloadAccounts = useMemo(() => buildPayloadAccounts(accounts), [accounts]);
   const canRemoveAccounts = accounts.length > 1;
+
+  type HydratedState = {
+    accounts: InvestmentAccountFormState[];
+    optedOut: boolean;
+    optOutReason: string;
+  };
+
+  const mapPayloadToState = useCallback((payload: InvestmentAccountsProfilePayload): HydratedState => {
+    const hydratedAccounts = (payload.accounts ?? []).map((account, index) => ({
+      id: `investment-${index + 1}`,
+      accountName: account.accountName ?? '',
+      institution: account.institution ?? '',
+      accountCategory: account.accountCategory ?? 'brokerage',
+      assetClass: account.assetClass ?? '',
+      currentValue: account.currentValue != null ? String(account.currentValue) : '',
+      costBasis: account.costBasis != null ? String(account.costBasis) : '',
+      contributionRatePercent: account.contributionRatePercent != null ? String(account.contributionRatePercent) : '',
+      isTaxAdvantaged: account.isTaxAdvantaged ?? false,
+      lastContributionDate: account.lastContributionDate ? account.lastContributionDate.slice(0, 10) : '',
+    }));
+
+    const optedOutState = payload.optOut?.isOptedOut === true;
+
+    return {
+      accounts: hydratedAccounts.length > 0 ? hydratedAccounts : [createAccount(1)],
+      optedOut: optedOutState,
+      optOutReason: payload.optOut?.reason ?? '',
+    };
+  }, []);
+
+  const applyHydratedState = useCallback(
+    ({ accounts: nextAccounts, optedOut: nextOptedOut, optOutReason: nextReason }: HydratedState) => {
+      setAccounts(nextAccounts);
+      setOptedOut(nextOptedOut);
+      setOptOutReason(nextReason ?? '');
+    },
+    [],
+  );
+
+  useSectionHydration({
+    sectionKey: 'investments',
+    userId,
+    fetcher: fetchInvestmentAccountsProfile,
+    mapPayloadToState,
+    applyState: applyHydratedState,
+  });
 
   const handleAccountChange = <K extends keyof InvestmentAccountFormState>(id: string, key: K, value: InvestmentAccountFormState[K]) => {
     setAccounts((prev) => prev.map((account) => (account.id === id ? { ...account, [key]: value } : account)));

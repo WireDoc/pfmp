@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -21,11 +21,13 @@ import {
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
 import {
+  fetchExpensesProfile,
   upsertExpensesProfile,
   type ExpensesProfilePayload,
   type ExpenseBudgetPayload,
   type FinancialProfileSectionStatusValue,
 } from '../../services/financialProfileApi';
+import { useSectionHydration } from '../hooks/useSectionHydration';
 
 type SaveState = 'idle' | 'saving' | 'success' | 'error';
 
@@ -74,20 +76,24 @@ function parseNumber(value: string): number | undefined {
 }
 
 function buildPayload(expenses: ExpenseFormState[]): ExpenseBudgetPayload[] {
-  return expenses
-    .map((expense) => {
-      const hasValue = expense.monthlyAmount.trim() !== '' || expense.notes.trim() !== '';
-      if (!hasValue) {
-        return null;
-      }
-      return {
-        category: expense.category || 'other',
-        monthlyAmount: parseNumber(expense.monthlyAmount) ?? null,
-        isEstimated: expense.isEstimated,
-        notes: expense.notes.trim() || null,
-      } satisfies ExpenseBudgetPayload;
-    })
-    .filter((entry): entry is ExpenseBudgetPayload => entry !== null);
+  const payloads: ExpenseBudgetPayload[] = [];
+
+  expenses.forEach((expense) => {
+    const hasValue = expense.monthlyAmount.trim() !== '' || expense.notes.trim() !== '';
+
+    if (!hasValue) {
+      return;
+    }
+
+    payloads.push({
+      category: expense.category || 'other',
+      monthlyAmount: parseNumber(expense.monthlyAmount) ?? null,
+      isEstimated: expense.isEstimated,
+      notes: expense.notes.trim() || null,
+    });
+  });
+
+  return payloads;
 }
 
 export default function ExpensesSectionForm({ userId, onStatusChange, currentStatus }: ExpensesSectionFormProps) {
@@ -99,6 +105,47 @@ export default function ExpensesSectionForm({ userId, onStatusChange, currentSta
 
   const payloadExpenses = useMemo(() => buildPayload(expenses), [expenses]);
   const canRemoveRows = expenses.length > 1;
+
+  type HydratedState = {
+    expenses: ExpenseFormState[];
+    optedOut: boolean;
+    optOutReason: string;
+  };
+
+  const mapPayloadToState = useCallback((payload: ExpensesProfilePayload): HydratedState => {
+    const hydratedExpenses = (payload.expenses ?? []).map((expense, index) => ({
+      id: `expense-${index + 1}`,
+      category: expense.category ?? 'other',
+      monthlyAmount: expense.monthlyAmount != null ? String(expense.monthlyAmount) : '',
+      isEstimated: expense.isEstimated ?? false,
+      notes: expense.notes ?? '',
+    }));
+
+    const optedOutState = payload.optOut?.isOptedOut === true;
+
+    return {
+      expenses: hydratedExpenses.length > 0 ? hydratedExpenses : [createExpense(1)],
+      optedOut: optedOutState,
+      optOutReason: payload.optOut?.reason ?? '',
+    };
+  }, []);
+
+  const applyHydratedState = useCallback(
+    ({ expenses: nextExpenses, optedOut: nextOptedOut, optOutReason: nextReason }: HydratedState) => {
+      setExpenses(nextExpenses);
+      setOptedOut(nextOptedOut);
+      setOptOutReason(nextReason ?? '');
+    },
+    [],
+  );
+
+  useSectionHydration({
+    sectionKey: 'expenses',
+    userId,
+    fetcher: fetchExpensesProfile,
+    mapPayloadToState,
+    applyState: applyHydratedState,
+  });
 
   const handleExpenseChange = <K extends keyof ExpenseFormState>(id: string, key: K, value: ExpenseFormState[K]) => {
     setExpenses((prev) => prev.map((expense) => (expense.id === id ? { ...expense, [key]: value } : expense)));

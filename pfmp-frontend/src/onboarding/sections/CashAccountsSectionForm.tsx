@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Box,
   Stack,
@@ -17,11 +17,13 @@ import {
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
 import {
+  fetchCashAccountsProfile,
   upsertCashAccountsProfile,
   type FinancialProfileSectionStatusValue,
   type CashAccountsProfilePayload,
   type CashAccountPayload,
 } from '../../services/financialProfileApi';
+import { useSectionHydration } from '../hooks/useSectionHydration';
 
 type SaveState = 'idle' | 'saving' | 'success' | 'error';
 
@@ -64,29 +66,31 @@ function parseNumber(value: string): number | undefined {
 }
 
 function buildPayloadAccounts(accounts: AccountFormState[]): CashAccountPayload[] {
-  return accounts
-    .map((account) => {
-      const hasValues =
-        account.nickname.trim() !== '' ||
-        account.institution.trim() !== '' ||
-        account.balance.trim() !== '' ||
-        account.interestRateApr.trim() !== '';
+  const payloads: CashAccountPayload[] = [];
 
-      if (!hasValues) {
-        return null;
-      }
+  accounts.forEach((account) => {
+    const hasValues =
+      account.nickname.trim() !== '' ||
+      account.institution.trim() !== '' ||
+      account.balance.trim() !== '' ||
+      account.interestRateApr.trim() !== '';
 
-      return {
-        nickname: account.nickname.trim() || null,
-        institution: account.institution.trim() || null,
-        accountType: account.accountType.trim() || 'checking',
-        balance: parseNumber(account.balance) ?? null,
-        interestRateApr: parseNumber(account.interestRateApr) ?? null,
-        isEmergencyFund: account.isEmergencyFund,
-        rateLastChecked: account.rateLastChecked ? new Date(account.rateLastChecked).toISOString() : null,
-      } satisfies CashAccountPayload;
-    })
-    .filter((account): account is CashAccountPayload => account !== null);
+    if (!hasValues) {
+      return;
+    }
+
+    payloads.push({
+      nickname: account.nickname.trim() || null,
+      institution: account.institution.trim() || null,
+      accountType: account.accountType.trim() || 'checking',
+      balance: parseNumber(account.balance) ?? null,
+      interestRateApr: parseNumber(account.interestRateApr) ?? null,
+      isEmergencyFund: account.isEmergencyFund,
+      rateLastChecked: account.rateLastChecked ? new Date(account.rateLastChecked).toISOString() : null,
+    });
+  });
+
+  return payloads;
 }
 
 export default function CashAccountsSectionForm({ userId, onStatusChange, currentStatus }: CashAccountsSectionFormProps) {
@@ -97,6 +101,50 @@ export default function CashAccountsSectionForm({ userId, onStatusChange, curren
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const canRemoveAccounts = accounts.length > 1;
+
+  type HydratedState = {
+    accounts: AccountFormState[];
+    optedOut: boolean;
+    optOutReason: string;
+  };
+
+  const mapPayloadToState = useCallback((payload: CashAccountsProfilePayload): HydratedState => {
+    const hydratedAccounts = (payload.accounts ?? []).map((account, index) => ({
+      id: `account-${index + 1}`,
+      nickname: account.nickname ?? '',
+      institution: account.institution ?? '',
+      accountType: account.accountType ?? 'checking',
+      balance: account.balance != null ? String(account.balance) : '',
+      interestRateApr: account.interestRateApr != null ? String(account.interestRateApr) : '',
+      isEmergencyFund: account.isEmergencyFund ?? false,
+      rateLastChecked: account.rateLastChecked ? account.rateLastChecked.slice(0, 10) : '',
+    }));
+
+    const optedOutState = payload.optOut?.isOptedOut === true;
+
+    return {
+      accounts: hydratedAccounts.length > 0 ? hydratedAccounts : [createAccount(1)],
+      optedOut: optedOutState,
+      optOutReason: payload.optOut?.reason ?? '',
+    };
+  }, []);
+
+  const applyHydratedState = useCallback(
+    ({ accounts: nextAccounts, optedOut: nextOptedOut, optOutReason: nextReason }: HydratedState) => {
+      setAccounts(nextAccounts);
+      setOptedOut(nextOptedOut);
+      setOptOutReason(nextReason ?? '');
+    },
+    [],
+  );
+
+  useSectionHydration({
+    sectionKey: 'cash',
+    userId,
+    fetcher: fetchCashAccountsProfile,
+    mapPayloadToState,
+    applyState: applyHydratedState,
+  });
 
   const handleAccountChange = <K extends keyof AccountFormState>(id: string, key: K, value: AccountFormState[K]) => {
     setAccounts((prev) => prev.map((account) => (account.id === id ? { ...account, [key]: value } : account)));

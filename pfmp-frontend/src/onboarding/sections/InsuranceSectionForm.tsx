@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -21,11 +21,13 @@ import {
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
 import {
+  fetchInsurancePoliciesProfile,
   upsertInsurancePoliciesProfile,
   type FinancialProfileSectionStatusValue,
   type InsurancePoliciesProfilePayload,
   type InsurancePolicyPayload,
 } from '../../services/financialProfileApi';
+import { useSectionHydration } from '../hooks/useSectionHydration';
 
 type SaveState = 'idle' | 'saving' | 'success' | 'error';
 
@@ -90,34 +92,36 @@ function parseNumber(value: string): number | undefined {
 }
 
 function buildPayloadPolicies(policies: InsurancePolicyFormState[]): InsurancePolicyPayload[] {
-  return policies
-    .map((policy) => {
-      const hasValues =
-        policy.policyName.trim() !== '' ||
-        policy.carrier.trim() !== '' ||
-        policy.coverageAmount.trim() !== '' ||
-        policy.premiumAmount.trim() !== '' ||
-        policy.renewalDate.trim() !== '' ||
-        policy.recommendedCoverage.trim() !== '' ||
-        policy.isAdequateCoverage;
+  const payloads: InsurancePolicyPayload[] = [];
 
-      if (!hasValues) {
-        return null;
-      }
+  policies.forEach((policy) => {
+    const hasValues =
+      policy.policyName.trim() !== '' ||
+      policy.carrier.trim() !== '' ||
+      policy.coverageAmount.trim() !== '' ||
+      policy.premiumAmount.trim() !== '' ||
+      policy.renewalDate.trim() !== '' ||
+      policy.recommendedCoverage.trim() !== '' ||
+      policy.isAdequateCoverage;
 
-      return {
-        policyType: policy.policyType || 'term-life',
-        carrier: policy.carrier.trim() || null,
-        policyName: policy.policyName.trim() || null,
-        coverageAmount: parseNumber(policy.coverageAmount) ?? null,
-        premiumAmount: parseNumber(policy.premiumAmount) ?? null,
-        premiumFrequency: policy.premiumFrequency || null,
-        renewalDate: policy.renewalDate ? new Date(policy.renewalDate).toISOString() : null,
-        isAdequateCoverage: policy.isAdequateCoverage,
-        recommendedCoverage: parseNumber(policy.recommendedCoverage) ?? null,
-      } satisfies InsurancePolicyPayload;
-    })
-    .filter((policy): policy is InsurancePolicyPayload => policy !== null);
+    if (!hasValues) {
+      return;
+    }
+
+    payloads.push({
+      policyType: policy.policyType || 'term-life',
+      carrier: policy.carrier.trim() || null,
+      policyName: policy.policyName.trim() || null,
+      coverageAmount: parseNumber(policy.coverageAmount) ?? null,
+      premiumAmount: parseNumber(policy.premiumAmount) ?? null,
+      premiumFrequency: policy.premiumFrequency || null,
+      renewalDate: policy.renewalDate ? new Date(policy.renewalDate).toISOString() : null,
+      isAdequateCoverage: policy.isAdequateCoverage,
+      recommendedCoverage: parseNumber(policy.recommendedCoverage) ?? null,
+    });
+  });
+
+  return payloads;
 }
 
 export default function InsuranceSectionForm({ userId, onStatusChange, currentStatus }: InsuranceSectionFormProps) {
@@ -129,6 +133,77 @@ export default function InsuranceSectionForm({ userId, onStatusChange, currentSt
 
   const payloadPolicies = useMemo(() => buildPayloadPolicies(policies), [policies]);
   const canRemovePolicies = policies.length > 1;
+
+  type HydratedState = {
+    policies: InsurancePolicyFormState[];
+    optedOut: boolean;
+    optOutReason: string;
+  };
+
+  const hasPolicyContent = useCallback((items: InsurancePolicyFormState[]) => {
+    return items.some((policy) =>
+      policy.policyName.trim() !== '' ||
+      policy.carrier.trim() !== '' ||
+      policy.coverageAmount.trim() !== '' ||
+      policy.premiumAmount.trim() !== '' ||
+      policy.renewalDate.trim() !== '' ||
+      policy.recommendedCoverage.trim() !== '' ||
+      policy.isAdequateCoverage,
+    );
+  }, []);
+
+  const mapPayloadToState = useCallback((payload: InsurancePoliciesProfilePayload): HydratedState => {
+    const hydratedPolicies = (payload.policies ?? []).map((policy, index) => ({
+      id: `policy-${index + 1}`,
+      policyType: policy.policyType ?? 'term-life',
+      carrier: policy.carrier ?? '',
+      policyName: policy.policyName ?? '',
+      coverageAmount: policy.coverageAmount != null ? String(policy.coverageAmount) : '',
+      premiumAmount: policy.premiumAmount != null ? String(policy.premiumAmount) : '',
+      premiumFrequency: policy.premiumFrequency ?? 'annual',
+      renewalDate: policy.renewalDate ? policy.renewalDate.slice(0, 10) : '',
+      isAdequateCoverage: policy.isAdequateCoverage ?? false,
+      recommendedCoverage: policy.recommendedCoverage != null ? String(policy.recommendedCoverage) : '',
+    }));
+
+    const optedOutState = payload.optOut?.isOptedOut === true;
+
+    return {
+      policies: hydratedPolicies.length > 0 ? hydratedPolicies : [createPolicy(1)],
+      optedOut: optedOutState,
+      optOutReason: payload.optOut?.reason ?? '',
+    };
+  }, []);
+
+  const applyHydratedState = useCallback(
+    ({ policies: nextPolicies, optedOut: nextOptedOut, optOutReason: nextReason }: HydratedState) => {
+      const hasMeaningfulData =
+        nextOptedOut || (nextReason?.trim()?.length ?? 0) > 0 || hasPolicyContent(nextPolicies);
+
+      if (!hasMeaningfulData) {
+        return { policies, optedOut, optOutReason };
+      }
+
+      setPolicies(nextPolicies);
+      setOptedOut(nextOptedOut);
+      setOptOutReason(nextReason ?? '');
+
+      return {
+        policies: nextPolicies,
+        optedOut: nextOptedOut,
+        optOutReason: nextReason ?? '',
+      };
+    },
+    [hasPolicyContent, optOutReason, optedOut, policies],
+  );
+
+  useSectionHydration({
+    sectionKey: 'insurance',
+    userId,
+    fetcher: fetchInsurancePoliciesProfile,
+    mapPayloadToState,
+    applyState: applyHydratedState,
+  });
 
   const handlePolicyChange = <K extends keyof InsurancePolicyFormState>(id: string, key: K, value: InsurancePolicyFormState[K]) => {
     setPolicies((prev) => prev.map((policy) => (policy.id === id ? { ...policy, [key]: value } : policy)));

@@ -1,0 +1,5 @@
+ - [ ] Review changes in PFMP-API backend files for accuracy
+ - [ ] Review frontend onboarding updates and ensure tests cover cases
+ - [ ] Inspect new docs/scripts additions for completeness and sensitive data
+ - [ ] Run backend and frontend test suites (dotnet test, npm test)
+ - [ ] Stage, commit with descriptive message, and push to origin/main

@@ -10,6 +10,13 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts'],
     globals: true,
     exclude: ['docs/**', '**/dist/**', '**/node_modules/**'],
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        minThreads: 1,
+        maxThreads: 1,
+      },
+    },
     coverage: {
       reporter: ['text', 'lcov'],
     },

@@ -67,8 +67,9 @@
 
 3. **Dashboard UX Polish**
    - Swap placeholder copy (“Wave 1 routine skeleton active”) for production-ready content.
-   - Introduce quick-glance tiles (Net worth delta, outstanding tasks count, latest alert) using existing API data.
+   - Introduce quick-glance tiles (Net worth delta, outstanding tasks count, latest alert) using existing API data. **Status:** Net worth / task / obligation quick glance panel shipped in Wave 4; extend with alerts tile post-onboarding.
    - Add empty/error states with call to action (e.g., “Connect an account” when no accounts returned).
+   - Leverage live obligation polling abstraction (added in Wave 4) as the baseline for future streaming metrics; document SignalR transition in release follow-up.
 
 4. **Actionable Tasks Flow**
    - Provide controls to accept/dismiss advice from the dashboard (mirrors API integration already tested via Vitest).

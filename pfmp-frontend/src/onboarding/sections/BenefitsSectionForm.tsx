@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -20,11 +20,13 @@ import {
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
 import {
+  fetchBenefitsProfile,
   upsertBenefitsProfile,
   type BenefitCoveragePayload,
   type BenefitsProfilePayload,
   type FinancialProfileSectionStatusValue,
 } from '../../services/financialProfileApi';
+import { useSectionHydration } from '../hooks/useSectionHydration';
 
 type SaveState = 'idle' | 'saving' | 'success' | 'error';
 
@@ -77,28 +79,30 @@ function parseNumber(value: string): number | undefined {
 }
 
 function buildPayload(benefits: BenefitFormState[]): BenefitCoveragePayload[] {
-  return benefits
-    .map((benefit) => {
-      const hasValue =
-        benefit.provider.trim() !== '' ||
-        benefit.monthlyCost.trim() !== '' ||
-        benefit.employerContributionPercent.trim() !== '' ||
-        benefit.notes.trim() !== '';
+  const payloads: BenefitCoveragePayload[] = [];
 
-      if (!hasValue) {
-        return null;
-      }
+  benefits.forEach((benefit) => {
+    const hasValue =
+      benefit.provider.trim() !== '' ||
+      benefit.monthlyCost.trim() !== '' ||
+      benefit.employerContributionPercent.trim() !== '' ||
+      benefit.notes.trim() !== '';
 
-      return {
-        benefitType: benefit.benefitType || 'other',
-        provider: benefit.provider.trim() || null,
-        isEnrolled: benefit.isEnrolled,
-        employerContributionPercent: parseNumber(benefit.employerContributionPercent) ?? null,
-        monthlyCost: parseNumber(benefit.monthlyCost) ?? null,
-        notes: benefit.notes.trim() || null,
-      } satisfies BenefitCoveragePayload;
-    })
-    .filter((entry): entry is BenefitCoveragePayload => entry !== null);
+    if (!hasValue) {
+      return;
+    }
+
+    payloads.push({
+      benefitType: benefit.benefitType || 'other',
+      provider: benefit.provider.trim() || null,
+      isEnrolled: benefit.isEnrolled,
+      employerContributionPercent: parseNumber(benefit.employerContributionPercent) ?? null,
+      monthlyCost: parseNumber(benefit.monthlyCost) ?? null,
+      notes: benefit.notes.trim() || null,
+    });
+  });
+
+  return payloads;
 }
 
 export default function BenefitsSectionForm({ userId, onStatusChange, currentStatus }: BenefitsSectionFormProps) {
@@ -110,6 +114,49 @@ export default function BenefitsSectionForm({ userId, onStatusChange, currentSta
 
   const payloadBenefits = useMemo(() => buildPayload(benefits), [benefits]);
   const canRemoveRows = benefits.length > 1;
+
+  type HydratedState = {
+    benefits: BenefitFormState[];
+    optedOut: boolean;
+    optOutReason: string;
+  };
+
+  const mapPayloadToState = useCallback((payload: BenefitsProfilePayload): HydratedState => {
+    const hydratedBenefits = (payload.benefits ?? []).map((benefit, index) => ({
+      id: `benefit-${index + 1}`,
+      benefitType: benefit.benefitType ?? 'other',
+      provider: benefit.provider ?? '',
+      isEnrolled: benefit.isEnrolled ?? true,
+      employerContributionPercent: benefit.employerContributionPercent != null ? String(benefit.employerContributionPercent) : '',
+      monthlyCost: benefit.monthlyCost != null ? String(benefit.monthlyCost) : '',
+      notes: benefit.notes ?? '',
+    }));
+
+    const optedOutState = payload.optOut?.isOptedOut === true;
+
+    return {
+      benefits: hydratedBenefits.length > 0 ? hydratedBenefits : [createBenefit(1)],
+      optedOut: optedOutState,
+      optOutReason: payload.optOut?.reason ?? '',
+    };
+  }, []);
+
+  const applyHydratedState = useCallback(
+    ({ benefits: nextBenefits, optedOut: nextOptedOut, optOutReason: nextReason }: HydratedState) => {
+      setBenefits(nextBenefits);
+      setOptedOut(nextOptedOut);
+      setOptOutReason(nextReason ?? '');
+    },
+    [],
+  );
+
+  useSectionHydration({
+    sectionKey: 'benefits',
+    userId,
+    fetcher: fetchBenefitsProfile,
+    mapPayloadToState,
+    applyState: applyHydratedState,
+  });
 
   const handleBenefitChange = <K extends keyof BenefitFormState>(id: string, key: K, value: BenefitFormState[K]) => {
     setBenefits((prev) => prev.map((benefit) => (benefit.id === id ? { ...benefit, [key]: value } : benefit)));

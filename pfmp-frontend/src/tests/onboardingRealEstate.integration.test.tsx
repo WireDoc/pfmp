@@ -1,11 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { OnboardingProvider } from '../onboarding/OnboardingContext';
-import OnboardingPage from '../views/OnboardingPage';
 import type { PropertiesProfilePayload } from '../services/financialProfileApi';
 import * as financialProfileApi from '../services/financialProfileApi';
-import { advanceToRealEstateSection, expectSectionStatus } from './utils/onboardingTestHelpers';
+import { advanceToRealEstateSection, expectSectionStatus, renderOnboardingPageForTest } from './utils/onboardingTestHelpers';
 
 describe('Real Estate onboarding section', () => {
   beforeEach(() => {
@@ -20,7 +18,7 @@ describe('Real Estate onboarding section', () => {
     vi.restoreAllMocks();
   });
 
-  it('submits property details and advances to insurance', async () => {
+  it('submits property details and advances to liabilities', async () => {
     const propertiesSpy = vi.spyOn(financialProfileApi, 'upsertPropertiesProfile');
     const requests: PropertiesProfilePayload[] = [];
     propertiesSpy.mockImplementation(async (userId: number, payload: PropertiesProfilePayload) => {
@@ -30,11 +28,7 @@ describe('Real Estate onboarding section', () => {
 
     const user = userEvent.setup({ delay: 0 });
 
-    render(
-      <OnboardingProvider skipAutoHydrate userId={1}>
-        <OnboardingPage />
-      </OnboardingProvider>,
-    );
+    renderOnboardingPageForTest();
 
     await advanceToRealEstateSection(user, { cash: 'optOut', investments: 'complete' });
 
@@ -73,12 +67,12 @@ describe('Real Estate onboarding section', () => {
       hasHeloc: true,
     });
 
-    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Insurance Coverage' })).toBeInTheDocument());
+  await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Liabilities & Credit' })).toBeInTheDocument());
 
     await expectSectionStatus('Real Estate', 'Completed');
   }, 25000);
 
-  it('allows opting out of real estate with a reason', async () => {
+  it('allows opting out of real estate and advances to liabilities', async () => {
     const propertiesSpy = vi.spyOn(financialProfileApi, 'upsertPropertiesProfile');
     const requests: PropertiesProfilePayload[] = [];
     propertiesSpy.mockImplementation(async (userId: number, payload: PropertiesProfilePayload) => {
@@ -88,11 +82,7 @@ describe('Real Estate onboarding section', () => {
 
     const user = userEvent.setup({ delay: 0 });
 
-    render(
-      <OnboardingProvider skipAutoHydrate userId={1}>
-        <OnboardingPage />
-      </OnboardingProvider>,
-    );
+    renderOnboardingPageForTest();
 
     await advanceToRealEstateSection(user, { investments: 'optOut' });
 
@@ -111,7 +101,7 @@ describe('Real Estate onboarding section', () => {
       reason: 'No property holdings currently',
     });
 
-    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Insurance Coverage' })).toBeInTheDocument());
+  await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Liabilities & Credit' })).toBeInTheDocument());
 
     await expectSectionStatus('Real Estate', 'Opted Out');
   }, 20000);

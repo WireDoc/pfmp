@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -21,11 +21,13 @@ import {
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
 import {
+  fetchLiabilitiesProfile,
   upsertLiabilitiesProfile,
   type FinancialProfileSectionStatusValue,
   type LiabilitiesProfilePayload,
   type LiabilityPayload,
 } from '../../services/financialProfileApi';
+import { useSectionHydration } from '../hooks/useSectionHydration';
 
 type SaveState = 'idle' | 'saving' | 'success' | 'error';
 
@@ -78,31 +80,33 @@ function parseNumber(value: string): number | undefined {
 }
 
 function buildPayloadLiabilities(liabilities: LiabilityFormState[]): LiabilityPayload[] {
-  return liabilities
-    .map((item) => {
-      const hasValue =
-        item.lender.trim() !== '' ||
-        item.currentBalance.trim() !== '' ||
-        item.minimumPayment.trim() !== '' ||
-        item.interestRateApr.trim() !== '' ||
-        item.payoffTargetDate.trim() !== '' ||
-        item.isPriorityToEliminate;
+  const payloads: LiabilityPayload[] = [];
 
-      if (!hasValue) {
-        return null;
-      }
+  liabilities.forEach((item) => {
+    const hasValue =
+      item.lender.trim() !== '' ||
+      item.currentBalance.trim() !== '' ||
+      item.minimumPayment.trim() !== '' ||
+      item.interestRateApr.trim() !== '' ||
+      item.payoffTargetDate.trim() !== '' ||
+      item.isPriorityToEliminate;
 
-      return {
-        liabilityType: item.liabilityType || 'other',
-        lender: item.lender.trim() || null,
-        currentBalance: parseNumber(item.currentBalance) ?? null,
-        minimumPayment: parseNumber(item.minimumPayment) ?? null,
-        interestRateApr: parseNumber(item.interestRateApr) ?? null,
-        payoffTargetDate: item.payoffTargetDate ? new Date(item.payoffTargetDate).toISOString() : null,
-        isPriorityToEliminate: item.isPriorityToEliminate,
-      } satisfies LiabilityPayload;
-    })
-    .filter((entry): entry is LiabilityPayload => entry !== null);
+    if (!hasValue) {
+      return;
+    }
+
+    payloads.push({
+      liabilityType: item.liabilityType || 'other',
+      lender: item.lender.trim() || null,
+      currentBalance: parseNumber(item.currentBalance) ?? null,
+      minimumPayment: parseNumber(item.minimumPayment) ?? null,
+      interestRateApr: parseNumber(item.interestRateApr) ?? null,
+      payoffTargetDate: item.payoffTargetDate ? new Date(item.payoffTargetDate).toISOString() : null,
+      isPriorityToEliminate: item.isPriorityToEliminate,
+    });
+  });
+
+  return payloads;
 }
 
 export default function LiabilitiesSectionForm({ userId, onStatusChange, currentStatus }: LiabilitiesSectionFormProps) {
@@ -114,6 +118,50 @@ export default function LiabilitiesSectionForm({ userId, onStatusChange, current
 
   const canRemoveRows = liabilities.length > 1;
   const payloadLiabilities = useMemo(() => buildPayloadLiabilities(liabilities), [liabilities]);
+
+  type HydratedState = {
+    liabilities: LiabilityFormState[];
+    optedOut: boolean;
+    optOutReason: string;
+  };
+
+  const mapPayloadToState = useCallback((payload: LiabilitiesProfilePayload): HydratedState => {
+    const hydratedLiabilities = (payload.liabilities ?? []).map((item, index) => ({
+      id: `liability-${index + 1}`,
+      liabilityType: item.liabilityType ?? 'other',
+      lender: item.lender ?? '',
+      currentBalance: item.currentBalance != null ? String(item.currentBalance) : '',
+      interestRateApr: item.interestRateApr != null ? String(item.interestRateApr) : '',
+      minimumPayment: item.minimumPayment != null ? String(item.minimumPayment) : '',
+      payoffTargetDate: item.payoffTargetDate ? item.payoffTargetDate.slice(0, 10) : '',
+      isPriorityToEliminate: item.isPriorityToEliminate ?? false,
+    }));
+
+    const optedOutState = payload.optOut?.isOptedOut === true;
+
+    return {
+      liabilities: hydratedLiabilities.length > 0 ? hydratedLiabilities : [createLiability(1)],
+      optedOut: optedOutState,
+      optOutReason: payload.optOut?.reason ?? '',
+    };
+  }, []);
+
+  const applyHydratedState = useCallback(
+    ({ liabilities: nextLiabilities, optedOut: nextOptedOut, optOutReason: nextReason }: HydratedState) => {
+      setLiabilities(nextLiabilities);
+      setOptedOut(nextOptedOut);
+      setOptOutReason(nextReason ?? '');
+    },
+    [],
+  );
+
+  useSectionHydration({
+    sectionKey: 'liabilities',
+    userId,
+    fetcher: fetchLiabilitiesProfile,
+    mapPayloadToState,
+    applyState: applyHydratedState,
+  });
 
   const handleLiabilityChange = <K extends keyof LiabilityFormState>(id: string, key: K, value: LiabilityFormState[K]) => {
     setLiabilities((prev) => prev.map((item) => (item.id === id ? { ...item, [key]: value } : item)));

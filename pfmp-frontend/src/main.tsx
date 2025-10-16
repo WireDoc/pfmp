@@ -1,13 +1,19 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import './index.css';
-import { AppRouter } from './AppRouter';
-import { AuthProvider } from './contexts/AuthContext';
-import { OnboardingProvider } from './onboarding/OnboardingContext';
-import { ThemeProvider, CssBaseline } from '@mui/material';
-import { pfmpTheme } from './theme/pfmpTheme';
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import "./index.css";
+import { AppRouter } from "./AppRouter";
+import { AuthProvider } from "./contexts/AuthContext";
+import { OnboardingProvider } from "./onboarding/OnboardingContext";
+import { ThemeProvider, CssBaseline } from "@mui/material";
+import { pfmpTheme } from "./theme/pfmpTheme";
 
-createRoot(document.getElementById('root')!).render(
+const rootElement = document.getElementById("root");
+
+if (!rootElement) {
+  throw new Error("Root element not found");
+}
+
+createRoot(rootElement).render(
   <StrictMode>
     <ThemeProvider theme={pfmpTheme}>
       <CssBaseline />
@@ -17,5 +23,5 @@ createRoot(document.getElementById('root')!).render(
         </OnboardingProvider>
       </AuthProvider>
     </ThemeProvider>
-  </StrictMode>
+  </StrictMode>,
 );

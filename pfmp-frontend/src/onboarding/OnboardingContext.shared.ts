@@ -10,6 +10,7 @@ export interface OnboardingContextValue {
   statuses: Record<OnboardingStepId, FinancialProfileSectionStatusValue>;
   goNext: () => void;
   goPrev: () => void;
+  goToStep: (id: OnboardingStepId) => void;
   markComplete: (id?: OnboardingStepId) => void;
   updateStatus: (id: OnboardingStepId, status: FinancialProfileSectionStatusValue) => void;
   reset: () => Promise<void>;

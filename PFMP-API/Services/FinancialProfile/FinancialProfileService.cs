@@ -527,6 +527,340 @@ namespace PFMP_API.Services.FinancialProfile
             return _db.FinancialProfileSnapshots.AsNoTracking().FirstOrDefaultAsync(s => s.UserId == userId, ct);
         }
 
+        public async Task<HouseholdProfileInput> GetHouseholdAsync(int userId, CancellationToken ct = default)
+        {
+            var user = await RequireUserAsync(userId, ct);
+            var optOut = await GetSectionOptOutAsync(userId, "household", ct);
+
+            return new HouseholdProfileInput
+            {
+                PreferredName = user.PreferredName,
+                MaritalStatus = user.MaritalStatus,
+                DependentCount = user.DependentCount,
+                ServiceNotes = user.HouseholdServiceNotes,
+                OptOut = optOut
+            };
+        }
+
+        public async Task<RiskGoalsInput> GetRiskGoalsAsync(int userId, CancellationToken ct = default)
+        {
+            var user = await RequireUserAsync(userId, ct);
+            var optOut = await GetSectionOptOutAsync(userId, "risk-goals", ct);
+
+            return new RiskGoalsInput
+            {
+                RiskTolerance = user.RiskTolerance,
+                TargetRetirementDate = user.TargetRetirementDate,
+                PassiveIncomeGoal = user.TargetMonthlyPassiveIncome,
+                EmergencyFundTarget = user.EmergencyFundTarget,
+                LiquidityBufferMonths = null,
+                OptOut = optOut
+            };
+        }
+
+        public async Task<TspAllocationInput> GetTspAsync(int userId, CancellationToken ct = default)
+        {
+            var profile = await _db.TspProfiles.AsNoTracking().FirstOrDefaultAsync(t => t.UserId == userId, ct);
+            var optOut = await GetSectionOptOutAsync(userId, "tsp", ct);
+
+            if (optOut == null && profile?.IsOptedOut == true)
+            {
+                optOut = new SectionOptOut
+                {
+                    IsOptedOut = true,
+                    Reason = profile.OptOutReason,
+                    AcknowledgedAt = profile.OptOutAcknowledgedAt
+                };
+            }
+
+            return new TspAllocationInput
+            {
+                ContributionRatePercent = profile?.ContributionRatePercent ?? 0m,
+                EmployerMatchPercent = profile?.EmployerMatchPercent ?? 0m,
+                CurrentBalance = profile?.CurrentBalance ?? 0m,
+                TargetBalance = profile?.TargetBalance ?? 0m,
+                GFundPercent = profile?.GFundPercent ?? 0m,
+                FFundPercent = profile?.FFundPercent ?? 0m,
+                CFundPercent = profile?.CFundPercent ?? 0m,
+                SFundPercent = profile?.SFundPercent ?? 0m,
+                IFundPercent = profile?.IFundPercent ?? 0m,
+                LifecyclePercent = profile?.LifecyclePercent,
+                LifecycleBalance = profile?.LifecycleBalance,
+                OptOut = optOut
+            };
+        }
+
+        public async Task<CashAccountsInput> GetCashAccountsAsync(int userId, CancellationToken ct = default)
+        {
+            var accounts = await _db.CashAccounts.AsNoTracking()
+                .Where(a => a.UserId == userId)
+                .OrderBy(a => a.CreatedAt)
+                .Select(a => new CashAccountInput
+                {
+                    Nickname = a.Nickname,
+                    AccountType = a.AccountType,
+                    Institution = a.Institution,
+                    Balance = a.Balance,
+                    InterestRateApr = a.InterestRateApr,
+                    IsEmergencyFund = a.IsEmergencyFund,
+                    RateLastChecked = a.RateLastChecked
+                })
+                .ToListAsync(ct);
+
+            var optOut = await GetSectionOptOutAsync(userId, "cash", ct);
+
+            return new CashAccountsInput
+            {
+                Accounts = accounts,
+                OptOut = optOut
+            };
+        }
+
+        public async Task<InvestmentAccountsInput> GetInvestmentAccountsAsync(int userId, CancellationToken ct = default)
+        {
+            var accounts = await _db.InvestmentAccounts.AsNoTracking()
+                .Where(a => a.UserId == userId)
+                .OrderBy(a => a.CreatedAt)
+                .Select(a => new InvestmentAccountInput
+                {
+                    AccountName = a.AccountName,
+                    AccountCategory = a.AccountCategory,
+                    Institution = a.Institution,
+                    AssetClass = a.AssetClass,
+                    CurrentValue = a.CurrentValue,
+                    CostBasis = a.CostBasis,
+                    ContributionRatePercent = a.ContributionRatePercent,
+                    IsTaxAdvantaged = a.IsTaxAdvantaged,
+                    LastContributionDate = a.LastContributionDate
+                })
+                .ToListAsync(ct);
+
+            var optOut = await GetSectionOptOutAsync(userId, "investments", ct);
+
+            return new InvestmentAccountsInput
+            {
+                Accounts = accounts,
+                OptOut = optOut
+            };
+        }
+
+        public async Task<PropertiesInput> GetPropertiesAsync(int userId, CancellationToken ct = default)
+        {
+            var properties = await _db.Properties.AsNoTracking()
+                .Where(p => p.UserId == userId)
+                .OrderBy(p => p.CreatedAt)
+                .Select(p => new PropertyInput
+                {
+                    PropertyName = p.PropertyName,
+                    PropertyType = p.PropertyType,
+                    Occupancy = p.Occupancy,
+                    EstimatedValue = p.EstimatedValue,
+                    MortgageBalance = p.MortgageBalance,
+                    MonthlyMortgagePayment = p.MonthlyMortgagePayment,
+                    MonthlyRentalIncome = p.MonthlyRentalIncome,
+                    MonthlyExpenses = p.MonthlyExpenses,
+                    HasHeloc = p.HasHeloc
+                })
+                .ToListAsync(ct);
+
+            var optOut = await GetSectionOptOutAsync(userId, "real-estate", ct);
+
+            return new PropertiesInput
+            {
+                Properties = properties,
+                OptOut = optOut
+            };
+        }
+
+        public async Task<InsurancePoliciesInput> GetInsurancePoliciesAsync(int userId, CancellationToken ct = default)
+        {
+            var policies = await _db.FinancialProfileInsurancePolicies.AsNoTracking()
+                .Where(p => p.UserId == userId)
+                .OrderBy(p => p.CreatedAt)
+                .Select(p => new InsurancePolicyInput
+                {
+                    PolicyType = p.PolicyType,
+                    Carrier = p.Carrier,
+                    PolicyName = p.PolicyName,
+                    CoverageAmount = p.CoverageAmount,
+                    PremiumAmount = p.PremiumAmount,
+                    PremiumFrequency = p.PremiumFrequency,
+                    RenewalDate = p.RenewalDate,
+                    IsAdequateCoverage = p.IsAdequateCoverage,
+                    RecommendedCoverage = p.RecommendedCoverage
+                })
+                .ToListAsync(ct);
+
+            var optOut = await GetSectionOptOutAsync(userId, "insurance", ct);
+
+            return new InsurancePoliciesInput
+            {
+                Policies = policies,
+                OptOut = optOut
+            };
+        }
+
+        public async Task<IncomeStreamsInput> GetIncomeStreamsAsync(int userId, CancellationToken ct = default)
+        {
+            var streams = await _db.IncomeStreams.AsNoTracking()
+                .Where(s => s.UserId == userId)
+                .OrderBy(s => s.CreatedAt)
+                .Select(s => new IncomeStreamInput
+                {
+                    Name = s.Name,
+                    IncomeType = s.IncomeType,
+                    MonthlyAmount = s.MonthlyAmount,
+                    AnnualAmount = s.AnnualAmount,
+                    IsGuaranteed = s.IsGuaranteed,
+                    StartDate = s.StartDate,
+                    EndDate = s.EndDate,
+                    IsActive = s.IsActive
+                })
+                .ToListAsync(ct);
+
+            var optOut = await GetSectionOptOutAsync(userId, "income", ct);
+
+            return new IncomeStreamsInput
+            {
+                Streams = streams,
+                OptOut = optOut
+            };
+        }
+
+        public async Task<LiabilitiesInput> GetLiabilitiesAsync(int userId, CancellationToken ct = default)
+        {
+            var liabilities = await _db.LiabilityAccounts.AsNoTracking()
+                .Where(l => l.UserId == userId)
+                .OrderBy(l => l.CreatedAt)
+                .Select(l => new LiabilityAccountInput
+                {
+                    LiabilityType = l.LiabilityType,
+                    Lender = l.Lender,
+                    CurrentBalance = l.CurrentBalance,
+                    InterestRateApr = l.InterestRateApr,
+                    MinimumPayment = l.MinimumPayment,
+                    PayoffTargetDate = l.PayoffTargetDate,
+                    IsPriorityToEliminate = l.IsPriorityToEliminate
+                })
+                .ToListAsync(ct);
+
+            var optOut = await GetSectionOptOutAsync(userId, "liabilities", ct);
+
+            return new LiabilitiesInput
+            {
+                Liabilities = liabilities,
+                OptOut = optOut
+            };
+        }
+
+        public async Task<ExpensesInput> GetExpensesAsync(int userId, CancellationToken ct = default)
+        {
+            var expenses = await _db.ExpenseBudgets.AsNoTracking()
+                .Where(e => e.UserId == userId)
+                .OrderBy(e => e.CreatedAt)
+                .Select(e => new ExpenseBudgetInput
+                {
+                    Category = e.Category,
+                    MonthlyAmount = e.MonthlyAmount,
+                    IsEstimated = e.IsEstimated,
+                    Notes = e.Notes
+                })
+                .ToListAsync(ct);
+
+            var optOut = await GetSectionOptOutAsync(userId, "expenses", ct);
+
+            return new ExpensesInput
+            {
+                Expenses = expenses,
+                OptOut = optOut
+            };
+        }
+
+        public async Task<TaxProfileInput> GetTaxProfileAsync(int userId, CancellationToken ct = default)
+        {
+            var profile = await _db.TaxProfiles.AsNoTracking().FirstOrDefaultAsync(t => t.UserId == userId, ct);
+            var optOut = await GetSectionOptOutAsync(userId, "tax", ct);
+
+            return new TaxProfileInput
+            {
+                FilingStatus = profile?.FilingStatus ?? "single",
+                StateOfResidence = profile?.StateOfResidence,
+                MarginalRatePercent = profile?.MarginalRatePercent,
+                EffectiveRatePercent = profile?.EffectiveRatePercent,
+                FederalWithholdingPercent = profile?.FederalWithholdingPercent,
+                ExpectedRefundAmount = profile?.ExpectedRefundAmount,
+                ExpectedPaymentAmount = profile?.ExpectedPaymentAmount,
+                UsesCpaOrPreparer = profile?.UsesCpaOrPreparer ?? false,
+                Notes = profile?.Notes,
+                OptOut = optOut
+            };
+        }
+
+        public async Task<BenefitsInput> GetBenefitsAsync(int userId, CancellationToken ct = default)
+        {
+            var benefits = await _db.BenefitCoverages.AsNoTracking()
+                .Where(b => b.UserId == userId)
+                .OrderBy(b => b.CreatedAt)
+                .Select(b => new BenefitCoverageInput
+                {
+                    BenefitType = b.BenefitType,
+                    Provider = b.Provider,
+                    IsEnrolled = b.IsEnrolled,
+                    EmployerContributionPercent = b.EmployerContributionPercent,
+                    MonthlyCost = b.MonthlyCost,
+                    Notes = b.Notes
+                })
+                .ToListAsync(ct);
+
+            var optOut = await GetSectionOptOutAsync(userId, "benefits", ct);
+
+            return new BenefitsInput
+            {
+                Benefits = benefits,
+                OptOut = optOut
+            };
+        }
+
+        public async Task<LongTermObligationsInput> GetLongTermObligationsAsync(int userId, CancellationToken ct = default)
+        {
+            var obligations = await _db.LongTermObligations.AsNoTracking()
+                .Where(o => o.UserId == userId)
+                .OrderBy(o => o.CreatedAt)
+                .Select(o => new LongTermObligationInput
+                {
+                    ObligationName = o.ObligationName,
+                    ObligationType = o.ObligationType,
+                    TargetDate = o.TargetDate,
+                    EstimatedCost = o.EstimatedCost,
+                    FundsAllocated = o.FundsAllocated,
+                    FundingStatus = o.FundingStatus,
+                    IsCritical = o.IsCritical,
+                    Notes = o.Notes
+                })
+                .ToListAsync(ct);
+
+            var optOut = await GetSectionOptOutAsync(userId, "long-term-obligations", ct);
+
+            return new LongTermObligationsInput
+            {
+                Obligations = obligations,
+                OptOut = optOut
+            };
+        }
+
+        public async Task<EquityInterestInput> GetEquityInterestAsync(int userId, CancellationToken ct = default)
+        {
+            var interest = await _db.EquityCompensationInterests.AsNoTracking().FirstOrDefaultAsync(e => e.UserId == userId, ct);
+            var optOut = await GetSectionOptOutAsync(userId, "equity", ct);
+
+            return new EquityInterestInput
+            {
+                IsInterestedInTracking = interest?.IsInterestedInTracking ?? false,
+                Notes = interest?.Notes,
+                OptOut = optOut
+            };
+        }
+
         private async Task<User> RequireUserAsync(int userId, CancellationToken ct)
         {
             var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId, ct);
@@ -668,6 +1002,29 @@ namespace PFMP_API.Services.FinancialProfile
             if (string.IsNullOrWhiteSpace(reason)) return null;
             var trimmed = reason.Trim();
             return string.IsNullOrEmpty(trimmed) ? null : trimmed;
+        }
+
+        private async Task<SectionOptOut?> GetSectionOptOutAsync(int userId, string sectionKey, CancellationToken ct)
+        {
+            var status = await _db.FinancialProfileSectionStatuses.AsNoTracking()
+                .FirstOrDefaultAsync(s => s.UserId == userId && s.SectionKey == sectionKey, ct);
+
+            if (status == null)
+            {
+                return null;
+            }
+
+            if (status.Status == FinancialProfileSectionStatuses.OptedOut)
+            {
+                return new SectionOptOut
+                {
+                    IsOptedOut = true,
+                    Reason = status.OptOutReason,
+                    AcknowledgedAt = status.OptOutAcknowledgedAt
+                };
+            }
+
+            return null;
         }
     }
 }

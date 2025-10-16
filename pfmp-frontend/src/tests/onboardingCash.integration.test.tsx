@@ -1,11 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
+import { screen, waitFor, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { OnboardingProvider } from '../onboarding/OnboardingContext';
-import OnboardingPage from '../views/OnboardingPage';
 import type { CashAccountsProfilePayload } from '../services/financialProfileApi';
 import * as financialProfileApi from '../services/financialProfileApi';
-import { advanceToCashSection, expectSectionStatus } from './utils/onboardingTestHelpers';
+import { advanceToCashSection, expectSectionStatus, renderOnboardingPageForTest } from './utils/onboardingTestHelpers';
 
 describe('Cash Accounts onboarding section', () => {
   beforeEach(() => {
@@ -28,11 +26,7 @@ describe('Cash Accounts onboarding section', () => {
 
     const user = userEvent.setup({ delay: 0 });
 
-    render(
-      <OnboardingProvider skipAutoHydrate userId={1}>
-        <OnboardingPage />
-      </OnboardingProvider>,
-    );
+    renderOnboardingPageForTest();
 
     await advanceToCashSection(user);
 
@@ -98,11 +92,7 @@ describe('Cash Accounts onboarding section', () => {
 
     const user = userEvent.setup({ delay: 0 });
 
-    render(
-      <OnboardingProvider skipAutoHydrate userId={1}>
-        <OnboardingPage />
-      </OnboardingProvider>,
-    );
+    renderOnboardingPageForTest();
 
     await advanceToCashSection(user);
 

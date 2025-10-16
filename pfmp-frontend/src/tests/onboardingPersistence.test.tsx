@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import React from 'react';
 import { render, screen, act, waitFor } from '@testing-library/react';
 import { OnboardingProvider } from '../onboarding/OnboardingContext';
 import { useOnboarding } from '../onboarding/useOnboarding';
@@ -61,7 +60,7 @@ describe('Onboarding persistence integration', () => {
       }),
     );
 
-    render(<OnboardingProvider><TestConsumer /></OnboardingProvider>);
+  render(<OnboardingProvider><TestConsumer /></OnboardingProvider>);
 
     await waitFor(() => expect(screen.getByTestId('hydrated').textContent).toBe('yes'));
     expect(screen.getByTestId('current-step').textContent).toBe('tsp');

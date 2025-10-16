@@ -1,12 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { OnboardingProvider } from '../onboarding/OnboardingContext';
-import OnboardingPage from '../views/OnboardingPage';
 import type { IncomeStreamsProfilePayload } from '../services/financialProfileApi';
 import * as financialProfileApi from '../services/financialProfileApi';
-import { advanceToIncomeSection, expectSectionStatus } from './utils/onboardingTestHelpers';
+import { advanceToIncomeSection, expectSectionStatus, renderOnboardingPageForTest } from './utils/onboardingTestHelpers';
 
 describe('Income onboarding section', () => {
   beforeEach(() => {
@@ -39,13 +36,7 @@ describe('Income onboarding section', () => {
 
     const user = userEvent.setup({ delay: 0 });
 
-    render(
-      <MemoryRouter initialEntries={['/onboarding']}>
-        <OnboardingProvider skipAutoHydrate userId={1}>
-          <OnboardingPage />
-        </OnboardingProvider>
-      </MemoryRouter>,
-    );
+    renderOnboardingPageForTest();
 
     await advanceToIncomeSection(user, { realEstate: 'optOut', insurance: 'complete' });
 
@@ -87,6 +78,21 @@ describe('Income onboarding section', () => {
     const finalizeButton = screen.getByTestId('review-finalize');
     expect(finalizeButton).toBeEnabled();
 
+    const backButton = screen.getByRole('button', { name: 'Back' });
+    expect(backButton).not.toBeDisabled();
+    await user.click(backButton);
+    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Equity & Private Holdings' })).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: 'Next section' }));
+    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Review & Finalize' })).toBeInTheDocument());
+
+    const equityNav = screen.getByRole('button', { name: /Equity & Private Holdings/ });
+    expect(equityNav).toHaveStyle({ cursor: 'pointer' });
+    await user.click(equityNav);
+    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Equity & Private Holdings' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Next section' }));
+    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Review & Finalize' })).toBeInTheDocument());
+
     await expectSectionStatus('Income Streams', 'Completed');
     await expectSectionStatus('Equity & Private Holdings', 'Opted Out');
     await expectSectionStatus('Review & Finalize', 'Needs Info');
@@ -102,13 +108,7 @@ describe('Income onboarding section', () => {
 
     const user = userEvent.setup({ delay: 0 });
 
-    render(
-      <MemoryRouter initialEntries={['/onboarding']}>
-        <OnboardingProvider skipAutoHydrate userId={1}>
-          <OnboardingPage />
-        </OnboardingProvider>
-      </MemoryRouter>,
-    );
+    renderOnboardingPageForTest();
 
     await advanceToIncomeSection(user, { realEstate: 'optOut', insurance: 'optOut' });
 
@@ -136,6 +136,13 @@ describe('Income onboarding section', () => {
     await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Review & Finalize' })).toBeInTheDocument());
     const finalizeButton = screen.getByTestId('review-finalize');
     expect(finalizeButton).toBeEnabled();
+
+    const reviewBackButton = screen.getByRole('button', { name: 'Back' });
+    expect(reviewBackButton).not.toBeDisabled();
+    await user.click(reviewBackButton);
+    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Equity & Private Holdings' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: 'Next section' }));
+    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Review & Finalize' })).toBeInTheDocument());
 
     await expectSectionStatus('Income Streams', 'Opted Out');
     await expectSectionStatus('Equity & Private Holdings', 'Opted Out');

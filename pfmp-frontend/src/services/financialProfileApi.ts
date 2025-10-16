@@ -361,6 +361,19 @@ function mapSnapshotDto(dto: FinancialProfileSnapshotDto): FinancialProfileSnaps
   };
 }
 
+function normalizeOptOut(optOut?: SectionOptOutPayload | null): SectionOptOutPayload | null {
+  if (!optOut) return null;
+  return {
+    isOptedOut: Boolean(optOut.isOptedOut),
+    reason: optOut.reason ?? null,
+    acknowledgedAt: optOut.acknowledgedAt ?? null,
+  };
+}
+
+function ensureArray<T>(value: T[] | null | undefined): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
 export async function fetchFinancialProfileSectionStatuses(userId: number): Promise<FinancialProfileSectionStatus[]> {
   const { data } = await apiClient.get<FinancialProfileSectionStatusDto[]>(`/financial-profile/${userId}/sections`);
   return (data ?? []).map(mapStatusDto);
@@ -382,54 +395,288 @@ export async function upsertHouseholdProfile(userId: number, payload: HouseholdP
   await apiClient.post(`/financial-profile/${userId}/household`, payload);
 }
 
+export async function fetchHouseholdProfile(userId: number): Promise<HouseholdProfilePayload> {
+  const { data } = await apiClient.get<HouseholdProfilePayload>(`/financial-profile/${userId}/household`);
+  return {
+    preferredName: data?.preferredName ?? null,
+    maritalStatus: data?.maritalStatus ?? null,
+    dependentCount: data?.dependentCount ?? null,
+    serviceNotes: data?.serviceNotes ?? null,
+    optOut: normalizeOptOut(data?.optOut ?? null),
+  };
+}
+
 export async function upsertRiskGoalsProfile(userId: number, payload: RiskGoalsProfilePayload): Promise<void> {
   await apiClient.post(`/financial-profile/${userId}/risk-goals`, payload);
+}
+
+export async function fetchRiskGoalsProfile(userId: number): Promise<RiskGoalsProfilePayload> {
+  const { data } = await apiClient.get<RiskGoalsProfilePayload>(`/financial-profile/${userId}/risk-goals`);
+  return {
+    riskTolerance: data?.riskTolerance ?? null,
+    targetRetirementDate: data?.targetRetirementDate ?? null,
+    passiveIncomeGoal: data?.passiveIncomeGoal ?? null,
+    liquidityBufferMonths: data?.liquidityBufferMonths ?? null,
+    emergencyFundTarget: data?.emergencyFundTarget ?? null,
+    optOut: normalizeOptOut(data?.optOut ?? null),
+  };
 }
 
 export async function upsertTspProfile(userId: number, payload: TspProfilePayload): Promise<void> {
   await apiClient.post(`/financial-profile/${userId}/tsp`, payload);
 }
 
+export async function fetchTspProfile(userId: number): Promise<TspProfilePayload> {
+  const { data } = await apiClient.get<TspProfilePayload>(`/financial-profile/${userId}/tsp`);
+  return {
+    contributionRatePercent: data?.contributionRatePercent ?? 0,
+    employerMatchPercent: data?.employerMatchPercent ?? 0,
+    currentBalance: data?.currentBalance ?? 0,
+    targetBalance: data?.targetBalance ?? 0,
+    gFundPercent: data?.gFundPercent ?? 0,
+    fFundPercent: data?.fFundPercent ?? 0,
+    cFundPercent: data?.cFundPercent ?? 0,
+    sFundPercent: data?.sFundPercent ?? 0,
+    iFundPercent: data?.iFundPercent ?? 0,
+    lifecyclePercent: data?.lifecyclePercent ?? null,
+    lifecycleBalance: data?.lifecycleBalance ?? null,
+    optOut: normalizeOptOut(data?.optOut ?? null),
+  };
+}
+
 export async function upsertCashAccountsProfile(userId: number, payload: CashAccountsProfilePayload): Promise<void> {
   await apiClient.post(`/financial-profile/${userId}/cash`, payload);
+}
+
+export async function fetchCashAccountsProfile(userId: number): Promise<CashAccountsProfilePayload> {
+  const { data } = await apiClient.get<CashAccountsProfilePayload>(`/financial-profile/${userId}/cash`);
+  const accounts = ensureArray(data?.accounts).map((account) => ({
+    nickname: account?.nickname ?? null,
+    accountType: account?.accountType ?? 'checking',
+    institution: account?.institution ?? null,
+    balance: account?.balance ?? null,
+    interestRateApr: account?.interestRateApr ?? null,
+    isEmergencyFund: account?.isEmergencyFund ?? false,
+    rateLastChecked: account?.rateLastChecked ?? null,
+  }));
+
+  return {
+    accounts,
+    optOut: normalizeOptOut(data?.optOut ?? null),
+  };
 }
 
 export async function upsertInvestmentAccountsProfile(userId: number, payload: InvestmentAccountsProfilePayload): Promise<void> {
   await apiClient.post(`/financial-profile/${userId}/investments`, payload);
 }
 
+export async function fetchInvestmentAccountsProfile(userId: number): Promise<InvestmentAccountsProfilePayload> {
+  const { data } = await apiClient.get<InvestmentAccountsProfilePayload>(`/financial-profile/${userId}/investments`);
+  const accounts = ensureArray(data?.accounts).map((account) => ({
+    accountName: account?.accountName ?? null,
+    accountCategory: account?.accountCategory ?? 'brokerage',
+    institution: account?.institution ?? null,
+    assetClass: account?.assetClass ?? null,
+    currentValue: account?.currentValue ?? null,
+    costBasis: account?.costBasis ?? null,
+    contributionRatePercent: account?.contributionRatePercent ?? null,
+    isTaxAdvantaged: account?.isTaxAdvantaged ?? false,
+    lastContributionDate: account?.lastContributionDate ?? null,
+  }));
+
+  return {
+    accounts,
+    optOut: normalizeOptOut(data?.optOut ?? null),
+  };
+}
+
 export async function upsertPropertiesProfile(userId: number, payload: PropertiesProfilePayload): Promise<void> {
   await apiClient.post(`/financial-profile/${userId}/real-estate`, payload);
+}
+
+export async function fetchPropertiesProfile(userId: number): Promise<PropertiesProfilePayload> {
+  const { data } = await apiClient.get<PropertiesProfilePayload>(`/financial-profile/${userId}/real-estate`);
+  const properties = ensureArray(data?.properties).map((property) => ({
+    propertyName: property?.propertyName ?? null,
+    propertyType: property?.propertyType ?? 'primary',
+    occupancy: property?.occupancy ?? 'owner',
+    estimatedValue: property?.estimatedValue ?? null,
+    mortgageBalance: property?.mortgageBalance ?? null,
+    monthlyMortgagePayment: property?.monthlyMortgagePayment ?? null,
+    monthlyRentalIncome: property?.monthlyRentalIncome ?? null,
+    monthlyExpenses: property?.monthlyExpenses ?? null,
+    hasHeloc: property?.hasHeloc ?? false,
+  }));
+
+  return {
+    properties,
+    optOut: normalizeOptOut(data?.optOut ?? null),
+  };
 }
 
 export async function upsertLongTermObligationsProfile(userId: number, payload: LongTermObligationsProfilePayload): Promise<void> {
   await apiClient.post(`/financial-profile/${userId}/long-term-obligations`, payload);
 }
 
+export async function fetchLongTermObligationsProfile(userId: number): Promise<LongTermObligationsProfilePayload> {
+  const { data } = await apiClient.get<LongTermObligationsProfilePayload>(
+    `/financial-profile/${userId}/long-term-obligations`
+  );
+  const obligations = ensureArray(data?.obligations).map((obligation) => ({
+    obligationName: obligation?.obligationName ?? null,
+    obligationType: obligation?.obligationType ?? 'general',
+    targetDate: obligation?.targetDate ?? null,
+    estimatedCost: obligation?.estimatedCost ?? null,
+    fundsAllocated: obligation?.fundsAllocated ?? null,
+    fundingStatus: obligation?.fundingStatus ?? null,
+    isCritical: obligation?.isCritical ?? false,
+    notes: obligation?.notes ?? null,
+  }));
+
+  return {
+    obligations,
+    optOut: normalizeOptOut(data?.optOut ?? null),
+  };
+}
+
 export async function upsertLiabilitiesProfile(userId: number, payload: LiabilitiesProfilePayload): Promise<void> {
   await apiClient.post(`/financial-profile/${userId}/liabilities`, payload);
+}
+
+export async function fetchLiabilitiesProfile(userId: number): Promise<LiabilitiesProfilePayload> {
+  const { data } = await apiClient.get<LiabilitiesProfilePayload>(`/financial-profile/${userId}/liabilities`);
+  const liabilities = ensureArray(data?.liabilities).map((liability) => ({
+    liabilityType: liability?.liabilityType ?? null,
+    lender: liability?.lender ?? null,
+    currentBalance: liability?.currentBalance ?? null,
+    interestRateApr: liability?.interestRateApr ?? null,
+    minimumPayment: liability?.minimumPayment ?? null,
+    payoffTargetDate: liability?.payoffTargetDate ?? null,
+    isPriorityToEliminate: liability?.isPriorityToEliminate ?? false,
+  }));
+
+  return {
+    liabilities,
+    optOut: normalizeOptOut(data?.optOut ?? null),
+  };
 }
 
 export async function upsertExpensesProfile(userId: number, payload: ExpensesProfilePayload): Promise<void> {
   await apiClient.post(`/financial-profile/${userId}/expenses`, payload);
 }
 
+export async function fetchExpensesProfile(userId: number): Promise<ExpensesProfilePayload> {
+  const { data } = await apiClient.get<ExpensesProfilePayload>(`/financial-profile/${userId}/expenses`);
+  const expenses = ensureArray(data?.expenses).map((expense) => ({
+    category: expense?.category ?? null,
+    monthlyAmount: expense?.monthlyAmount ?? null,
+    isEstimated: expense?.isEstimated ?? false,
+    notes: expense?.notes ?? null,
+  }));
+
+  return {
+    expenses,
+    optOut: normalizeOptOut(data?.optOut ?? null),
+  };
+}
+
 export async function upsertTaxProfile(userId: number, payload: TaxProfilePayload): Promise<void> {
   await apiClient.post(`/financial-profile/${userId}/tax`, payload);
+}
+
+export async function fetchTaxProfile(userId: number): Promise<TaxProfilePayload> {
+  const { data } = await apiClient.get<TaxProfilePayload>(`/financial-profile/${userId}/tax`);
+  return {
+    filingStatus: data?.filingStatus ?? 'single',
+    stateOfResidence: data?.stateOfResidence ?? null,
+    marginalRatePercent: data?.marginalRatePercent ?? null,
+    effectiveRatePercent: data?.effectiveRatePercent ?? null,
+    federalWithholdingPercent: data?.federalWithholdingPercent ?? null,
+    expectedRefundAmount: data?.expectedRefundAmount ?? null,
+    expectedPaymentAmount: data?.expectedPaymentAmount ?? null,
+    usesCpaOrPreparer: data?.usesCpaOrPreparer ?? false,
+    notes: data?.notes ?? null,
+    optOut: normalizeOptOut(data?.optOut ?? null),
+  };
 }
 
 export async function upsertInsurancePoliciesProfile(userId: number, payload: InsurancePoliciesProfilePayload): Promise<void> {
   await apiClient.post(`/financial-profile/${userId}/insurance`, payload);
 }
 
+export async function fetchInsurancePoliciesProfile(userId: number): Promise<InsurancePoliciesProfilePayload> {
+  const { data } = await apiClient.get<InsurancePoliciesProfilePayload>(`/financial-profile/${userId}/insurance`);
+  const policies = ensureArray(data?.policies).map((policy) => ({
+    policyType: policy?.policyType ?? null,
+    carrier: policy?.carrier ?? null,
+    policyName: policy?.policyName ?? null,
+    coverageAmount: policy?.coverageAmount ?? null,
+    premiumAmount: policy?.premiumAmount ?? null,
+    premiumFrequency: policy?.premiumFrequency ?? null,
+    renewalDate: policy?.renewalDate ?? null,
+    isAdequateCoverage: policy?.isAdequateCoverage ?? false,
+    recommendedCoverage: policy?.recommendedCoverage ?? null,
+  }));
+
+  return {
+    policies,
+    optOut: normalizeOptOut(data?.optOut ?? null),
+  };
+}
+
 export async function upsertBenefitsProfile(userId: number, payload: BenefitsProfilePayload): Promise<void> {
   await apiClient.post(`/financial-profile/${userId}/benefits`, payload);
+}
+
+export async function fetchBenefitsProfile(userId: number): Promise<BenefitsProfilePayload> {
+  const { data } = await apiClient.get<BenefitsProfilePayload>(`/financial-profile/${userId}/benefits`);
+  const benefits = ensureArray(data?.benefits).map((benefit) => ({
+    benefitType: benefit?.benefitType ?? null,
+    provider: benefit?.provider ?? null,
+    isEnrolled: benefit?.isEnrolled ?? false,
+    employerContributionPercent: benefit?.employerContributionPercent ?? null,
+    monthlyCost: benefit?.monthlyCost ?? null,
+    notes: benefit?.notes ?? null,
+  }));
+
+  return {
+    benefits,
+    optOut: normalizeOptOut(data?.optOut ?? null),
+  };
 }
 
 export async function upsertIncomeStreamsProfile(userId: number, payload: IncomeStreamsProfilePayload): Promise<void> {
   await apiClient.post(`/financial-profile/${userId}/income`, payload);
 }
 
+export async function fetchIncomeStreamsProfile(userId: number): Promise<IncomeStreamsProfilePayload> {
+  const { data } = await apiClient.get<IncomeStreamsProfilePayload>(`/financial-profile/${userId}/income`);
+  const streams = ensureArray(data?.streams).map((stream) => ({
+    name: stream?.name ?? null,
+    incomeType: stream?.incomeType ?? 'salary',
+    monthlyAmount: stream?.monthlyAmount ?? null,
+    annualAmount: stream?.annualAmount ?? null,
+    isGuaranteed: stream?.isGuaranteed ?? false,
+    startDate: stream?.startDate ?? null,
+    endDate: stream?.endDate ?? null,
+    isActive: stream?.isActive ?? true,
+  }));
+
+  return {
+    streams,
+    optOut: normalizeOptOut(data?.optOut ?? null),
+  };
+}
+
 export async function upsertEquityInterest(userId: number, payload: EquityInterestPayload): Promise<void> {
   await apiClient.post(`/financial-profile/${userId}/equity`, payload);
+}
+
+export async function fetchEquityInterest(userId: number): Promise<EquityInterestPayload> {
+  const { data } = await apiClient.get<EquityInterestPayload>(`/financial-profile/${userId}/equity`);
+  return {
+    isInterestedInTracking: data?.isInterestedInTracking ?? false,
+    notes: data?.notes ?? null,
+    optOut: normalizeOptOut(data?.optOut ?? null),
+  };
 }
