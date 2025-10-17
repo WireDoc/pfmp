@@ -43,7 +43,7 @@ function Invoke-PgQuery {
 ## Migrations
 EF migrations are in `PFMP-API/Migrations/` plus snapshot. Add new one:
 ```powershell
-cd P:\PFMP-API; dotnet ef migrations add MeaningfulName; dotnet ef database update
+cd C:\pfmp\PFMP-API; dotnet ef migrations add MeaningfulName; dotnet ef database update
 ```
 
 ## Safety

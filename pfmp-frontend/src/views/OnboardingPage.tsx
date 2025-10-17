@@ -65,6 +65,7 @@ export default function OnboardingPage() {
     canFinalize,
     reviewStatus,
     onFinalize: handleFinalize,
+    onSelectStep: goToStep,
   });
 
   return (

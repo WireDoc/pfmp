@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import type { FinancialProfileSectionStatusValue } from '../../services/financialProfileApi';
 import type { OnboardingStepRegistryEntry } from '../stepRegistry';
@@ -60,6 +60,8 @@ export function ProfileStepLayout({
   const current = steps[currentIndex];
   const currentStatus: FinancialProfileSectionStatusValue = statuses[current.id] ?? 'needs_info';
   const isReviewStep = current.id === reviewStepId;
+  const sectionRef = useRef<HTMLDivElement | null>(null);
+  type MaybeScrollable = { scrollIntoView?: (arg?: boolean | ScrollIntoViewOptions) => void };
 
   const outstandingTotal = useMemo(() => {
     let outstanding = 0;
@@ -72,7 +74,24 @@ export function ProfileStepLayout({
   }, [steps, statuses]);
 
   const sectionPosition = `${currentIndex + 1} of ${steps.length}`;
-  const allowStepSelection = Boolean(onSelectStep) && isReviewStep;
+  // Allow selecting steps from the sidebar at all times (not only on the review step)
+  const allowStepSelection = Boolean(onSelectStep);
+
+  // Keep the main form section in view on step changes
+  useEffect(() => {
+    const el = sectionRef.current as unknown as MaybeScrollable | null;
+    if (!el || typeof el.scrollIntoView !== 'function') return;
+    try {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+    } catch {
+      // Fallback or environments without options support
+      try {
+        el.scrollIntoView(true);
+      } catch {
+        // silently ignore if not supported
+      }
+    }
+  }, [currentIndex]);
 
   return (
     <div style={{ maxWidth: 960, margin: '32px auto', padding: '0 24px 64px' }}>
@@ -117,7 +136,18 @@ export function ProfileStepLayout({
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 24, alignItems: 'flex-start' }}>
-        <aside style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: 12, padding: 16 }}>
+        <aside
+          style={{
+            background: '#fff',
+            border: '1px solid #e0e0e0',
+            borderRadius: 12,
+            padding: 16,
+            position: 'sticky',
+            top: 16,
+            maxHeight: 'calc(100vh - 32px)',
+            overflowY: 'auto',
+          }}
+        >
           <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
             {steps.map((step, index) => {
               const status = statuses[step.id] ?? 'needs_info';
@@ -150,6 +180,14 @@ export function ProfileStepLayout({
                       color: 'inherit',
                       font: 'inherit',
                       opacity: selectionEnabled ? 1 : 0.94,
+                      transition: 'background 120ms ease, border-color 120ms ease',
+                    }}
+                    onKeyDown={(e) => {
+                      if (!selectionEnabled) return;
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onSelectStep?.(step.id);
+                      }
                     }}
                   >
                     <span
@@ -195,6 +233,7 @@ export function ProfileStepLayout({
         </aside>
 
         <section
+          ref={sectionRef}
           style={{
             background: '#fff',
             borderRadius: 12,

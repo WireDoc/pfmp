@@ -27,11 +27,69 @@ namespace PFMP_API.Services.FinancialProfile
 
         private readonly ApplicationDbContext _db;
         private readonly ILogger<FinancialProfileService> _logger;
+        private readonly IMarketDataService _market;
 
-        public FinancialProfileService(ApplicationDbContext db, ILogger<FinancialProfileService> logger)
+        public FinancialProfileService(ApplicationDbContext db, ILogger<FinancialProfileService> logger, IMarketDataService market)
         {
             _db = db;
             _logger = logger;
+            _market = market;
+        }
+
+        // Normalize UI/DB fund codes to MarketDataService price keys
+        private static string NormalizeTspPriceKey(string code)
+        {
+            if (string.IsNullOrWhiteSpace(code)) return string.Empty;
+            var c = code.Trim().ToUpperInvariant();
+            // Base funds
+            switch (c)
+            {
+                case "G": return "G_FUND";
+                case "F": return "F_FUND";
+                case "C": return "C_FUND";
+                case "S": return "S_FUND";
+                case "I": return "I_FUND";
+            }
+
+            // Lifecycle variants we may store as L2030, L_2030, LINCOME, L_INCOME
+            if (c == "LINCOME" || c == "L-INCOME") return "L_INCOME";
+            if (c.StartsWith("L") && c.Length >= 2)
+            {
+                // Already normalized like L_2030
+                if (c.StartsWith("L_")) return c;
+                // Convert L2030 -> L_2030
+                if (char.IsDigit(c[1]))
+                {
+                    return "L_" + c.Substring(1);
+                }
+            }
+
+            return c;
+        }
+
+        // Compute the TSP snapshot "as-of" day (prior close). We approximate close as 22:00 UTC and skip weekends.
+        private static DateTime GetTspAsOfUtc(DateTime nowUtc)
+        {
+            DateTime date = nowUtc;
+
+            // If before approx 22:00 UTC (4-6pm ET, DST-adjusted), use previous business day
+            if (date.TimeOfDay < TimeSpan.FromHours(22))
+            {
+                date = date.Date.AddDays(-1);
+            }
+            else
+            {
+                date = date.Date; // today
+            }
+
+            // Roll back to previous Friday if weekend
+            while (date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday)
+            {
+                date = date.AddDays(-1);
+            }
+
+            // Return date aligned to midnight UTC for stable equality
+            return DateTime.SpecifyKind(date, DateTimeKind.Utc);
         }
 
         public async Task UpsertHouseholdAsync(int userId, HouseholdProfileInput input, CancellationToken ct = default)
@@ -140,6 +198,26 @@ namespace PFMP_API.Services.FinancialProfile
                 tsp.LifecyclePercent = input.LifecyclePercent;
                 tsp.LifecycleBalance = input.LifecycleBalance;
                 tsp.LastUpdatedAt = DateTime.UtcNow;
+
+                // Replace lifecycle positions for this user with provided set
+                await _db.TspLifecyclePositions.Where(p => p.UserId == userId).ExecuteDeleteAsync(ct);
+                if (input.LifecyclePositions != null && input.LifecyclePositions.Count > 0)
+                {
+                    var now = DateTime.UtcNow;
+                    foreach (var p in input.LifecyclePositions)
+                    {
+                        if (string.IsNullOrWhiteSpace(p.FundCode)) continue;
+                        _db.TspLifecyclePositions.Add(new Models.FinancialProfile.TspLifecyclePosition
+                        {
+                            UserId = userId,
+                            FundCode = p.FundCode.Trim().ToUpperInvariant(),
+                            AllocationPercent = p.AllocationPercent,
+                            Units = p.Units,
+                            CreatedAt = now,
+                            UpdatedAt = now
+                        });
+                    }
+                }
             }
 
             await UpdateSectionStatusAsync(userId, "tsp", input.OptOut, input.OptOut?.IsOptedOut != true, ct);
@@ -573,7 +651,7 @@ namespace PFMP_API.Services.FinancialProfile
                 };
             }
 
-            return new TspAllocationInput
+            var input = new TspAllocationInput
             {
                 ContributionRatePercent = profile?.ContributionRatePercent ?? 0m,
                 EmployerMatchPercent = profile?.EmployerMatchPercent ?? 0m,
@@ -588,6 +666,20 @@ namespace PFMP_API.Services.FinancialProfile
                 LifecycleBalance = profile?.LifecycleBalance,
                 OptOut = optOut
             };
+
+            var positions = await _db.TspLifecyclePositions.AsNoTracking()
+                .Where(p => p.UserId == userId)
+                .OrderBy(p => p.FundCode)
+                .Select(p => new TspLifecyclePositionInput
+                {
+                    FundCode = p.FundCode,
+                    AllocationPercent = p.AllocationPercent,
+                    Units = p.Units
+                })
+                .ToListAsync(ct);
+            input.LifecyclePositions = positions;
+
+            return input;
         }
 
         public async Task<CashAccountsInput> GetCashAccountsAsync(int userId, CancellationToken ct = default)
@@ -997,6 +1089,178 @@ namespace PFMP_API.Services.FinancialProfile
             await _db.SaveChangesAsync(ct);
         }
 
+        public async Task<TspSummary> GetTspSummaryAsync(int userId, CancellationToken ct = default)
+        {
+            // Gather positions: base funds from TspProfile allocation (units unknown) and lifecycle positions (units known)
+            var tsp = await _db.TspProfiles.AsNoTracking().FirstOrDefaultAsync(t => t.UserId == userId, ct);
+            var lifecycle = await _db.TspLifecyclePositions.AsNoTracking()
+                .Where(p => p.UserId == userId)
+                .ToListAsync(ct);
+
+            // Map fund codes for base funds
+            var baseFunds = new List<(string code, decimal percent)>
+            {
+                ("G", tsp?.GFundPercent ?? 0m),
+                ("F", tsp?.FFundPercent ?? 0m),
+                ("C", tsp?.CFundPercent ?? 0m),
+                ("S", tsp?.SFundPercent ?? 0m),
+                ("I", tsp?.IFundPercent ?? 0m)
+            };
+
+            // Fetch market prices for all codes we care about
+            var codes = baseFunds.Where(b => b.percent > 0).Select(b => b.code)
+                .Concat(lifecycle.Select(l => l.FundCode))
+                .Distinct()
+                .ToList();
+            var prices = await _market.GetTSPFundPricesAsync();
+
+            // Build items
+            var items = new List<TspSummaryItem>();
+            decimal totalMarket = 0m;
+            var asOf = GetTspAsOfUtc(DateTime.UtcNow);
+
+            // Lifecycle funds with units
+            foreach (var lf in lifecycle)
+            {
+                var priceKey = NormalizeTspPriceKey(lf.FundCode);
+                if (!prices.TryGetValue(priceKey, out var p)) continue;
+                var mv = Math.Round(lf.Units * p.Price, 2);
+                items.Add(new TspSummaryItem
+                {
+                    FundCode = lf.FundCode,
+                    Price = p.Price,
+                    Units = lf.Units,
+                    MarketValue = mv,
+                    AllocationPercent = lf.AllocationPercent,
+                });
+                totalMarket += mv;
+            }
+
+            // Base funds: assume allocation of current balance proportionally (if we have CurrentBalance)
+            if (tsp != null && tsp.CurrentBalance > 0)
+            {
+                foreach (var (code, pct) in baseFunds)
+                {
+                    if (pct <= 0) continue;
+                    var priceKey = NormalizeTspPriceKey(code);
+                    if (!prices.TryGetValue(priceKey, out var p)) continue;
+                    var mv = Math.Round((tsp.CurrentBalance * (pct / 100m)), 2);
+                    var units = p.Price > 0 ? Math.Round(mv / p.Price, 6) : 0m;
+                    items.Add(new TspSummaryItem
+                    {
+                        FundCode = code,
+                        Price = p.Price,
+                        Units = units,
+                        MarketValue = mv,
+                        AllocationPercent = pct
+                    });
+                    totalMarket += mv;
+                }
+            }
+
+            // Compute mix %
+            if (totalMarket > 0)
+            {
+                foreach (var it in items)
+                {
+                    it.MixPercent = Math.Round((it.MarketValue / totalMarket) * 100m, 4);
+                }
+            }
+
+            return new TspSummary
+            {
+                Items = items.OrderBy(i => i.FundCode).ToList(),
+                TotalMarketValue = totalMarket,
+                AsOfUtc = asOf
+            };
+        }
+
+        public async Task CreateTspSnapshotAsync(int userId, CancellationToken ct = default)
+        {
+            var asOf = GetTspAsOfUtc(DateTime.UtcNow);
+
+            // Idempotency: if we've already captured a snapshot for this user+asOf, do nothing
+            var exists = await _db.TspPositionSnapshots
+                .AsNoTracking()
+                .AnyAsync(s => s.UserId == userId && s.AsOfUtc == asOf, ct);
+            if (exists)
+            {
+                return;
+            }
+
+            var summary = await GetTspSummaryAsync(userId, ct);
+
+            // Nothing to snapshot
+            if (summary.Items.Count == 0)
+            {
+                return;
+            }
+
+            await using var tx = await _db.Database.BeginTransactionAsync(ct);
+
+            // Clean any partial rows for this day (defensive), then insert
+            await _db.TspPositionSnapshots.Where(s => s.UserId == userId && s.AsOfUtc == asOf).ExecuteDeleteAsync(ct);
+
+            foreach (var item in summary.Items)
+            {
+                _db.TspPositionSnapshots.Add(new Models.FinancialProfile.TspPositionSnapshot
+                {
+                    UserId = userId,
+                    FundCode = item.FundCode,
+                    Price = item.Price,
+                    Units = item.Units,
+                    MarketValue = item.MarketValue,
+                    MixPercent = item.MixPercent,
+                    AllocationPercent = item.AllocationPercent,
+                    AsOfUtc = asOf,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            await _db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+
+        public async Task<TspSnapshotMeta?> GetLatestTspSnapshotMetaAsync(int userId, CancellationToken ct = default)
+        {
+            // Find the most recent AsOfUtc date for which we have any snapshot rows for this user
+            var latestAsOf = await _db.TspPositionSnapshots.AsNoTracking()
+                .Where(s => s.UserId == userId)
+                .OrderByDescending(s => s.AsOfUtc)
+                .Select(s => s.AsOfUtc)
+                .FirstOrDefaultAsync(ct);
+
+            if (latestAsOf == default)
+            {
+                return null;
+            }
+
+            // Aggregate metadata for that as-of date
+            var rows = await _db.TspPositionSnapshots.AsNoTracking()
+                .Where(s => s.UserId == userId && s.AsOfUtc == latestAsOf)
+                .ToListAsync(ct);
+
+            if (rows.Count == 0)
+            {
+                return null;
+            }
+
+            var fundCount = rows
+                .Select(r => r.FundCode)
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Count();
+            var totalMv = rows.Sum(r => r.MarketValue);
+            var capturedAt = rows.Max(r => (DateTime?)r.CreatedAt) ?? null;
+
+            return new TspSnapshotMeta
+            {
+                AsOfUtc = latestAsOf,
+                FundCount = fundCount,
+                TotalMarketValue = totalMv,
+                CapturedAtUtc = capturedAt
+            };
+        }
         private static string? NormalizeReason(string? reason)
         {
             if (string.IsNullOrWhiteSpace(reason)) return null;

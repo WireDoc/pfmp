@@ -34,7 +34,7 @@ Alternatively, run this PowerShell script to add the redirect URIs automatically
 
 ```powershell
 # Add-RedirectUris.ps1
-# Run this from P:\PFMP-API directory
+# Run this from C:\pfmp\PFMP-API directory
 
 # Connect to Microsoft Graph
 Connect-MgGraph -Scopes "Application.ReadWrite.All"

@@ -13,6 +13,7 @@ import { TasksPanel } from './dashboard/TasksPanel';
 import { QuickStatsPanel } from './dashboard/QuickStatsPanel';
 import { useAuth } from '../contexts/auth/useAuth';
 import { getDashboardService, TASK_PRIORITY_TO_ENUM, DEFAULT_TASK_PRIORITY_ENUM } from '../services/dashboard';
+import { ensureTspSnapshotFresh } from '../services/financialProfileApi';
 import type {
   AdviceItem,
   AlertCard,
@@ -93,6 +94,17 @@ export const DashboardWave4: React.FC = () => {
     if (typeof console !== 'undefined' && typeof console.debug === 'function') {
       console.debug('[telemetry][dashboard-wave4]', event, payload);
     }
+  }, []);
+
+  useEffect(() => {
+    // Ensure daily TSP snapshot is captured for analytics. Backend is idempotent per user+day.
+    // TODO(ops): Replace this on-load trigger with a server-side scheduled job (e.g., Hangfire/Quartz) and remove this effect.
+    const uid = user?.localAccountId ? Number(user.localAccountId) : undefined;
+    if (uid && Number.isFinite(uid)) {
+      void ensureTspSnapshotFresh(uid);
+    }
+  // run only on first mount when user is known
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

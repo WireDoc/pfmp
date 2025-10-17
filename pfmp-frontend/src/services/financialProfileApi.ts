@@ -66,6 +66,12 @@ export interface TspProfilePayload {
   iFundPercent?: number | null;
   lifecyclePercent?: number | null;
   lifecycleBalance?: number | null;
+  // New: granular lifecycle positions (e.g., L2030, L2035, ... L2075)
+  lifecyclePositions?: Array<{
+    fundCode: 'L2030' | 'L2035' | 'L2040' | 'L2045' | 'L2050' | 'L2055' | 'L2060' | 'L2065' | 'L2070' | 'L2075';
+    allocationPercent?: number | null;
+    units?: number | null;
+  }> | null;
   optOut?: SectionOptOutPayload | null;
 }
 
@@ -308,6 +314,23 @@ function assertSectionKey(value: string): value is FinancialProfileSectionKey {
   );
 }
 
+// Temporary freshness guard: trigger a daily TSP snapshot on demand.
+// This will be replaced by a background job (server-side scheduler) later.
+export async function ensureTspSnapshotFresh(userId: number): Promise<void> {
+  try {
+    // Backend is idempotent per user+asOf; safe to call unconditionally on dashboard load.
+    await apiClient.post(`/api/financial-profile/${userId}/tsp/snapshot`);
+  } catch (err) {
+    // Non-fatal: dashboard can continue even if snapshot creation fails.
+    // Vite: use import.meta.env.MODE for environment checks
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mode = (import.meta as any)?.env?.MODE ?? 'production';
+    if (mode !== 'production') {
+      console.debug('[tsp] snapshot ensure failed (non-fatal):', err);
+    }
+  }
+}
+
 function mapStatusDto(dto: FinancialProfileSectionStatusDto): FinancialProfileSectionStatus {
   const key = assertSectionKey(dto.sectionKey) ? dto.sectionKey : 'household';
   return {
@@ -440,6 +463,7 @@ export async function fetchTspProfile(userId: number): Promise<TspProfilePayload
     iFundPercent: data?.iFundPercent ?? 0,
     lifecyclePercent: data?.lifecyclePercent ?? null,
     lifecycleBalance: data?.lifecycleBalance ?? null,
+    lifecyclePositions: Array.isArray(data?.lifecyclePositions) ? data?.lifecyclePositions ?? [] : [],
     optOut: normalizeOptOut(data?.optOut ?? null),
   };
 }

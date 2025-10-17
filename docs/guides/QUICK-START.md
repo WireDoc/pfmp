@@ -7,30 +7,32 @@
 
 ## Start Both Services (Preferred)
 ```powershell
-cd P:; .\start-dev-servers.bat
+cd C:\pfmp
+./start-dev-servers.bat
 ```
 Opens two external windows (API on 5052, frontend on 3000).
 
 ## Manual Start
 ```powershell
-cd P:\PFMP-API; dotnet run --launch-profile http
-cd P:\pfmp-frontend; npm run dev
+cd C:\pfmp\PFMP-API; dotnet run --launch-profile http
+cd C:\pfmp\pfmp-frontend; npm run dev
 ```
 
 ## Health Checks
 ```powershell
-cd P:; Invoke-WebRequest -Uri "http://localhost:5052/weatherforecast"
-cd P:; Invoke-WebRequest -Uri "http://localhost:5052/api/auth/config"
-cd P:; Invoke-WebRequest -Uri "http://localhost:3000"
+cd C:\pfmp
+Invoke-WebRequest -Uri "http://localhost:5052/health" | Select-Object StatusCode
+Invoke-WebRequest -Uri "http://localhost:5052/api/auth/config" | Select-Object Content
+Invoke-WebRequest -Uri "http://localhost:3000" | Select-Object StatusCode
 ```
 
 ## Typical Workflow
-1. Pull latest: `cd P:; git pull`
+1. Pull latest: `cd C:\pfmp; git pull`
 2. Start services (batch)
 3. Edit frontend (hot reload)
 4. Hit API endpoints (Invoke-WebRequest)
 5. Restart backend only for server changes
-6. Build before big refactors: `cd P:\pfmp-frontend; npm run build`
+6. Build before big refactors: `cd C:\pfmp\pfmp-frontend; npm run build`
 7. Commit grouped logical changes
 
 ## Dev Auth Mode
@@ -40,7 +42,7 @@ cd P:; Invoke-WebRequest -Uri "http://localhost:3000"
 
 ## Fast Commands Cheat
 ```powershell
-cd P:; git status; git log --oneline -5
+cd C:\pfmp; git status; git log --oneline -5
 Get-Process | Where-Object { $_.ProcessName -match "(dotnet|node)" }
 ```
 

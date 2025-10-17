@@ -31,7 +31,7 @@ Stop-Process -Name "node" -Force -ErrorAction SilentlyContinue
 
 ## Quick Commands
 ```powershell
-cd P:; git status; git log --oneline -5
+cd C:\pfmp; git status; git log --oneline -5
 Invoke-WebRequest -Uri "http://localhost:5052/weatherforecast"
 Invoke-WebRequest -Uri "http://localhost:5052/api/Advice/user/1"
 Invoke-WebRequest -Uri "http://localhost:5052/api/onboarding/progress"

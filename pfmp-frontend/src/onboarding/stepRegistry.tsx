@@ -27,6 +27,7 @@ export interface StepRendererContext {
   canFinalize: boolean;
   reviewStatus: FinancialProfileSectionStatusValue;
   onFinalize: () => void;
+  onSelectStep?: (id: OnboardingStepId) => void;
 }
 
 type StepRenderer = (context: StepRendererContext) => ReactNode;
@@ -88,6 +89,7 @@ const reviewRenderer = (ctx: StepRendererContext) => {
     canFinalize: ctx.canFinalize,
     reviewStatus: ctx.reviewStatus,
     onFinalize: ctx.onFinalize,
+    onSelectStep: ctx.onSelectStep,
   };
   return <ReviewSectionPanel {...panelProps} />;
 };
