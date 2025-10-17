@@ -55,7 +55,7 @@ build-all.bat -SkipBackend
 ```
 Run PowerShell script directly:
 ```
-powershell -ExecutionPolicy Bypass -File scripts/ci-build.ps1
+pwsh -ExecutionPolicy Bypass -File C:\pfmp\scripts\ci-build.ps1
 ```
 
 ## Failure Diagnosis
@@ -125,9 +125,9 @@ Fails fast with non-zero exit on any failure.
 > Experimental: Docker support is currently marked **experimental** due to build instability on mapped Windows drives. Use native `dotnet run` for day‑to‑day development; containers are optional for integration/system testing. Issues encountered: read-only filesystem errors during multi-stage build layer commit on a mapped `W:` drive. Workaround (deferred): build/publish on host, copy publish output into a slim runtime image.
 
 ### Compose Startup (API only, external DB)
-Create a `.env` from `.env.example` and set `EXTERNAL_DB_CONN`.
+Create a `.env` from `.env.example` in `C:\pfmp` and set `EXTERNAL_DB_CONN`.
 ```
-docker compose -f docker/docker-compose.yml up --build -d
+docker compose -f C:\pfmp\docker\docker-compose.yml up --build -d
 ```
 Services started:
 - `api`: PFMP-API (host port 5052, container 8080)
@@ -149,8 +149,8 @@ Removes containers and the named volume `pgdata`.
 - For fastest C# feedback keep using `dotnet run` locally; reserve containers for integration/system tests.
 Rebuild only API layer after code changes:
 ```
-docker compose -f docker/docker-compose.yml build api
-docker compose -f docker/docker-compose.yml up -d api
+docker compose -f C:\pfmp\docker\docker-compose.yml build api
+docker compose -f C:\pfmp\docker\docker-compose.yml up -d api
 ```
 
 ### Environment Overrides

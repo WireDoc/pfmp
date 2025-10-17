@@ -1,10 +1,11 @@
 # PFMP Documentation Map
 
-This index lists every active document under `docs/` following the subject-first taxonomy. Paths are relative to the repository root (`W:/pfmp`). Archive folders capture retired or historical material and are noted accordingly.
+This index lists every active document under `docs/` following the subject-first taxonomy. Paths are relative to the repository root (`C:\pfmp`). Archive folders capture retired or historical material and are noted accordingly.
 
 ## 📁 api
 - `docs/api/reference.md` – REST endpoints and payloads
 - `docs/api/dashboard-contract.md` – Dashboard data contract and wiring
+- `docs/api/postman.md` – How to import and use the Postman collection and environment
 - `docs/api/archive/` *(empty placeholder for future deprecated specs)*
 
 ## 🔐 auth

@@ -270,3 +270,20 @@ This documentation provides complete context for any future development session.
 | Test harness | Updated onboarding helpers for the new step and introduced `onboardingLongTermObligations.integration.test.tsx` to validate completion + opt-out flows. |
 | Docs & QA | Refreshed `docs/testing/onboarding-persistence.md` to include the new section and reference the integration test. |
 | Follow-up | Monitor MSW handlers once backend seeds real data; ensure dashboard snapshot card renders the new metrics during Wave 4 dashboard work. |
+
+## 2025-10-17 · TSP lifecycle positions and daily snapshots
+
+Migration(s):
+- AddTspLifecyclePositions
+- AddTspSnapshots
+
+| Layer | Details |
+| --- | --- |
+| Backend | Adds TspLifecyclePosition entity/DbSet and TspPositionSnapshot with idempotent once-per-day capture keyed by prior-market-close as-of (weekend-aware). Extends FinancialProfile service with TSP summary computation and latest snapshot meta. |
+| Market data | Normalizes TSP fund codes and maps lifecycle funds L2030–L2075 to provider symbols. |
+| Status | Applied to Synology Postgres at 192.168.1.108:5433 (dev DB). |
+| Frontend | Dashboard triggers a snapshot freshness check on load (temporary) and the API enforces idempotency. |
+
+Notes:
+- Snapshot creation is safe to call multiple times per day; only one record per user per as-of date is persisted.
+- Summary endpoint computes current values and mix using normalized price keys and market prices.
