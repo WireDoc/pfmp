@@ -2,72 +2,242 @@
   "info": {
     "name": "PFMP API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "1.0.0",
-    "description": "Core PFMP API endpoints grouped for development and testing. Adjust host/port if different."
+    "version": "1.1.0",
+    "description": "PFMP API endpoints grouped for development and testing. Adjust {{baseUrl}} as needed."
   },
   "item": [
     {
       "name": "Health & Docs",
       "item": [
-  {"name": "Health", "request": {"method": "GET", "url": "{{baseUrl}}/health"}},
-  {"name": "Health Ready", "request": {"method": "GET", "url": "{{baseUrl}}/health/ready"}},
-  {"name": "Swagger JSON", "request": {"method": "GET", "url": "{{baseUrl}}/swagger/v1/swagger.json"}}
+        { "name": "Health", "request": { "method": "GET", "url": "{{baseUrl}}/health" } },
+        { "name": "Health Ready", "request": { "method": "GET", "url": "{{baseUrl}}/health/ready" } },
+        { "name": "Swagger JSON", "request": { "method": "GET", "url": "{{baseUrl}}/swagger/v1/swagger.json" } },
+        { "name": "List Endpoints (Custom)", "request": { "method": "GET", "url": "{{baseUrl}}/api/docs/endpoints" } }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        { "name": "Login", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"email\": \"dev.user@pfmp.local\",\n  \"password\": \"Passw0rd!\"\n}" }, "url": "{{baseUrl}}/api/auth/login" } },
+        { "name": "Register", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"email\": \"dev+{{guid}}@pfmp.local\",\n  \"password\": \"Passw0rd!\",\n  \"firstName\": \"Dev\",\n  \"lastName\": \"User\"\n}" }, "url": "{{baseUrl}}/api/auth/register" } },
+        { "name": "Azure Login", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"azureToken\": \"fake-token\"\n}" }, "url": "{{baseUrl}}/api/auth/azure-login" } },
+        { "name": "Refresh Token", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" }, "url": "{{baseUrl}}/api/auth/refresh" } },
+        { "name": "Logout", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" }, "url": "{{baseUrl}}/api/auth/logout" } },
+        { "name": "Get Me", "request": { "method": "GET", "url": "{{baseUrl}}/api/auth/me" } },
+        { "name": "Link Azure", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"azureObjectId\": \"00000000-0000-0000-0000-000000000000\"\n}" }, "url": "{{baseUrl}}/api/auth/link-azure" } },
+        { "name": "Auth Config", "request": { "method": "GET", "url": "{{baseUrl}}/api/auth/config" } }
       ]
     },
     {
       "name": "Admin Users",
       "item": [
-  {"name": "List Users", "request": {"method": "GET", "url": "{{baseUrl}}/api/admin/users"}},
-  {"name": "Create User", "request": {"method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode": "raw", "raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Doe\",\n  \"email\": \"jane+{{guid}}@local\",\n  \"emergencyFundTarget\": 0\n}"}, "url": "{{baseUrl}}/api/admin/users"}},
-  {"name": "Create Test User (fresh)", "request": {"method": "POST", "url": "{{baseUrl}}/api/admin/users/test?scenario=fresh"}},
-  {"name": "Create Test User (mid)", "request": {"method": "POST", "url": "{{baseUrl}}/api/admin/users/test?scenario=mid"}},
-  {"name": "Create Test User (done)", "request": {"method": "POST", "url": "{{baseUrl}}/api/admin/users/test?scenario=done"}},
-  {"name": "Reset Onboarding Progress", "request": {"method": "POST", "url": "{{baseUrl}}/api/admin/users/{{userId}}/onboarding/reset"}},
-  {"name": "Delete User", "request": {"method": "DELETE", "url": "{{baseUrl}}/api/admin/users/{{userId}}"}}
+        { "name": "List Users", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/users" } },
+        { "name": "Create User", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Doe\",\n  \"email\": \"jane+{{guid}}@local\",\n  \"emergencyFundTarget\": 0\n}" }, "url": "{{baseUrl}}/api/admin/users" } },
+        { "name": "Create Test User (fresh)", "request": { "method": "POST", "url": "{{baseUrl}}/api/admin/users/test?scenario=fresh" } },
+        { "name": "Create Test User (mid)", "request": { "method": "POST", "url": "{{baseUrl}}/api/admin/users/test?scenario=mid" } },
+        { "name": "Create Test User (done)", "request": { "method": "POST", "url": "{{baseUrl}}/api/admin/users/test?scenario=done" } },
+        { "name": "Reset Onboarding Progress", "request": { "method": "POST", "url": "{{baseUrl}}/api/admin/users/{{userId}}/onboarding/reset" } },
+        { "name": "Delete User", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/admin/users/{{userId}}" } }
       ]
     },
     {
-      "name": "Dev Registry (Legacy)",
+      "name": "Dev Users",
       "item": [
-  {"name": "List Dev Users", "request": {"method": "GET", "url": "{{baseUrl}}/api/dev/users"}},
-  {"name": "Set Default Dev User", "request": {"method": "POST", "url": "{{baseUrl}}/api/dev/users/default/{{userId}}"}}
+        { "name": "List Dev Users", "request": { "method": "GET", "url": "{{baseUrl}}/api/dev/users" } },
+        { "name": "Set Default Dev User", "request": { "method": "POST", "url": "{{baseUrl}}/api/dev/users/default/{{userId}}" } }
       ]
     },
     {
       "name": "Onboarding Progress",
       "item": [
-  {"name": "Get Progress", "request": {"method": "GET", "url": "{{baseUrl}}/api/onboarding/progress?userId={{userId}}"}},
-  {"name": "Put Snapshot", "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"currentStepId\": \"welcome\",\n  \"completedStepIds\": [\"welcome\"],\n  \"stepPayloads\": { \n    \"welcome\": { \"acknowledged\": true }\n  }\n}"}, "url": "{{baseUrl}}/api/onboarding/progress?userId={{userId}}"}},
-  {"name": "Patch Step", "request": {"method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode": "raw", "raw": "{\n  \"data\": { \"nickname\": \"Tester\" },\n  \"completed\": true\n}"}, "url": "{{baseUrl}}/api/onboarding/progress/step/profile?userId={{userId}}"}},
-  {"name": "Reset Progress (legacy dev)", "request": {"method": "POST", "url": "{{baseUrl}}/api/onboarding/progress/reset?userId={{userId}}"}}
+        { "name": "Get Progress", "request": { "method": "GET", "url": "{{baseUrl}}/api/onboarding/progress?userId={{userId}}" } },
+        { "name": "Put Snapshot", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"currentStepId\": \"welcome\",\n  \"completedStepIds\": [\"welcome\"],\n  \"stepPayloads\": { \n    \"welcome\": { \"acknowledged\": true }\n  }\n}" }, "url": "{{baseUrl}}/api/onboarding/progress?userId={{userId}}" } },
+        { "name": "Patch Step", "request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"data\": { \"nickname\": \"Tester\" },\n  \"completed\": true\n}" }, "url": "{{baseUrl}}/api/onboarding/progress/step/profile?userId={{userId}}" } },
+        { "name": "Reset Progress", "request": { "method": "POST", "url": "{{baseUrl}}/api/onboarding/progress/reset?userId={{userId}}" } }
+      ]
+    },
+    {
+      "name": "Financial Profile",
+      "item": [
+        { "name": "Get Snapshot", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/snapshot" } },
+        { "name": "Section Statuses", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/sections" } },
+        { "name": "Household: Upsert", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"preferredName\": \"Pat\",\n  \"maritalStatus\": \"single\",\n  \"dependentCount\": 0\n}" }, "url": "{{baseUrl}}/api/financial-profile/{{userId}}/household" } },
+        { "name": "Household: Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/household" } },
+        { "name": "Risk & Goals: Upsert", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"riskTolerance\": 7\n}" }, "url": "{{baseUrl}}/api/financial-profile/{{userId}}/risk-goals" } },
+        { "name": "Risk & Goals: Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/risk-goals" } },
+        { "name": "TSP: Upsert", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"currentBalance\": 25000,\n  \"gFundPercent\": 40,\n  \"fFundPercent\": 10,\n  \"cFundPercent\": 30,\n  \"sFundPercent\": 10,\n  \"iFundPercent\": 10,\n  \"lifecyclePositions\": [ { \"fundCode\": \"L2030\", \"allocationPercent\": 10, \"units\": 100 } ]\n}" }, "url": "{{baseUrl}}/api/financial-profile/{{userId}}/tsp" } },
+        { "name": "TSP: Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/tsp" } },
+        { "name": "TSP: Summary", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/tsp/summary" } },
+        { "name": "TSP: Snapshot (Create)", "request": { "method": "POST", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/tsp/snapshot" } },
+        { "name": "TSP: Snapshot (Latest Meta)", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/tsp/snapshot/latest" } },
+        { "name": "Cash: Upsert", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"accounts\": [ { \"nickname\": \"Checking\", \"accountType\": \"checking\", \"balance\": 1200 } ]\n}" }, "url": "{{baseUrl}}/api/financial-profile/{{userId}}/cash" } },
+        { "name": "Cash: Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/cash" } },
+        { "name": "Investments: Upsert", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"accounts\": [ { \"accountName\": \"Brokerage\", \"currentValue\": 5000 } ]\n}" }, "url": "{{baseUrl}}/api/financial-profile/{{userId}}/investments" } },
+        { "name": "Investments: Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/investments" } },
+        { "name": "Real Estate: Upsert", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"properties\": [ { \"propertyName\": \"Home\", \"estimatedValue\": 350000, \"mortgageBalance\": 280000 } ]\n}" }, "url": "{{baseUrl}}/api/financial-profile/{{userId}}/real-estate" } },
+        { "name": "Real Estate: Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/real-estate" } },
+        { "name": "Liabilities: Upsert", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"liabilities\": [ { \"liabilityType\": \"loan\", \"currentBalance\": 3000 } ]\n}" }, "url": "{{baseUrl}}/api/financial-profile/{{userId}}/liabilities" } },
+        { "name": "Liabilities: Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/liabilities" } },
+        { "name": "Expenses: Upsert", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"expenses\": [ { \"category\": \"general\", \"monthlyAmount\": 200 } ]\n}" }, "url": "{{baseUrl}}/api/financial-profile/{{userId}}/expenses" } },
+        { "name": "Expenses: Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/expenses" } },
+        { "name": "Tax: Upsert", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"filingStatus\": \"single\"\n}" }, "url": "{{baseUrl}}/api/financial-profile/{{userId}}/tax" } },
+        { "name": "Tax: Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/tax" } },
+        { "name": "Insurance: Upsert", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"policies\": [ { \"policyType\": \"term-life\", \"coverageAmount\": 500000 } ]\n}" }, "url": "{{baseUrl}}/api/financial-profile/{{userId}}/insurance" } },
+        { "name": "Insurance: Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/insurance" } },
+        { "name": "Benefits: Upsert", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"benefits\": [ { \"benefitType\": \"health\", \"isEnrolled\": true } ]\n}" }, "url": "{{baseUrl}}/api/financial-profile/{{userId}}/benefits" } },
+        { "name": "Benefits: Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/benefits" } },
+        { "name": "Long-Term Obligations: Upsert", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"obligations\": [ { \"obligationName\": \"HELOC\", \"estimatedCost\": 8000 } ]\n}" }, "url": "{{baseUrl}}/api/financial-profile/{{userId}}/long-term-obligations" } },
+        { "name": "Long-Term Obligations: Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/long-term-obligations" } },
+        { "name": "Income: Upsert", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"streams\": [ { \"name\": \"Salary\", \"monthlyAmount\": 5000 } ]\n}" }, "url": "{{baseUrl}}/api/financial-profile/{{userId}}/income" } },
+        { "name": "Income: Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/income" } },
+        { "name": "Equity: Upsert", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"isInterestedInTracking\": true\n}" }, "url": "{{baseUrl}}/api/financial-profile/{{userId}}/equity" } },
+        { "name": "Equity: Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/equity" } }
+      ]
+    },
+    {
+      "name": "Market Data",
+      "item": [
+        { "name": "Stock Price (one)", "request": { "method": "GET", "url": "{{baseUrl}}/api/market/price/MSFT" } },
+        { "name": "Stock Prices (batch)", "request": { "method": "GET", "url": "{{baseUrl}}/api/market/prices?symbols=AAPL,MSFT,GOOGL" } },
+        { "name": "Market Indices", "request": { "method": "GET", "url": "{{baseUrl}}/api/market/indices" } },
+        { "name": "TSP Fund Prices", "request": { "method": "GET", "url": "{{baseUrl}}/api/market/tsp" } },
+        { "name": "Economic Indicators", "request": { "method": "GET", "url": "{{baseUrl}}/api/market/economic" } },
+        { "name": "Market Overview", "request": { "method": "GET", "url": "{{baseUrl}}/api/market/overview" } },
+        { "name": "Market Health", "request": { "method": "GET", "url": "{{baseUrl}}/api/market/health" } }
+      ]
+    },
+    {
+      "name": "Accounts",
+      "item": [
+        { "name": "By User", "request": { "method": "GET", "url": "{{baseUrl}}/api/Accounts/user/{{userId}}" } },
+        { "name": "Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/Accounts/{{accountId}}" } },
+        { "name": "Create", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"userId\": {{userId}},\n  \"accountType\": 0,\n  \"accountName\": \"Checking\",\n  \"currentBalance\": 1000\n}"}, "url": "{{baseUrl}}/api/Accounts" } },
+        { "name": "Update", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"accountId\": {{accountId}},\n  \"userId\": {{userId}},\n  \"accountType\": 0,\n  \"accountName\": \"Checking\",\n  \"currentBalance\": 1500\n}"}, "url": "{{baseUrl}}/api/Accounts/{{accountId}}" } },
+        { "name": "Delete", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/Accounts/{{accountId}}" } },
+        { "name": "TSP Allocation (update)", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"gFundPercentage\": 40,\n  \"fFundPercentage\": 10,\n  \"cFundPercentage\": 30,\n  \"sFundPercentage\": 10,\n  \"iFundPercentage\": 10\n}"}, "url": "{{baseUrl}}/api/Accounts/{{accountId}}/tsp-allocation" } },
+        { "name": "Performance", "request": { "method": "GET", "url": "{{baseUrl}}/api/Accounts/{{accountId}}/performance" } },
+        { "name": "Cash Optimization (user)", "request": { "method": "GET", "url": "{{baseUrl}}/api/Accounts/cash-optimization/user/{{userId}}" } }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        { "name": "List Users", "request": { "method": "GET", "url": "{{baseUrl}}/api/Users" } },
+        { "name": "Get User", "request": { "method": "GET", "url": "{{baseUrl}}/api/Users/{{userId}}" } },
+        { "name": "Create User", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Doe\",\n  \"email\": \"jane+{{guid}}@pfmp.local\"\n}"}, "url": "{{baseUrl}}/api/Users" } },
+        { "name": "Update User", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"userId\": {{userId}},\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Doe\"\n}"}, "url": "{{baseUrl}}/api/Users/{{userId}}" } },
+        { "name": "Delete User", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/Users/{{userId}}" } },
+        { "name": "User Summary", "request": { "method": "GET", "url": "{{baseUrl}}/api/Users/{{userId}}/summary" } }
+      ]
+    },
+    {
+      "name": "Income Sources",
+      "item": [
+        { "name": "By User", "request": { "method": "GET", "url": "{{baseUrl}}/api/IncomeSources/user/{{userId}}" } },
+        { "name": "Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/IncomeSources/{{incomeSourceId}}" } },
+        { "name": "Create", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"userId\": {{userId}},\n  \"name\": \"Salary\",\n  \"type\": 0,\n  \"frequency\": 0,\n  \"amount\": 5000\n}"}, "url": "{{baseUrl}}/api/IncomeSources" } },
+        { "name": "Update", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"incomeSourceId\": {{incomeSourceId}},\n  \"userId\": {{userId}},\n  \"name\": \"Salary\",\n  \"type\": 0,\n  \"frequency\": 0,\n  \"amount\": 5200\n}"}, "url": "{{baseUrl}}/api/IncomeSources/{{incomeSourceId}}" } },
+        { "name": "Delete", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/IncomeSources/{{incomeSourceId}}" } },
+        { "name": "VA Disability Info", "request": { "method": "GET", "url": "{{baseUrl}}/api/IncomeSources/va-disability/user/{{userId}}" } },
+        { "name": "Income Summary", "request": { "method": "GET", "url": "{{baseUrl}}/api/IncomeSources/summary/user/{{userId}}" } }
+      ]
+    },
+    {
+      "name": "Goals",
+      "item": [
+        { "name": "By User", "request": { "method": "GET", "url": "{{baseUrl}}/api/Goals/user/{{userId}}" } },
+        { "name": "Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/Goals/{{goalId}}" } },
+        { "name": "Create", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"userId\": {{userId}},\n  \"name\": \"Emergency Fund\",\n  \"type\": 0,\n  \"targetAmount\": 10000\n}"}, "url": "{{baseUrl}}/api/Goals" } },
+        { "name": "Update", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"goalId\": {{goalId}},\n  \"userId\": {{userId}},\n  \"name\": \"Emergency Fund\",\n  \"targetAmount\": 15000\n}"}, "url": "{{baseUrl}}/api/Goals/{{goalId}}" } },
+        { "name": "Delete", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/Goals/{{goalId}}" } },
+        { "name": "Update Progress", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "5000"}, "url": "{{baseUrl}}/api/Goals/{{goalId}}/progress" } },
+        { "name": "Emergency Fund Status", "request": { "method": "GET", "url": "{{baseUrl}}/api/Goals/emergency-fund/user/{{userId}}" } }
+      ]
+    },
+    {
+      "name": "Portfolio",
+      "item": [
+        { "name": "Valuation", "request": { "method": "GET", "url": "{{baseUrl}}/api/Portfolio/{{userId}}/valuation" } },
+        { "name": "Accounts", "request": { "method": "GET", "url": "{{baseUrl}}/api/Portfolio/{{userId}}/accounts" } },
+        { "name": "Update Prices", "request": { "method": "POST", "url": "{{baseUrl}}/api/Portfolio/{{userId}}/update-prices" } },
+        { "name": "Performance", "request": { "method": "GET", "url": "{{baseUrl}}/api/Portfolio/{{userId}}/performance" } },
+        { "name": "Net Worth", "request": { "method": "GET", "url": "{{baseUrl}}/api/Portfolio/{{userId}}/net-worth" } },
+        { "name": "Dashboard", "request": { "method": "GET", "url": "{{baseUrl}}/api/Portfolio/{{userId}}/dashboard" } }
+      ]
+    },
+    {
+      "name": "Alerts",
+      "item": [
+        { "name": "List Alerts (by user)", "request": { "method": "GET", "url": "{{baseUrl}}/api/Alerts?userId={{userId}}" } },
+        { "name": "Get Alert", "request": { "method": "GET", "url": "{{baseUrl}}/api/Alerts/{{alertId}}" } },
+        { "name": "Create Alert", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"userId\": {{userId}},\n  \"title\": \"Rate change\",\n  \"message\": \"Check new HYSA rates\",\n  \"category\": \"cash\",\n  \"severity\": 1\n}"}, "url": "{{baseUrl}}/api/Alerts" } },
+        { "name": "Update Alert", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"alertId\": {{alertId}},\n  \"userId\": {{userId}},\n  \"title\": \"Rate change\",\n  \"message\": \"Updated\"\n}"}, "url": "{{baseUrl}}/api/Alerts/{{alertId}}" } },
+        { "name": "Mark Read", "request": { "method": "PATCH", "url": "{{baseUrl}}/api/Alerts/{{alertId}}/read" } },
+        { "name": "Dismiss", "request": { "method": "PATCH", "url": "{{baseUrl}}/api/Alerts/{{alertId}}/dismiss" } },
+        { "name": "Undismiss", "request": { "method": "PATCH", "url": "{{baseUrl}}/api/Alerts/{{alertId}}/undismiss" } },
+        { "name": "Delete", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/Alerts/{{alertId}}" } }
       ]
     },
     {
       "name": "Advice",
       "item": [
-  {"name": "Generate Advice", "request": {"method": "POST", "url": "{{baseUrl}}/api/Advice/generate/{{userId}}"}},
-  {"name": "List Advice For User", "request": {"method": "GET", "url": "{{baseUrl}}/api/Advice/user/{{userId}}"}},
-  {"name": "Accept Advice", "request": {"method": "POST", "url": "{{baseUrl}}/api/Advice/{{adviceId}}/accept"}},
-  {"name": "Reject Advice", "request": {"method": "POST", "url": "{{baseUrl}}/api/Advice/{{adviceId}}/reject"}}
+        { "name": "Generate", "request": { "method": "POST", "url": "{{baseUrl}}/api/Advice/generate/{{userId}}" } },
+        { "name": "List For User", "request": { "method": "GET", "url": "{{baseUrl}}/api/Advice/user/{{userId}}" } },
+        { "name": "Accept", "request": { "method": "POST", "url": "{{baseUrl}}/api/Advice/{{adviceId}}/accept" } },
+        { "name": "Dismiss", "request": { "method": "POST", "url": "{{baseUrl}}/api/Advice/{{adviceId}}/dismiss" } }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        { "name": "List (by user)", "request": { "method": "GET", "url": "{{baseUrl}}/api/tasks?userId={{userId}}" } },
+        { "name": "Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/tasks/{{taskId}}" } },
+        { "name": "Create", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"userId\": {{userId}},\n  \"type\": 1,\n  \"title\": \"Follow up: Example\",\n  \"description\": \"Example desc\",\n  \"priority\": 2\n}"}, "url": "{{baseUrl}}/api/tasks" } },
+        { "name": "Update", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"taskId\": {{taskId}},\n  \"userId\": {{userId}},\n  \"type\": 1,\n  \"title\": \"Updated\",\n  \"description\": \"Updated desc\",\n  \"priority\": 2,\n  \"status\": 1\n}"}, "url": "{{baseUrl}}/api/tasks/{{taskId}}" } },
+        { "name": "Complete", "request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"completionNotes\": \"Done\"\n}"}, "url": "{{baseUrl}}/api/tasks/{{taskId}}/complete" } },
+        { "name": "Dismiss", "request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "\"Optional notes\""}, "url": "{{baseUrl}}/api/tasks/{{taskId}}/dismiss" } },
+        { "name": "Update Progress", "request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "50"}, "url": "{{baseUrl}}/api/tasks/{{taskId}}/progress" } },
+        { "name": "Update Status", "request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "1"}, "url": "{{baseUrl}}/api/tasks/{{taskId}}/status" } },
+        { "name": "Analytics", "request": { "method": "GET", "url": "{{baseUrl}}/api/tasks/analytics/{{userId}}" } },
+        {
+          "name": "AI",
+          "item": [
+            { "name": "Recommendations", "request": { "method": "GET", "url": "{{baseUrl}}/api/tasks/ai/recommendations?userId={{userId}}" } },
+            { "name": "Priority", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"userId\": {{userId}},\n  \"title\": \"Task title\",\n  \"description\": \"Task details\"\n}"}, "url": "{{baseUrl}}/api/tasks/ai/priority" } },
+            { "name": "Category", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"userId\": {{userId}},\n  \"title\": \"Task title\",\n  \"description\": \"Task details\"\n}"}, "url": "{{baseUrl}}/api/tasks/ai/category" } },
+            { "name": "Portfolio Analysis", "request": { "method": "GET", "url": "{{baseUrl}}/api/tasks/ai/portfolio-analysis?userId={{userId}}" } },
+            { "name": "Market Alerts", "request": { "method": "GET", "url": "{{baseUrl}}/api/tasks/ai/market-alerts?userId={{userId}}" } }
+          ]
+        }
       ]
     },
     {
       "name": "AI",
       "item": [
-  {"name": "AI Generate (example)", "request": {"method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode": "raw", "raw": "{ \n  \"prompt\": \"Explain TSP allocation basics\" \n}"}, "url": "{{baseUrl}}/api/ai/generate"}}
+        { "name": "Analyze Portfolio", "request": { "method": "GET", "url": "{{baseUrl}}/api/ai/analyze-portfolio/{{userId}}" } },
+        { "name": "Task Recommendations", "request": { "method": "GET", "url": "{{baseUrl}}/api/ai/task-recommendations/{{userId}}" } },
+        { "name": "Market Alerts", "request": { "method": "GET", "url": "{{baseUrl}}/api/ai/market-alerts/{{userId}}" } },
+        { "name": "Explain Recommendation", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"recommendation\": \"Increase emergency fund by $100/mo\"\n}"}, "url": "{{baseUrl}}/api/ai/explain-recommendation" } },
+        { "name": "Comprehensive Insights", "request": { "method": "GET", "url": "{{baseUrl}}/api/ai/comprehensive-insights/{{userId}}" } }
       ]
     },
     {
-      "name": "Weather (Sample Scaffold)",
+      "name": "Weather",
       "item": [
-  {"name": "Weather Forecast", "request": {"method": "GET", "url": "{{baseUrl}}/weatherforecast"}}
+        { "name": "Weather Forecast", "request": { "method": "GET", "url": "{{baseUrl}}/weatherforecast" } }
       ]
     }
   ],
   "variable": [
-  {"key": "baseUrl", "value": "http://localhost:5052"},
-  {"key": "userId", "value": "1"},
-    {"key": "adviceId", "value": "1"},
-    {"key": "guid", "value": "00000000000000000000000000000000"}
+    { "key": "baseUrl", "value": "http://localhost:5052" },
+    { "key": "userId", "value": "1" },
+    { "key": "adviceId", "value": "1" },
+    { "key": "taskId", "value": "1" },
+    { "key": "accountId", "value": "1" },
+    { "key": "alertId", "value": "1" },
+    { "key": "goalId", "value": "1" },
+    { "key": "incomeSourceId", "value": "1" },
+    { "key": "guid", "value": "00000000000000000000000000000000" },
+    { "key": "refreshToken", "value": "" }
   ]
 }
