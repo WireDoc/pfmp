@@ -112,7 +112,7 @@ public static class DevelopmentDataSeeder
 
     private static async Task SeedFinancialProfileSampleAsync(ApplicationDbContext db, int userId)
     {
-        var profileService = new FinancialProfileService(db, NullLogger<FinancialProfileService>.Instance);
+    var profileService = new FinancialProfileService(db, NullLogger<FinancialProfileService>.Instance, new MarketDataService(new HttpClient(), NullLogger<MarketDataService>.Instance, new ConfigurationBuilder().Build()));
 
         await profileService.UpsertHouseholdAsync(userId, new HouseholdProfileInput
         {

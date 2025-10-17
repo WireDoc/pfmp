@@ -1,5 +1,6 @@
 ﻿# Fix Grid2 import paths for MUI v7
-$sourceDir = "P:\pfmp-frontend\src"
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+$sourceDir = Join-Path $repoRoot 'pfmp-frontend\src'
 
 Get-ChildItem -Path $sourceDir -Recurse -Include "*.tsx" | ForEach-Object {
     $content = Get-Content $_.FullName -Raw

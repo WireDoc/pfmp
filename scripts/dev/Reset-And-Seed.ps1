@@ -3,8 +3,16 @@ param(
   [int]$Port = 5433,
   [string]$Db = 'pfmp_dev',
   [string]$User = 'pfmp_user',
-  [string]$SqlFile = 'W:/pfmp/scripts/db/truncate_and_seed.sql'
+  [string]$SqlFile
 )
+
+# Default SQL file to repo-relative path if not provided
+if (-not $SqlFile -or [string]::IsNullOrWhiteSpace($SqlFile)) {
+  $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+  # scripts/dev -> scripts/db
+  $repoRoot = Split-Path -Parent (Split-Path -Parent $scriptDir)
+  $SqlFile = Join-Path $repoRoot 'scripts/db/truncate_and_seed.sql'
+}
 
 Write-Host "WARNING: This will DESTROY Alerts, Advice, and Tasks data in database '$Db'." -ForegroundColor Yellow
 $confirmation = Read-Host "Type 'WIPE' to continue"

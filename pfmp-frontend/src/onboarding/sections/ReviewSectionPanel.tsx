@@ -30,9 +30,10 @@ export interface ReviewSectionPanelProps {
   canFinalize: boolean;
   reviewStatus: FinancialProfileSectionStatusValue;
   onFinalize: () => void;
+  onSelectStep?: (id: OnboardingStepId) => void;
 }
 
-export default function ReviewSectionPanel({ steps, statuses, canFinalize, reviewStatus, onFinalize }: ReviewSectionPanelProps) {
+export default function ReviewSectionPanel({ steps, statuses, canFinalize, reviewStatus, onFinalize, onSelectStep }: ReviewSectionPanelProps) {
   const outstandingSteps = steps.filter(step => statuses[step.id] === 'needs_info');
   const hasOutstanding = outstandingSteps.length > 0;
 
@@ -64,8 +65,29 @@ export default function ReviewSectionPanel({ steps, statuses, canFinalize, revie
           const status = statuses[step.id] ?? 'needs_info';
           const tone = getStatusTone(status);
           const isLast = index === steps.length - 1;
+          const clickable = Boolean(onSelectStep);
           return (
-            <Box key={step.id} sx={{ px: 3, py: 2, background: index % 2 === 0 ? '#fafafa' : '#fff' }}>
+            <Box
+              key={step.id}
+                  role={clickable ? 'link' : undefined}
+              tabIndex={clickable ? 0 : undefined}
+              aria-label={clickable ? `Open step: ${step.title}` : undefined}
+              onClick={clickable ? () => onSelectStep?.(step.id) : undefined}
+              onKeyDown={clickable ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelectStep?.(step.id);
+                }
+              } : undefined}
+              sx={{
+                px: 3,
+                py: 2,
+                background: index % 2 === 0 ? '#fafafa' : '#fff',
+                cursor: clickable ? 'pointer' : 'default',
+                '&:hover': clickable ? { background: '#f0f6ff' } : undefined,
+                outline: 'none',
+              }}
+            >
               <Typography sx={{ fontWeight: 600, fontSize: 15, color: '#263238' }}>{step.title}</Typography>
               <Typography sx={{ fontSize: 13, color: '#607d8b', mt: 0.5 }}>{step.description}</Typography>
               <Chip

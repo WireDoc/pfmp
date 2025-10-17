@@ -7,8 +7,8 @@ You have two options to use your regular Microsoft account with the PFMP app:
 This keeps your developer tenant separate but allows your personal account access:
 
 ```powershell
-cd P:\PFMP-API
-.\Invite-GuestUser.ps1 -GuestEmail "your-personal-email@outlook.com" -DisplayName "Your Name"
+cd C:\pfmp\PFMP-API
+./Invite-GuestUser.ps1 -GuestEmail "your-personal-email@outlook.com" -DisplayName "Your Name"
 ```
 
 **Pros:**
@@ -42,7 +42,7 @@ Your invitation has been sent to wiredoc@outlook.com! Here's what to do:
 
 1. **Check your email** - Look for an invitation from Microsoft Azure
 2. **Accept the invitation** - Click the link in the email to accept
-3. **Start the PFMP API** - Run `dotnet run` in P:\PFMP-API
+3. **Start the PFMP API** - Run `dotnet run` in C:\pfmp\PFMP-API
 4. **Test authentication** - Navigate to the API endpoints and sign in
 5. **Automatic user creation** - The app will create a user record for you automatically
 

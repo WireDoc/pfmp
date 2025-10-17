@@ -43,9 +43,9 @@ Success Rate:   69% error reduction achieved
    - `InvestmentAnalyzer.ts`: Various `_unused` parameters
 
 ### Development Commands
-```bash
+```powershell
 # Navigate to frontend
-cd P:\pfmp-frontend
+cd C:\pfmp\pfmp-frontend
 
 # Build to verify fixes
 npm run build

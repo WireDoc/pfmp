@@ -28,10 +28,10 @@ When Azure OpenAI is unavailable (no API key), the system uses intelligent rule-
 
 **ðŸ’¡ IMPORTANT**: Always use the `start-dev-servers.bat` file to start both API and frontend servers. This ensures proper initialization and avoids issues with manual `dotnet run` commands.
 
-```bash
+```powershell
 # Start both servers (recommended method)
-cd P:
-.\start-dev-servers.bat
+cd C:\pfmp
+./start-dev-servers.bat
 ```
 
 **ðŸ—„ï¸ DATABASE TOOLS AVAILABLE**: PostgreSQL client tools (psql) and pgAdmin 4 are now installed. See `DATABASE-TOOLS-SETUP.md` for post-restart setup and validation queries. Use these for rapid data validation and AI logic debugging.

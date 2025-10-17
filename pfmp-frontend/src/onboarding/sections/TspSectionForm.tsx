@@ -47,6 +47,18 @@ export default function TspSectionForm({ userId, onStatusChange, currentStatus }
     iFundPercent: undefined,
     lifecyclePercent: undefined,
     lifecycleBalance: undefined,
+    lifecyclePositions: [
+      { fundCode: 'L2030', allocationPercent: undefined, units: undefined },
+      { fundCode: 'L2035', allocationPercent: undefined, units: undefined },
+      { fundCode: 'L2040', allocationPercent: undefined, units: undefined },
+      { fundCode: 'L2045', allocationPercent: undefined, units: undefined },
+      { fundCode: 'L2050', allocationPercent: undefined, units: undefined },
+      { fundCode: 'L2055', allocationPercent: undefined, units: undefined },
+      { fundCode: 'L2060', allocationPercent: undefined, units: undefined },
+      { fundCode: 'L2065', allocationPercent: undefined, units: undefined },
+      { fundCode: 'L2070', allocationPercent: undefined, units: undefined },
+      { fundCode: 'L2075', allocationPercent: undefined, units: undefined },
+    ],
     optOut:
       currentStatus === 'opted_out'
         ? { isOptedOut: true, reason: '', acknowledgedAt: new Date().toISOString() }
@@ -69,8 +81,9 @@ export default function TspSectionForm({ userId, onStatusChange, currentStatus }
         cFundPercent: undefined,
         sFundPercent: undefined,
         iFundPercent: undefined,
-        lifecyclePercent: undefined,
-        lifecycleBalance: undefined,
+    lifecyclePercent: undefined,
+    lifecycleBalance: undefined,
+    lifecyclePositions: [],
         optOut: {
           isOptedOut: true,
           reason: payload.optOut.reason ?? '',
@@ -91,6 +104,20 @@ export default function TspSectionForm({ userId, onStatusChange, currentStatus }
       iFundPercent: payload.iFundPercent ?? undefined,
       lifecyclePercent: payload.lifecyclePercent ?? undefined,
       lifecycleBalance: payload.lifecycleBalance ?? undefined,
+      lifecyclePositions: Array.isArray(payload.lifecyclePositions)
+        ? payload.lifecyclePositions
+        : [
+            { fundCode: 'L2030', allocationPercent: undefined, units: undefined },
+            { fundCode: 'L2035', allocationPercent: undefined, units: undefined },
+            { fundCode: 'L2040', allocationPercent: undefined, units: undefined },
+            { fundCode: 'L2045', allocationPercent: undefined, units: undefined },
+            { fundCode: 'L2050', allocationPercent: undefined, units: undefined },
+            { fundCode: 'L2055', allocationPercent: undefined, units: undefined },
+            { fundCode: 'L2060', allocationPercent: undefined, units: undefined },
+            { fundCode: 'L2065', allocationPercent: undefined, units: undefined },
+            { fundCode: 'L2070', allocationPercent: undefined, units: undefined },
+            { fundCode: 'L2075', allocationPercent: undefined, units: undefined },
+          ],
       optOut: undefined,
     };
   }, []);
@@ -139,9 +166,10 @@ export default function TspSectionForm({ userId, onStatusChange, currentStatus }
         fFundPercent: optedOut ? undefined : formState.fFundPercent,
         cFundPercent: optedOut ? undefined : formState.cFundPercent,
         sFundPercent: optedOut ? undefined : formState.sFundPercent,
-        iFundPercent: optedOut ? undefined : formState.iFundPercent,
-        lifecyclePercent: optedOut ? undefined : formState.lifecyclePercent,
-        lifecycleBalance: optedOut ? undefined : formState.lifecycleBalance,
+    iFundPercent: optedOut ? undefined : formState.iFundPercent,
+    lifecyclePercent: optedOut ? undefined : formState.lifecyclePercent,
+    lifecycleBalance: optedOut ? undefined : formState.lifecycleBalance,
+    lifecyclePositions: optedOut ? [] : formState.lifecyclePositions,
         optOut: optedOut ? formState.optOut : undefined,
       });
 
@@ -297,6 +325,58 @@ export default function TspSectionForm({ userId, onStatusChange, currentStatus }
               onChange={(event) => updateField('lifecycleBalance', parseNumber(event.target.value))}
               fullWidth
             />
+
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              Lifecycle funds (allocation % and units)
+            </Typography>
+            <Box sx={{ display: 'grid', gap: 12 }}>
+              {formState.lifecyclePositions?.map((pos, idx) => (
+                <Box
+                  key={pos.fundCode}
+                  sx={{
+                    display: 'grid',
+                    gap: 12,
+                    gridTemplateColumns: { xs: '1fr', md: '200px 1fr 1fr' },
+                    alignItems: 'center',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: 2,
+                    padding: 2,
+                  }}
+                >
+                  <Typography sx={{ fontWeight: 600 }}>{pos.fundCode}</Typography>
+                  <TextField
+                    type="number"
+                    label="Allocation (%)"
+                    value={pos.allocationPercent ?? ''}
+                    onChange={(e) => {
+                      const value = parseNumber(e.target.value);
+                      setFormState((prev) => {
+                        const next = [...(prev.lifecyclePositions ?? [])];
+                        next[idx] = { ...next[idx], allocationPercent: value };
+                        return { ...prev, lifecyclePositions: next };
+                      });
+                    }}
+                    fullWidth
+                    {...percentFieldProps}
+                  />
+                  <TextField
+                    type="number"
+                    label="Units"
+                    value={pos.units ?? ''}
+                    onChange={(e) => {
+                      const value = parseNumber(e.target.value);
+                      setFormState((prev) => {
+                        const next = [...(prev.lifecyclePositions ?? [])];
+                        next[idx] = { ...next[idx], units: value };
+                        return { ...prev, lifecyclePositions: next };
+                      });
+                    }}
+                    fullWidth
+                    inputProps={{ step: 0.000001 }}
+                  />
+                </Box>
+              ))}
+            </Box>
           </Stack>
         )}
 

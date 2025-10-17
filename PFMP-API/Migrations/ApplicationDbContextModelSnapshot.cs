@@ -934,6 +934,88 @@ namespace PFMP_API.Migrations
                     b.ToTable("FinancialProfileTaxProfiles");
                 });
 
+            modelBuilder.Entity("PFMP_API.Models.FinancialProfile.TspLifecyclePosition", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("AllocationPercent")
+                        .HasColumnType("decimal(8,4)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FundCode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<decimal>("Units")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "FundCode")
+                        .IsUnique();
+
+                    b.ToTable("TspLifecyclePositions");
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.FinancialProfile.TspPositionSnapshot", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal?>("AllocationPercent")
+                        .HasColumnType("decimal(8,4)");
+
+                    b.Property<DateTime>("AsOfUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FundCode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<decimal>("MarketValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("MixPercent")
+                        .HasColumnType("decimal(8,4)");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<decimal>("Units")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "AsOfUtc");
+
+                    b.HasIndex("UserId", "FundCode", "AsOfUtc");
+
+                    b.ToTable("TspPositionSnapshots");
+                });
+
             modelBuilder.Entity("PFMP_API.Models.FinancialProfile.TspProfile", b =>
                 {
                     b.Property<int>("UserId")
@@ -2142,6 +2224,24 @@ namespace PFMP_API.Migrations
                     b.HasOne("PFMP_API.Models.User", null)
                         .WithOne()
                         .HasForeignKey("PFMP_API.Models.FinancialProfile.TaxProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.FinancialProfile.TspLifecyclePosition", b =>
+                {
+                    b.HasOne("PFMP_API.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.FinancialProfile.TspPositionSnapshot", b =>
+                {
+                    b.HasOne("PFMP_API.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

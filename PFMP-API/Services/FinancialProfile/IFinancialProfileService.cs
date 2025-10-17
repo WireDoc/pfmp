@@ -34,5 +34,10 @@ namespace PFMP_API.Services.FinancialProfile
         Task<BenefitsInput> GetBenefitsAsync(int userId, CancellationToken ct = default);
         Task<LongTermObligationsInput> GetLongTermObligationsAsync(int userId, CancellationToken ct = default);
         Task<EquityInterestInput> GetEquityInterestAsync(int userId, CancellationToken ct = default);
+
+        // TSP summary and snapshot
+        Task<TspSummary> GetTspSummaryAsync(int userId, CancellationToken ct = default);
+        Task CreateTspSnapshotAsync(int userId, CancellationToken ct = default);
+        Task<TspSnapshotMeta?> GetLatestTspSnapshotMetaAsync(int userId, CancellationToken ct = default);
     }
 }

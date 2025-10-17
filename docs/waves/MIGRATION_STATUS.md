@@ -172,7 +172,7 @@ private generateAlternatives(goal: FinancialGoal, _userProfile: UserProfile)
 ### Commands to Fix All Errors
 ```bash
 # Navigate to frontend directory
-cd P:\pfmp-frontend
+cd C:\pfmp\pfmp-frontend
 
 # Build to see current errors
 npm run build

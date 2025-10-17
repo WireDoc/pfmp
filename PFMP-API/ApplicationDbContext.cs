@@ -53,6 +53,8 @@ namespace PFMP_API
     public DbSet<EquityCompensationInterest> EquityCompensationInterests { get; set; }
     public DbSet<LongTermObligation> LongTermObligations { get; set; }
     public DbSet<TspProfile> TspProfiles { get; set; }
+    public DbSet<TspLifecyclePosition> TspLifecyclePositions { get; set; }
+    public DbSet<TspPositionSnapshot> TspPositionSnapshots { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -365,6 +367,38 @@ namespace PFMP_API
                 entity.Property(e => e.CoverageAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.PremiumAmount).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.RecommendedCoverage).HasColumnType("decimal(18,2)");
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<TspPositionSnapshot>(entity =>
+            {
+                entity.HasIndex(e => new { e.UserId, e.AsOfUtc });
+                entity.HasIndex(e => new { e.UserId, e.FundCode, e.AsOfUtc });
+                entity.Property(e => e.FundCode).HasMaxLength(10).IsRequired();
+                entity.Property(e => e.Price).HasColumnType("decimal(18,6)");
+                entity.Property(e => e.Units).HasColumnType("decimal(18,6)");
+                entity.Property(e => e.MarketValue).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.MixPercent).HasColumnType("decimal(8,4)");
+                entity.Property(e => e.AllocationPercent).HasColumnType("decimal(8,4)");
+                entity.Property(e => e.AsOfUtc).IsRequired();
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<TspLifecyclePosition>(entity =>
+            {
+                entity.HasIndex(e => new { e.UserId, e.FundCode }).IsUnique();
+                entity.Property(e => e.FundCode).HasMaxLength(10).IsRequired();
+                entity.Property(e => e.AllocationPercent).HasColumnType("decimal(8,4)");
+                entity.Property(e => e.Units).HasColumnType("decimal(18,6)");
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.Property(e => e.UpdatedAt).IsRequired();
                 entity.HasOne<User>()
                     .WithMany()
                     .HasForeignKey(e => e.UserId)

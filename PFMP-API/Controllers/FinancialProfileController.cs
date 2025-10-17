@@ -72,6 +72,31 @@ namespace PFMP_API.Controllers
             return Ok(payload);
         }
 
+        [HttpGet("{userId:int}/tsp/summary")]
+        public async Task<ActionResult<TspSummary>> GetTspSummary(int userId, CancellationToken ct = default)
+        {
+            var summary = await _service.GetTspSummaryAsync(userId, ct);
+            return Ok(summary);
+        }
+
+        [HttpPost("{userId:int}/tsp/snapshot")]
+        public async Task<ActionResult> CreateTspSnapshot(int userId, CancellationToken ct = default)
+        {
+            await _service.CreateTspSnapshotAsync(userId, ct);
+            return NoContent();
+        }
+
+        [HttpGet("{userId:int}/tsp/snapshot/latest")]
+        public async Task<ActionResult<TspSnapshotMeta>> GetLatestTspSnapshotMeta(int userId, CancellationToken ct = default)
+        {
+            var meta = await _service.GetLatestTspSnapshotMetaAsync(userId, ct);
+            if (meta == null)
+            {
+                return NoContent();
+            }
+            return Ok(meta);
+        }
+
         [HttpPost("{userId:int}/cash")]
         public async Task<ActionResult> UpsertCash(int userId, [FromBody] CashAccountsRequest request, CancellationToken ct = default)
         {
@@ -287,6 +312,7 @@ namespace PFMP_API.Controllers
         public decimal IFundPercent { get; set; }
         public decimal? LifecyclePercent { get; set; }
         public decimal? LifecycleBalance { get; set; }
+        public List<TspLifecyclePositionRequest> LifecyclePositions { get; set; } = new();
         public SectionOptOutRequest? OptOut { get; set; }
 
         public TspAllocationInput ToInput() => new()
@@ -302,7 +328,22 @@ namespace PFMP_API.Controllers
             IFundPercent = IFundPercent,
             LifecyclePercent = LifecyclePercent,
             LifecycleBalance = LifecycleBalance,
+            LifecyclePositions = LifecyclePositions.Select(p => p.ToInput()).ToList(),
             OptOut = OptOut?.ToOptOut()
+        };
+    }
+
+    public class TspLifecyclePositionRequest
+    {
+        public string FundCode { get; set; } = string.Empty;
+        public decimal AllocationPercent { get; set; }
+        public decimal Units { get; set; }
+
+        public TspLifecyclePositionInput ToInput() => new()
+        {
+            FundCode = FundCode,
+            AllocationPercent = AllocationPercent,
+            Units = Units
         };
     }
 

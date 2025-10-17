@@ -22,7 +22,7 @@
 1. Open **Windows PowerShell** (not CMD).
 2. Navigate to the repo root:
    ```powershell
-   cd P:
+   cd C:\pfmp
    ```
 3. Start both services via the helper script:
    ```powershell
@@ -37,15 +37,15 @@
 
 ```powershell
 # API (window 1)
-cd P:\PFMP-API
+cd C:\pfmp\PFMP-API
 dotnet run --launch-profile http
 
 # Frontend (window 2)
-cd P:\pfmp-frontend
+cd C:\pfmp\pfmp-frontend
 npm run dev
 
 # Quick health checks (any window)
-cd P:
+cd C:\pfmp
 Invoke-WebRequest -Uri "http://localhost:5052/weatherforecast"
 Invoke-WebRequest -Uri "http://localhost:5052/api/auth/config"
 Invoke-WebRequest -Uri "http://localhost:3000"
@@ -55,12 +55,12 @@ Invoke-WebRequest -Uri "http://localhost:3000"
 
 - Before any manual QA run, (re)launch services with:
    ```powershell
-   cd P:; .\start-dev-servers.bat
+   cd C:\pfmp; .\start-dev-servers.bat
    ```
 - When a clean restart is needed mid-session, run `stop-dev-servers.bat` first, then relaunch:
    ```powershell
-   cd P:; .\stop-dev-servers.bat
-   cd P:; .\start-dev-servers.bat
+   cd C:\pfmp; .\stop-dev-servers.bat
+   cd C:\pfmp; .\start-dev-servers.bat
    ```
 - Follow the scenarios documented in `docs/testing/` (wave-specific smoke scripts, onboarding flows, alerts/tasks exercises) and record gaps in the relevant guide.
 - After finishing functional testing—or before switching contexts—shut everything down with `stop-dev-servers.bat` to avoid orphan ports and stale caches.
@@ -69,13 +69,13 @@ Invoke-WebRequest -Uri "http://localhost:3000"
 
 ```powershell
 # Build + lint sanity check (npm is the standard package runner—do not substitute pnpm)
-cd P:; dotnet build PFMP-API/PFMP-API.csproj; npm run lint --prefix pfmp-frontend
+cd C:\pfmp; dotnet build PFMP-API/PFMP-API.csproj; npm run lint --prefix pfmp-frontend
 
 # Restart helper (after edits)
-cd P:; .\start-dev-servers.bat
+cd C:\pfmp; .\start-dev-servers.bat
 
 # Git snapshot
-cd P:; git status; git log --oneline -5
+cd C:\pfmp; git status; git log --oneline -5
 
 # Quick PostgreSQL query (remote dev DB)
 psql "postgresql://pfmp_user:MediaPword.1@192.168.1.108:5433/pfmp_dev" --% -c "SELECT COUNT(*) FROM \"Users\";"

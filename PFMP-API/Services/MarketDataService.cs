@@ -16,21 +16,44 @@ namespace PFMP_API.Services
 
         private const string BASE_URL = "https://financialmodelingprep.com/api/v3";
         
-        // TSP Fund mapping to available symbols
+        // TSP Fund mapping to available symbols (proxies)
         private readonly Dictionary<string, string> _tspFundMapping = new()
         {
-            { "G_FUND", "VGIT" }, // Intermediate Treasury (proxy for G Fund)
-            { "F_FUND", "VBTLX" }, // Total Bond Market (proxy for F Fund)  
-            { "C_FUND", "VITSX" }, // S&P 500 (proxy for C Fund)
-            { "S_FUND", "VSMAX" }, // Small Cap (proxy for S Fund)
-            { "I_FUND", "VTIAX" }, // International (proxy for I Fund)
-            { "L_INCOME", "VTINX" }, // Target Date Income
-            { "L_2030", "VTHRX" }, // Target Date 2030
-            { "L_2040", "VFORX" }, // Target Date 2040
-            { "L_2050", "VFIFX" }, // Target Date 2050
-            { "L_2060", "VTTSX" }, // Target Date 2060
-            { "L_2070", "VTSAX" }  // Target Date 2070
+            { "G_FUND", "VGIT" },   // Treasury proxy for G Fund
+            { "F_FUND", "VBTLX" },  // Total Bond Market proxy for F Fund
+            { "C_FUND", "VITSX" },  // S&P 500 proxy for C Fund
+            { "S_FUND", "VSMAX" },  // Small Cap proxy for S Fund
+            { "I_FUND", "VTIAX" },  // International proxy for I Fund
+            { "L_INCOME", "VTINX" },
+            { "L_2030", "VTHRX" },
+            { "L_2035", "VTTHX" },
+            { "L_2040", "VFORX" },
+            { "L_2045", "VTIVX" },
+            { "L_2050", "VFIFX" },
+            { "L_2055", "VFFVX" },
+            { "L_2060", "VTTSX" },
+            { "L_2065", "VLXVX" },
+            { "L_2070", "VSVNX" },
+            { "L_2075", "VSZRX" }
         };
+
+        private static string NormalizeTspMappingKey(string code)
+        {
+            if (string.IsNullOrWhiteSpace(code)) return string.Empty;
+            var c = code.Trim().ToUpperInvariant();
+            return c switch
+            {
+                "G" => "G_FUND",
+                "F" => "F_FUND",
+                "C" => "C_FUND",
+                "S" => "S_FUND",
+                "I" => "I_FUND",
+                "LINCOME" or "L-INCOME" => "L_INCOME",
+                _ when c.StartsWith("L_") => c,
+                _ when c.StartsWith("L") && char.IsDigit(c[1]) => "L_" + c[1..],
+                _ => c
+            };
+        }
 
         public MarketDataService(HttpClient httpClient, ILogger<MarketDataService> logger, IConfiguration configuration)
         {
@@ -294,6 +317,13 @@ namespace PFMP_API.Services
                 }
                 return fallbackPrices;
             }
+        }
+
+        // Exposed for internal callers that may pass UI codes; not part of IMarketDataService contract
+        internal MarketPrice? TryGetTspPriceByAnyCode(Dictionary<string, MarketPrice> prices, string code)
+        {
+            var key = NormalizeTspMappingKey(code);
+            return prices.TryGetValue(key, out var v) ? v : null;
         }
 
         public async Task<EconomicIndicators> GetEconomicIndicatorsAsync()

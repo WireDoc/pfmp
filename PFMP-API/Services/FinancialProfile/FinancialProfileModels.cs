@@ -44,7 +44,22 @@ namespace PFMP_API.Services.FinancialProfile
         public decimal IFundPercent { get; set; }
         public decimal? LifecyclePercent { get; set; }
         public decimal? LifecycleBalance { get; set; }
+        // Detailed lifecycle fund positions (e.g., L2030, L2035, ..., L2075)
+        public List<TspLifecyclePositionInput> LifecyclePositions { get; set; } = new();
         public SectionOptOut? OptOut { get; set; }
+    }
+
+    public class TspLifecyclePositionInput
+    {
+        // Allowed values: L2030, L2035, L2040, L2045, L2050, L2055, L2060, L2065, L2070, L2075
+        [MaxLength(10)]
+        public string FundCode { get; set; } = string.Empty;
+
+        // Target or current allocation percentage for this lifecycle fund (0-100)
+        public decimal AllocationPercent { get; set; }
+
+        // Number of units/shares held in this lifecycle fund
+        public decimal Units { get; set; }
     }
 
     public class CashAccountInput
@@ -223,5 +238,32 @@ namespace PFMP_API.Services.FinancialProfile
         public bool IsInterestedInTracking { get; set; }
         public string? Notes { get; set; }
         public SectionOptOut? OptOut { get; set; }
+    }
+
+    // TSP summary shapes
+    public class TspSummary
+    {
+        public List<TspSummaryItem> Items { get; set; } = new();
+        public decimal TotalMarketValue { get; set; }
+        public DateTime AsOfUtc { get; set; } = DateTime.UtcNow;
+    }
+
+    public class TspSummaryItem
+    {
+        public string FundCode { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public decimal Units { get; set; }
+        public decimal MarketValue { get; set; }
+        public decimal MixPercent { get; set; }
+        public decimal? AllocationPercent { get; set; }
+    }
+
+    // Lightweight metadata about the latest captured TSP snapshot
+    public class TspSnapshotMeta
+    {
+        public DateTime AsOfUtc { get; set; }
+        public int FundCount { get; set; }
+        public decimal TotalMarketValue { get; set; }
+        public DateTime? CapturedAtUtc { get; set; }
     }
 }
