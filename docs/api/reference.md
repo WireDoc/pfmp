@@ -5,7 +5,7 @@ The PFMP API is a .NET 9 Web API providing AI-powered financial management servi
 
 **Base URL**: `http://localhost:5052/api`  
 **Environment**: Development (Authentication Bypassed)  
-**Database**: PostgreSQL 15 on Synology NAS (192.168.1.108:5433)
+**Database**: PostgreSQL on Synology NAS (192.168.1.108:5433)
 
 ## Authentication
 
@@ -204,6 +204,51 @@ Complete 16-fund TSP management:
 - Individual Funds: G, F, C, S, I
 - Lifecycle Funds: L Income, L2030-L2075
 
+### Financial Profile – TSP
+**Base Route**: `/api/financial-profile/{userId}/tsp`
+
+#### Upsert TSP Profile
+```http
+POST /api/financial-profile/{userId}/tsp
+```
+Body includes core allocation and lifecycle positions:
+```json
+{
+  "currentBalance": 25000,
+  "gFundPercent": 40,
+  "fFundPercent": 10,
+  "cFundPercent": 30,
+  "sFundPercent": 10,
+  "iFundPercent": 10,
+  "lifecyclePositions": [
+    { "fundCode": "L2030", "allocationPercent": 10, "units": 100 }
+  ]
+}
+```
+
+#### Get TSP Profile
+```http
+GET /api/financial-profile/{userId}/tsp
+```
+
+#### Get TSP Summary (computed)
+```http
+GET /api/financial-profile/{userId}/tsp/summary
+```
+Returns computed items with market prices, including each fund's current value and current mix % based on normalized price keys.
+
+#### Create Daily TSP Snapshot (idempotent)
+```http
+POST /api/financial-profile/{userId}/tsp/snapshot
+```
+Creates at most one snapshot per day per user, keyed by prior-market-close as-of (weekend-aware). Safe to call repeatedly.
+
+#### Get Latest TSP Snapshot Metadata
+```http
+GET /api/financial-profile/{userId}/tsp/snapshot/latest
+```
+Returns the as-of date/time and record id of the most recent snapshot.
+
 ### Goals Controller  
 **Base Route**: `/api/goals`
 
@@ -385,13 +430,13 @@ curl -X POST "http://localhost:5052/api/alerts" \
 # Mark as read
 curl -X PATCH "http://localhost:5052/api/alerts/1/read"
 
-# Generate task from alert
-curl -X POST "http://localhost:5052/api/alerts/1/generate-task"
+# Generate advice from alert (task is created upon acceptance of advice)
+curl -X POST "http://localhost:5052/api/alerts/1/generate-advice"
 
 # Dismiss alert
 curl -X PATCH "http://localhost:5052/api/alerts/1/dismiss"
 ```
 
 ---
-**Last Updated**: September 24, 2025  
+**Last Updated**: October 17, 2025  
 **API Version**: v0.4.0-alpha
