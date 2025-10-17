@@ -66,7 +66,7 @@ export interface TspProfilePayload {
   iFundPercent?: number | null;
   lifecyclePercent?: number | null;
   lifecycleBalance?: number | null;
-  // New: granular lifecycle positions (e.g., L2030, L2035, ... L2075)
+  // added - granular lifecycle positions (e.g., L2030, L2035, ... L2075)
   lifecyclePositions?: Array<{
     fundCode: 'L2030' | 'L2035' | 'L2040' | 'L2045' | 'L2050' | 'L2055' | 'L2060' | 'L2065' | 'L2070' | 'L2075';
     allocationPercent?: number | null;
