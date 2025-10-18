@@ -48,6 +48,12 @@ export default function TspSectionForm({ userId, onStatusChange, currentStatus }
     lifecyclePercent: undefined,
     lifecycleBalance: undefined,
     lifecyclePositions: [
+      { fundCode: 'G', allocationPercent: undefined, units: undefined },
+      { fundCode: 'F', allocationPercent: undefined, units: undefined },
+      { fundCode: 'C', allocationPercent: undefined, units: undefined },
+      { fundCode: 'S', allocationPercent: undefined, units: undefined },
+      { fundCode: 'I', allocationPercent: undefined, units: undefined },
+      { fundCode: 'L-INCOME', allocationPercent: undefined, units: undefined },
       { fundCode: 'L2030', allocationPercent: undefined, units: undefined },
       { fundCode: 'L2035', allocationPercent: undefined, units: undefined },
       { fundCode: 'L2040', allocationPercent: undefined, units: undefined },
@@ -252,96 +258,23 @@ export default function TspSectionForm({ userId, onStatusChange, currentStatus }
             </Box>
 
             <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-              Allocation mix
+              Contribution settings
             </Typography>
-            <Box
-              sx={{
-                display: 'grid',
-                gap: 2,
-                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', md: 'repeat(3, minmax(0, 1fr))' },
-              }}
-            >
-              <TextField
-                type="number"
-                label="G Fund (%)"
-                value={formState.gFundPercent ?? ''}
-                onChange={(event) => updateField('gFundPercent', parseNumber(event.target.value))}
-                fullWidth
-                {...percentFieldProps}
-              />
-              <TextField
-                type="number"
-                label="F Fund (%)"
-                value={formState.fFundPercent ?? ''}
-                onChange={(event) => updateField('fFundPercent', parseNumber(event.target.value))}
-                fullWidth
-                {...percentFieldProps}
-              />
-              <TextField
-                type="number"
-                label="C Fund (%)"
-                value={formState.cFundPercent ?? ''}
-                onChange={(event) => updateField('cFundPercent', parseNumber(event.target.value))}
-                fullWidth
-                {...percentFieldProps}
-              />
-            </Box>
-            <Box
-              sx={{
-                display: 'grid',
-                gap: 2,
-                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', md: 'repeat(3, minmax(0, 1fr))' },
-              }}
-            >
-              <TextField
-                type="number"
-                label="S Fund (%)"
-                value={formState.sFundPercent ?? ''}
-                onChange={(event) => updateField('sFundPercent', parseNumber(event.target.value))}
-                fullWidth
-                {...percentFieldProps}
-              />
-              <TextField
-                type="number"
-                label="I Fund (%)"
-                value={formState.iFundPercent ?? ''}
-                onChange={(event) => updateField('iFundPercent', parseNumber(event.target.value))}
-                fullWidth
-                {...percentFieldProps}
-              />
-              <TextField
-                type="number"
-                label="Lifecycle fund (%)"
-                value={formState.lifecyclePercent ?? ''}
-                onChange={(event) => updateField('lifecyclePercent', parseNumber(event.target.value))}
-                fullWidth
-                {...percentFieldProps}
-              />
-            </Box>
-
-            <TextField
-              type="number"
-              label="Lifecycle fund balance ($)"
-              value={formState.lifecycleBalance ?? ''}
-              onChange={(event) => updateField('lifecycleBalance', parseNumber(event.target.value))}
-              fullWidth
-            />
-
             <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-              Lifecycle funds (allocation % and units)
+              TSP funds (allocation % and units)
             </Typography>
-            <Box sx={{ display: 'grid', gap: 12 }}>
+            <Box sx={{ display: 'grid', gap: 2 }}>
               {formState.lifecyclePositions?.map((pos, idx) => (
                 <Box
                   key={pos.fundCode}
                   sx={{
                     display: 'grid',
-                    gap: 12,
-                    gridTemplateColumns: { xs: '1fr', md: '200px 1fr 1fr' },
+                    gap: 2,
+                    gridTemplateColumns: { xs: '1fr', md: '220px 1fr 1fr' },
                     alignItems: 'center',
                     border: '1px solid #e0e0e0',
                     borderRadius: 2,
-                    padding: 2,
+                    p: 2,
                   }}
                 >
                   <Typography sx={{ fontWeight: 600 }}>{pos.fundCode}</Typography>
