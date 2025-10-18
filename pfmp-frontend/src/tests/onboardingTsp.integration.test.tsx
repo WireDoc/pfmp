@@ -27,7 +27,7 @@ describe('TSP onboarding section', () => {
 
     renderOnboardingPageForTest();
 
-    await advanceToCashSection(user, { tsp: 'complete' });
+  await advanceToCashSection(user, { tsp: 'complete' });
     const initialCallCount = requests.length;
 
     // The helper lands us on Cash Accounts; navigate back one step to focus on TSP assertions.
@@ -35,34 +35,27 @@ describe('TSP onboarding section', () => {
     await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'TSP Snapshot' })).toBeInTheDocument());
 
     fireEvent.change(screen.getByLabelText('Contribution rate (%)'), { target: { value: '12' } });
-    fireEvent.change(screen.getByLabelText('Employer match (%)'), { target: { value: '5' } });
-    fireEvent.change(screen.getByLabelText('Current balance ($)'), { target: { value: '120000' } });
-    fireEvent.change(screen.getByLabelText('Target balance ($)'), { target: { value: '500000' } });
-    fireEvent.change(screen.getByLabelText('G Fund (%)'), { target: { value: '20' } });
-    fireEvent.change(screen.getByLabelText('F Fund (%)'), { target: { value: '10' } });
-    fireEvent.change(screen.getByLabelText('C Fund (%)'), { target: { value: '40' } });
-    fireEvent.change(screen.getByLabelText('S Fund (%)'), { target: { value: '20' } });
-    fireEvent.change(screen.getByLabelText('I Fund (%)'), { target: { value: '10' } });
-    fireEvent.change(screen.getByLabelText('Lifecycle fund (%)'), { target: { value: '0' } });
-    fireEvent.change(screen.getByLabelText('Lifecycle fund balance ($)'), { target: { value: '15000' } });
+    // Set per-fund contributions via generic Contribution (%) fields. Order starts with base funds.
+    const contribs = screen.getAllByLabelText('Contribution (%)');
+    // G,F,C,S,I = 20,10,40,20,10
+    const desired = [20, 10, 40, 20, 10];
+    desired.forEach((val, idx) => {
+      if (contribs[idx]) fireEvent.change(contribs[idx], { target: { value: String(val) } });
+    });
 
     await user.click(screen.getByTestId('tsp-submit'));
 
     await waitFor(() => expect(requests.length).toBeGreaterThan(initialCallCount));
     const latest = requests.at(-1)!;
-    expect(latest).toMatchObject({
-      contributionRatePercent: 12,
-      employerMatchPercent: 5,
-      currentBalance: 120000,
-      targetBalance: 500000,
-      gFundPercent: 20,
-      fFundPercent: 10,
-      cFundPercent: 40,
-      sFundPercent: 20,
-      iFundPercent: 10,
-      lifecyclePercent: 0,
-      lifecycleBalance: 15000,
-    });
+    expect(latest.contributionRatePercent).toBe(12);
+    // Employer match is computed server-side; should be undefined or absent
+    // Validate lifecyclePositions have our base funds with contributionPercent set
+    const byCode = new Map((latest.lifecyclePositions ?? []).map((p) => [p.fundCode, p] as const));
+    expect(byCode.get('G')?.contributionPercent).toBe(20);
+    expect(byCode.get('F')?.contributionPercent).toBe(10);
+    expect(byCode.get('C')?.contributionPercent).toBe(40);
+    expect(byCode.get('S')?.contributionPercent).toBe(20);
+    expect(byCode.get('I')?.contributionPercent).toBe(10);
 
     await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Cash Accounts' })).toBeInTheDocument());
 
@@ -81,13 +74,13 @@ describe('TSP onboarding section', () => {
 
     renderOnboardingPageForTest();
 
-    await advanceToCashSection(user, { tsp: 'complete' });
+  await advanceToCashSection(user, { tsp: 'complete' });
     const initialCallCount = requests.length;
 
     await user.click(screen.getByRole('button', { name: 'Back' }));
     await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'TSP Snapshot' })).toBeInTheDocument());
 
-    await user.click(screen.getByLabelText('I don’t invest in the Thrift Savings Plan'));
+  await user.click(screen.getByLabelText('I don’t invest in the Thrift Savings Plan'));
     fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'No access to TSP yet' } });
 
     await user.click(screen.getByTestId('tsp-submit'));

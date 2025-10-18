@@ -46,6 +46,9 @@ const financialProfileSnapshotMatcher = /\/financial-profile\/\d+\/snapshot(?:\?
 const financialProfileHouseholdMatcher = /\/financial-profile\/\d+\/household(?:\?.*)?$/;
 const financialProfileRiskGoalsMatcher = /\/financial-profile\/\d+\/risk-goals(?:\?.*)?$/;
 const financialProfileTspMatcher = /\/financial-profile\/\d+\/tsp(?:\?.*)?$/;
+const financialProfileTspSummaryLiteMatcher = /\/financial-profile\/\d+\/tsp\/summary-lite(?:\?.*)?$/;
+const financialProfileTspSnapshotMatcher = /\/financial-profile\/\d+\/tsp\/snapshot(?:\?.*)?$/;
+const financialProfileTspSnapshotLatestMatcher = /\/financial-profile\/\d+\/tsp\/snapshot\/latest(?:\?.*)?$/;
 const financialProfileCashMatcher = /\/financial-profile\/\d+\/cash(?:\?.*)?$/;
 const financialProfileInvestmentsMatcher = /\/financial-profile\/\d+\/investments(?:\?.*)?$/;
 const financialProfileRealEstateMatcher = /\/financial-profile\/\d+\/real-estate(?:\?.*)?$/;
@@ -110,7 +113,43 @@ export const defaultHandlers = [
   ),
   ...createSectionHandlers(financialProfileHouseholdMatcher),
   ...createSectionHandlers(financialProfileRiskGoalsMatcher),
-  ...createSectionHandlers(financialProfileTspMatcher),
+  // TSP: Pre-populate base funds with units > 0 so compact UI renders rows by default in tests
+  http.get(financialProfileTspMatcher, () =>
+    HttpResponse.json(
+      {
+        contributionRatePercent: 5,
+        employerMatchPercent: 5,
+        currentBalance: null,
+        targetBalance: null,
+        gFundPercent: null,
+        fFundPercent: null,
+        cFundPercent: null,
+        sFundPercent: null,
+        iFundPercent: null,
+        lifecyclePercent: null,
+        lifecycleBalance: null,
+        lifecyclePositions: [
+          { fundCode: 'G', contributionPercent: null, units: 1, dateUpdated: new Date().toISOString() },
+          { fundCode: 'F', contributionPercent: null, units: 1, dateUpdated: new Date().toISOString() },
+          { fundCode: 'C', contributionPercent: null, units: 1, dateUpdated: new Date().toISOString() },
+          { fundCode: 'S', contributionPercent: null, units: 1, dateUpdated: new Date().toISOString() },
+          { fundCode: 'I', contributionPercent: null, units: 1, dateUpdated: new Date().toISOString() },
+        ],
+        optOut: { isOptedOut: false, reason: null, acknowledgedAt: null },
+      },
+      { status: 200 },
+    ),
+  ),
+  http.post(financialProfileTspMatcher, () => HttpResponse.json({}, { status: 204 })),
+  // TSP summary-lite returns a shape with items/totalBalance/asOfUtc
+  http.get(financialProfileTspSummaryLiteMatcher, () =>
+    HttpResponse.json({ items: [], totalBalance: 0, asOfUtc: new Date().toISOString() }, { status: 200 }),
+  ),
+  // Snapshot endpoints are idempotent and can be no-ops in tests
+  http.post(financialProfileTspSnapshotMatcher, () => HttpResponse.json({}, { status: 204 })),
+  http.get(financialProfileTspSnapshotLatestMatcher, () =>
+    HttpResponse.json({ userId: 1, asOfUtc: new Date().toISOString() }, { status: 200 }),
+  ),
   ...createSectionHandlers(financialProfileCashMatcher, { accounts: [] }),
   ...createSectionHandlers(financialProfileInvestmentsMatcher, { accounts: [] }),
   ...createSectionHandlers(financialProfileRealEstateMatcher, { properties: [] }),

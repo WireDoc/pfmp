@@ -122,7 +122,19 @@ async function completeTsp(user: ReturnType<typeof userEvent.setup>, mode: 'comp
     await fillReason('Why are you opting out?', 'No TSP access');
   } else {
     fireEvent.change(screen.getByLabelText('Contribution rate (%)'), { target: { value: '10' } });
-    fireEvent.change(screen.getByLabelText('Employer match (%)'), { target: { value: '5' } });
+    // Ensure total contribution = 100% for validation by setting one fund to 100%.
+    // With the compact UI, there may be no fund rows until the user adds one.
+    let contribFields = screen.queryAllByLabelText('Contribution (%)');
+    if (contribFields.length === 0) {
+      // Add a default fund row via the dropdown
+      await user.click(screen.getByLabelText('Add fund'));
+      // Prefer a base fund for stability
+      await user.click(screen.getByText('G Fund'));
+      contribFields = await screen.findAllByLabelText('Contribution (%)');
+    }
+    if (contribFields.length > 0) {
+      fireEvent.change(contribFields[0], { target: { value: '100' } });
+    }
   }
 
   await user.click(screen.getByTestId('tsp-submit'));
@@ -264,6 +276,29 @@ export async function advanceToCashSection(
   await completeHousehold(user, merged.household);
   await completeRiskGoals(user, merged.riskGoals);
   await completeTsp(user, merged.tsp);
+}
+
+/**
+ * Utility to add a sequence of TSP funds by their visible labels via the compact UI dropdown.
+ * Example: await addFundsByLabels(user, ['G Fund','F Fund','C Fund'])
+ */
+export async function addFundsByLabels(
+  user: ReturnType<typeof userEvent.setup>,
+  labels: string[],
+) {
+  const table = screen.queryByRole('table', { name: 'Selected TSP funds' });
+  for (const label of labels) {
+    // If the fund row is already present, skip adding
+    if (table && within(table).queryByText(label)) continue;
+    await user.click(screen.getByLabelText('Add fund'));
+    const option = screen.queryByText(label);
+    if (option) {
+      await user.click(option);
+    } else {
+      // Option already selected earlier; close the menu by pressing Escape
+      await user.keyboard('{Escape}');
+    }
+  }
 }
 
 export async function advanceToInvestmentsSection(

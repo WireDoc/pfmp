@@ -86,8 +86,9 @@ export interface TspProfilePayload {
       | 'L2065'
       | 'L2070'
       | 'L2075';
-    allocationPercent?: number | null;
+    contributionPercent?: number | null;
     units?: number | null;
+    dateUpdated?: string | null;
   }> | null;
   optOut?: SectionOptOutPayload | null;
 }
@@ -346,6 +347,40 @@ export async function ensureTspSnapshotFresh(userId: number): Promise<void> {
       console.debug('[tsp] snapshot ensure failed (non-fatal):', err);
     }
   }
+}
+
+// TSP summary-lite shapes for quick reads
+export interface TspSummaryLiteItem {
+  fundCode: string;
+  currentPrice: number | null;
+  units: number;
+  currentMarketValue: number | null;
+  currentMixPercent: number | null;
+}
+export interface TspSummaryLite {
+  items: TspSummaryLiteItem[];
+  totalBalance: number | null;
+  asOfUtc: string | null;
+}
+
+export async function fetchTspSummaryLite(userId: number): Promise<TspSummaryLite> {
+  const resp = await apiClient.get(`/api/financial-profile/${userId}/tsp/summary-lite`);
+  const dto = resp.data as {
+    items?: Array<{ fundCode?: string; currentPrice?: number | null; units?: number | null; currentMarketValue?: number | null; currentMixPercent?: number | null }>;
+    totalBalance?: number | null;
+    asOfUtc?: string | null;
+  };
+  return {
+    items: (dto.items ?? []).map((i) => ({
+      fundCode: String(i.fundCode ?? ''),
+      currentPrice: i.currentPrice ?? null,
+      units: Number(i.units ?? 0),
+      currentMarketValue: i.currentMarketValue ?? null,
+      currentMixPercent: i.currentMixPercent ?? null,
+    })),
+    totalBalance: dto.totalBalance ?? null,
+    asOfUtc: dto.asOfUtc ?? null,
+  };
 }
 
 function mapStatusDto(dto: FinancialProfileSectionStatusDto): FinancialProfileSectionStatus {

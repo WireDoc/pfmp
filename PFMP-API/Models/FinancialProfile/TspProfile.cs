@@ -21,6 +21,10 @@ namespace PFMP_API.Models.FinancialProfile
         [Column(TypeName = "decimal(18,2)")]
         public decimal TargetBalance { get; set; }
 
+    // Denormalized aggregate for quick reads: total balance across funds (matches CurrentBalance when known)
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal? TotalBalance { get; set; }
+
         [Column(TypeName = "decimal(8,4)")]
         public decimal GFundPercent { get; set; }
 

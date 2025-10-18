@@ -113,3 +113,28 @@ Log monitoring: keep the API and frontend PowerShell windows visible, and use th
 
 Stay disciplined: follow these instructions for rapid onboarding, keep the documentation tree coherent, and surface any gaps in `docs/meta/documentation-strategy.md` so the audit trail remains accurate.
 
+## 8. Frontend layout and testing guidance
+
+- UI layout: Prefer Material UI components only (no custom CSS width hacks). Use:
+   - `Stack` for vertical rhythm and spacing
+   - `TableContainer` + `Table` for tabular data
+   - MUI Grid v2 (`@mui/material` Grid with the `size` prop) for responsive rows
+      - Example: `<Grid container spacing={2}><Grid size={{ xs: 12, md: 6 }}>…</Grid><Grid size={{ xs: 12, md: 6 }}>…</Grid></Grid>`
+      - Avoid `minWidth`, `tableLayout: fixed`, or inline width overrides when a component prop can achieve the desired behavior
+   - Keep long labels from wrapping via `<Typography noWrap>` where readability demands
+   - For inputs inside tables, omit redundant labels in cells and provide accessible names via `aria-label` or `aria-labelledby`
+
+- Vitest execution model: Tests currently run single-threaded on purpose to reduce flakiness in JSDOM and MSW-driven integration tests.
+   - Configuration: see `pfmp-frontend/vitest.config.ts` where `pool: 'threads'` with `{ minThreads: 1, maxThreads: 1 }` limits concurrency.
+   - Why single-thread? Parallel workers can contend for shared globals (JSDOM, timers, MSW handlers, in-memory caches) and increase nondeterminism across integration tests that spin up app providers and routers.
+   - When to try parallel: Pure unit tests that do not touch DOM, network handlers, or global state are good candidates. You can temporarily increase `maxThreads` locally to speed up runs on multi-core machines.
+   - Risks of multi-threaded runs:
+      - Race conditions across tests that mutate global state (e.g., process.env, global mocks, singleton services)
+      - Port binding or request handler conflicts when multiple app instances mount concurrently in JSDOM
+      - Flaky ordering if tests assume serialized navigation or time progression
+   - Safe patterns if enabling more threads:
+      - Keep each test file isolated; avoid cross-file shared singletons or mutable module-level state
+      - Use per-test setup/teardown to reset MSW handlers and clear timers/mocks
+      - Prefer `userEvent` and async assertions (findBy*) which already await UI stabilization
+      - Start with `maxThreads: 2` locally and increase gradually while watching for flake
+

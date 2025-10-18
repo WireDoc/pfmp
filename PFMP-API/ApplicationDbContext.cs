@@ -395,7 +395,8 @@ namespace PFMP_API
             {
                 entity.HasIndex(e => new { e.UserId, e.FundCode }).IsUnique();
                 entity.Property(e => e.FundCode).HasMaxLength(10).IsRequired();
-                entity.Property(e => e.AllocationPercent).HasColumnType("decimal(8,4)");
+                // Renamed: AllocationPercent -> ContributionPercent
+                entity.Property(e => e.ContributionPercent).HasColumnType("decimal(8,4)");
                 entity.Property(e => e.Units).HasColumnType("decimal(18,6)");
                 entity.Property(e => e.CreatedAt).IsRequired();
                 entity.Property(e => e.UpdatedAt).IsRequired();

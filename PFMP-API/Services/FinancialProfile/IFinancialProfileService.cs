@@ -37,7 +37,13 @@ namespace PFMP_API.Services.FinancialProfile
 
         // TSP summary and snapshot
         Task<TspSummary> GetTspSummaryAsync(int userId, CancellationToken ct = default);
+        Task<TspSummaryLite> GetTspSummaryLiteAsync(int userId, CancellationToken ct = default);
         Task CreateTspSnapshotAsync(int userId, CancellationToken ct = default);
         Task<TspSnapshotMeta?> GetLatestTspSnapshotMetaAsync(int userId, CancellationToken ct = default);
+
+        // Admin: Backfill utilities
+        Task<BackfillResult> BackfillTspBasePositionsAsync(int userId, bool dryRun = true, CancellationToken ct = default);
     }
+
+    public record BackfillResult(int CreatedCount, int SkippedExisting, bool DryRun);
 }
