@@ -104,9 +104,10 @@ export default function TspSectionForm({ userId, onStatusChange, currentStatus }
       iFundPercent: payload.iFundPercent ?? undefined,
       lifecyclePercent: payload.lifecyclePercent ?? undefined,
       lifecycleBalance: payload.lifecycleBalance ?? undefined,
-      lifecyclePositions: Array.isArray(payload.lifecyclePositions)
-        ? payload.lifecyclePositions
-        : [
+      lifecyclePositions:
+        Array.isArray(payload.lifecyclePositions) && (payload.lifecyclePositions?.length ?? 0) > 0
+          ? payload.lifecyclePositions
+          : [
             { fundCode: 'L2030', allocationPercent: undefined, units: undefined },
             { fundCode: 'L2035', allocationPercent: undefined, units: undefined },
             { fundCode: 'L2040', allocationPercent: undefined, units: undefined },
