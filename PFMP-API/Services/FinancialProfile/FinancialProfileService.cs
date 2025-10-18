@@ -187,7 +187,11 @@ namespace PFMP_API.Services.FinancialProfile
                 tsp.OptOutAcknowledgedAt = null;
 
                 tsp.ContributionRatePercent = input.ContributionRatePercent;
-                tsp.EmployerMatchPercent = input.EmployerMatchPercent;
+                // Compute employer match automatically: 1% automatic + match up to 4% dollar-for-dollar (cap 5%)
+                var contrib = Math.Max(0m, input.ContributionRatePercent);
+                var auto1 = 1m; // automatic 1%
+                var match = Math.Min(4m, contrib); // up to 4% matched 1:1
+                tsp.EmployerMatchPercent = Math.Min(5m, auto1 + match);
                 tsp.CurrentBalance = input.CurrentBalance;
                 tsp.TargetBalance = input.TargetBalance;
                 tsp.GFundPercent = input.GFundPercent;
@@ -211,8 +215,9 @@ namespace PFMP_API.Services.FinancialProfile
                         {
                             UserId = userId,
                             FundCode = p.FundCode.Trim().ToUpperInvariant(),
-                            AllocationPercent = p.AllocationPercent,
+                            ContributionPercent = p.ContributionPercent,
                             Units = p.Units,
+                            DateUpdated = p.DateUpdated ?? now,
                             CreatedAt = now,
                             UpdatedAt = now
                         });
@@ -673,13 +678,82 @@ namespace PFMP_API.Services.FinancialProfile
                 .Select(p => new TspLifecyclePositionInput
                 {
                     FundCode = p.FundCode,
-                    AllocationPercent = p.AllocationPercent,
+                    ContributionPercent = p.ContributionPercent,
                     Units = p.Units
                 })
                 .ToListAsync(ct);
             input.LifecyclePositions = positions;
 
             return input;
+        }
+
+        // Returns denormalized quick-read summary using TspLifecyclePositions and TspProfile.TotalBalance
+        public async Task<TspSummaryLite> GetTspSummaryLiteAsync(int userId, CancellationToken ct = default)
+        {
+            var items = await _db.TspLifecyclePositions.AsNoTracking()
+                .Where(p => p.UserId == userId)
+                .OrderBy(p => p.FundCode)
+                .Select(p => new TspSummaryLiteItem
+                {
+                    FundCode = p.FundCode,
+                    CurrentPrice = p.CurrentPrice,
+                    Units = p.Units,
+                    CurrentMarketValue = p.CurrentMarketValue,
+                    CurrentMixPercent = p.CurrentMixPercent
+                })
+                .ToListAsync(ct);
+
+            var profile = await _db.TspProfiles.AsNoTracking().FirstOrDefaultAsync(t => t.UserId == userId, ct);
+
+            // As-of: use the latest LastPricedAsOfUtc among positions
+            DateTime? asOf = null;
+            var dates = await _db.TspLifecyclePositions.AsNoTracking()
+                .Where(p => p.UserId == userId)
+                .Select(p => p.LastPricedAsOfUtc)
+                .ToListAsync(ct);
+            var nonNullDates = dates.Where(d => d.HasValue).Select(d => d!.Value).ToList();
+            if (nonNullDates.Count > 0)
+            {
+                asOf = nonNullDates.Max();
+            }
+
+            return new TspSummaryLite
+            {
+                Items = items,
+                TotalBalance = profile?.TotalBalance,
+                AsOfUtc = asOf
+            };
+        }
+
+        public async Task<BackfillResult> BackfillTspBasePositionsAsync(int userId, bool dryRun = true, CancellationToken ct = default)
+        {
+            var fundCodes = new[] { "G", "F", "C", "S", "I", "L-INCOME" };
+            var existing = await _db.TspLifecyclePositions.AsNoTracking()
+                .Where(p => p.UserId == userId)
+                .Select(p => p.FundCode)
+                .ToListAsync(ct);
+            var toCreate = fundCodes.Except(existing, StringComparer.OrdinalIgnoreCase).ToList();
+            if (!toCreate.Any()) return new BackfillResult(0, existing.Count, dryRun);
+
+            if (!dryRun)
+            {
+                var now = DateTime.UtcNow;
+                foreach (var code in toCreate)
+                {
+                    _db.TspLifecyclePositions.Add(new Models.FinancialProfile.TspLifecyclePosition
+                    {
+                        UserId = userId,
+                        FundCode = code,
+                        ContributionPercent = 0m,
+                        Units = 0m,
+                        CreatedAt = now,
+                        UpdatedAt = now,
+                        DateUpdated = now
+                    });
+                }
+                await _db.SaveChangesAsync(ct);
+            }
+            return new BackfillResult(toCreate.Count, existing.Count, dryRun);
         }
 
         public async Task<CashAccountsInput> GetCashAccountsAsync(int userId, CancellationToken ct = default)
@@ -1089,29 +1163,16 @@ namespace PFMP_API.Services.FinancialProfile
             await _db.SaveChangesAsync(ct);
         }
 
-        public async Task<TspSummary> GetTspSummaryAsync(int userId, CancellationToken ct = default)
+    public async Task<TspSummary> GetTspSummaryAsync(int userId, CancellationToken ct = default)
         {
-            // Gather positions: base funds from TspProfile allocation (units unknown) and lifecycle positions (units known)
-            var tsp = await _db.TspProfiles.AsNoTracking().FirstOrDefaultAsync(t => t.UserId == userId, ct);
-            var lifecycle = await _db.TspLifecyclePositions.AsNoTracking()
+            // Preferred: use stored positions (now includes base + lifecycle funds). Fallback to legacy fields if none.
+            var tsp = await _db.TspProfiles.FirstOrDefaultAsync(t => t.UserId == userId, ct);
+            var positions = await _db.TspLifecyclePositions
                 .Where(p => p.UserId == userId)
                 .ToListAsync(ct);
 
-            // Map fund codes for base funds
-            var baseFunds = new List<(string code, decimal percent)>
-            {
-                ("G", tsp?.GFundPercent ?? 0m),
-                ("F", tsp?.FFundPercent ?? 0m),
-                ("C", tsp?.CFundPercent ?? 0m),
-                ("S", tsp?.SFundPercent ?? 0m),
-                ("I", tsp?.IFundPercent ?? 0m)
-            };
-
             // Fetch market prices for all codes we care about
-            var codes = baseFunds.Where(b => b.percent > 0).Select(b => b.code)
-                .Concat(lifecycle.Select(l => l.FundCode))
-                .Distinct()
-                .ToList();
+            var codes = positions.Select(l => l.FundCode).Distinct().ToList();
             var prices = await _market.GetTSPFundPricesAsync();
 
             // Build items
@@ -1119,8 +1180,8 @@ namespace PFMP_API.Services.FinancialProfile
             decimal totalMarket = 0m;
             var asOf = GetTspAsOfUtc(DateTime.UtcNow);
 
-            // Lifecycle funds with units
-            foreach (var lf in lifecycle)
+            // All positions (base + lifecycle)
+            foreach (var lf in positions)
             {
                 var priceKey = NormalizeTspPriceKey(lf.FundCode);
                 if (!prices.TryGetValue(priceKey, out var p)) continue;
@@ -1131,14 +1192,45 @@ namespace PFMP_API.Services.FinancialProfile
                     Price = p.Price,
                     Units = lf.Units,
                     MarketValue = mv,
-                    AllocationPercent = lf.AllocationPercent,
+                    AllocationPercent = lf.ContributionPercent,
                 });
                 totalMarket += mv;
+
+                // Update denormalized values on the entity for fast reads
+                lf.CurrentPrice = p.Price;
+                lf.CurrentMarketValue = mv;
+                lf.LastPricedAsOfUtc = asOf;
             }
 
-            // Base funds: assume allocation of current balance proportionally (if we have CurrentBalance)
-            if (tsp != null && tsp.CurrentBalance > 0)
+            // Removed: legacy proportional base-fund allocation here. We now synthesize legacy values below only if no positions exist.
+
+            // Compute mix %
+            if (totalMarket > 0)
             {
+                foreach (var it in items)
+                {
+                    it.MixPercent = Math.Round((it.MarketValue / totalMarket) * 100m, 4);
+                }
+
+                // Push mix percents to denormalized lifecycle positions
+                foreach (var lf in positions)
+                {
+                    var mv = lf.CurrentMarketValue ?? 0m;
+                    lf.CurrentMixPercent = mv > 0 ? Math.Round((mv / totalMarket) * 100m, 4) : 0m;
+                }
+            }
+
+            // Legacy fallback: synthesize from old profile if no stored positions
+            if (items.Count == 0 && tsp != null && tsp.CurrentBalance > 0)
+            {
+                var baseFunds = new List<(string code, decimal percent)>
+                {
+                    ("G", tsp.GFundPercent),
+                    ("F", tsp.FFundPercent),
+                    ("C", tsp.CFundPercent),
+                    ("S", tsp.SFundPercent),
+                    ("I", tsp.IFundPercent)
+                };
                 foreach (var (code, pct) in baseFunds)
                 {
                     if (pct <= 0) continue;
@@ -1156,16 +1248,21 @@ namespace PFMP_API.Services.FinancialProfile
                     });
                     totalMarket += mv;
                 }
-            }
-
-            // Compute mix %
-            if (totalMarket > 0)
-            {
-                foreach (var it in items)
+                if (totalMarket > 0)
                 {
-                    it.MixPercent = Math.Round((it.MarketValue / totalMarket) * 100m, 4);
+                    foreach (var it in items)
+                        it.MixPercent = Math.Round((it.MarketValue / totalMarket) * 100m, 4);
                 }
             }
+
+            // Update denormalized total on profile
+            if (tsp != null)
+            {
+                tsp.TotalBalance = totalMarket;
+                tsp.LastUpdatedAt = DateTime.UtcNow;
+            }
+
+            await _db.SaveChangesAsync(ct);
 
             return new TspSummary
             {

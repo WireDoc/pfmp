@@ -942,16 +942,31 @@ namespace PFMP_API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal>("AllocationPercent")
+                    b.Property<decimal>("ContributionPercent")
                         .HasColumnType("decimal(8,4)");
 
                     b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("CurrentMarketValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("CurrentMixPercent")
+                        .HasColumnType("decimal(8,4)");
+
+                    b.Property<decimal?>("CurrentPrice")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<DateTime?>("DateUpdated")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("FundCode")
                         .IsRequired()
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
+
+                    b.Property<DateTime?>("LastPricedAsOfUtc")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<decimal>("Units")
                         .HasColumnType("decimal(18,6)");
@@ -1065,6 +1080,9 @@ namespace PFMP_API.Migrations
                         .HasColumnType("decimal(8,4)");
 
                     b.Property<decimal>("TargetBalance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("TotalBalance")
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("UserId");

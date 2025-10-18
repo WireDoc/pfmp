@@ -79,6 +79,14 @@ namespace PFMP_API.Controllers
             return Ok(summary);
         }
 
+        // Lightweight denormalized quick-read summary
+        [HttpGet("{userId:int}/tsp/summary-lite")]
+        public async Task<ActionResult<TspSummaryLite>> GetTspSummaryLite(int userId, CancellationToken ct = default)
+        {
+            var summary = await _service.GetTspSummaryLiteAsync(userId, ct);
+            return Ok(summary);
+        }
+
         [HttpPost("{userId:int}/tsp/snapshot")]
         public async Task<ActionResult> CreateTspSnapshot(int userId, CancellationToken ct = default)
         {
@@ -95,6 +103,20 @@ namespace PFMP_API.Controllers
                 return NoContent();
             }
             return Ok(meta);
+        }
+
+        // Admin backfill: dev/testing only
+        [HttpPost("{userId:int}/tsp/backfill/base-funds")]
+        public async Task<ActionResult<BackfillResult>> BackfillTspBaseFunds(int userId, [FromQuery] bool dryRun = true, CancellationToken ct = default)
+        {
+            // simple environment gate via Program's env; if not allowed, return 404 to avoid leaking
+            if (!HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment() &&
+                !HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsEnvironment("Testing"))
+            {
+                return NotFound();
+            }
+            var result = await _service.BackfillTspBasePositionsAsync(userId, dryRun, ct);
+            return Ok(result);
         }
 
         [HttpPost("{userId:int}/cash")]
@@ -336,14 +358,16 @@ namespace PFMP_API.Controllers
     public class TspLifecyclePositionRequest
     {
         public string FundCode { get; set; } = string.Empty;
-        public decimal AllocationPercent { get; set; }
+        public decimal ContributionPercent { get; set; }
         public decimal Units { get; set; }
+        public DateTime? DateUpdated { get; set; }
 
         public TspLifecyclePositionInput ToInput() => new()
         {
             FundCode = FundCode,
-            AllocationPercent = AllocationPercent,
-            Units = Units
+            ContributionPercent = ContributionPercent,
+            Units = Units,
+            DateUpdated = DateUpdated
         };
     }
 

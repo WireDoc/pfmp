@@ -51,15 +51,18 @@ namespace PFMP_API.Services.FinancialProfile
 
     public class TspLifecyclePositionInput
     {
-        // Allowed values: L2030, L2035, L2040, L2045, L2050, L2055, L2060, L2065, L2070, L2075
+        // Allowed values: G,F,C,S,I,L-INCOME, and lifecycle dated funds L2030..L2075
         [MaxLength(10)]
         public string FundCode { get; set; } = string.Empty;
 
-        // Target or current allocation percentage for this lifecycle fund (0-100)
-        public decimal AllocationPercent { get; set; }
+        // Contribution percentage for this fund (0-100). Must sum to 100 across funds per user.
+        public decimal ContributionPercent { get; set; }
 
-        // Number of units/shares held in this lifecycle fund
+        // Number of units/shares held in this fund
         public decimal Units { get; set; }
+
+        // Optional timestamp if the client wants to push its last update moment
+        public DateTime? DateUpdated { get; set; }
     }
 
     public class CashAccountInput
@@ -256,6 +259,23 @@ namespace PFMP_API.Services.FinancialProfile
         public decimal MarketValue { get; set; }
         public decimal MixPercent { get; set; }
         public decimal? AllocationPercent { get; set; }
+    }
+
+    // Ultra-light summary optimized for quick UI reads from denormalized columns
+    public class TspSummaryLite
+    {
+        public List<TspSummaryLiteItem> Items { get; set; } = new();
+        public decimal? TotalBalance { get; set; }
+        public DateTime? AsOfUtc { get; set; }
+    }
+
+    public class TspSummaryLiteItem
+    {
+        public string FundCode { get; set; } = string.Empty;
+        public decimal? CurrentPrice { get; set; }
+        public decimal Units { get; set; }
+        public decimal? CurrentMarketValue { get; set; }
+        public decimal? CurrentMixPercent { get; set; }
     }
 
     // Lightweight metadata about the latest captured TSP snapshot
