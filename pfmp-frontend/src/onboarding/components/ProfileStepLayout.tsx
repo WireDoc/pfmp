@@ -94,7 +94,7 @@ export function ProfileStepLayout({
   }, [currentIndex]);
 
   return (
-    <div style={{ maxWidth: 960, margin: '32px auto', padding: '0 24px 64px' }}>
+    <div style={{ width: '100%', margin: '32px 0', padding: '0 24px 64px' }}>
       <header style={{ marginBottom: 24 }}>
         <h1 style={{ margin: 0, fontSize: 32, fontWeight: 600 }}>{title}</h1>
         <p style={{ marginTop: 8, fontSize: 16, color: '#546e7a' }}>{description}</p>

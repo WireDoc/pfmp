@@ -8,16 +8,26 @@ export function AppLayout() {
   const { isDev } = useAuth();
   return (
     <div style={{ display: 'flex', minHeight: '100vh', flexDirection: 'column' }}>
-      <header style={{ padding: '8px 16px', borderBottom: '1px solid #ddd', background: '#fafafa' }}>
+      <header
+        style={{
+          padding: '12px 20px',
+          background: '#0f172a',
+          color: '#fff',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.24)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
+        }}
+      >
         <HeaderBar />
       </header>
-      <main style={{ flex: 1 }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Outlet />
         {isDev && (
-          <div style={{ padding: '12px 16px 0' }}>
+          <div style={{ padding: '12px 16px', marginTop: 'auto' }}>
             <DevUserSwitcher />
           </div>
         )}
-        <Outlet />
       </main>
       <footer style={{ padding: 12, textAlign: 'center', borderTop: '1px solid #ddd', fontSize: 12 }}>
         © {new Date().getFullYear()} PFMP

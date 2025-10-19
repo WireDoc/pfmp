@@ -35,16 +35,18 @@ export default function OnboardingPage() {
 
   if (!hydrated) {
     return (
-      <div style={{ maxWidth: 720, margin: '64px auto', padding: '0 16px', textAlign: 'center' }}>
+      <div style={{ width: '100%', margin: '64px 0', padding: '0 16px', textAlign: 'center' }}>
         <h1 style={{ marginBottom: 12 }}>Building your onboarding workspace…</h1>
         <p style={{ color: '#546e7a', fontSize: 15 }}>
           We’re loading your existing financial profile so you can pick up where you left off.
         </p>
-        <div
-          className="pfmp-progress"
-          style={{ margin: '32px auto', width: 320, height: 6, borderRadius: 4, background: '#e0e0e0', overflow: 'hidden' }}
-        >
-          <div style={{ width: '60%', height: '100%', background: '#1976d2', animation: 'pfmp-stripes 1.2s linear infinite' }} />
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 32 }}>
+          <div
+            className="pfmp-progress"
+            style={{ width: 320, height: 6, borderRadius: 4, background: '#e0e0e0', overflow: 'hidden' }}
+          >
+            <div style={{ width: '60%', height: '100%', background: '#1976d2', animation: 'pfmp-stripes 1.2s linear infinite' }} />
+          </div>
         </div>
         <style>{`
           @keyframes pfmp-stripes {
