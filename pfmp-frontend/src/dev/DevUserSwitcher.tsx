@@ -10,6 +10,7 @@ export const DevUserSwitcher: React.FC = () => {
   const [users, setUsers] = useState<DevUserInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
@@ -50,6 +51,19 @@ export const DevUserSwitcher: React.FC = () => {
     // No explicit confirmation; re-hydration occurs on next GET by context
   }
 
+  async function createTestUser() {
+    try {
+      setCreating(true);
+      const resp = await fetch('/api/admin/users/test?scenario=fresh', { method: 'POST' });
+      if (!resp.ok) throw new Error('Failed to create test user');
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to create test user');
+    } finally {
+      setCreating(false);
+    }
+  }
+
   if (isTestMode) {
     // Skip dev user orchestration during Vitest runs to avoid network noise
     // and act() warnings triggered by async state updates.
@@ -86,6 +100,18 @@ export const DevUserSwitcher: React.FC = () => {
               >reset</button>
             </div>
           ))}
+        </div>
+      )}
+      {!loading && users.length === 0 && (
+        <div style={{ marginTop: '0.5rem' }}>
+          <button
+            onClick={() => void createTestUser()}
+            disabled={creating}
+            style={{ padding: '0.4rem 0.6rem', borderRadius: 4, border: '1px solid #bbb', cursor: 'pointer', background: '#f3f3f3' }}
+          >{creating ? 'Creating…' : 'Create fresh test user'}</button>
+          <span style={{ marginLeft: 8, fontSize: '0.85rem', opacity: 0.8 }}>
+            No dev users found. This will add a test account and enable switching.
+          </span>
         </div>
       )}
       <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', opacity: 0.8 }}>
