@@ -1,6 +1,9 @@
 import { Alert, Box, Button, Chip, Divider, Stack, Typography } from '@mui/material';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FinancialProfileSectionStatusValue } from '../../services/financialProfileApi';
 import type { OnboardingStepDef, OnboardingStepId } from '../steps';
+import AutoSaveIndicator from '../components/AutoSaveIndicator';
+import { useAutoSaveForm } from '../hooks/useAutoSaveForm';
 
 function formatStatusLabel(status: FinancialProfileSectionStatusValue): string {
   switch (status) {
@@ -37,8 +40,63 @@ export default function ReviewSectionPanel({ steps, statuses, canFinalize, revie
   const outstandingSteps = steps.filter(step => statuses[step.id] === 'needs_info');
   const hasOutstanding = outstandingSteps.length > 0;
 
+  // Model a tiny piece of state representing "finalization intent" so we can reuse the autosave indicator UX.
+  interface ReviewState { finalized: boolean; lastAction: string | null; }
+  const [reviewState, setReviewState] = useState<ReviewState>(() => ({ finalized: reviewStatus === 'completed', lastAction: null }));
+
+  // Persist is a no-op here; we treat finalize click as a synchronous save that returns completed.
+  const persistReview = useCallback(async (draft: ReviewState) => {
+    // When draft.finalized is true, we resolve completed; else needs_info.
+    return draft.finalized ? 'completed' : 'needs_info';
+  }, []);
+
+  const determineStatus = useCallback((draft: ReviewState) => (draft.finalized ? 'completed' : 'needs_info'), []);
+
+  const { status: autoStatus, isDirty, error: autoError, lastSavedAt, flush } = useAutoSaveForm({
+    data: reviewState,
+    persist: persistReview,
+    determineStatus,
+    onStatusResolved: () => {
+      /* status derived externally via dashboard unlock */
+    },
+    // Instant save; we don't need debounce for a single finalize action.
+    debounceMs: 50,
+  });
+
+  useEffect(() => {
+    interface PFMPWindow extends Window { __pfmpCurrentSectionFlush?: () => Promise<void>; }
+    const w: PFMPWindow = window as PFMPWindow;
+    w.__pfmpCurrentSectionFlush = flush;
+    return () => {
+      if (w.__pfmpCurrentSectionFlush === flush) {
+        w.__pfmpCurrentSectionFlush = undefined;
+      }
+    };
+  }, [flush]);
+
+  // When external reviewStatus becomes completed (e.g., finalize API succeeded), reflect in local state baseline.
+  useEffect(() => {
+    if (reviewStatus === 'completed' && !reviewState.finalized) {
+      setReviewState({ finalized: true, lastAction: 'external-finalized' });
+    }
+  }, [reviewStatus, reviewState.finalized]);
+
+  const handleFinalize = () => {
+    if (!canFinalize) return;
+    onFinalize();
+    setReviewState({ finalized: true, lastAction: 'user-finalize-click' });
+    void flush();
+  };
+
+  const indicatorMemo = useMemo(() => (
+    <AutoSaveIndicator status={autoStatus} lastSavedAt={lastSavedAt} isDirty={isDirty} error={autoError} />
+  ), [autoStatus, lastSavedAt, isDirty, autoError]);
+
   return (
     <Stack spacing={3} sx={{ mt: 3 }}>
+      <Stack direction="row" justifyContent="flex-end">
+        {indicatorMemo}
+      </Stack>
       <Typography variant="body1" sx={{ color: '#455a64', lineHeight: 1.6 }}>
         Everything you enter here shapes the insights on your dashboard. Double-check each section below, confirm any opt-outs, and then unlock your personalized view.
       </Typography>
@@ -111,7 +169,7 @@ export default function ReviewSectionPanel({ steps, statuses, canFinalize, revie
         <Button
           variant="contained"
           color="primary"
-          onClick={onFinalize}
+          onClick={handleFinalize}
           disabled={!canFinalize || reviewStatus === 'completed'}
           data-testid="review-finalize"
           sx={{ minWidth: 220, fontWeight: 600, boxShadow: '0 8px 20px rgba(21, 101, 192, 0.18)' }}

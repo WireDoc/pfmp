@@ -40,6 +40,10 @@ Ensure the rebuilt onboarding flow persists progress accurately across dev-user 
 - Enable temporary `console.debug('[onboarding-hydrate]', dto)` logging while validating.
 - Capture timestamps for hydrate/start/complete to feed into Wave 6 performance metrics later.
 
+## Recent Fixes (2025-10-21)
+- **Sidebar status real-time updates**: Fixed `useAutoSaveForm` hook to properly reset `mountedRef.current = true` on component remount, resolving issue where status callbacks were being aborted in React StrictMode development environment.
+- **Risk & Goals liquidity buffer persistence**: Added missing `LiquidityBufferMonths` database column and service logic. Field now persists correctly and hydrates on re-navigation (see `onboardingRiskGoals.integration.test.tsx` for automated coverage).
+
 ## Follow-ups
 - [ ] Decide whether to persist `stepPayloads` now or defer until Wave 5 dual-AI integration.
 - [ ] Evaluate retry/backoff strategy vs. current fire-and-forget `putProgress` call.

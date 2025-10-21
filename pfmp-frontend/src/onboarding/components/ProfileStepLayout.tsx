@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { FinancialProfileSectionStatusValue } from '../../services/financialProfileApi';
 import type { OnboardingStepRegistryEntry } from '../stepRegistry';
@@ -24,6 +24,11 @@ function statusTone(status: FinancialProfileSectionStatusValue) {
     default:
       return { background: '#e3f2fd', color: '#1565c0' };
   }
+}
+
+interface GlobalFlushWindow extends Window {
+  __pfmpCurrentSectionFlush?: () => Promise<void>;
+  __pfmpCurrentSectionComplete?: () => Promise<void>;
 }
 
 interface ProfileStepLayoutProps {
@@ -92,6 +97,53 @@ export function ProfileStepLayout({
       }
     }
   }, [currentIndex]);
+
+  // Navigation flush helpers ensure pending autosave is persisted before changing sections.
+  // Provide a narrowed type for the window flush function to avoid any casts.
+  const pfmpWin: GlobalFlushWindow = window as GlobalFlushWindow;
+
+  async function flushIfPossible(intent: 'default' | 'complete' = 'default'): Promise<void> {
+    const maybeFlush = intent === 'complete'
+      ? pfmpWin.__pfmpCurrentSectionComplete ?? pfmpWin.__pfmpCurrentSectionFlush
+      : pfmpWin.__pfmpCurrentSectionFlush;
+    if (maybeFlush) {
+      try {
+        await maybeFlush();
+      } catch (err) {
+        if (import.meta.env?.DEV) console.warn('Autosave flush before next failed', err);
+      }
+    }
+  }
+
+  async function safeGoNext(): Promise<void> {
+    await flushIfPossible('complete');
+    onGoNext();
+  }
+  async function safeGoPrev(): Promise<void> {
+    await flushIfPossible('complete');
+    onGoPrev();
+  }
+
+  async function safeSelectStep(stepId: OnboardingStepId): Promise<void> {
+    await flushIfPossible('complete');
+    onSelectStep?.(stepId);
+  }
+
+  // Explicit save button support: allow user (and tests) to trigger a flush before next navigation.
+  const [manualSavePending, setManualSavePending] = useState(false);
+  const [lastManuallySavedAt, setLastManuallySavedAt] = useState<string | null>(null);
+  const canManualSave = currentStatus === 'needs_info';
+  async function handleManualSave() {
+    const flushFn = pfmpWin.__pfmpCurrentSectionFlush ?? pfmpWin.__pfmpCurrentSectionComplete;
+    if (!flushFn) return;
+    setManualSavePending(true);
+    try {
+      await flushFn();
+      setLastManuallySavedAt(new Date().toISOString());
+    } finally {
+      setManualSavePending(false);
+    }
+  }
 
   return (
     <div style={{ width: '100%', margin: '32px 0', padding: '0 24px 64px' }}>
@@ -162,7 +214,7 @@ export function ProfileStepLayout({
                     type="button"
                     onClick={() => {
                       if (selectionEnabled) {
-                        onSelectStep?.(step.id);
+                        void safeSelectStep(step.id);
                       }
                     }}
                     aria-disabled={!selectionEnabled}
@@ -186,7 +238,7 @@ export function ProfileStepLayout({
                       if (!selectionEnabled) return;
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        onSelectStep?.(step.id);
+                        void safeSelectStep(step.id);
                       }
                     }}
                   >
@@ -267,7 +319,7 @@ export function ProfileStepLayout({
           <div style={{ marginTop: 32, display: 'flex', gap: 12 }}>
             <button
               type="button"
-              onClick={onGoPrev}
+              onClick={() => void safeGoPrev()}
               disabled={isFirstStep}
               style={{
                 padding: '10px 22px',
@@ -284,7 +336,7 @@ export function ProfileStepLayout({
             {!isReviewStep && (
               <button
                 type="button"
-                onClick={onGoNext}
+                onClick={() => void safeGoNext()}
                 disabled={isLastStep}
                 style={{
                   padding: '10px 24px',
@@ -300,7 +352,30 @@ export function ProfileStepLayout({
                 Next section
               </button>
             )}
+            {canManualSave && !isReviewStep && (
+              <button
+                type="button"
+                onClick={() => void handleManualSave()}
+                disabled={manualSavePending}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: 999,
+                  border: '1px solid #1565c0',
+                  background: manualSavePending ? '#e3f2fd' : '#fff',
+                  color: '#1565c0',
+                  fontWeight: 600,
+                  cursor: manualSavePending ? 'progress' : 'pointer',
+                }}
+              >
+                {manualSavePending ? 'Saving…' : 'Save'}
+              </button>
+            )}
           </div>
+          {lastManuallySavedAt && (
+            <p style={{ marginTop: 8, fontSize: 11, color: '#607d8b' }}>
+              Saved at {new Date(lastManuallySavedAt).toLocaleTimeString()}
+            </p>
+          )}
         </section>
       </div>
     </div>

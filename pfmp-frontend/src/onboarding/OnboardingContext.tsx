@@ -169,6 +169,10 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
   }, []);
 
   const updateStatus = useCallback((id: OnboardingStepId, status: FinancialProfileSectionStatusValue) => {
+    if (import.meta.env?.DEV) {
+      // Temporary diagnostic logging; remove after verifying sidebar update behavior.
+      console.log('[Onboarding] updateStatus', { id, status });
+    }
     dispatch({ type: 'SET_STATUS', id, status });
   }, []);
 

@@ -12,6 +12,21 @@ The format loosely follows [Conventional Commits](https://www.conventionalcommit
 ### Changed
 - _No changes yet_
 
+### Fixed
+- fix(frontend): sidebar status chips now update in real-time after form completion
+  - Root cause: `mountedRef` in `useAutoSaveForm` hook was not being reset to `true` on component remount
+  - React StrictMode intentionally remounts components during development, leaving `mountedRef=false` from cleanup
+  - This caused all autosave callbacks to abort with "component unmounted" message
+  - Solution: Added `mountedRef.current = true` in useEffect setup function to properly handle remounting
+- fix(backend): Risk & Goals liquidity buffer field now persists to database
+  - Added `LiquidityBufferMonths` column to `User` model (type: `decimal(5,2)`)
+  - Updated `UpsertRiskGoalsAsync` to save `input.LiquidityBufferMonths` value
+  - Updated `GetRiskGoalsAsync` to return actual value instead of hardcoded `null`
+  - Created and applied EF migration: `20251021202604_AddLiquidityBufferMonths`
+- chore(frontend): added comprehensive debug logging for status update chain (temporary, for diagnostics)
+- chore(frontend): fixed TypeScript error in `CashAccountsSectionForm` error rendering
+- test(frontend): fixed regex escape sequences in `onboardingEquity.integration.test.tsx`
+
 ### Planned / Pending
 - Wave 2 onboarding refinement (validation schemas)
 - Wave 3 persistence implementation (server endpoints, DTO normalization)

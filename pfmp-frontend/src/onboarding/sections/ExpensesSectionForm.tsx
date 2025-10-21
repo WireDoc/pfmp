@@ -1,10 +1,8 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   Box,
   Button,
   Checkbox,
-  CircularProgress,
   Divider,
   FormControl,
   FormControlLabel,
@@ -28,8 +26,8 @@ import {
   type FinancialProfileSectionStatusValue,
 } from '../../services/financialProfileApi';
 import { useSectionHydration } from '../hooks/useSectionHydration';
-
-type SaveState = 'idle' | 'saving' | 'success' | 'error';
+import { useAutoSaveForm } from '../hooks/useAutoSaveForm';
+import AutoSaveIndicator from '../components/AutoSaveIndicator';
 
 type ExpensesSectionFormProps = {
   userId: number;
@@ -75,7 +73,7 @@ function parseNumber(value: string): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
-function buildPayload(expenses: ExpenseFormState[]): ExpenseBudgetPayload[] {
+function buildExpensePayloads(expenses: ExpenseFormState[]): ExpenseBudgetPayload[] {
   const payloads: ExpenseBudgetPayload[] = [];
 
   expenses.forEach((expense) => {
@@ -100,10 +98,9 @@ export default function ExpensesSectionForm({ userId, onStatusChange, currentSta
   const [expenses, setExpenses] = useState<ExpenseFormState[]>([createExpense(1)]);
   const [optedOut, setOptedOut] = useState(currentStatus === 'opted_out');
   const [optOutReason, setOptOutReason] = useState('');
-  const [saveState, setSaveState] = useState<SaveState>('idle');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // autosave replaces manual save state & error messaging
 
-  const payloadExpenses = useMemo(() => buildPayload(expenses), [expenses]);
+  const payloadExpenses: ExpenseBudgetPayload[] = useMemo(() => buildExpensePayloads(expenses), [expenses]);
   const canRemoveRows = expenses.length > 1;
 
   type HydratedState = {
@@ -164,55 +161,60 @@ export default function ExpensesSectionForm({ userId, onStatusChange, currentSta
 
   const handleOptOutToggle = (checked: boolean) => {
     setOptedOut(checked);
-    if (checked) {
-      setSaveState('idle');
-    }
+    if (!checked) setOptOutReason('');
   };
 
-  const handleSubmit = async () => {
-    setSaveState('saving');
-    setErrorMessage(null);
+  const deriveStatus = useCallback<() => FinancialProfileSectionStatusValue>(() => {
+    if (optedOut) return 'opted_out';
+    return payloadExpenses.length > 0 ? 'completed' : 'needs_info';
+  }, [optedOut, payloadExpenses.length]);
 
-    try {
-      if (!optedOut && payloadExpenses.length === 0) {
-        throw new Error('Estimate at least one expense or opt out to revisit later.');
+  const buildPayload = useCallback<() => ExpensesProfilePayload>(() => {
+    if (optedOut) {
+      return {
+        expenses: [],
+        optOut: {
+          isOptedOut: true,
+          reason: optOutReason.trim() || undefined,
+          acknowledgedAt: new Date().toISOString(),
+        },
+      };
+    }
+    return { expenses: payloadExpenses, optOut: undefined };
+  }, [optedOut, optOutReason, payloadExpenses]);
+
+  const persistExpenses = useCallback(async () => {
+    const payload = buildPayload();
+    await upsertExpensesProfile(userId, payload);
+  }, [buildPayload, userId]);
+
+  const { status: autoStatus, flush, isDirty, lastSavedAt, error } = useAutoSaveForm({
+    data: { expenses, optedOut, optOutReason },
+    debounceMs: 800,
+    determineStatus: () => deriveStatus(),
+    persist: async () => {
+      await persistExpenses();
+      return deriveStatus();
+    },
+    onStatusResolved: (next) => onStatusChange(next),
+    onPersistError: () => {
+      /* handled by hook error */
+    },
+  });
+
+  useEffect(() => {
+    interface PFMPWindow extends Window { __pfmpCurrentSectionFlush?: () => Promise<void>; }
+    const w: PFMPWindow = window as PFMPWindow;
+    w.__pfmpCurrentSectionFlush = flush;
+    return () => {
+      if (w.__pfmpCurrentSectionFlush === flush) {
+        w.__pfmpCurrentSectionFlush = undefined;
       }
-
-      const payload: ExpensesProfilePayload = optedOut
-        ? {
-            expenses: [],
-            optOut: {
-              isOptedOut: true,
-              reason: optOutReason.trim() || undefined,
-              acknowledgedAt: new Date().toISOString(),
-            },
-          }
-        : {
-            expenses: payloadExpenses,
-            optOut: undefined,
-          };
-
-      await upsertExpensesProfile(userId, payload);
-      onStatusChange(optedOut ? 'opted_out' : 'completed');
-      setSaveState('success');
-      setTimeout(() => setSaveState('idle'), 2500);
-    } catch (error) {
-      console.warn('Failed to save expenses section', error);
-      const message = error instanceof Error ? error.message : 'We could not save this section. Please try again.';
-      setErrorMessage(message);
-      setSaveState('error');
-    }
-  };
+    };
+  }, [flush]);
 
   return (
-    <Box
-      component="form"
-      noValidate
-      onSubmit={(event) => {
-        event.preventDefault();
-        void handleSubmit();
-      }}
-    >
+    <Box component="form" noValidate>
       <Stack spacing={3} sx={{ mt: 3 }}>
         <FormControlLabel
           control={<Switch checked={optedOut} onChange={(event) => handleOptOutToggle(event.target.checked)} color="primary" />}
@@ -302,23 +304,8 @@ export default function ExpensesSectionForm({ userId, onStatusChange, currentSta
           </Stack>
         )}
 
-        {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
-        {saveState === 'success' && <Alert severity="success">Section saved.</Alert>}
-
         <Stack direction="row" spacing={2} alignItems="center">
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => void handleSubmit()}
-            disabled={saveState === 'saving'}
-            data-testid="expenses-submit"
-          >
-            {saveState === 'saving' ? (
-              <>
-                <CircularProgress size={18} sx={{ mr: 1 }} /> Saving
-              </>
-            ) : optedOut ? 'Acknowledge opt-out' : 'Save section'}
-          </Button>
+          <AutoSaveIndicator status={autoStatus} lastSavedAt={lastSavedAt} isDirty={isDirty} error={error} />
           <Typography variant="body2" color="text.secondary">
             Even rough estimates help us highlight cashflow gaps and reserve targets.
           </Typography>

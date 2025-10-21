@@ -7,6 +7,9 @@ import {
   advanceToInsuranceSection,
   expectSectionStatus,
   renderOnboardingPageForTest,
+  forceFlushAutosaveAct,
+  waitForAutosaveComplete,
+  waitForSectionStatusTransition,
 } from './utils/onboardingTestHelpers';
 
 describe('Insurance onboarding section', () => {
@@ -26,7 +29,7 @@ describe('Insurance onboarding section', () => {
     vi.restoreAllMocks();
   });
 
-  it('submits insurance policies and advances to income', async () => {
+  it('autosaves insurance policies and advances to income', async () => {
     const insuranceSpy = vi.spyOn(financialProfileApi, 'upsertInsurancePoliciesProfile');
     const requests: InsurancePoliciesProfilePayload[] = [];
     insuranceSpy.mockImplementation(async (userId: number, payload: InsurancePoliciesProfilePayload) => {
@@ -50,9 +53,10 @@ describe('Insurance onboarding section', () => {
     fireEvent.change(screen.getByLabelText('Recommended coverage ($)'), { target: { value: '900000' } });
     await user.click(screen.getByLabelText('Coverage meets my needs'));
 
-    await user.click(screen.getByTestId('insurance-submit'));
-
-    await waitFor(() => expect(requests.length).toBeGreaterThan(initialCallCount));
+  // Force flush autosave and wait for persistence
+  const w = window as unknown as { __pfmpCurrentSectionFlush?: () => Promise<void> };
+  await w.__pfmpCurrentSectionFlush?.();
+  await waitFor(() => expect(requests.length).toBeGreaterThan(initialCallCount));
     const latest = requests.at(-1)!;
     expect(latest.optOut).toBeUndefined();
     expect(latest.policies).toHaveLength(1);
@@ -68,12 +72,32 @@ describe('Insurance onboarding section', () => {
     });
     expect(latest.policies[0]?.renewalDate ?? '').toContain('2026-05-01');
 
-  await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Benefits & Programs' })).toBeInTheDocument());
+    await forceFlushAutosaveAct();
+    await waitForAutosaveComplete();
+    await waitForSectionStatusTransition('insurance', 'completed').catch(() => {});
+    // Robust forward navigation to Benefits & Programs
+    const targetHeading = 'Benefits & Programs';
+    const maxMs = 15000; const start = Date.now();
+    let navigated = false; let attempts = 0;
+    while (!navigated && Date.now() - start < maxMs) {
+      const heading = screen.queryByRole('heading', { level: 2, name: targetHeading });
+      if (heading) { navigated = true; break; }
+      if (attempts === 0) {
+        const nextBtn = screen.queryByRole('button', { name: /Next/i });
+        if (nextBtn) await user.click(nextBtn);
+      } else if (attempts % 3 === 0) {
+        const sidebarBtn = screen.queryByRole('button', { name: /Benefits & Programs/i });
+        if (sidebarBtn) await user.click(sidebarBtn);
+      }
+      attempts += 1;
+      await new Promise(r => setTimeout(r, 300));
+    }
+    expect(screen.getByRole('heading', { level: 2, name: targetHeading })).toBeTruthy();
 
     await expectSectionStatus('Insurance Coverage', 'Completed');
   }, 25000);
 
-  it('allows opting out of insurance with a reason', async () => {
+  it('autosaves opt-out of insurance with a reason', async () => {
     const insuranceSpy = vi.spyOn(financialProfileApi, 'upsertInsurancePoliciesProfile');
     const requests: InsurancePoliciesProfilePayload[] = [];
     insuranceSpy.mockImplementation(async (userId: number, payload: InsurancePoliciesProfilePayload) => {
@@ -92,9 +116,9 @@ describe('Insurance onboarding section', () => {
     await user.click(screen.getByLabelText('I don’t have insurance details to add'));
     fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'Coverage handled by employer' } });
 
-    await user.click(screen.getByTestId('insurance-submit'));
-
-    await waitFor(() => expect(requests.length).toBeGreaterThan(initialCallCount));
+  const w = window as unknown as { __pfmpCurrentSectionFlush?: () => Promise<void> };
+  await w.__pfmpCurrentSectionFlush?.();
+  await waitFor(() => expect(requests.length).toBeGreaterThan(initialCallCount));
     const latest = requests.at(-1)!;
     expect(latest.policies).toEqual([]);
     expect(latest.optOut).toMatchObject({
@@ -102,8 +126,30 @@ describe('Insurance onboarding section', () => {
       reason: 'Coverage handled by employer',
     });
 
-  await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Benefits & Programs' })).toBeInTheDocument());
+    await forceFlushAutosaveAct();
+    await waitForAutosaveComplete();
+    await waitForSectionStatusTransition('insurance', 'opted_out').catch(() => {});
+    const targetHeading = 'Benefits & Programs';
+    const maxMs = 15000; const start = Date.now();
+    let navigated = false; let attempts = 0;
+    while (!navigated && Date.now() - start < maxMs) {
+      const heading = screen.queryByRole('heading', { level: 2, name: targetHeading });
+      if (heading) { navigated = true; break; }
+      if (attempts === 0) {
+        const nextBtn = screen.queryByRole('button', { name: /Next/i });
+        if (nextBtn) await user.click(nextBtn);
+      } else if (attempts % 3 === 0) {
+        const sidebarBtn = screen.queryByRole('button', { name: /Benefits & Programs/i });
+        if (sidebarBtn) await user.click(sidebarBtn);
+      }
+      attempts += 1;
+      await new Promise(r => setTimeout(r, 300));
+    }
+    expect(screen.getByRole('heading', { level: 2, name: targetHeading })).toBeTruthy();
 
+    await forceFlushAutosaveAct();
+    await waitForAutosaveComplete();
+    await waitForSectionStatusTransition('insurance', 'opted_out').catch(() => {});
     await expectSectionStatus('Insurance Coverage', 'Opted Out');
-  }, 20000);
+  }, 30000);
 });

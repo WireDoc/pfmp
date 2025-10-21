@@ -138,6 +138,14 @@ export function LogoMark({ variant = 'p', pulse = true, size = 28, style, ...svg
       );
   }
 
+  // Merge internal style with externally provided style (if any) while preserving typing.
+  const mergedStyle: React.CSSProperties = {
+    display: 'block',
+    borderRadius: 6,
+    boxShadow: '0 4px 12px rgba(34, 211, 238, 0.3)',
+    ...(style as React.CSSProperties | undefined),
+  };
+
   return (
     <svg
       width={size}
@@ -145,7 +153,7 @@ export function LogoMark({ variant = 'p', pulse = true, size = 28, style, ...svg
       viewBox={`0 0 ${box} ${box}`}
       role="img"
       aria-label="PFMP logo"
-      style={{ display: 'block', borderRadius: 6, boxShadow: '0 4px 12px rgba(34, 211, 238, 0.3)', ...(style as any) }}
+      style={mergedStyle}
       {...svgProps}
     >
       {anim}

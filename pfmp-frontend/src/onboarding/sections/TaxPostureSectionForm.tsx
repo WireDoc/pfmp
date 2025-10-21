@@ -1,9 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
   Box,
-  Button,
-  CircularProgress,
   FormControl,
   FormControlLabel,
   InputLabel,
@@ -21,8 +18,8 @@ import {
   type TaxProfilePayload,
 } from '../../services/financialProfileApi';
 import { useSectionHydration } from '../hooks/useSectionHydration';
-
-type SaveState = 'idle' | 'saving' | 'success' | 'error';
+import { useAutoSaveForm } from '../hooks/useAutoSaveForm';
+import AutoSaveIndicator from '../components/AutoSaveIndicator';
 
 type TaxPostureSectionFormProps = {
   userId: number;
@@ -56,8 +53,7 @@ export default function TaxPostureSectionForm({ userId, onStatusChange, currentS
   const [notes, setNotes] = useState('');
   const [optedOut, setOptedOut] = useState(currentStatus === 'opted_out');
   const [optOutReason, setOptOutReason] = useState('');
-  const [saveState, setSaveState] = useState<SaveState>('idle');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // autosave replaces manual save state & error message handling
 
   type HydratedState = {
     filingStatus: string;
@@ -118,59 +114,82 @@ export default function TaxPostureSectionForm({ userId, onStatusChange, currentS
 
   const handleOptOutToggle = (checked: boolean) => {
     setOptedOut(checked);
-    if (checked) {
-      setSaveState('idle');
-    }
+    if (!checked) setOptOutReason('');
   };
 
-  const handleSubmit = async () => {
-    setSaveState('saving');
-    setErrorMessage(null);
+  const deriveStatus = useCallback<() => FinancialProfileSectionStatusValue>(() => {
+    if (optedOut) return 'opted_out';
+    // Consider completed if at least one meaningful field beyond defaults is provided
+    const hasDetail = [state, marginalRate, effectiveRate, withholding, expectedRefund, expectedPayment, notes].some((v) => v.trim() !== '') || usesCpa;
+    return hasDetail ? 'completed' : 'needs_info';
+  }, [optedOut, state, marginalRate, effectiveRate, withholding, expectedRefund, expectedPayment, notes, usesCpa]);
 
-    try {
-      const payload: TaxProfilePayload = optedOut
-        ? {
-            filingStatus: filingStatus,
-            optOut: {
-              isOptedOut: true,
-              reason: optOutReason.trim() || undefined,
-              acknowledgedAt: new Date().toISOString(),
-            },
-          }
-        : {
-            filingStatus,
-            stateOfResidence: state.trim() || null,
-            marginalRatePercent: parseNumber(marginalRate) ?? null,
-            effectiveRatePercent: parseNumber(effectiveRate) ?? null,
-            federalWithholdingPercent: parseNumber(withholding) ?? null,
-            expectedRefundAmount: parseNumber(expectedRefund) ?? null,
-            expectedPaymentAmount: parseNumber(expectedPayment) ?? null,
-            usesCpaOrPreparer: usesCpa,
-            notes: notes.trim() || null,
-            optOut: undefined,
-          };
-
-      await upsertTaxProfile(userId, payload);
-      onStatusChange(optedOut ? 'opted_out' : 'completed');
-      setSaveState('success');
-      setTimeout(() => setSaveState('idle'), 2500);
-    } catch (error) {
-      console.warn('Failed to save tax section', error);
-      const message = error instanceof Error ? error.message : 'We could not save this section. Please try again.';
-      setErrorMessage(message);
-      setSaveState('error');
+  const buildPayload = useCallback<() => TaxProfilePayload>(() => {
+    if (optedOut) {
+      return {
+        filingStatus: filingStatus,
+        optOut: {
+          isOptedOut: true,
+          reason: optOutReason.trim() || undefined,
+          acknowledgedAt: new Date().toISOString(),
+        },
+      };
     }
-  };
+    return {
+      filingStatus,
+      stateOfResidence: state.trim() || null,
+      marginalRatePercent: parseNumber(marginalRate) ?? null,
+      effectiveRatePercent: parseNumber(effectiveRate) ?? null,
+      federalWithholdingPercent: parseNumber(withholding) ?? null,
+      expectedRefundAmount: parseNumber(expectedRefund) ?? null,
+      expectedPaymentAmount: parseNumber(expectedPayment) ?? null,
+      usesCpaOrPreparer: usesCpa,
+      notes: notes.trim() || null,
+      optOut: undefined,
+    };
+  }, [optedOut, filingStatus, optOutReason, state, marginalRate, effectiveRate, withholding, expectedRefund, expectedPayment, usesCpa, notes]);
+
+  const persistTax = useCallback(async () => {
+    const payload = buildPayload();
+    await upsertTaxProfile(userId, payload);
+  }, [buildPayload, userId]);
+
+  const { status: autoStatus, flush, isDirty, lastSavedAt, error } = useAutoSaveForm({
+    data: {
+      filingStatus,
+      state,
+      marginalRate,
+      effectiveRate,
+      withholding,
+      expectedRefund,
+      expectedPayment,
+      usesCpa,
+      notes,
+      optedOut,
+      optOutReason,
+    },
+    debounceMs: 800,
+    determineStatus: () => deriveStatus(),
+    persist: async () => {
+      await persistTax();
+      return deriveStatus();
+    },
+    onStatusResolved: (next) => onStatusChange(next),
+  });
+
+  useEffect(() => {
+    interface PFMPWindow extends Window { __pfmpCurrentSectionFlush?: () => Promise<void>; }
+    const w: PFMPWindow = window as PFMPWindow;
+    w.__pfmpCurrentSectionFlush = flush;
+    return () => {
+      if (w.__pfmpCurrentSectionFlush === flush) {
+        w.__pfmpCurrentSectionFlush = undefined;
+      }
+    };
+  }, [flush]);
 
   return (
-    <Box
-      component="form"
-      noValidate
-      onSubmit={(event) => {
-        event.preventDefault();
-        void handleSubmit();
-      }}
-    >
+    <Box component="form" noValidate>
       <Stack spacing={3} sx={{ mt: 3 }}>
         <FormControlLabel
           control={<Switch checked={optedOut} onChange={(event) => handleOptOutToggle(event.target.checked)} color="primary" />}
@@ -276,23 +295,8 @@ export default function TaxPostureSectionForm({ userId, onStatusChange, currentS
           </Stack>
         )}
 
-        {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
-        {saveState === 'success' && <Alert severity="success">Section saved.</Alert>}
-
         <Stack direction="row" spacing={2} alignItems="center">
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => void handleSubmit()}
-            disabled={saveState === 'saving'}
-            data-testid="tax-submit"
-          >
-            {saveState === 'saving' ? (
-              <>
-                <CircularProgress size={18} sx={{ mr: 1 }} /> Saving
-              </>
-            ) : optedOut ? 'Acknowledge opt-out' : 'Save section'}
-          </Button>
+          <AutoSaveIndicator status={autoStatus} lastSavedAt={lastSavedAt} isDirty={isDirty} error={error} />
           <Typography variant="body2" color="text.secondary">
             These details help us model your real after-tax cashflow and safe withholding.
           </Typography>

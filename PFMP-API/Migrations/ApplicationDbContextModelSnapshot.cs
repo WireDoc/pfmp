@@ -1863,6 +1863,9 @@ namespace PFMP_API.Migrations
                     b.Property<DateTime?>("LastRiskAssessment")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<decimal?>("LiquidityBufferMonths")
+                        .HasColumnType("decimal(5,2)");
+
                     b.Property<string>("MaritalStatus")
                         .HasMaxLength(60)
                         .HasColumnType("character varying(60)");

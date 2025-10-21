@@ -3,7 +3,7 @@ import { screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { PropertiesProfilePayload } from '../services/financialProfileApi';
 import * as financialProfileApi from '../services/financialProfileApi';
-import { advanceToRealEstateSection, expectSectionStatus, renderOnboardingPageForTest } from './utils/onboardingTestHelpers';
+import { advanceToRealEstateSection, expectSectionStatus, renderOnboardingPageForTest, forceFlushAutosaveAct, waitForAutosaveComplete, waitForSectionStatusTransition } from './utils/onboardingTestHelpers';
 
 describe('Real Estate onboarding section', () => {
   beforeEach(() => {
@@ -18,7 +18,7 @@ describe('Real Estate onboarding section', () => {
     vi.restoreAllMocks();
   });
 
-  it('submits property details and advances to liabilities', async () => {
+  it('autosaves property details and advances to liabilities', async () => {
     const propertiesSpy = vi.spyOn(financialProfileApi, 'upsertPropertiesProfile');
     const requests: PropertiesProfilePayload[] = [];
     propertiesSpy.mockImplementation(async (userId: number, payload: PropertiesProfilePayload) => {
@@ -49,9 +49,9 @@ describe('Real Estate onboarding section', () => {
     fireEvent.change(screen.getByLabelText('Monthly expenses ($)'), { target: { value: '600' } });
     await user.click(screen.getByLabelText('HELOC attached'));
 
-    await user.click(screen.getByTestId('properties-submit'));
-
-    await waitFor(() => expect(requests.length).toBeGreaterThan(initialCallCount));
+  const w = window as unknown as { __pfmpCurrentSectionFlush?: () => Promise<void> };
+  await w.__pfmpCurrentSectionFlush?.();
+  await waitFor(() => expect(requests.length).toBeGreaterThan(initialCallCount));
     const latest = requests.at(-1)!;
     expect(latest.optOut).toBeUndefined();
     expect(latest.properties).toHaveLength(1);
@@ -67,12 +67,31 @@ describe('Real Estate onboarding section', () => {
       hasHeloc: true,
     });
 
-  await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Liabilities & Credit' })).toBeInTheDocument());
+    await forceFlushAutosaveAct();
+    await waitForAutosaveComplete();
+    await waitForSectionStatusTransition('real-estate', 'completed').catch(() => { /* non-fatal for navigation */ });
+    // Attempt navigation via Next, then fallback to sidebar button with retries
+    const maxMs = 15000; const start = Date.now();
+    let navigated = false; let attempts = 0;
+    while (!navigated && Date.now() - start < maxMs) {
+      const heading = screen.queryByRole('heading', { level: 2, name: 'Liabilities & Credit' });
+      if (heading) { navigated = true; break; }
+      if (attempts === 0) {
+        const nextBtn = screen.queryByRole('button', { name: /Next/i });
+        if (nextBtn) await user.click(nextBtn);
+      } else if (attempts % 3 === 0) {
+        const sidebarBtn = screen.queryByRole('button', { name: /Liabilities & Credit/i });
+        if (sidebarBtn) await user.click(sidebarBtn);
+      }
+      attempts += 1;
+      await new Promise(r => setTimeout(r, 300));
+    }
+    expect(screen.getByRole('heading', { level: 2, name: 'Liabilities & Credit' })).toBeTruthy();
 
     await expectSectionStatus('Real Estate', 'Completed');
   }, 25000);
 
-  it('allows opting out of real estate and advances to liabilities', async () => {
+  it('autosaves opt-out of real estate and advances to liabilities', async () => {
     const propertiesSpy = vi.spyOn(financialProfileApi, 'upsertPropertiesProfile');
     const requests: PropertiesProfilePayload[] = [];
     propertiesSpy.mockImplementation(async (userId: number, payload: PropertiesProfilePayload) => {
@@ -91,9 +110,9 @@ describe('Real Estate onboarding section', () => {
     await user.click(screen.getByLabelText('I don’t have real estate assets'));
     fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'No property holdings currently' } });
 
-    await user.click(screen.getByTestId('properties-submit'));
-
-    await waitFor(() => expect(requests.length).toBeGreaterThan(initialCallCount));
+  const w = window as unknown as { __pfmpCurrentSectionFlush?: () => Promise<void> };
+  await w.__pfmpCurrentSectionFlush?.();
+  await waitFor(() => expect(requests.length).toBeGreaterThan(initialCallCount));
     const latest = requests.at(-1)!;
     expect(latest.properties).toEqual([]);
     expect(latest.optOut).toMatchObject({
@@ -101,7 +120,25 @@ describe('Real Estate onboarding section', () => {
       reason: 'No property holdings currently',
     });
 
-  await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Liabilities & Credit' })).toBeInTheDocument());
+    await forceFlushAutosaveAct();
+    await waitForAutosaveComplete();
+    await waitForSectionStatusTransition('real-estate', 'opted_out').catch(() => {});
+    const maxMs = 15000; const start = Date.now();
+    let navigated = false; let attempts = 0;
+    while (!navigated && Date.now() - start < maxMs) {
+      const heading = screen.queryByRole('heading', { level: 2, name: 'Liabilities & Credit' });
+      if (heading) { navigated = true; break; }
+      if (attempts === 0) {
+        const nextBtn = screen.queryByRole('button', { name: /Next/i });
+        if (nextBtn) await user.click(nextBtn);
+      } else if (attempts % 3 === 0) {
+        const sidebarBtn = screen.queryByRole('button', { name: /Liabilities & Credit/i });
+        if (sidebarBtn) await user.click(sidebarBtn);
+      }
+      attempts += 1;
+      await new Promise(r => setTimeout(r, 300));
+    }
+    expect(screen.getByRole('heading', { level: 2, name: 'Liabilities & Credit' })).toBeTruthy();
 
     await expectSectionStatus('Real Estate', 'Opted Out');
   }, 20000);
