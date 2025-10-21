@@ -51,6 +51,7 @@ export function useAutoSaveForm<T>({
   const lastSavedSerializedRef = useRef<string>(currentSerializedRef.current);
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       if (timerRef.current) {
@@ -96,13 +97,42 @@ export function useAutoSaveForm<T>({
         const result = await persist(payload);
         const resolvedStatus = result ?? determineStatus?.(payload);
 
-        if (!mountedRef.current) return;
+        if (import.meta.env?.DEV) {
+          console.log('[useAutoSaveForm] persist completed:', { result, resolvedStatus, willCallCallback: !!resolvedStatus });
+        }
+
+        if (!mountedRef.current) {
+          if (import.meta.env?.DEV) {
+            console.log('[useAutoSaveForm] ABORT: component unmounted');
+          }
+          return;
+        }
 
         lastSavedSerializedRef.current = serialized;
         setStatus('saved');
         setLastSavedAt(new Date().toISOString());
+        
+        if (import.meta.env?.DEV) {
+          console.log('[useAutoSaveForm] about to check resolvedStatus:', { 
+            resolvedStatus, 
+            isTruthy: !!resolvedStatus,
+            hasCallback: !!onStatusResolved,
+            callbackType: typeof onStatusResolved
+          });
+        }
+        
         if (resolvedStatus) {
+          if (import.meta.env?.DEV) {
+            console.log('[useAutoSaveForm] calling onStatusResolved:', resolvedStatus);
+          }
           onStatusResolved?.(resolvedStatus);
+          if (import.meta.env?.DEV) {
+            console.log('[useAutoSaveForm] onStatusResolved called successfully');
+          }
+        } else {
+          if (import.meta.env?.DEV) {
+            console.log('[useAutoSaveForm] SKIP: resolvedStatus is falsy');
+          }
         }
         onPersistSuccess?.(payload);
       } catch (err) {

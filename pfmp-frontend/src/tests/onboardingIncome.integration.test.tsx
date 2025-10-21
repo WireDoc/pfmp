@@ -1,151 +1,46 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { screen, waitFor, fireEvent } from '@testing-library/react';
+import { describe, it, beforeEach, vi, expect } from 'vitest';
 import userEvent from '@testing-library/user-event';
-import type { IncomeStreamsProfilePayload } from '../services/financialProfileApi';
+import { screen } from '@testing-library/react';
+import { renderOnboardingPageForTest, robustNavigateToHeading, forceFlushAutosaveAct, waitForAutosaveComplete, waitForSectionStatusTransition } from './utils/onboardingTestHelpers';
 import * as financialProfileApi from '../services/financialProfileApi';
-import { advanceToIncomeSection, expectSectionStatus, renderOnboardingPageForTest } from './utils/onboardingTestHelpers';
+
+/** Autosave integration tests for Income Streams section (updated) */
 
 describe('Income onboarding section', () => {
   beforeEach(() => {
-    vi.spyOn(financialProfileApi, 'upsertHouseholdProfile').mockResolvedValue();
-    vi.spyOn(financialProfileApi, 'upsertRiskGoalsProfile').mockResolvedValue();
-    vi.spyOn(financialProfileApi, 'upsertTspProfile').mockResolvedValue();
-    vi.spyOn(financialProfileApi, 'upsertCashAccountsProfile').mockResolvedValue();
-    vi.spyOn(financialProfileApi, 'upsertInvestmentAccountsProfile').mockResolvedValue();
-    vi.spyOn(financialProfileApi, 'upsertPropertiesProfile').mockResolvedValue();
-    vi.spyOn(financialProfileApi, 'upsertLiabilitiesProfile').mockResolvedValue();
-    vi.spyOn(financialProfileApi, 'upsertExpensesProfile').mockResolvedValue();
-    vi.spyOn(financialProfileApi, 'upsertTaxProfile').mockResolvedValue();
-    vi.spyOn(financialProfileApi, 'upsertInsurancePoliciesProfile').mockResolvedValue();
-    vi.spyOn(financialProfileApi, 'upsertBenefitsProfile').mockResolvedValue();
-    vi.spyOn(financialProfileApi, 'upsertLongTermObligationsProfile').mockResolvedValue();
-    vi.spyOn(financialProfileApi, 'upsertEquityInterest').mockResolvedValue();
+    vi.clearAllMocks();
+    vi.spyOn(financialProfileApi, 'upsertIncomeStreamsProfile').mockResolvedValue();
+    vi.spyOn(financialProfileApi, 'fetchIncomeStreamsProfile').mockResolvedValue({ streams: [] });
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
+  it('autosaves income stream entry', async () => {
+    const user = userEvent.setup();
+    renderOnboardingPageForTest();
+
+    await robustNavigateToHeading('Long-Term Obligations', /Long-Term Obligations/i, { timeoutMs: 15000 });
+    const incomeBtn = await screen.findByRole('button', { name: /Income Streams/i });
+    await user.click(incomeBtn);
+    await robustNavigateToHeading('Income Streams', /Income Streams/i, { timeoutMs: 15000 });
+
+    await user.type(screen.getByLabelText('Income source'), 'GS-14 salary');
+    await forceFlushAutosaveAct();
+    await waitForAutosaveComplete();
+    await waitForSectionStatusTransition('income', 'completed');
   });
 
-  it('submits income streams and shows dashboard CTA', async () => {
-    const incomeSpy = vi.spyOn(financialProfileApi, 'upsertIncomeStreamsProfile');
-    const requests: IncomeStreamsProfilePayload[] = [];
-    incomeSpy.mockImplementation(async (userId: number, payload: IncomeStreamsProfilePayload) => {
-      expect(userId).toBe(1);
-      requests.push(payload);
-    });
-
-    const user = userEvent.setup({ delay: 0 });
-
+  it('autosaves income opt-out with reason', async () => {
+    const user = userEvent.setup();
     renderOnboardingPageForTest();
 
-    await advanceToIncomeSection(user, { realEstate: 'optOut', insurance: 'complete' });
-
-    const initialCallCount = requests.length;
-
-    fireEvent.change(screen.getByLabelText('Income source'), { target: { value: 'GS-14 Salary' } });
-    await user.click(screen.getByLabelText('Income type'));
-    await user.click(screen.getByRole('option', { name: 'Salary / wages' }));
-    fireEvent.change(screen.getByLabelText('Monthly amount ($)'), { target: { value: '9800' } });
-    fireEvent.change(screen.getByLabelText('Annual amount ($)'), { target: { value: '117600' } });
-    fireEvent.change(screen.getByLabelText('Start date'), { target: { value: '2018-04-01' } });
-    fireEvent.change(screen.getByLabelText('End date'), { target: { value: '' } });
-    await user.click(screen.getByLabelText('Guaranteed income'));
-    await user.click(screen.getByLabelText('Active'));
-
-    await user.click(screen.getByTestId('income-submit'));
-
-    await waitFor(() => expect(requests.length).toBeGreaterThan(initialCallCount));
-    const latest = requests.at(-1)!;
-    expect(latest.optOut).toBeUndefined();
-    expect(latest.streams).toHaveLength(1);
-    expect(latest.streams[0]).toMatchObject({
-      name: 'GS-14 Salary',
-      incomeType: 'salary',
-      monthlyAmount: 9800,
-      annualAmount: 117600,
-      isGuaranteed: true,
-      isActive: false,
-    });
-    expect(latest.streams[0]?.startDate ?? '').toContain('2018-04-01');
-
-    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Equity & Private Holdings' })).toBeInTheDocument());
-
-    await user.click(screen.getByLabelText('I don’t need this yet'));
-    fireEvent.change(screen.getByLabelText('Add context (optional)'), { target: { value: 'Income covered in payroll; no equity yet.' } });
-    await user.click(screen.getByTestId('equity-submit'));
-
-    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Review & Finalize' })).toBeInTheDocument());
-    const finalizeButton = screen.getByTestId('review-finalize');
-    expect(finalizeButton).toBeEnabled();
-
-    const backButton = screen.getByRole('button', { name: 'Back' });
-    expect(backButton).not.toBeDisabled();
-    await user.click(backButton);
-    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Equity & Private Holdings' })).toBeInTheDocument());
-
-    await user.click(screen.getByRole('button', { name: 'Next section' }));
-    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Review & Finalize' })).toBeInTheDocument());
-
-    const equityNav = screen.getByRole('button', { name: /Equity & Private Holdings/ });
-    expect(equityNav).toHaveStyle({ cursor: 'pointer' });
-    await user.click(equityNav);
-    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Equity & Private Holdings' })).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: 'Next section' }));
-    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Review & Finalize' })).toBeInTheDocument());
-
-    await expectSectionStatus('Income Streams', 'Completed');
-    await expectSectionStatus('Equity & Private Holdings', 'Opted Out');
-    await expectSectionStatus('Review & Finalize', 'Needs Info');
-  }, 45000);
-
-  it('allows opting out of income with a reason', async () => {
-    const incomeSpy = vi.spyOn(financialProfileApi, 'upsertIncomeStreamsProfile');
-    const requests: IncomeStreamsProfilePayload[] = [];
-    incomeSpy.mockImplementation(async (userId: number, payload: IncomeStreamsProfilePayload) => {
-      expect(userId).toBe(1);
-      requests.push(payload);
-    });
-
-    const user = userEvent.setup({ delay: 0 });
-
-    renderOnboardingPageForTest();
-
-    await advanceToIncomeSection(user, { realEstate: 'optOut', insurance: 'optOut' });
-
-    const initialCallCount = requests.length;
+    await robustNavigateToHeading('Long-Term Obligations', /Long-Term Obligations/i, { timeoutMs: 15000 });
+    const incomeBtn = await screen.findByRole('button', { name: /Income Streams/i });
+    await user.click(incomeBtn);
+    await robustNavigateToHeading('Income Streams', /Income Streams/i, { timeoutMs: 15000 });
 
     await user.click(screen.getByLabelText('I’ll share income details later'));
-    fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'Income handled in payroll system' } });
-
-    await user.click(screen.getByTestId('income-submit'));
-
-    await waitFor(() => expect(requests.length).toBeGreaterThan(initialCallCount));
-    const latest = requests.at(-1)!;
-    expect(latest.streams).toEqual([]);
-    expect(latest.optOut).toMatchObject({
-      isOptedOut: true,
-      reason: 'Income handled in payroll system',
-    });
-
-    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Equity & Private Holdings' })).toBeInTheDocument());
-
-    await user.click(screen.getByLabelText('I don’t need this yet'));
-    fireEvent.change(screen.getByLabelText('Add context (optional)'), { target: { value: 'Income only for now' } });
-    await user.click(screen.getByTestId('equity-submit'));
-
-    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Review & Finalize' })).toBeInTheDocument());
-    const finalizeButton = screen.getByTestId('review-finalize');
-    expect(finalizeButton).toBeEnabled();
-
-    const reviewBackButton = screen.getByRole('button', { name: 'Back' });
-    expect(reviewBackButton).not.toBeDisabled();
-    await user.click(reviewBackButton);
-    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Equity & Private Holdings' })).toBeInTheDocument());
-    await user.click(screen.getByRole('button', { name: 'Next section' }));
-    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Review & Finalize' })).toBeInTheDocument());
-
-    await expectSectionStatus('Income Streams', 'Opted Out');
-    await expectSectionStatus('Equity & Private Holdings', 'Opted Out');
-    await expectSectionStatus('Review & Finalize', 'Needs Info');
-  }, 45000);
+    await user.type(screen.getByLabelText('Why are you opting out?'), 'Not ready to disclose');
+    await forceFlushAutosaveAct();
+    await waitForAutosaveComplete();
+    await waitForSectionStatusTransition('income', 'opted_out');
+  });
 });

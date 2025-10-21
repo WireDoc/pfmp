@@ -1,9 +1,10 @@
+// CONTINUE_MARKER 2025-10-19 12:55Z
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { screen, waitFor, fireEvent } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { InvestmentAccountsProfilePayload } from '../services/financialProfileApi';
 import * as financialProfileApi from '../services/financialProfileApi';
-import { advanceToInvestmentsSection, expectSectionStatus, renderOnboardingPageForTest } from './utils/onboardingTestHelpers';
+import { advanceToInvestmentsSection, expectSectionStatus, renderOnboardingPageForTest, waitForAutosaveComplete, forceFlushAutosaveAct, goNextAndWait } from './utils/onboardingTestHelpers';
 
 describe('Investments onboarding section', () => {
   beforeEach(() => {
@@ -42,9 +43,10 @@ describe('Investments onboarding section', () => {
     fireEvent.change(screen.getByLabelText('Last contribution'), { target: { value: '2024-12-15' } });
     await user.click(screen.getByLabelText('Tax-advantaged'));
 
-    await user.click(screen.getByTestId('investments-submit'));
-
-    await waitFor(() => expect(requests.length).toBeGreaterThan(initialCallCount));
+    // Force flush then wait for autosave completion
+    await forceFlushAutosaveAct();
+    await waitForAutosaveComplete();
+    expect(requests.length).toBeGreaterThan(initialCallCount);
     const latest = requests.at(-1)!;
     expect(latest.optOut).toBeUndefined();
     expect(latest.accounts).toHaveLength(1);
@@ -60,7 +62,7 @@ describe('Investments onboarding section', () => {
     });
     expect(latest.accounts[0]?.lastContributionDate ?? '').toContain('2024-12-15');
 
-    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Real Estate' })).toBeInTheDocument());
+    await goNextAndWait(user, 'Real Estate');
 
     await expectSectionStatus('Investments', 'Completed');
   }, 25000);
@@ -84,9 +86,9 @@ describe('Investments onboarding section', () => {
     await user.click(screen.getByLabelText('I don’t have non-TSP investment accounts'));
     fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'All assets consolidated in TSP' } });
 
-    await user.click(screen.getByTestId('investments-submit'));
-
-    await waitFor(() => expect(requests.length).toBeGreaterThan(initialCallCount));
+    await forceFlushAutosaveAct();
+    await waitForAutosaveComplete();
+    expect(requests.length).toBeGreaterThan(initialCallCount);
     const latest = requests.at(-1)!;
     expect(latest.accounts).toEqual([]);
     expect(latest.optOut).toMatchObject({
@@ -94,7 +96,7 @@ describe('Investments onboarding section', () => {
       reason: 'All assets consolidated in TSP',
     });
 
-    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Real Estate' })).toBeInTheDocument());
+    await goNextAndWait(user, 'Real Estate');
 
     await expectSectionStatus('Investments', 'Opted Out');
   }, 20000);

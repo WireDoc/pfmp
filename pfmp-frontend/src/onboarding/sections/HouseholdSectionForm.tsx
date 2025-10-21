@@ -1,8 +1,7 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import {
   Alert,
   Box,
-  Button,
   FormControlLabel,
   MenuItem,
   Stack,
@@ -97,20 +96,35 @@ function sanitizePayload(draft: HouseholdProfilePayload): HouseholdProfilePayloa
 export default function HouseholdSectionForm({ userId, onStatusChange, currentStatus }: HouseholdSectionFormProps) {
   const [formState, setFormState] = useState<HouseholdProfilePayload>(() => createInitialState(currentStatus));
   const optedOut = useMemo(() => formState.optOut?.isOptedOut === true, [formState.optOut]);
-  const completionIntentRef = useRef(false);
 
   const persistHousehold = useCallback(
     async (draft: HouseholdProfilePayload) => {
       const payload = sanitizePayload(draft);
       await upsertHouseholdProfile(userId, payload);
+      
+      if (import.meta.env?.DEV) {
+        console.log('[HouseholdSectionForm] persistHousehold called:', {
+          preferredName: payload.preferredName,
+          maritalStatus: payload.maritalStatus,
+          dependentCount: payload.dependentCount,
+          hasDetails: hasEnteredHouseholdDetails(draft),
+          isOptedOut: draft.optOut?.isOptedOut,
+        });
+      }
+      
       if (draft.optOut?.isOptedOut) {
+        if (import.meta.env?.DEV) console.log('[HouseholdSectionForm] returning: opted_out');
         return 'opted_out';
       }
 
-      if (completionIntentRef.current && hasEnteredHouseholdDetails(draft)) {
+      // Mark as completed if user has entered sufficient household details
+      // This allows autosave to properly update the status chip in real-time
+      if (hasEnteredHouseholdDetails(draft)) {
+        if (import.meta.env?.DEV) console.log('[HouseholdSectionForm] returning: completed');
         return 'completed';
       }
 
+      if (import.meta.env?.DEV) console.log('[HouseholdSectionForm] returning: needs_info');
       return 'needs_info';
     },
     [userId],
@@ -118,11 +132,10 @@ export default function HouseholdSectionForm({ userId, onStatusChange, currentSt
 
   const {
     status: autoStatus,
-    isSaving,
     isDirty,
     error: autoError,
     lastSavedAt,
-    flush: internalFlush,
+    flush,
     resetBaseline,
   } = useAutoSaveForm({
     data: formState,
@@ -205,20 +218,18 @@ export default function HouseholdSectionForm({ userId, onStatusChange, currentSt
     resetBaseline,
   });
 
-  const flush = useCallback(async () => {
-    completionIntentRef.current = true;
-    try {
-      if (isDirty) {
-        await internalFlush();
-      } else {
-        const status = await persistHousehold(formState);
-        onStatusChange(status);
-        resetBaseline(formState);
-      }
-    } finally {
-      completionIntentRef.current = false;
+  useEffect(() => {
+    interface PFMPWindow extends Window {
+      __pfmpCurrentSectionFlush?: () => Promise<void>;
     }
-  }, [formState, internalFlush, isDirty, onStatusChange, persistHousehold, resetBaseline]);
+    const w: PFMPWindow = window as PFMPWindow;
+    w.__pfmpCurrentSectionFlush = flush;
+    return () => {
+      if (w.__pfmpCurrentSectionFlush === flush) {
+        w.__pfmpCurrentSectionFlush = undefined;
+      }
+    };
+  }, [flush]);
 
   const handleChange = <K extends keyof HouseholdProfilePayload>(key: K, value: HouseholdProfilePayload[K]) => {
     setFormState((prev) => ({ ...prev, [key]: value }));
@@ -334,20 +345,9 @@ export default function HouseholdSectionForm({ userId, onStatusChange, currentSt
 
         {autoStatus === 'error' && errorMessage && <Alert severity="error">{errorMessage}</Alert>}
 
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => void flush()}
-            disabled={isSaving}
-            data-testid="household-submit"
-          >
-            {optedOut ? 'Acknowledge opt-out' : 'Save now'}
-          </Button>
-          <Typography variant="body2" color="text.secondary">
-            {optedOut ? "We'll mark this section as acknowledged." : 'Updates sync automatically while you type.'}
-          </Typography>
-        </Stack>
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+          Autosave keeps this section in sync.
+        </Typography>
       </Stack>
     </Box>
   );

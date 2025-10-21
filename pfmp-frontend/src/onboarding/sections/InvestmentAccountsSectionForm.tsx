@@ -1,10 +1,8 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
-  Button,
   Checkbox,
-  CircularProgress,
   Divider,
   FormControl,
   FormControlLabel,
@@ -28,8 +26,10 @@ import {
   type InvestmentAccountsProfilePayload,
 } from '../../services/financialProfileApi';
 import { useSectionHydration } from '../hooks/useSectionHydration';
+import { useAutoSaveForm } from '../hooks/useAutoSaveForm';
+import AutoSaveIndicator from '../components/AutoSaveIndicator';
 
-type SaveState = 'idle' | 'saving' | 'success' | 'error';
+// Manual save state removed (autosave unified)
 
 type InvestmentAccountsSectionFormProps = {
   userId: number;
@@ -119,8 +119,7 @@ export default function InvestmentAccountsSectionForm({ userId, onStatusChange, 
   const [accounts, setAccounts] = useState<InvestmentAccountFormState[]>([createAccount(1)]);
   const [optedOut, setOptedOut] = useState<boolean>(currentStatus === 'opted_out');
   const [optOutReason, setOptOutReason] = useState<string>('');
-  const [saveState, setSaveState] = useState<SaveState>('idle');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Remove legacy manual save error state; rely on autoError from autosave hook
 
   const payloadAccounts = useMemo(() => buildPayloadAccounts(accounts), [accounts]);
   const canRemoveAccounts = accounts.length > 1;
@@ -186,57 +185,58 @@ export default function InvestmentAccountsSectionForm({ userId, onStatusChange, 
     });
   };
 
-  const handleSubmit = async () => {
-    setSaveState('saving');
-    setErrorMessage(null);
-
-    try {
-      if (!optedOut && payloadAccounts.length === 0) {
-        throw new Error('Add at least one investment account or opt out of this section.');
-      }
-
-      const payload: InvestmentAccountsProfilePayload = optedOut
-        ? {
-            accounts: [],
-            optOut: {
-              isOptedOut: true,
-              reason: optOutReason.trim() || undefined,
-              acknowledgedAt: new Date().toISOString(),
-            },
-          }
-        : {
-            accounts: payloadAccounts,
-            optOut: undefined,
-          };
-
-      await upsertInvestmentAccountsProfile(userId, payload);
-      onStatusChange(optedOut ? 'opted_out' : 'completed');
-      setSaveState('success');
-      setTimeout(() => setSaveState('idle'), 2500);
-    } catch (error) {
-      console.warn('Failed to save investment accounts section', error);
-      const message = error instanceof Error ? error.message : 'We could not save this section. Please try again.';
-      setErrorMessage(message);
-      setSaveState('error');
+  function buildPayload(): InvestmentAccountsProfilePayload {
+    if (optedOut) {
+      return {
+        accounts: [],
+        optOut: {
+          isOptedOut: true,
+          reason: optOutReason.trim() || undefined,
+          acknowledgedAt: new Date().toISOString(),
+        },
+      };
     }
-  };
+    return { accounts: payloadAccounts, optOut: undefined };
+  }
+
+  function deriveStatus(payload: InvestmentAccountsProfilePayload): FinancialProfileSectionStatusValue {
+    if (payload.optOut?.isOptedOut) return 'opted_out';
+    return payload.accounts.length > 0 ? 'completed' : 'needs_info';
+  }
+
+  const persistInvestments = useCallback(async (draft: InvestmentAccountsProfilePayload) => {
+    if (!draft.optOut?.isOptedOut && draft.accounts.length === 0) {
+      throw new Error('Add at least one investment account or opt out of this section.');
+    }
+    await upsertInvestmentAccountsProfile(userId, draft);
+    return deriveStatus(draft);
+  }, [userId]);
+
+  const { status: autoStatus, isDirty, error: autoError, lastSavedAt, flush } = useAutoSaveForm<InvestmentAccountsProfilePayload>({
+    data: buildPayload(),
+    persist: persistInvestments,
+    determineStatus: deriveStatus,
+    onStatusResolved: onStatusChange,
+    debounceMs: 800,
+  });
+
+  useEffect(() => {
+    interface PFMPWindow extends Window { __pfmpCurrentSectionFlush?: () => Promise<void>; }
+    const w: PFMPWindow = window as PFMPWindow;
+    w.__pfmpCurrentSectionFlush = flush;
+    return () => {
+      if (w.__pfmpCurrentSectionFlush === flush) {
+        w.__pfmpCurrentSectionFlush = undefined;
+      }
+    };
+  }, [flush]);
 
   const handleOptOutToggle = (checked: boolean) => {
     setOptedOut(checked);
-    if (checked) {
-      setSaveState('idle');
-    }
   };
 
   return (
-    <Box
-      component="form"
-      noValidate
-      onSubmit={(event) => {
-        event.preventDefault();
-        void handleSubmit();
-      }}
-    >
+    <Box component="div">
       <Stack spacing={3} sx={{ mt: 3 }}>
         <FormControlLabel
           control={<Switch checked={optedOut} onChange={(event) => handleOptOutToggle(event.target.checked)} color="primary" />}
@@ -362,33 +362,36 @@ export default function InvestmentAccountsSectionForm({ userId, onStatusChange, 
               </Box>
             ))}
 
-            <Button type="button" variant="outlined" startIcon={<AddIcon />} onClick={handleAddAccount} sx={{ alignSelf: 'flex-start' }}>
-              Add another investment account
-            </Button>
+            <button
+              type="button"
+              onClick={handleAddAccount}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 14px',
+                borderRadius: 6,
+                background: '#fff',
+                border: '1px solid #90caf9',
+                cursor: 'pointer',
+                fontWeight: 600,
+                color: '#1565c0',
+              }}
+            >
+              <AddIcon style={{ fontSize: 18 }} /> Add another investment account
+            </button>
           </Stack>
         )}
 
-        {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
-        {saveState === 'success' && <Alert severity="success">Section saved.</Alert>}
-
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => void handleSubmit()}
-            disabled={saveState === 'saving'}
-            data-testid="investments-submit"
-          >
-            {saveState === 'saving' ? (
-              <>
-                <CircularProgress size={18} sx={{ mr: 1 }} /> Saving
-              </>
-            ) : optedOut ? 'Acknowledge opt-out' : 'Save section'}
-          </Button>
-          <Typography variant="body2" color="text.secondary">
-            Capture balances so your dashboard can chart allocation and net worth.
-          </Typography>
+        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ mt: 2 }}>
+          <Typography variant="caption" color="text.secondary">Autosave keeps this section in sync.</Typography>
+          <AutoSaveIndicator status={autoStatus} lastSavedAt={lastSavedAt} isDirty={isDirty} error={autoError} />
         </Stack>
+        {autoStatus === 'error' && autoError ? (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {autoError instanceof Error ? autoError.message : String(autoError)}
+          </Alert>
+        ) : null}
       </Stack>
     </Box>
   );

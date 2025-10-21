@@ -3,7 +3,7 @@ import { screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { TspProfilePayload } from '../services/financialProfileApi';
 import * as financialProfileApi from '../services/financialProfileApi';
-import { advanceToCashSection, expectSectionStatus, renderOnboardingPageForTest } from './utils/onboardingTestHelpers';
+import { advanceToCashSection, expectSectionStatus, renderOnboardingPageForTest, clickNextSection, waitForAutosaveComplete } from './utils/onboardingTestHelpers';
 
 describe('TSP onboarding section', () => {
   beforeEach(() => {
@@ -32,7 +32,7 @@ describe('TSP onboarding section', () => {
 
     // The helper lands us on Cash Accounts; navigate back one step to focus on TSP assertions.
     await user.click(screen.getByRole('button', { name: 'Back' }));
-    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'TSP Snapshot' })).toBeInTheDocument());
+  await waitFor(() => Boolean(screen.getByRole('heading', { level: 2, name: 'TSP Snapshot' })));
 
     fireEvent.change(screen.getByLabelText('Contribution rate (%)'), { target: { value: '12' } });
     // Set per-fund contributions via generic Contribution (%) fields. Order starts with base funds.
@@ -43,9 +43,8 @@ describe('TSP onboarding section', () => {
       if (contribs[idx]) fireEvent.change(contribs[idx], { target: { value: String(val) } });
     });
 
-    await user.click(screen.getByTestId('tsp-submit'));
-
-    await waitFor(() => expect(requests.length).toBeGreaterThan(initialCallCount));
+  // Autosave should persist after field edits; wait for at least one new request
+  await waitFor(() => expect(requests.length).toBeGreaterThan(initialCallCount));
     const latest = requests.at(-1)!;
     expect(latest.contributionRatePercent).toBe(12);
     // Employer match is computed server-side; should be undefined or absent
@@ -57,7 +56,13 @@ describe('TSP onboarding section', () => {
     expect(byCode.get('S')?.contributionPercent).toBe(20);
     expect(byCode.get('I')?.contributionPercent).toBe(10);
 
-    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Cash Accounts' })).toBeInTheDocument());
+  // Explicitly wait for autosave settle then navigate forward using Next (if currently on TSP).
+  await waitForAutosaveComplete(8000);
+  // If not already on Cash Accounts, attempt explicit Next navigation.
+  if (!screen.queryByRole('heading', { level: 2, name: 'Cash Accounts' })) {
+    await clickNextSection(user);
+  }
+  await waitFor(() => Boolean(screen.getByRole('heading', { level: 2, name: 'Cash Accounts' })));
 
     expectSectionStatus('TSP Snapshot', 'Completed');
   }, 20000);
@@ -78,14 +83,13 @@ describe('TSP onboarding section', () => {
     const initialCallCount = requests.length;
 
     await user.click(screen.getByRole('button', { name: 'Back' }));
-    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'TSP Snapshot' })).toBeInTheDocument());
+  await waitFor(() => Boolean(screen.getByRole('heading', { level: 2, name: 'TSP Snapshot' })));
 
   await user.click(screen.getByLabelText('I don’t invest in the Thrift Savings Plan'));
     fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'No access to TSP yet' } });
 
-    await user.click(screen.getByTestId('tsp-submit'));
-
-    await waitFor(() => expect(requests.length).toBeGreaterThan(initialCallCount));
+  // Autosave should persist the opt-out without manual submit
+  await waitFor(() => expect(requests.length).toBeGreaterThan(initialCallCount));
     const latest = requests.at(-1)!;
     expect(latest).toMatchObject({
       optOut: {
@@ -94,6 +98,8 @@ describe('TSP onboarding section', () => {
       },
     });
 
-    expectSectionStatus('TSP Snapshot', 'Opted Out');
+  // Wait for autosave settle then confirm sidebar status.
+  await waitForAutosaveComplete(8000);
+  expectSectionStatus('TSP Snapshot', 'Opted Out');
   }, 20000);
 });

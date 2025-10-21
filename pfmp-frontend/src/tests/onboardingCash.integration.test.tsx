@@ -3,7 +3,7 @@ import { screen, waitFor, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { CashAccountsProfilePayload } from '../services/financialProfileApi';
 import * as financialProfileApi from '../services/financialProfileApi';
-import { advanceToCashSection, expectSectionStatus, renderOnboardingPageForTest } from './utils/onboardingTestHelpers';
+import { advanceToCashSection, expectSectionStatus, renderOnboardingPageForTest, waitForAutosaveComplete, forceFlushAutosaveAct, goNextAndWait } from './utils/onboardingTestHelpers';
 
 describe('Cash Accounts onboarding section', () => {
   beforeEach(() => {
@@ -21,7 +21,7 @@ describe('Cash Accounts onboarding section', () => {
     const requests: CashAccountsProfilePayload[] = [];
     cashSpy.mockImplementation(async (userId: number, payload: CashAccountsProfilePayload) => {
       expect(userId).toBe(1);
-      requests.push(payload as CashAccountsProfilePayload);
+      requests.push({ ...payload, accounts: [...(payload.accounts ?? [])] });
     });
 
     const user = userEvent.setup({ delay: 0 });
@@ -53,10 +53,11 @@ describe('Cash Accounts onboarding section', () => {
     fireEvent.change(withinSecond.getByLabelText('Balance ($)'), { target: { value: '32000' } });
     fireEvent.change(withinSecond.getByLabelText('Interest rate (APR %)'), { target: { value: '4.25' } });
 
-    await user.click(screen.getByTestId('cash-submit'));
-
-    await waitFor(() => expect(requests).toHaveLength(1));
-    const payload = requests[0];
+    // Force flush in case debounce hasn't fired yet
+    await forceFlushAutosaveAct();
+    await waitForAutosaveComplete();
+    expect(requests.length).toBeGreaterThan(0);
+    const payload = requests[requests.length - 1];
     expect(payload.optOut).toBeUndefined();
     expect(payload.accounts).toHaveLength(2);
     expect(payload.accounts[0]).toMatchObject({
@@ -77,7 +78,7 @@ describe('Cash Accounts onboarding section', () => {
       isEmergencyFund: false,
     });
 
-    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Investments' })).toBeInTheDocument());
+    await goNextAndWait(user, 'Investments');
 
     expectSectionStatus('Cash Accounts', 'Completed');
   }, 25000);
@@ -87,7 +88,7 @@ describe('Cash Accounts onboarding section', () => {
     const requests: CashAccountsProfilePayload[] = [];
     cashSpy.mockImplementation(async (userId: number, payload: CashAccountsProfilePayload) => {
       expect(userId).toBe(1);
-      requests.push(payload as CashAccountsProfilePayload);
+      requests.push({ ...payload, accounts: [...(payload.accounts ?? [])] });
     });
 
     const user = userEvent.setup({ delay: 0 });
@@ -99,18 +100,19 @@ describe('Cash Accounts onboarding section', () => {
     await user.click(screen.getByLabelText('I don’t have additional cash accounts'));
     fireEvent.change(screen.getByLabelText('Why are you opting out?'), { target: { value: 'Using joint account only' } });
 
-    await user.click(screen.getByTestId('cash-submit'));
-
-    await waitFor(() => expect(requests).toHaveLength(1));
-    expect(requests[0]).toMatchObject({
+    // Force flush for opt-out path
+    await forceFlushAutosaveAct();
+    await waitForAutosaveComplete();
+  expect(requests.length).toBeGreaterThan(0);
+  const latestOptOut = requests[requests.length - 1];
+  expect(latestOptOut).toMatchObject({
       accounts: [],
       optOut: {
         isOptedOut: true,
         reason: 'Using joint account only',
       },
     });
-
-    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: 'Investments' })).toBeInTheDocument());
+    await goNextAndWait(user, 'Investments');
 
     expectSectionStatus('Cash Accounts', 'Opted Out');
   }, 20000);

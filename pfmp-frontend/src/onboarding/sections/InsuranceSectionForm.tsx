@@ -1,10 +1,8 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import {
   Alert,
   Box,
-  Button,
   Checkbox,
-  CircularProgress,
   Divider,
   FormControl,
   FormControlLabel,
@@ -20,16 +18,11 @@ import {
 } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
-import {
-  fetchInsurancePoliciesProfile,
-  upsertInsurancePoliciesProfile,
-  type FinancialProfileSectionStatusValue,
-  type InsurancePoliciesProfilePayload,
-  type InsurancePolicyPayload,
-} from '../../services/financialProfileApi';
+import { fetchInsurancePoliciesProfile, upsertInsurancePoliciesProfile, type FinancialProfileSectionStatusValue, type InsurancePoliciesProfilePayload, type InsurancePolicyPayload } from '../../services/financialProfileApi';
 import { useSectionHydration } from '../hooks/useSectionHydration';
+import { useAutoSaveForm } from '../hooks/useAutoSaveForm';
+import AutoSaveIndicator from '../components/AutoSaveIndicator';
 
-type SaveState = 'idle' | 'saving' | 'success' | 'error';
 
 type InsuranceSectionFormProps = {
   userId: number;
@@ -128,8 +121,7 @@ export default function InsuranceSectionForm({ userId, onStatusChange, currentSt
   const [policies, setPolicies] = useState<InsurancePolicyFormState[]>([createPolicy(1)]);
   const [optedOut, setOptedOut] = useState<boolean>(currentStatus === 'opted_out');
   const [optOutReason, setOptOutReason] = useState<string>('');
-  const [saveState, setSaveState] = useState<SaveState>('idle');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Manual submit removed (autosave handles persistence and error state)
 
   const payloadPolicies = useMemo(() => buildPayloadPolicies(policies), [policies]);
   const canRemovePolicies = policies.length > 1;
@@ -220,57 +212,54 @@ export default function InsuranceSectionForm({ userId, onStatusChange, currentSt
     });
   };
 
-  const handleSubmit = async () => {
-    setSaveState('saving');
-    setErrorMessage(null);
-
-    try {
-      if (!optedOut && payloadPolicies.length === 0) {
-        throw new Error('Add at least one policy or opt out of this section.');
-      }
-
-      const payload: InsurancePoliciesProfilePayload = optedOut
-        ? {
-            policies: [],
-            optOut: {
-              isOptedOut: true,
-              reason: optOutReason.trim() || undefined,
-              acknowledgedAt: new Date().toISOString(),
-            },
-          }
-        : {
-            policies: payloadPolicies,
-            optOut: undefined,
-          };
-
-      await upsertInsurancePoliciesProfile(userId, payload);
-      onStatusChange(optedOut ? 'opted_out' : 'completed');
-      setSaveState('success');
-      setTimeout(() => setSaveState('idle'), 2500);
-    } catch (error) {
-      console.warn('Failed to save insurance section', error);
-      const message = error instanceof Error ? error.message : 'We could not save this section. Please try again.';
-      setErrorMessage(message);
-      setSaveState('error');
+  function buildPayload(): InsurancePoliciesProfilePayload {
+    if (optedOut) {
+      return {
+        policies: [],
+        optOut: {
+          isOptedOut: true,
+          reason: optOutReason.trim() || undefined,
+          acknowledgedAt: new Date().toISOString(),
+        },
+      };
     }
-  };
+    return { policies: payloadPolicies, optOut: undefined };
+  }
+
+  function deriveStatus(payload: InsurancePoliciesProfilePayload): FinancialProfileSectionStatusValue {
+    if (payload.optOut?.isOptedOut) return 'opted_out';
+    return payload.policies.length > 0 ? 'completed' : 'needs_info';
+  }
+
+  const persistInsurance = useCallback(async (draft: InsurancePoliciesProfilePayload) => {
+    if (!draft.optOut?.isOptedOut && draft.policies.length === 0) {
+      throw new Error('Add at least one policy or opt out of this section.');
+    }
+    await upsertInsurancePoliciesProfile(userId, draft);
+    return deriveStatus(draft);
+  }, [userId]);
+
+  const { status: autoStatus, isDirty, error: autoError, lastSavedAt, flush } = useAutoSaveForm<InsurancePoliciesProfilePayload>({
+    data: buildPayload(),
+    persist: persistInsurance,
+    determineStatus: deriveStatus,
+    onStatusResolved: onStatusChange,
+    debounceMs: 800,
+  });
+
+  useEffect(() => {
+    interface PFMPWindow extends Window { __pfmpCurrentSectionFlush?: () => Promise<void>; }
+    const w: PFMPWindow = window as PFMPWindow;
+    w.__pfmpCurrentSectionFlush = flush;
+    return () => { if (w.__pfmpCurrentSectionFlush === flush) w.__pfmpCurrentSectionFlush = undefined; };
+  }, [flush]);
 
   const handleOptOutToggle = (checked: boolean) => {
     setOptedOut(checked);
-    if (checked) {
-      setSaveState('idle');
-    }
   };
 
   return (
-    <Box
-      component="form"
-      noValidate
-      onSubmit={(event) => {
-        event.preventDefault();
-        void handleSubmit();
-      }}
-    >
+    <Box component="form" noValidate onSubmit={(e) => { e.preventDefault(); void flush(); }}>
       <Stack spacing={3} sx={{ mt: 3 }}>
         <FormControlLabel
           control={<Switch checked={optedOut} onChange={(event) => handleOptOutToggle(event.target.checked)} color="primary" />}
@@ -404,39 +393,37 @@ export default function InsuranceSectionForm({ userId, onStatusChange, currentSt
               </Box>
             ))}
 
-            <Button
+            <button
               type="button"
-              variant="outlined"
-              startIcon={<AddIcon />}
               onClick={handleAddPolicy}
-              sx={{ alignSelf: 'flex-start' }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 14px',
+                borderRadius: 6,
+                background: '#fff',
+                border: '1px solid #90caf9',
+                cursor: 'pointer',
+                fontWeight: 600,
+                color: '#1565c0',
+              }}
             >
-              Add another policy
-            </Button>
+              <AddIcon style={{ fontSize: 18 }} /> Add another policy
+            </button>
           </Stack>
         )}
 
-        {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
-        {saveState === 'success' && <Alert severity="success">Section saved.</Alert>}
-
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => void handleSubmit()}
-            disabled={saveState === 'saving'}
-            data-testid="insurance-submit"
-          >
-            {saveState === 'saving' ? (
-              <>
-                <CircularProgress size={18} sx={{ mr: 1 }} /> Saving
-              </>
-            ) : optedOut ? 'Acknowledge opt-out' : 'Save section'}
-          </Button>
-          <Typography variant="body2" color="text.secondary">
-            Capture coverage and premiums so we can surface protection gaps.
-          </Typography>
+        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ mt: 2 }}>
+          <Typography variant="caption" color="text.secondary">Autosave keeps this section in sync.</Typography>
+          <AutoSaveIndicator status={autoStatus} lastSavedAt={lastSavedAt} isDirty={isDirty} error={autoError} />
         </Stack>
+        {autoStatus === 'error' && autoError ? (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {autoError instanceof Error ? autoError.message : String(autoError)}
+          </Alert>
+        ) : null}
+        <Typography variant="body2" color="text.secondary">Capture coverage and premiums so we can surface protection gaps.</Typography>
       </Stack>
     </Box>
   );

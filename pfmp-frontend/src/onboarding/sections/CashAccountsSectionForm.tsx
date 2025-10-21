@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import {
   Box,
   Stack,
@@ -6,13 +6,12 @@ import {
   Typography,
   FormControlLabel,
   Switch,
-  Button,
   Alert,
-  CircularProgress,
   IconButton,
   Tooltip,
   Divider,
   Checkbox,
+  Button,
 } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
@@ -22,10 +21,11 @@ import {
   type FinancialProfileSectionStatusValue,
   type CashAccountsProfilePayload,
   type CashAccountPayload,
+  type SectionOptOutPayload,
 } from '../../services/financialProfileApi';
 import { useSectionHydration } from '../hooks/useSectionHydration';
-
-type SaveState = 'idle' | 'saving' | 'success' | 'error';
+import { useAutoSaveForm } from '../hooks/useAutoSaveForm';
+import AutoSaveIndicator from '../components/AutoSaveIndicator';
 
 type CashAccountsSectionFormProps = {
   userId: number;
@@ -67,18 +67,13 @@ function parseNumber(value: string): number | undefined {
 
 function buildPayloadAccounts(accounts: AccountFormState[]): CashAccountPayload[] {
   const payloads: CashAccountPayload[] = [];
-
   accounts.forEach((account) => {
     const hasValues =
       account.nickname.trim() !== '' ||
       account.institution.trim() !== '' ||
       account.balance.trim() !== '' ||
       account.interestRateApr.trim() !== '';
-
-    if (!hasValues) {
-      return;
-    }
-
+    if (!hasValues) return;
     payloads.push({
       nickname: account.nickname.trim() || null,
       institution: account.institution.trim() || null,
@@ -89,7 +84,6 @@ function buildPayloadAccounts(accounts: AccountFormState[]): CashAccountPayload[
       rateLastChecked: account.rateLastChecked ? new Date(account.rateLastChecked).toISOString() : null,
     });
   });
-
   return payloads;
 }
 
@@ -97,17 +91,9 @@ export default function CashAccountsSectionForm({ userId, onStatusChange, curren
   const [accounts, setAccounts] = useState<AccountFormState[]>([createAccount(1)]);
   const [optedOut, setOptedOut] = useState<boolean>(currentStatus === 'opted_out');
   const [optOutReason, setOptOutReason] = useState<string>('');
-  const [saveState, setSaveState] = useState<SaveState>('idle');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
   const canRemoveAccounts = accounts.length > 1;
 
-  type HydratedState = {
-    accounts: AccountFormState[];
-    optedOut: boolean;
-    optOutReason: string;
-  };
-
+  type HydratedState = { accounts: AccountFormState[]; optedOut: boolean; optOutReason: string };
   const mapPayloadToState = useCallback((payload: CashAccountsProfilePayload): HydratedState => {
     const hydratedAccounts = (payload.accounts ?? []).map((account, index) => ({
       id: `account-${index + 1}`,
@@ -119,116 +105,84 @@ export default function CashAccountsSectionForm({ userId, onStatusChange, curren
       isEmergencyFund: account.isEmergencyFund ?? false,
       rateLastChecked: account.rateLastChecked ? account.rateLastChecked.slice(0, 10) : '',
     }));
-
     const optedOutState = payload.optOut?.isOptedOut === true;
-
-    return {
-      accounts: hydratedAccounts.length > 0 ? hydratedAccounts : [createAccount(1)],
-      optedOut: optedOutState,
-      optOutReason: payload.optOut?.reason ?? '',
-    };
+    return { accounts: hydratedAccounts.length > 0 ? hydratedAccounts : [createAccount(1)], optedOut: optedOutState, optOutReason: payload.optOut?.reason ?? '' };
   }, []);
 
-  const applyHydratedState = useCallback(
-    ({ accounts: nextAccounts, optedOut: nextOptedOut, optOutReason: nextReason }: HydratedState) => {
-      setAccounts(nextAccounts);
-      setOptedOut(nextOptedOut);
-      setOptOutReason(nextReason ?? '');
-    },
-    [],
-  );
+  const applyHydratedState = useCallback(({ accounts: nextAccounts, optedOut: nextOptedOut, optOutReason: nextReason }: HydratedState) => {
+    setAccounts(nextAccounts);
+    setOptedOut(nextOptedOut);
+    setOptOutReason(nextReason ?? '');
+  }, []);
 
-  useSectionHydration({
-    sectionKey: 'cash',
-    userId,
-    fetcher: fetchCashAccountsProfile,
-    mapPayloadToState,
-    applyState: applyHydratedState,
-  });
+  useSectionHydration({ sectionKey: 'cash', userId, fetcher: fetchCashAccountsProfile, mapPayloadToState, applyState: applyHydratedState });
 
   const handleAccountChange = <K extends keyof AccountFormState>(id: string, key: K, value: AccountFormState[K]) => {
     setAccounts((prev) => prev.map((account) => (account.id === id ? { ...account, [key]: value } : account)));
   };
-
-  const handleAddAccount = () => {
-    setAccounts((prev) => [...prev, createAccount(prev.length + 1)]);
-  };
-
+  const handleAddAccount = () => setAccounts((prev) => [...prev, createAccount(prev.length + 1)]);
   const handleRemoveAccount = (id: string) => {
     setAccounts((prev) => {
-      const remaining = prev.filter((account) => account.id !== id);
+      const remaining = prev.filter((a) => a.id !== id);
       return remaining.length > 0 ? remaining : [createAccount(1)];
     });
   };
 
   const payloadAccounts = useMemo(() => buildPayloadAccounts(accounts), [accounts]);
 
-  const handleSubmit = async () => {
-    setSaveState('saving');
-    setErrorMessage(null);
-
-    try {
-      if (!optedOut && payloadAccounts.length === 0) {
-        throw new Error('Please add at least one cash account or opt out of this section.');
-      }
-
-      const payload: CashAccountsProfilePayload = optedOut
-        ? {
-            accounts: [],
-            optOut: {
-              isOptedOut: true,
-              reason: optOutReason.trim() || undefined,
-              acknowledgedAt: new Date().toISOString(),
-            },
-          }
-        : {
-            accounts: payloadAccounts,
-            optOut: undefined,
-          };
-
-      await upsertCashAccountsProfile(userId, payload);
-      onStatusChange(optedOut ? 'opted_out' : 'completed');
-      setSaveState('success');
-      setTimeout(() => setSaveState('idle'), 2500);
-    } catch (error) {
-      console.warn('Failed to save cash accounts section', error);
-      const message = error instanceof Error ? error.message : 'We could not save this section. Please try again.';
-      setErrorMessage(message);
-      setSaveState('error');
+  function deriveStatus(payload: CashAccountsProfilePayload): FinancialProfileSectionStatusValue {
+    if (payload.optOut?.isOptedOut) return 'opted_out';
+    return payload.accounts.length > 0 ? 'completed' : 'needs_info';
+  }
+  function sanitizeOptOut(optOut?: SectionOptOutPayload | null): SectionOptOutPayload | undefined {
+    if (!optOut?.isOptedOut) return undefined;
+    const reason = optOut.reason?.trim();
+    return { isOptedOut: true, reason: reason && reason.length > 0 ? reason : undefined, acknowledgedAt: optOut.acknowledgedAt ?? new Date().toISOString() };
+  }
+  function buildPayload(): CashAccountsProfilePayload {
+    if (optedOut) {
+      return { accounts: [], optOut: sanitizeOptOut({ isOptedOut: true, reason: optOutReason, acknowledgedAt: new Date().toISOString() }) };
     }
-  };
+    return { accounts: payloadAccounts, optOut: undefined };
+  }
 
-  const handleOptOutToggle = (checked: boolean) => {
-    setOptedOut(checked);
-    if (checked) {
-      setSaveState('idle');
+  const persistCash = useCallback(async (draft: CashAccountsProfilePayload) => {
+    if (!draft.optOut?.isOptedOut && draft.accounts.length === 0) {
+      throw new Error('Please add at least one cash account or opt out of this section.');
     }
-  };
+    await upsertCashAccountsProfile(userId, draft);
+    return deriveStatus(draft);
+  }, [userId]);
+
+  const { status: autoStatus, isDirty, error: autoError, lastSavedAt, flush } = useAutoSaveForm<CashAccountsProfilePayload>({
+    data: buildPayload(),
+    persist: persistCash,
+    determineStatus: deriveStatus,
+    onStatusResolved: onStatusChange,
+    debounceMs: 800,
+  });
+
+  useEffect(() => {
+    interface PFMPWindow extends Window { __pfmpCurrentSectionFlush?: () => Promise<void>; }
+    const w: PFMPWindow = window as PFMPWindow;
+    w.__pfmpCurrentSectionFlush = flush;
+    return () => {
+      if (w.__pfmpCurrentSectionFlush === flush) w.__pfmpCurrentSectionFlush = undefined;
+    };
+  }, [flush]);
+
+  const handleOptOutToggle = (checked: boolean) => setOptedOut(checked);
 
   return (
-    <Box
-      component="form"
-      noValidate
-      onSubmit={(event) => {
-        event.preventDefault();
-        void handleSubmit();
-      }}
-    >
+    <Box component="form" noValidate onSubmit={(e) => { e.preventDefault(); void flush(); }}>
       <Stack spacing={3} sx={{ mt: 3 }}>
-        <FormControlLabel
-          control={<Switch checked={optedOut} onChange={(event) => handleOptOutToggle(event.target.checked)} color="primary" />}
-          label="I don’t have additional cash accounts"
-        />
-
+        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+          <Typography variant="caption" color="text.secondary" sx={{ letterSpacing: 0.3 }}>Autosave keeps this section in sync.</Typography>
+          <AutoSaveIndicator status={autoStatus} lastSavedAt={lastSavedAt} isDirty={isDirty} error={autoError} />
+        </Stack>
+        <FormControlLabel control={<Switch checked={optedOut} onChange={(e) => handleOptOutToggle(e.target.checked)} color="primary" />} label="I don’t have additional cash accounts" />
         {optedOut ? (
-          <TextField
-            label="Why are you opting out?"
-            value={optOutReason}
-            onChange={(event) => setOptOutReason(event.target.value)}
-            multiline
-            minRows={3}
-            fullWidth
-          />
+          <TextField label="Why are you opting out?" value={optOutReason} onChange={(e) => setOptOutReason(e.target.value)} multiline minRows={3} fullWidth />
         ) : (
           <Stack spacing={4}>
             {accounts.map((account, index) => (
@@ -236,66 +190,17 @@ export default function CashAccountsSectionForm({ userId, onStatusChange, curren
                 <Stack direction="row" spacing={2} alignItems="flex-start">
                   <Box sx={{ flex: 1 }}>
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                      <TextField
-                        label="Nickname"
-                        placeholder="e.g. Main checking"
-                        value={account.nickname}
-                        onChange={(event) => handleAccountChange(account.id, 'nickname', event.target.value)}
-                        fullWidth
-                      />
-                      <TextField
-                        label="Institution"
-                        placeholder="Bank or credit union"
-                        value={account.institution}
-                        onChange={(event) => handleAccountChange(account.id, 'institution', event.target.value)}
-                        fullWidth
-                      />
+                      <TextField label="Nickname" placeholder="e.g. Main checking" value={account.nickname} onChange={(e) => handleAccountChange(account.id, 'nickname', e.target.value)} fullWidth />
+                      <TextField label="Institution" placeholder="Bank or credit union" value={account.institution} onChange={(e) => handleAccountChange(account.id, 'institution', e.target.value)} fullWidth />
                     </Stack>
-
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 2 }}>
-                      <TextField
-                        label="Account type"
-                        placeholder="checking, savings, cd"
-                        value={account.accountType}
-                        onChange={(event) => handleAccountChange(account.id, 'accountType', event.target.value)}
-                        fullWidth
-                      />
-                      <TextField
-                        type="number"
-                        label="Balance ($)"
-                        value={account.balance}
-                        onChange={(event) => handleAccountChange(account.id, 'balance', event.target.value)}
-                        inputProps={{ min: 0, step: 50 }}
-                        fullWidth
-                      />
-                      <TextField
-                        type="number"
-                        label="Interest rate (APR %)"
-                        value={account.interestRateApr}
-                        onChange={(event) => handleAccountChange(account.id, 'interestRateApr', event.target.value)}
-                        inputProps={{ min: 0, step: 0.05 }}
-                        fullWidth
-                      />
+                      <TextField label="Account type" placeholder="checking, savings, cd" value={account.accountType} onChange={(e) => handleAccountChange(account.id, 'accountType', e.target.value)} fullWidth />
+                      <TextField type="number" label="Balance ($)" value={account.balance} onChange={(e) => handleAccountChange(account.id, 'balance', e.target.value)} inputProps={{ min: 0, step: 50 }} fullWidth />
+                      <TextField type="number" label="Interest rate (APR %)" value={account.interestRateApr} onChange={(e) => handleAccountChange(account.id, 'interestRateApr', e.target.value)} inputProps={{ min: 0, step: 0.05 }} fullWidth />
                     </Stack>
-
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 2 }}>
-                      <TextField
-                        type="date"
-                        label="Rate last checked"
-                        InputLabelProps={{ shrink: true }}
-                        value={account.rateLastChecked}
-                        onChange={(event) => handleAccountChange(account.id, 'rateLastChecked', event.target.value)}
-                        fullWidth
-                      />
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={account.isEmergencyFund}
-                            onChange={(event) => handleAccountChange(account.id, 'isEmergencyFund', event.target.checked)}
-                          />
-                        }
-                        label="Emergency fund"
-                      />
+                      <TextField type="date" label="Rate last checked" InputLabelProps={{ shrink: true }} value={account.rateLastChecked} onChange={(e) => handleAccountChange(account.id, 'rateLastChecked', e.target.value)} fullWidth />
+                      <FormControlLabel control={<Checkbox checked={account.isEmergencyFund} onChange={(e) => handleAccountChange(account.id, 'isEmergencyFund', e.target.checked)} />} label="Emergency fund" />
                     </Stack>
                   </Box>
                   {canRemoveAccounts && (
@@ -307,46 +212,20 @@ export default function CashAccountsSectionForm({ userId, onStatusChange, curren
                   )}
                 </Stack>
                 <Divider sx={{ mt: 3 }} />
-                <Typography variant="caption" sx={{ display: 'block', mt: 2, color: '#607d8b' }}>
-                  Account {index + 1}
-                </Typography>
+                <Typography variant="caption" sx={{ display: 'block', mt: 2, color: '#607d8b' }}>Account {index + 1}</Typography>
               </Box>
             ))}
-
-            <Button
-              type="button"
-              variant="outlined"
-              startIcon={<AddIcon />}
-              onClick={handleAddAccount}
-              sx={{ alignSelf: 'flex-start' }}
-            >
-              Add another account
-            </Button>
+            <Button type="button" variant="outlined" startIcon={<AddIcon />} onClick={handleAddAccount} sx={{ alignSelf: 'flex-start' }}>Add another account</Button>
           </Stack>
         )}
-
-        {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
-        {saveState === 'success' && <Alert severity="success">Section saved.</Alert>}
-
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => void handleSubmit()}
-            disabled={saveState === 'saving'}
-            data-testid="cash-submit"
-          >
-            {saveState === 'saving' ? (
-              <>
-                <CircularProgress size={18} sx={{ mr: 1 }} /> Saving
-              </>
-            ) : optedOut ? 'Acknowledge opt-out' : 'Save section'}
-          </Button>
-          <Typography variant="body2" color="text.secondary">
-            Link these accounts so we can track your liquidity and emergency fund.
-          </Typography>
-        </Stack>
+        {autoError ? (
+          <Alert severity="error" variant="outlined" sx={{ py: 0.5 }}>
+            {String(autoError instanceof Error ? autoError.message : autoError)}
+          </Alert>
+        ) : null}
+        <Typography variant="body2" color="text.secondary">Link these accounts so we can track your liquidity and emergency fund.</Typography>
       </Stack>
     </Box>
   );
 }
+

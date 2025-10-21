@@ -1,10 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
-  Button,
   Checkbox,
-  CircularProgress,
   Divider,
   FormControl,
   FormControlLabel,
@@ -17,6 +15,7 @@ import {
   TextField,
   Tooltip,
   Typography,
+  Button,
 } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
@@ -26,8 +25,8 @@ import {
   type LongTermObligationsProfilePayload,
   type LongTermObligationPayload,
 } from '../../services/financialProfileApi';
-
-type SaveState = 'idle' | 'saving' | 'success' | 'error';
+import { useAutoSaveForm } from '../hooks/useAutoSaveForm';
+import AutoSaveIndicator from '../components/AutoSaveIndicator';
 
 type LongTermObligationsSectionFormProps = {
   userId: number;
@@ -127,8 +126,7 @@ export default function LongTermObligationsSectionForm({
   const [obligations, setObligations] = useState<ObligationFormState[]>([createObligation(1)]);
   const [optedOut, setOptedOut] = useState(currentStatus === 'opted_out');
   const [optOutReason, setOptOutReason] = useState('');
-  const [saveState, setSaveState] = useState<SaveState>('idle');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // manual submit state removed in favor of autosave
 
   const canRemoveRows = obligations.length > 1;
   const payloadObligations = useMemo(() => buildPayloadObligations(obligations), [obligations]);
@@ -154,55 +152,52 @@ export default function LongTermObligationsSectionForm({
 
   const handleOptOutToggle = (checked: boolean) => {
     setOptedOut(checked);
-    if (checked) {
-      setSaveState('idle');
-    }
   };
 
-  const handleSubmit = async () => {
-    setSaveState('saving');
-    setErrorMessage(null);
-
-    try {
-      if (!optedOut && payloadObligations.length === 0) {
-        throw new Error('List at least one obligation or choose to revisit later.');
-      }
-
-      const payload: LongTermObligationsProfilePayload = optedOut
-        ? {
-            obligations: [],
-            optOut: {
-              isOptedOut: true,
-              reason: optOutReason.trim() || undefined,
-              acknowledgedAt: new Date().toISOString(),
-            },
-          }
-        : {
-            obligations: payloadObligations,
-            optOut: undefined,
-          };
-
-      await upsertLongTermObligationsProfile(userId, payload);
-      onStatusChange(optedOut ? 'opted_out' : 'completed');
-      setSaveState('success');
-      setTimeout(() => setSaveState('idle'), 2500);
-    } catch (error) {
-      console.warn('Failed to save long-term obligations section', error);
-      const message = error instanceof Error ? error.message : 'We could not save this section. Please try again.';
-      setErrorMessage(message);
-      setSaveState('error');
+  const buildPayload = useCallback((): LongTermObligationsProfilePayload => {
+    if (optedOut) {
+      return {
+        obligations: [],
+        optOut: {
+          isOptedOut: true,
+          reason: optOutReason.trim() || undefined,
+          acknowledgedAt: new Date().toISOString(),
+        },
+      };
     }
-  };
+    return { obligations: payloadObligations, optOut: undefined };
+  }, [optedOut, optOutReason, payloadObligations]);
+
+  const deriveStatus = useCallback((payload: LongTermObligationsProfilePayload): FinancialProfileSectionStatusValue => {
+    if (payload.optOut?.isOptedOut) return 'opted_out';
+    return payload.obligations.length > 0 ? 'completed' : 'needs_info';
+  }, []);
+
+  const persistObligations = useCallback(async (draft: LongTermObligationsProfilePayload) => {
+    if (!draft.optOut?.isOptedOut && draft.obligations.length === 0) {
+      throw new Error('List at least one obligation or opt out of this section.');
+    }
+    await upsertLongTermObligationsProfile(userId, draft);
+    return deriveStatus(draft);
+  }, [userId, deriveStatus]);
+
+  const { status: autoStatus, isDirty, error: autoError, lastSavedAt, flush } = useAutoSaveForm<LongTermObligationsProfilePayload>({
+    data: buildPayload(),
+    persist: persistObligations,
+    determineStatus: deriveStatus,
+    onStatusResolved: onStatusChange,
+    debounceMs: 800,
+  });
+
+  useEffect(() => {
+    interface PFMPWindow extends Window { __pfmpCurrentSectionFlush?: () => Promise<void>; }
+    const w: PFMPWindow = window as PFMPWindow;
+    w.__pfmpCurrentSectionFlush = flush;
+    return () => { if (w.__pfmpCurrentSectionFlush === flush) w.__pfmpCurrentSectionFlush = undefined; };
+  }, [flush]);
 
   return (
-    <Box
-      component="form"
-      noValidate
-      onSubmit={(event) => {
-        event.preventDefault();
-        void handleSubmit();
-      }}
-    >
+    <Box component="form" noValidate onSubmit={(e) => { e.preventDefault(); void flush(); }}>
       <Stack spacing={3} sx={{ mt: 3 }}>
         <FormControlLabel
           control={<Switch checked={optedOut} onChange={(event) => handleOptOutToggle(event.target.checked)} color="primary" />}
@@ -337,27 +332,18 @@ export default function LongTermObligationsSectionForm({
           </Stack>
         )}
 
-        {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
-        {saveState === 'success' && <Alert severity="success">Section saved.</Alert>}
-
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => void handleSubmit()}
-            disabled={saveState === 'saving'}
-            data-testid="long-term-obligations-submit"
-          >
-            {saveState === 'saving' ? (
-              <>
-                <CircularProgress size={18} sx={{ mr: 1 }} /> Saving
-              </>
-            ) : optedOut ? 'Acknowledge opt-out' : 'Save section'}
-          </Button>
-          <Typography variant="body2" color="text.secondary">
-            Log upcoming milestones so we can track funding readiness and prompt next steps.
-          </Typography>
+        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between" sx={{ mt: 2 }}>
+          <Typography variant="caption" color="text.secondary">Autosave keeps this section in sync.</Typography>
+          <AutoSaveIndicator status={autoStatus} lastSavedAt={lastSavedAt} isDirty={isDirty} error={autoError} />
         </Stack>
+        {autoStatus === 'error' && autoError ? (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {autoError instanceof Error ? autoError.message : String(autoError)}
+          </Alert>
+        ) : null}
+        <Typography variant="body2" color="text.secondary">
+          Log upcoming milestones so we can track funding readiness and prompt next steps.
+        </Typography>
       </Stack>
     </Box>
   );

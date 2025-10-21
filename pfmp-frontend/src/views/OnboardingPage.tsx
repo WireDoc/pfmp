@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProfileStepLayout from '../onboarding/components/ProfileStepLayout';
 import { resolveStepConfig } from '../onboarding/stepRegistry';
@@ -21,12 +21,12 @@ export default function OnboardingPage() {
   const reviewStatus = statuses.review ?? 'needs_info';
   const canFinalize = outstandingDataCount === 0;
 
-  const handleStatusChange = (status: FinancialProfileSectionStatusValue) => {
-    updateStatus(current.id, status);
-    if ((status === 'completed' || status === 'opted_out') && !current.isLast) {
-      goNext();
-    }
-  };
+  const handleStatusChange = useCallback(
+    (stepId: typeof current.id, status: FinancialProfileSectionStatusValue) => {
+      updateStatus(stepId, status);
+    },
+    [updateStatus],
+  );
 
   const handleFinalize = () => {
     updateStatus('review', 'completed');
@@ -61,7 +61,7 @@ export default function OnboardingPage() {
   const renderNode = currentConfig.render({
     userId,
     currentStatus: statuses[current.id] ?? 'needs_info',
-    onStatusChange: handleStatusChange,
+    onStatusChange: (status) => handleStatusChange(currentConfig.id, status),
     statuses,
     steps: resolvedSteps,
     canFinalize,

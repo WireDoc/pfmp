@@ -1,10 +1,8 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   Box,
   Button,
   Checkbox,
-  CircularProgress,
   Divider,
   FormControl,
   FormControlLabel,
@@ -28,8 +26,8 @@ import {
   type LiabilityPayload,
 } from '../../services/financialProfileApi';
 import { useSectionHydration } from '../hooks/useSectionHydration';
-
-type SaveState = 'idle' | 'saving' | 'success' | 'error';
+import { useAutoSaveForm } from '../hooks/useAutoSaveForm';
+import AutoSaveIndicator from '../components/AutoSaveIndicator';
 
 type LiabilitiesSectionFormProps = {
   userId: number;
@@ -113,8 +111,7 @@ export default function LiabilitiesSectionForm({ userId, onStatusChange, current
   const [liabilities, setLiabilities] = useState<LiabilityFormState[]>([createLiability(1)]);
   const [optedOut, setOptedOut] = useState(currentStatus === 'opted_out');
   const [optOutReason, setOptOutReason] = useState('');
-  const [saveState, setSaveState] = useState<SaveState>('idle');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // local state only for form fields; autosave hook exposes error
 
   const canRemoveRows = liabilities.length > 1;
   const payloadLiabilities = useMemo(() => buildPayloadLiabilities(liabilities), [liabilities]);
@@ -178,57 +175,68 @@ export default function LiabilitiesSectionForm({ userId, onStatusChange, current
     });
   };
 
+  const deriveStatus = useCallback<() => FinancialProfileSectionStatusValue>(() => {
+    if (optedOut) return 'opted_out';
+    return payloadLiabilities.length > 0 ? 'completed' : 'needs_info';
+  }, [optedOut, payloadLiabilities.length]);
+
+  const buildPayload = useCallback<() => LiabilitiesProfilePayload>(() => {
+    if (optedOut) {
+      return {
+        liabilities: [],
+        optOut: {
+          isOptedOut: true,
+          reason: optOutReason.trim() || undefined,
+          acknowledgedAt: new Date().toISOString(),
+        },
+      };
+    }
+    return {
+      liabilities: payloadLiabilities,
+      optOut: undefined,
+    };
+  }, [optedOut, optOutReason, payloadLiabilities]);
+
+  const persistLiabilities = useCallback(async () => {
+    const payload = buildPayload();
+    await upsertLiabilitiesProfile(userId, payload);
+  }, [buildPayload, userId]);
+
+  const { status: autoStatus, flush, isDirty, lastSavedAt, error } = useAutoSaveForm({
+    data: { liabilities, optedOut, optOutReason },
+    debounceMs: 800,
+    determineStatus: () => deriveStatus(),
+    persist: async () => {
+      await persistLiabilities();
+      return deriveStatus();
+    },
+    onStatusResolved: (next) => onStatusChange(next),
+    onPersistError: () => {
+      /* error handled via hook error */
+    },
+  });
+
+  useEffect(() => {
+    interface PFMPWindow extends Window { __pfmpCurrentSectionFlush?: () => Promise<void>; }
+    const w: PFMPWindow = window as PFMPWindow;
+    w.__pfmpCurrentSectionFlush = flush;
+    return () => {
+      if (w.__pfmpCurrentSectionFlush === flush) {
+        w.__pfmpCurrentSectionFlush = undefined;
+      }
+    };
+  }, [flush]);
+
   const handleOptOutToggle = (checked: boolean) => {
     setOptedOut(checked);
-    if (checked) {
-      setSaveState('idle');
-    }
-  };
-
-  const handleSubmit = async () => {
-    setSaveState('saving');
-    setErrorMessage(null);
-
-    try {
-      if (!optedOut && payloadLiabilities.length === 0) {
-        throw new Error('List at least one liability or choose to revisit later.');
-      }
-
-      const payload: LiabilitiesProfilePayload = optedOut
-        ? {
-            liabilities: [],
-            optOut: {
-              isOptedOut: true,
-              reason: optOutReason.trim() || undefined,
-              acknowledgedAt: new Date().toISOString(),
-            },
-          }
-        : {
-            liabilities: payloadLiabilities,
-            optOut: undefined,
-          };
-
-      await upsertLiabilitiesProfile(userId, payload);
-      onStatusChange(optedOut ? 'opted_out' : 'completed');
-      setSaveState('success');
-      setTimeout(() => setSaveState('idle'), 2500);
-    } catch (error) {
-      console.warn('Failed to save liabilities section', error);
-      const message = error instanceof Error ? error.message : 'We could not save this section. Please try again.';
-      setErrorMessage(message);
-      setSaveState('error');
+    if (!checked) {
+      // If toggling back in, clear any previous opt-out reason
+      setOptOutReason('');
     }
   };
 
   return (
-    <Box
-      component="form"
-      noValidate
-      onSubmit={(event) => {
-        event.preventDefault();
-        void handleSubmit();
-      }}
-    >
+    <Box component="form" noValidate>
       <Stack spacing={3} sx={{ mt: 3 }}>
         <FormControlLabel
           control={<Switch checked={optedOut} onChange={(event) => handleOptOutToggle(event.target.checked)} color="primary" />}
@@ -342,23 +350,8 @@ export default function LiabilitiesSectionForm({ userId, onStatusChange, current
           </Stack>
         )}
 
-        {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
-        {saveState === 'success' && <Alert severity="success">Section saved.</Alert>}
-
         <Stack direction="row" spacing={2} alignItems="center">
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => void handleSubmit()}
-            disabled={saveState === 'saving'}
-            data-testid="liabilities-submit"
-          >
-            {saveState === 'saving' ? (
-              <>
-                <CircularProgress size={18} sx={{ mr: 1 }} /> Saving
-              </>
-            ) : optedOut ? 'Acknowledge opt-out' : 'Save section'}
-          </Button>
+          <AutoSaveIndicator status={autoStatus} lastSavedAt={lastSavedAt} isDirty={isDirty} error={error} />
           <Typography variant="body2" color="text.secondary">
             Track your debts so we can recommend payoff strategies and watch interest drag.
           </Typography>

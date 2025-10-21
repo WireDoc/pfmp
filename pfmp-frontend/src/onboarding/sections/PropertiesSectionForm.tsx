@@ -1,10 +1,8 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import {
   Alert,
   Box,
-  Button,
   Checkbox,
-  CircularProgress,
   Divider,
   FormControl,
   FormControlLabel,
@@ -17,6 +15,7 @@ import {
   TextField,
   Tooltip,
   Typography,
+  Button,
 } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
@@ -28,8 +27,9 @@ import {
   type PropertyPayload,
 } from '../../services/financialProfileApi';
 import { useSectionHydration } from '../hooks/useSectionHydration';
+import { useAutoSaveForm } from '../hooks/useAutoSaveForm';
+import AutoSaveIndicator from '../components/AutoSaveIndicator';
 
-type SaveState = 'idle' | 'saving' | 'success' | 'error';
 
 type PropertiesSectionFormProps = {
   userId: number;
@@ -122,8 +122,7 @@ export default function PropertiesSectionForm({ userId, onStatusChange, currentS
   const [properties, setProperties] = useState<PropertyFormState[]>([createProperty(1)]);
   const [optedOut, setOptedOut] = useState<boolean>(currentStatus === 'opted_out');
   const [optOutReason, setOptOutReason] = useState<string>('');
-  const [saveState, setSaveState] = useState<SaveState>('idle');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Legacy manual save error message removed; rely on autoError only
 
   const payloadProperties = useMemo(() => buildPayloadProperties(properties), [properties]);
   const canRemoveProperties = properties.length > 1;
@@ -214,58 +213,61 @@ export default function PropertiesSectionForm({ userId, onStatusChange, currentS
     });
   };
 
-  const handleSubmit = async () => {
-    setSaveState('saving');
-    setErrorMessage(null);
-
-    try {
-      if (!optedOut && payloadProperties.length === 0) {
-        throw new Error('Add at least one property or opt out of this section.');
-      }
-
-      const payload: PropertiesProfilePayload = optedOut
-        ? {
-            properties: [],
-            optOut: {
-              isOptedOut: true,
-              reason: optOutReason.trim() || undefined,
-              acknowledgedAt: new Date().toISOString(),
-            },
-          }
-        : {
-            properties: payloadProperties,
-            optOut: undefined,
-          };
-
-      await upsertPropertiesProfile(userId, payload);
-      onStatusChange(optedOut ? 'opted_out' : 'completed');
-      setSaveState('success');
-      setTimeout(() => setSaveState('idle'), 2500);
-    } catch (error) {
-      console.warn('Failed to save properties section', error);
-      const message = error instanceof Error ? error.message : 'We could not save this section. Please try again.';
-      setErrorMessage(message);
-      setSaveState('error');
-    }
-  };
-
   const handleOptOutToggle = (checked: boolean) => {
     setOptedOut(checked);
-    if (checked) {
-      setSaveState('idle');
-    }
   };
 
+  function deriveStatus(payload: PropertiesProfilePayload): FinancialProfileSectionStatusValue {
+    if (payload.optOut?.isOptedOut) return 'opted_out';
+    return payload.properties.length > 0 ? 'completed' : 'needs_info';
+  }
+
+  function buildPayload(): PropertiesProfilePayload {
+    if (optedOut) {
+      return {
+        properties: [],
+        optOut: {
+          isOptedOut: true,
+          reason: optOutReason.trim() || undefined,
+          acknowledgedAt: new Date().toISOString(),
+        },
+      };
+    }
+    return { properties: payloadProperties, optOut: undefined };
+  }
+
+  const persistProperties = useCallback(async (draft: PropertiesProfilePayload) => {
+    if (!draft.optOut?.isOptedOut && draft.properties.length === 0) {
+      throw new Error('Add at least one property or opt out of this section.');
+    }
+    await upsertPropertiesProfile(userId, draft);
+    return deriveStatus(draft);
+  }, [userId]);
+
+  const { status: autoStatus, isDirty, error: autoError, lastSavedAt, flush } = useAutoSaveForm<PropertiesProfilePayload>({
+    data: buildPayload(),
+    persist: persistProperties,
+    determineStatus: deriveStatus,
+    onStatusResolved: onStatusChange,
+    debounceMs: 800,
+  });
+
+  useEffect(() => {
+    interface PFMPWindow extends Window { __pfmpCurrentSectionFlush?: () => Promise<void>; }
+    const w: PFMPWindow = window as PFMPWindow;
+    w.__pfmpCurrentSectionFlush = flush;
+    return () => {
+      if (w.__pfmpCurrentSectionFlush === flush) w.__pfmpCurrentSectionFlush = undefined;
+    };
+  }, [flush]);
+
   return (
-    <Box
-      component="form"
-      noValidate
-      onSubmit={(event) => {
-        event.preventDefault();
-        void handleSubmit();
-      }}
-    >
+    <Box component="form" noValidate onSubmit={(e) => { e.preventDefault(); void flush(); }}>
       <Stack spacing={3} sx={{ mt: 3 }}>
+        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+          <Typography variant="caption" color="text.secondary" sx={{ letterSpacing: 0.3 }}>Autosave keeps this section in sync.</Typography>
+          <AutoSaveIndicator status={autoStatus} lastSavedAt={lastSavedAt} isDirty={isDirty} error={autoError} />
+        </Stack>
         <FormControlLabel
           control={<Switch checked={optedOut} onChange={(event) => handleOptOutToggle(event.target.checked)} color="primary" />}
           label="I don’t have real estate assets"
@@ -413,27 +415,12 @@ export default function PropertiesSectionForm({ userId, onStatusChange, currentS
           </Stack>
         )}
 
-        {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
-        {saveState === 'success' && <Alert severity="success">Section saved.</Alert>}
-
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => void handleSubmit()}
-            disabled={saveState === 'saving'}
-            data-testid="properties-submit"
-          >
-            {saveState === 'saving' ? (
-              <>
-                <CircularProgress size={18} sx={{ mr: 1 }} /> Saving
-              </>
-            ) : optedOut ? 'Acknowledge opt-out' : 'Save section'}
-          </Button>
-          <Typography variant="body2" color="text.secondary">
-            Track equity, leverage, and cash flow from your properties here.
-          </Typography>
-        </Stack>
+        {autoError ? (
+          <Alert severity="error" variant="outlined" sx={{ py: 0.5 }}>
+            {autoError instanceof Error ? autoError.message : String(autoError)}
+          </Alert>
+        ) : null}
+        <Typography variant="body2" color="text.secondary">Track equity, leverage, and cash flow from your properties here.</Typography>
       </Stack>
     </Box>
   );

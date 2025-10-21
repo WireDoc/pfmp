@@ -156,6 +156,10 @@ namespace PFMP_API.Services.FinancialProfile
                 {
                     user.EmergencyFundTarget = input.EmergencyFundTarget.Value;
                 }
+                if (input.LiquidityBufferMonths.HasValue)
+                {
+                    user.LiquidityBufferMonths = input.LiquidityBufferMonths.Value;
+                }
             }
 
             user.UpdatedAt = DateTime.UtcNow;
@@ -636,7 +640,7 @@ namespace PFMP_API.Services.FinancialProfile
                 TargetRetirementDate = user.TargetRetirementDate,
                 PassiveIncomeGoal = user.TargetMonthlyPassiveIncome,
                 EmergencyFundTarget = user.EmergencyFundTarget,
-                LiquidityBufferMonths = null,
+                LiquidityBufferMonths = user.LiquidityBufferMonths,
                 OptOut = optOut
             };
         }

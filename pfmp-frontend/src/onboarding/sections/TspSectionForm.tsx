@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import {
   Box,
   Stack,
@@ -6,9 +6,7 @@ import {
   Typography,
   FormControlLabel,
   Switch,
-  Button,
   Alert,
-  CircularProgress,
   Grid,
   Table,
   TableContainer,
@@ -21,7 +19,10 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Button,
 } from '@mui/material';
+import AutoSaveIndicator from '../components/AutoSaveIndicator';
+import { useAutoSaveForm } from '../hooks/useAutoSaveForm';
 import {
   fetchTspProfile,
   upsertTspProfile,
@@ -29,8 +30,6 @@ import {
   type TspProfilePayload,
 } from '../../services/financialProfileApi';
 import { useSectionHydration } from '../hooks/useSectionHydration';
-
-type SaveState = 'idle' | 'saving' | 'success' | 'error';
 
 type TspSectionFormProps = {
   userId: number;
@@ -82,7 +81,6 @@ export default function TspSectionForm({ userId, onStatusChange, currentStatus }
         ? { isOptedOut: true, reason: '', acknowledgedAt: new Date().toISOString() }
         : undefined,
   }));
-  const [saveState, setSaveState] = useState<SaveState>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   // Read-only computed summary (balances/mix/total/as-of) is intentionally omitted from onboarding
 
@@ -229,55 +227,124 @@ export default function TspSectionForm({ userId, onStatusChange, currentStatus }
     }
   };
 
-  const totalPercent = useMemo(() =>
-    (formState.lifecyclePositions ?? []).reduce((sum, p) => sum + (Number(p.contributionPercent ?? 0) || 0), 0),
-    [formState.lifecyclePositions]
+  const totalPercent = useMemo(
+    () => (formState.lifecyclePositions ?? []).reduce((sum, p) => sum + (Number(p.contributionPercent ?? 0) || 0), 0),
+    [formState.lifecyclePositions],
   );
   const percentIsValid = Math.abs(totalPercent - 100) < 0.001;
 
-  const handleSubmit = async () => {
-    setSaveState('saving');
-    setErrorMessage(null);
-    try {
-      // Derive legacy base fund percent fields for backend compatibility
-      const codeToPercent = new Map(
-        (formState.lifecyclePositions ?? [])
-          .filter((p) => p.fundCode === 'G' || p.fundCode === 'F' || p.fundCode === 'C' || p.fundCode === 'S' || p.fundCode === 'I')
-          .map((p) => [p.fundCode, p.contributionPercent ?? undefined] as const)
-      );
-      const lifecyclePercentDerived = (formState.lifecyclePositions ?? [])
-        .filter((p) => String(p.fundCode).startsWith('L'))
-        .reduce((sum, p) => sum + (p.contributionPercent ?? 0), 0);
+  function hasCompletedTsp(draft: TspProfilePayload): boolean {
+    if (draft.optOut?.isOptedOut) return false; // handled separately
+    const hasContributionRate = typeof draft.contributionRatePercent === 'number' && draft.contributionRatePercent >= 0;
+    const positions = draft.lifecyclePositions ?? [];
+    const anyFundHasPercent = positions.some((p) => typeof p.contributionPercent === 'number' && p.contributionPercent! > 0);
+    const computedTotal = positions.reduce((sum, p) => sum + (Number(p.contributionPercent ?? 0) || 0), 0);
+    return hasContributionRate && anyFundHasPercent && Math.abs(computedTotal - 100) < 0.001;
+  }
 
-      await upsertTspProfile(userId, {
-        ...formState,
-        contributionRatePercent: optedOut ? undefined : formState.contributionRatePercent,
-        employerMatchPercent: optedOut ? undefined : formState.employerMatchPercent,
+  const deriveStatus = useCallback((draft: TspProfilePayload): FinancialProfileSectionStatusValue => {
+    if (draft.optOut?.isOptedOut) return 'opted_out';
+    return hasCompletedTsp(draft) ? 'completed' : 'needs_info';
+  }, []);
+
+  function sanitizePayload(draft: TspProfilePayload): TspProfilePayload {
+    if (draft.optOut?.isOptedOut) {
+      return {
+        lifecyclePositions: [],
+        contributionRatePercent: undefined,
+        employerMatchPercent: undefined,
         currentBalance: undefined,
         targetBalance: undefined,
-        gFundPercent: optedOut ? undefined : (codeToPercent.get('G') ?? undefined),
-        fFundPercent: optedOut ? undefined : (codeToPercent.get('F') ?? undefined),
-        cFundPercent: optedOut ? undefined : (codeToPercent.get('C') ?? undefined),
-        sFundPercent: optedOut ? undefined : (codeToPercent.get('S') ?? undefined),
-        iFundPercent: optedOut ? undefined : (codeToPercent.get('I') ?? undefined),
-        lifecyclePercent: optedOut ? undefined : lifecyclePercentDerived,
+        gFundPercent: undefined,
+        fFundPercent: undefined,
+        cFundPercent: undefined,
+        sFundPercent: undefined,
+        iFundPercent: undefined,
+        lifecyclePercent: undefined,
         lifecycleBalance: undefined,
-        lifecyclePositions: optedOut ? [] : (formState.lifecyclePositions ?? []).map((p) => ({
-          ...p,
-          contributionPercent: typeof p.contributionPercent === 'number' ? Math.max(0, Math.min(100, p.contributionPercent)) : p.contributionPercent,
-        })),
-        optOut: optedOut ? formState.optOut : undefined,
-      });
-
-      onStatusChange(optedOut ? 'opted_out' : 'completed');
-      setSaveState('success');
-      setTimeout(() => setSaveState('idle'), 2500);
-    } catch (error) {
-      console.warn('Failed to save TSP profile', error);
-      setErrorMessage('We hit a snag while saving your TSP details. Please try again.');
-      setSaveState('error');
+        optOut: {
+          isOptedOut: true,
+          reason: draft.optOut.reason?.trim() || undefined,
+          acknowledgedAt: draft.optOut.acknowledgedAt ?? new Date().toISOString(),
+        },
+      };
     }
-  };
+
+    // Derive legacy base fund percent fields for backend compatibility
+    const codeToPercent = new Map(
+      (draft.lifecyclePositions ?? [])
+        .filter((p) => p.fundCode === 'G' || p.fundCode === 'F' || p.fundCode === 'C' || p.fundCode === 'S' || p.fundCode === 'I')
+        .map((p) => [p.fundCode, p.contributionPercent ?? undefined] as const),
+    );
+    const lifecyclePercentDerived = (draft.lifecyclePositions ?? [])
+      .filter((p) => String(p.fundCode).startsWith('L'))
+      .reduce((sum, p) => sum + (p.contributionPercent ?? 0), 0);
+
+    return {
+      contributionRatePercent: typeof draft.contributionRatePercent === 'number' ? draft.contributionRatePercent : undefined,
+      employerMatchPercent: undefined,
+      currentBalance: undefined,
+      targetBalance: undefined,
+      gFundPercent: codeToPercent.get('G') ?? undefined,
+      fFundPercent: codeToPercent.get('F') ?? undefined,
+      cFundPercent: codeToPercent.get('C') ?? undefined,
+      sFundPercent: codeToPercent.get('S') ?? undefined,
+      iFundPercent: codeToPercent.get('I') ?? undefined,
+      lifecyclePercent: lifecyclePercentDerived || undefined,
+      lifecycleBalance: undefined,
+      lifecyclePositions: (draft.lifecyclePositions ?? []).map((p) => ({
+        ...p,
+        contributionPercent: typeof p.contributionPercent === 'number' ? Math.max(0, Math.min(100, p.contributionPercent)) : p.contributionPercent,
+      })),
+      optOut: undefined,
+    };
+  }
+
+  const persistTsp = useCallback(
+    async (draft: TspProfilePayload) => {
+      const payload = sanitizePayload(draft);
+      await upsertTspProfile(userId, payload);
+      return deriveStatus(draft);
+    },
+    [userId, deriveStatus],
+  );
+
+  const { status: autoStatus, isDirty, error: autoError, lastSavedAt, flush } = useAutoSaveForm({
+    data: formState,
+    persist: persistTsp,
+    determineStatus: deriveStatus,
+    onStatusResolved: onStatusChange,
+  });
+
+  useEffect(() => {
+    interface PFMPWindow extends Window { __pfmpCurrentSectionFlush?: () => Promise<void>; }
+    const w: PFMPWindow = window as PFMPWindow;
+    w.__pfmpCurrentSectionFlush = flush;
+    return () => {
+      if (w.__pfmpCurrentSectionFlush === flush) {
+        w.__pfmpCurrentSectionFlush = undefined;
+      }
+    };
+  }, [flush]);
+
+  const submitError = autoError instanceof Error ? autoError.message : autoError ? 'We hit a snag while saving your TSP details.' : null;
+
+  // --- Defensive reconciliation: if backend incorrectly marked TSP completed but local data is clearly incomplete, downgrade.
+  // This addresses reports of untouched TSP sections showing "Completed" on first load.
+  const reconciledRef = useRef(false);
+  useEffect(() => {
+    if (reconciledRef.current) return;
+    // Only attempt after hydration populated initial state (initialStateRef set) and autosave hook resolved an initial status.
+    if (!initialStateRef.current) return;
+    // If status is completed but deriveStatus says needs_info, force downgrade once.
+    const locallyDerived = deriveStatus(formState);
+    if (currentStatus === 'completed' && locallyDerived === 'needs_info') {
+      reconciledRef.current = true;
+      onStatusChange('needs_info');
+      return;
+    }
+    reconciledRef.current = true;
+  }, [currentStatus, formState, deriveStatus, onStatusChange]);
 
   return (
     <Box
@@ -285,10 +352,16 @@ export default function TspSectionForm({ userId, onStatusChange, currentStatus }
       noValidate
       onSubmit={(event) => {
         event.preventDefault();
-        void handleSubmit();
+        void flush();
       }}
     >
       <Stack spacing={3}>
+        <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+          <Typography variant="caption" color="text.secondary" sx={{ letterSpacing: 0.3 }}>
+            Autosave keeps this section in sync.
+          </Typography>
+          <AutoSaveIndicator status={autoStatus} lastSavedAt={lastSavedAt} isDirty={isDirty} error={autoError} />
+        </Stack>
         <FormControlLabel
           control={<Switch checked={optedOut} onChange={(event) => handleOptOutToggle(event.target.checked)} color="primary" />}
           label="I don’t invest in the Thrift Savings Plan"
@@ -451,24 +524,14 @@ export default function TspSectionForm({ userId, onStatusChange, currentStatus }
         )}
 
         {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
-        {saveState === 'success' && <Alert severity="success">Section saved.</Alert>}
-
+        {submitError && autoStatus === 'error' && <Alert severity="error">{submitError}</Alert>}
+        {!optedOut && !percentIsValid && (
+          <Typography variant="body2" color="warning.main">
+            Contribution must total 100% for completion. Current: {Number.isFinite(totalPercent) ? totalPercent : 0}%.
+          </Typography>
+        )}
         <Stack direction="row" spacing={2} alignItems="center">
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={saveState === 'saving' ? <CircularProgress size={18} /> : undefined}
-            onClick={() => void handleSubmit()}
-            disabled={saveState === 'saving' || (!optedOut && !percentIsValid)}
-            data-testid="tsp-submit"
-          >
-            {saveState === 'saving' ? 'Saving' : (optedOut ? 'Acknowledge opt-out' : 'Save section')}
-          </Button>
-          <Button
-            variant="outlined"
-            color="secondary"
-            onClick={() => setResetOpen(true)}
-          >
+          <Button variant="outlined" color="secondary" onClick={() => setResetOpen(true)}>
             Reset
           </Button>
           <Typography variant="body2" color="text.secondary">
@@ -480,7 +543,7 @@ export default function TspSectionForm({ userId, onStatusChange, currentStatus }
         <Dialog open={resetOpen} onClose={() => setResetOpen(false)}>
           <DialogTitle>Reset TSP section?</DialogTitle>
           <DialogContent>
-            Are you sure you want to reset this section? This will clear all values but won’t save until you click Save.
+            Are you sure you want to reset this section? This will clear all values immediately; autosave will sync changes.
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setResetOpen(false)} color="secondary">Cancel</Button>
@@ -490,7 +553,6 @@ export default function TspSectionForm({ userId, onStatusChange, currentStatus }
                 setFormState((prev) => ({
                   ...prev,
                   contributionRatePercent: 0,
-                  // keep opt-out as-is
                   lifecyclePositions: (prev.lifecyclePositions ?? []).map((p) => ({
                     ...p,
                     contributionPercent: 0,
@@ -499,6 +561,7 @@ export default function TspSectionForm({ userId, onStatusChange, currentStatus }
                   })),
                 }));
                 setSelectedFunds([]);
+                setErrorMessage(null);
               }}
               color="primary"
               variant="contained"

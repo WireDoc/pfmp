@@ -1,8 +1,7 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import {
   Alert,
   Box,
-  Button,
   FormControlLabel,
   MenuItem,
   Stack,
@@ -109,17 +108,30 @@ export default function RiskGoalsSectionForm({ userId, onStatusChange, currentSt
     async (draft: RiskGoalsProfilePayload) => {
       const payload = sanitizePayload(draft);
       await upsertRiskGoalsProfile(userId, payload);
-      return deriveStatus(draft);
+      // Derive status from sanitized payload to avoid mismatch if sanitize strips fields.
+      return deriveStatus(payload);
     },
     [userId],
   );
 
-  const { status: autoStatus, isSaving, isDirty, error: autoError, lastSavedAt, flush, resetBaseline } = useAutoSaveForm({
+  const { status: autoStatus, isDirty, error: autoError, lastSavedAt, flush, resetBaseline } = useAutoSaveForm({
     data: formState,
     persist: persistRiskGoals,
+    // Provide determineStatus so status can resolve even if persist returns void in future changes.
     determineStatus: deriveStatus,
     onStatusResolved: onStatusChange,
   });
+
+  useEffect(() => {
+    interface PFMPWindow extends Window { __pfmpCurrentSectionFlush?: () => Promise<void>; }
+    const w: PFMPWindow = window as PFMPWindow;
+    w.__pfmpCurrentSectionFlush = flush;
+    return () => {
+      if (w.__pfmpCurrentSectionFlush === flush) {
+        w.__pfmpCurrentSectionFlush = undefined;
+      }
+    };
+  }, [flush]);
 
   const mapPayloadToState = useCallback((payload: RiskGoalsProfilePayload): RiskGoalsProfilePayload => {
     if (payload.optOut?.isOptedOut) {
@@ -284,20 +296,9 @@ export default function RiskGoalsSectionForm({ userId, onStatusChange, currentSt
 
         {autoStatus === 'error' && errorMessage && <Alert severity="error">{errorMessage}</Alert>}
 
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => void flush()}
-            disabled={isSaving || !isDirty}
-            data-testid="risk-goals-submit"
-          >
-            {optedOut ? 'Acknowledge opt-out' : 'Save now'}
-          </Button>
-          <Typography variant="body2" color="text.secondary">
-            These preferences steer your personalized recommendations.
-          </Typography>
-        </Stack>
+        <Typography variant="caption" color="text.secondary">
+          Autosave keeps this section in sync.
+        </Typography>
       </Stack>
     </Box>
   );
