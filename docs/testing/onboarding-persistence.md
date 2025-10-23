@@ -40,9 +40,14 @@ Ensure the rebuilt onboarding flow persists progress accurately across dev-user 
 - Enable temporary `console.debug('[onboarding-hydrate]', dto)` logging while validating.
 - Capture timestamps for hydrate/start/complete to feed into Wave 6 performance metrics later.
 
-## Recent Fixes (2025-10-21)
+## Recent Fixes (2025-10-21/22)
 - **Sidebar status real-time updates**: Fixed `useAutoSaveForm` hook to properly reset `mountedRef.current = true` on component remount, resolving issue where status callbacks were being aborted in React StrictMode development environment.
 - **Risk & Goals liquidity buffer persistence**: Added missing `LiquidityBufferMonths` database column and service logic. Field now persists correctly and hydrates on re-navigation (see `onboardingRiskGoals.integration.test.tsx` for automated coverage).
+- **PascalCase API mapping**: Fixed all 11 onboarding sections (Income, Equity, Liabilities, Investments, Cash, Properties, Expenses, Long-Term Obligations, Tax, Insurance, Benefits) to properly map camelCase frontend payloads to PascalCase backend DTOs. Added default values for required fields to prevent 400 Bad Request errors during autosave.
+- **Dev user reset**: Updated `OnboardingProgressService.ResetAsync` to comprehensively clear all financial profile data (accounts, investments, properties, liabilities, expenses, income, insurance, TSP, obligations) and reset User profile fields to defaults while preserving authentication. Frontend now triggers page reload after reset for immediate visual feedback.
+- **Cash accounts UX**: Changed account type from free text to dropdown with common types (Checking, Savings, Money Market, CD, High-Yield Savings, Other).
+- **Tax section redesign**: Completely redesigned to focus on W-4 withholding information. Added US states dropdown for state of residence. Removed confusing fields (marginal rate, effective rate, expected refund/payment). Consolidated CPA toggles into single option. Added helper text for federal withholding percentage.
+- **Equity section auto-complete**: Section now auto-persists on first visit when default "Yes, let me know when this launches" option is selected, marking section as completed immediately.
 
 ## Follow-ups
 - [ ] Decide whether to persist `stepPayloads` now or defer until Wave 5 dual-AI integration.

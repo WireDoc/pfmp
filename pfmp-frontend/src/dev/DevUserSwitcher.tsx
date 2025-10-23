@@ -48,7 +48,8 @@ export const DevUserSwitcher: React.FC = () => {
   async function resetUser(userId: number) {
     await fetch(`/api/onboarding/progress/reset?userId=${userId}`, { method: 'POST' });
     setDevUserId(userId);
-    // No explicit confirmation; re-hydration occurs on next GET by context
+    // Reload the page to clear all cached state and re-fetch fresh data
+    window.location.reload();
   }
 
   async function createTestUser() {

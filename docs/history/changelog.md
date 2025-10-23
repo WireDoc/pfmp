@@ -7,10 +7,25 @@ The format loosely follows [Conventional Commits](https://www.conventionalcommit
 ## [Unreleased]
 
 ### Added
-- _No changes yet_
+- feat(frontend): Cash Accounts section now uses dropdown for account types (Checking, Savings, Money Market, CD, High-Yield Savings, Other) instead of free text
+- feat(frontend): Tax section completely redesigned with W-4 focus and state dropdown
+  - Added US states dropdown (all 50 states + DC) for state of residence
+  - Simplified to W-4 withholding information (removed confusing marginal/effective rates)
+  - Removed unnecessary fields: expected refund, expected payment due
+  - Consolidated CPA toggles into single "I work with a CPA" option
+  - Added helper text explaining federal withholding percentage
+- feat(backend): Dev user reset now comprehensively clears all financial profile data
+  - Updated `OnboardingProgressService.ResetAsync` to remove all related entities
+  - Clears: cash accounts, investments, properties, liabilities, expenses, income, insurance, TSP, obligations
+  - Resets User profile fields to defaults while preserving authentication
+- feat(frontend): Dev user reset button now triggers page reload for immediate visual feedback
 
 ### Changed
-- _No changes yet_
+- refactor(frontend): All onboarding API sections now use proper PascalCase mapping for backend compatibility
+  - Fixed 11 sections: Income, Equity, Liabilities, Investments, Cash, Properties, Expenses, Long-Term Obligations, Tax, Insurance, Benefits
+  - Added default values for required fields to prevent 400 errors during autosave
+  - Properly map OptOut object with IsOptedOut, Reason, AcknowledgedAt fields
+- improve(frontend): Equity & Private Holdings section now auto-completes on first visit when default option is selected
 
 ### Fixed
 - fix(frontend): sidebar status chips now update in real-time after form completion
@@ -23,6 +38,12 @@ The format loosely follows [Conventional Commits](https://www.conventionalcommit
   - Updated `UpsertRiskGoalsAsync` to save `input.LiquidityBufferMonths` value
   - Updated `GetRiskGoalsAsync` to return actual value instead of hardcoded `null`
   - Created and applied EF migration: `20251021202604_AddLiquidityBufferMonths`
+- fix(frontend): All onboarding sections no longer produce 400 Bad Request errors during autosave
+  - Fixed PascalCase/camelCase mismatches between frontend and backend
+  - Added proper null handling and default values for required fields
+- fix(frontend): Income section API payload mapping corrected (Streams, OptOut casing)
+- fix(frontend): Liabilities section properly maps all required fields with defaults
+- fix(frontend): Investments section includes all required account fields
 - chore(frontend): added comprehensive debug logging for status update chain (temporary, for diagnostics)
 - chore(frontend): fixed TypeScript error in `CashAccountsSectionForm` error rendering
 - test(frontend): fixed regex escape sequences in `onboardingEquity.integration.test.tsx`

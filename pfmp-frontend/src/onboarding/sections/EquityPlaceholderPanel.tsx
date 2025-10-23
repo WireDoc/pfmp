@@ -66,6 +66,13 @@ export default function EquityPlaceholderPanel({ userId, onStatusChange, current
     onStatusResolved: onStatusChange,
   });
 
+  // Auto-persist on first mount if section is still 'needs_info'
+  useEffect(() => {
+    if (currentStatus === 'needs_info') {
+      void flush();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     interface PFMPWindow extends Window { __pfmpCurrentSectionFlush?: () => Promise<void>; }
     const w: PFMPWindow = window as PFMPWindow;

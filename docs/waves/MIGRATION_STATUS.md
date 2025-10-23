@@ -287,3 +287,27 @@ Migration(s):
 Notes:
 - Snapshot creation is safe to call multiple times per day; only one record per user per as-of date is persisted.
 - Summary endpoint computes current values and mix using normalized price keys and market prices.
+
+## 2025-10-21/22 · Onboarding completion & UX enhancements
+
+**Summary**: Comprehensive onboarding stabilization with API contract fixes, enhanced UX, and developer tooling improvements.
+
+| Layer | Details |
+| --- | --- |
+| Backend API | Fixed PascalCase mapping across all 11 onboarding sections (Cash, Investments, Properties, Liabilities, Expenses, Long-Term Obligations, Tax, Insurance, Benefits, Income, Equity). Added proper default values for required fields and OptOut object mapping. |
+| Persistence | Added `LiquidityBufferMonths` column to User model with decimal(5,2) type. Migration: `20251011202604_AddLiquidityBufferMonths`. Updated FinancialProfileService to persist and retrieve liquidity buffer from Risk & Goals section. |
+| Frontend Forms | **Cash Accounts**: Replaced free-text account type with dropdown (Checking, Savings, Money Market, CD, High-Yield Savings, Other).<br/>**Tax Section**: Complete W-4-focused redesign with US states dropdown (50 states + DC), removed confusing marginal/effective rate fields, simplified to withholding percentage and basic tax info.<br/>**Equity**: Added auto-flush on first visit to eliminate false "needs info" status for intentionally empty section. |
+| Status Updates | Fixed useAutoSaveForm mountedRef lifecycle bug causing sidebar status to not update in real-time after React StrictMode double-mount. onStatusResolved callbacks now fire correctly. |
+| Dev Tools | Expanded dev user reset button to comprehensively clear all financial data (11 entity types) and reset User profile fields. Added automatic page reload after reset for visual feedback. |
+| Test Coverage | All 88 integration tests passing. Build clean with no TypeScript errors. ESLint clean except 1 pre-existing warning. |
+| Status | ✅ Onboarding fully functional end-to-end across all 11 sections with enhanced UX and reliable persistence. |
+| Follow-up | Continue Wave 4 dashboard work. Monitor user feedback on simplified Tax section and Cash account dropdowns. Consider adding tooltips for complex fields. |
+
+**Key Fixes**:
+- Sidebar status now updates immediately when sections complete
+- All API sections properly map camelCase ↔ PascalCase with null-safe defaults
+- Liquidity buffer months field persists correctly to database
+- Dev user reset clears all financial data, not just progress tracking
+- Cash accounts use dropdown instead of confusing free text
+- Tax section focuses on W-4 info users actually know
+- State selection uses proper dropdown with all US states

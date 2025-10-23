@@ -35,6 +35,60 @@ const FILING_STATUS_OPTIONS = [
   { value: 'widow', label: 'Qualifying widow(er)' },
 ];
 
+const US_STATES = [
+  { value: 'AL', label: 'Alabama' },
+  { value: 'AK', label: 'Alaska' },
+  { value: 'AZ', label: 'Arizona' },
+  { value: 'AR', label: 'Arkansas' },
+  { value: 'CA', label: 'California' },
+  { value: 'CO', label: 'Colorado' },
+  { value: 'CT', label: 'Connecticut' },
+  { value: 'DE', label: 'Delaware' },
+  { value: 'FL', label: 'Florida' },
+  { value: 'GA', label: 'Georgia' },
+  { value: 'HI', label: 'Hawaii' },
+  { value: 'ID', label: 'Idaho' },
+  { value: 'IL', label: 'Illinois' },
+  { value: 'IN', label: 'Indiana' },
+  { value: 'IA', label: 'Iowa' },
+  { value: 'KS', label: 'Kansas' },
+  { value: 'KY', label: 'Kentucky' },
+  { value: 'LA', label: 'Louisiana' },
+  { value: 'ME', label: 'Maine' },
+  { value: 'MD', label: 'Maryland' },
+  { value: 'MA', label: 'Massachusetts' },
+  { value: 'MI', label: 'Michigan' },
+  { value: 'MN', label: 'Minnesota' },
+  { value: 'MS', label: 'Mississippi' },
+  { value: 'MO', label: 'Missouri' },
+  { value: 'MT', label: 'Montana' },
+  { value: 'NE', label: 'Nebraska' },
+  { value: 'NV', label: 'Nevada' },
+  { value: 'NH', label: 'New Hampshire' },
+  { value: 'NJ', label: 'New Jersey' },
+  { value: 'NM', label: 'New Mexico' },
+  { value: 'NY', label: 'New York' },
+  { value: 'NC', label: 'North Carolina' },
+  { value: 'ND', label: 'North Dakota' },
+  { value: 'OH', label: 'Ohio' },
+  { value: 'OK', label: 'Oklahoma' },
+  { value: 'OR', label: 'Oregon' },
+  { value: 'PA', label: 'Pennsylvania' },
+  { value: 'RI', label: 'Rhode Island' },
+  { value: 'SC', label: 'South Carolina' },
+  { value: 'SD', label: 'South Dakota' },
+  { value: 'TN', label: 'Tennessee' },
+  { value: 'TX', label: 'Texas' },
+  { value: 'UT', label: 'Utah' },
+  { value: 'VT', label: 'Vermont' },
+  { value: 'VA', label: 'Virginia' },
+  { value: 'WA', label: 'Washington' },
+  { value: 'WV', label: 'West Virginia' },
+  { value: 'WI', label: 'Wisconsin' },
+  { value: 'WY', label: 'Wyoming' },
+  { value: 'DC', label: 'District of Columbia' },
+];
+
 function parseNumber(value: string): number | undefined {
   if (!value.trim()) return undefined;
   const parsed = Number(value);
@@ -44,11 +98,11 @@ function parseNumber(value: string): number | undefined {
 export default function TaxPostureSectionForm({ userId, onStatusChange, currentStatus }: TaxPostureSectionFormProps) {
   const [filingStatus, setFilingStatus] = useState('single');
   const [state, setState] = useState('');
-  const [marginalRate, setMarginalRate] = useState('');
-  const [effectiveRate, setEffectiveRate] = useState('');
+  const [marginalRate, setMarginalRate] = useState(''); // Keep for backend compatibility but hide from UI
+  const [effectiveRate, setEffectiveRate] = useState(''); // Keep for backend compatibility but hide from UI
   const [withholding, setWithholding] = useState('');
-  const [expectedRefund, setExpectedRefund] = useState('');
-  const [expectedPayment, setExpectedPayment] = useState('');
+  const [expectedRefund, setExpectedRefund] = useState(''); // Keep for backend compatibility but hide from UI
+  const [expectedPayment, setExpectedPayment] = useState(''); // Keep for backend compatibility but hide from UI
   const [usesCpa, setUsesCpa] = useState(false);
   const [notes, setNotes] = useState('');
   const [optedOut, setOptedOut] = useState(currentStatus === 'opted_out');
@@ -119,10 +173,10 @@ export default function TaxPostureSectionForm({ userId, onStatusChange, currentS
 
   const deriveStatus = useCallback<() => FinancialProfileSectionStatusValue>(() => {
     if (optedOut) return 'opted_out';
-    // Consider completed if at least one meaningful field beyond defaults is provided
-    const hasDetail = [state, marginalRate, effectiveRate, withholding, expectedRefund, expectedPayment, notes].some((v) => v.trim() !== '') || usesCpa;
-    return hasDetail ? 'completed' : 'needs_info';
-  }, [optedOut, state, marginalRate, effectiveRate, withholding, expectedRefund, expectedPayment, notes, usesCpa]);
+    // Consider completed if filing status and state are provided (W-4 basics)
+    const hasBasicInfo = state.trim() !== '';
+    return hasBasicInfo ? 'completed' : 'needs_info';
+  }, [optedOut, state]);
 
   const buildPayload = useCallback<() => TaxProfilePayload>(() => {
     if (optedOut) {
@@ -193,20 +247,25 @@ export default function TaxPostureSectionForm({ userId, onStatusChange, currentS
       <Stack spacing={3} sx={{ mt: 3 }}>
         <FormControlLabel
           control={<Switch checked={optedOut} onChange={(event) => handleOptOutToggle(event.target.checked)} color="primary" />}
-          label="A CPA handles this for me"
+          label="I don't need tax withholding guidance"
         />
 
         {optedOut ? (
           <TextField
-            label="Add context so we can follow up later"
+            label="Add context (optional)"
             value={optOutReason}
             onChange={(event) => setOptOutReason(event.target.value)}
+            placeholder="e.g. CPA handles everything, no W-2 income"
             multiline
             minRows={3}
             fullWidth
           />
         ) : (
           <Stack spacing={3}>
+            <Typography variant="body2" color="text.secondary">
+              Provide your W-4 withholding information so we can help optimize your tax strategy and cashflow.
+            </Typography>
+
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <FormControl fullWidth>
                 <InputLabel id="filing-status-label">Filing status</InputLabel>
@@ -223,71 +282,44 @@ export default function TaxPostureSectionForm({ userId, onStatusChange, currentS
                   ))}
                 </Select>
               </FormControl>
-              <TextField
-                label="State of residence"
-                placeholder="e.g. VA"
-                value={state}
-                onChange={(event) => setState(event.target.value)}
-                fullWidth
-              />
+              <FormControl fullWidth>
+                <InputLabel id="state-label">State of residence</InputLabel>
+                <Select
+                  labelId="state-label"
+                  label="State of residence"
+                  value={state}
+                  onChange={(event) => setState(event.target.value)}
+                >
+                  {US_STATES.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Stack>
 
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <TextField
-                type="number"
-                label="Marginal rate (%)"
-                value={marginalRate}
-                onChange={(event) => setMarginalRate(event.target.value)}
-                inputProps={{ min: 0, step: 0.5 }}
-                fullWidth
-              />
-              <TextField
-                type="number"
-                label="Effective rate (%)"
-                value={effectiveRate}
-                onChange={(event) => setEffectiveRate(event.target.value)}
-                inputProps={{ min: 0, step: 0.5 }}
-                fullWidth
-              />
-              <TextField
-                type="number"
-                label="Withholding (%)"
-                value={withholding}
-                onChange={(event) => setWithholding(event.target.value)}
-                inputProps={{ min: 0, step: 0.5 }}
-                fullWidth
-              />
-            </Stack>
-
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <TextField
-                type="number"
-                label="Expected refund ($)"
-                value={expectedRefund}
-                onChange={(event) => setExpectedRefund(event.target.value)}
-                inputProps={{ min: 0, step: 50 }}
-                fullWidth
-              />
-              <TextField
-                type="number"
-                label="Expected payment due ($)"
-                value={expectedPayment}
-                onChange={(event) => setExpectedPayment(event.target.value)}
-                inputProps={{ min: 0, step: 50 }}
-                fullWidth
-              />
-            </Stack>
+            <TextField
+              type="number"
+              label="Federal withholding (%)"
+              value={withholding}
+              onChange={(event) => setWithholding(event.target.value)}
+              placeholder="From your W-4"
+              helperText="The percentage of your paycheck withheld for federal taxes"
+              inputProps={{ min: 0, max: 100, step: 0.5 }}
+              fullWidth
+            />
 
             <FormControlLabel
               control={<Switch checked={usesCpa} onChange={(event) => setUsesCpa(event.target.checked)} color="primary" />}
-              label="I usually work with a CPA or preparer"
+              label="I work with a CPA or tax professional"
             />
 
             <TextField
-              label="Notes"
+              label="Tax notes"
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
-              placeholder="Upcoming life changes, major deductions, military status, etc."
+              placeholder="e.g. Military tax benefits, self-employment income, major deductions, state tax quirks"
               multiline
               minRows={3}
               fullWidth
@@ -298,7 +330,7 @@ export default function TaxPostureSectionForm({ userId, onStatusChange, currentS
         <Stack direction="row" spacing={2} alignItems="center">
           <AutoSaveIndicator status={autoStatus} lastSavedAt={lastSavedAt} isDirty={isDirty} error={error} />
           <Typography variant="body2" color="text.secondary">
-            These details help us model your real after-tax cashflow and safe withholding.
+            This helps us model your after-tax cashflow and suggest withholding adjustments.
           </Typography>
         </Stack>
       </Stack>
