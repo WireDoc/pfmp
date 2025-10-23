@@ -12,6 +12,7 @@ import {
   Divider,
   Checkbox,
   Button,
+  MenuItem,
 } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
@@ -32,6 +33,15 @@ type CashAccountsSectionFormProps = {
   onStatusChange: (status: FinancialProfileSectionStatusValue) => void;
   currentStatus: FinancialProfileSectionStatusValue;
 };
+
+const ACCOUNT_TYPE_OPTIONS = [
+  { value: 'checking', label: 'Checking' },
+  { value: 'savings', label: 'Savings' },
+  { value: 'money_market', label: 'Money Market' },
+  { value: 'cd', label: 'Certificate of Deposit (CD)' },
+  { value: 'high_yield_savings', label: 'High-Yield Savings' },
+  { value: 'other', label: 'Other' },
+];
 
 type AccountFormState = {
   id: string;
@@ -194,7 +204,19 @@ export default function CashAccountsSectionForm({ userId, onStatusChange, curren
                       <TextField label="Institution" placeholder="Bank or credit union" value={account.institution} onChange={(e) => handleAccountChange(account.id, 'institution', e.target.value)} fullWidth />
                     </Stack>
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 2 }}>
-                      <TextField label="Account type" placeholder="checking, savings, cd" value={account.accountType} onChange={(e) => handleAccountChange(account.id, 'accountType', e.target.value)} fullWidth />
+                      <TextField 
+                        select
+                        label="Account type" 
+                        value={account.accountType} 
+                        onChange={(e) => handleAccountChange(account.id, 'accountType', e.target.value)} 
+                        fullWidth
+                      >
+                        {ACCOUNT_TYPE_OPTIONS.map((option) => (
+                          <MenuItem key={option.value} value={option.value}>
+                            {option.label}
+                          </MenuItem>
+                        ))}
+                      </TextField>
                       <TextField type="number" label="Balance ($)" value={account.balance} onChange={(e) => handleAccountChange(account.id, 'balance', e.target.value)} inputProps={{ min: 0, step: 50 }} fullWidth />
                       <TextField type="number" label="Interest rate (APR %)" value={account.interestRateApr} onChange={(e) => handleAccountChange(account.id, 'interestRateApr', e.target.value)} inputProps={{ min: 0, step: 0.05 }} fullWidth />
                     </Stack>

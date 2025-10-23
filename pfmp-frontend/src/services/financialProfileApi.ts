@@ -521,7 +521,24 @@ export async function fetchTspProfile(userId: number): Promise<TspProfilePayload
 }
 
 export async function upsertCashAccountsProfile(userId: number, payload: CashAccountsProfilePayload): Promise<void> {
-  await apiClient.post(`/financial-profile/${userId}/cash`, payload);
+  // Map camelCase payload to PascalCase for backend
+  const request = {
+    Accounts: payload.accounts.map((account) => ({
+      Nickname: account.nickname ?? '',
+      AccountType: account.accountType ?? 'checking',
+      Institution: account.institution,
+      Balance: account.balance ?? 0,
+      InterestRateApr: account.interestRateApr,
+      IsEmergencyFund: account.isEmergencyFund ?? false,
+      RateLastChecked: account.rateLastChecked,
+    })),
+    OptOut: payload.optOut?.isOptedOut ? {
+      IsOptedOut: payload.optOut.isOptedOut,
+      Reason: payload.optOut.reason,
+      AcknowledgedAt: payload.optOut.acknowledgedAt,
+    } : undefined,
+  };
+  await apiClient.post(`/financial-profile/${userId}/cash`, request);
 }
 
 export async function fetchCashAccountsProfile(userId: number): Promise<CashAccountsProfilePayload> {
@@ -543,7 +560,26 @@ export async function fetchCashAccountsProfile(userId: number): Promise<CashAcco
 }
 
 export async function upsertInvestmentAccountsProfile(userId: number, payload: InvestmentAccountsProfilePayload): Promise<void> {
-  await apiClient.post(`/financial-profile/${userId}/investments`, payload);
+  // Map camelCase payload to PascalCase for backend
+  const request = {
+    Accounts: payload.accounts.map((account) => ({
+      AccountName: account.accountName ?? '',
+      AccountCategory: account.accountCategory ?? 'brokerage',
+      Institution: account.institution,
+      AssetClass: account.assetClass,
+      CurrentValue: account.currentValue ?? 0,
+      CostBasis: account.costBasis,
+      ContributionRatePercent: account.contributionRatePercent,
+      IsTaxAdvantaged: account.isTaxAdvantaged ?? false,
+      LastContributionDate: account.lastContributionDate,
+    })),
+    OptOut: payload.optOut?.isOptedOut ? {
+      IsOptedOut: payload.optOut.isOptedOut,
+      Reason: payload.optOut.reason,
+      AcknowledgedAt: payload.optOut.acknowledgedAt,
+    } : undefined,
+  };
+  await apiClient.post(`/financial-profile/${userId}/investments`, request);
 }
 
 export async function fetchInvestmentAccountsProfile(userId: number): Promise<InvestmentAccountsProfilePayload> {
@@ -567,7 +603,26 @@ export async function fetchInvestmentAccountsProfile(userId: number): Promise<In
 }
 
 export async function upsertPropertiesProfile(userId: number, payload: PropertiesProfilePayload): Promise<void> {
-  await apiClient.post(`/financial-profile/${userId}/real-estate`, payload);
+  // Map camelCase payload to PascalCase for backend
+  const request = {
+    Properties: payload.properties.map((property) => ({
+      PropertyName: property.propertyName ?? '',
+      PropertyType: property.propertyType ?? 'primary',
+      Occupancy: property.occupancy ?? 'owner',
+      EstimatedValue: property.estimatedValue ?? 0,
+      MortgageBalance: property.mortgageBalance,
+      MonthlyMortgagePayment: property.monthlyMortgagePayment,
+      MonthlyRentalIncome: property.monthlyRentalIncome,
+      MonthlyExpenses: property.monthlyExpenses,
+      HasHeloc: property.hasHeloc ?? false,
+    })),
+    OptOut: payload.optOut?.isOptedOut ? {
+      IsOptedOut: payload.optOut.isOptedOut,
+      Reason: payload.optOut.reason,
+      AcknowledgedAt: payload.optOut.acknowledgedAt,
+    } : undefined,
+  };
+  await apiClient.post(`/financial-profile/${userId}/real-estate`, request);
 }
 
 export async function fetchPropertiesProfile(userId: number): Promise<PropertiesProfilePayload> {
@@ -591,7 +646,25 @@ export async function fetchPropertiesProfile(userId: number): Promise<Properties
 }
 
 export async function upsertLongTermObligationsProfile(userId: number, payload: LongTermObligationsProfilePayload): Promise<void> {
-  await apiClient.post(`/financial-profile/${userId}/long-term-obligations`, payload);
+  // Map camelCase payload to PascalCase for backend
+  const request = {
+    Obligations: payload.obligations.map((obligation) => ({
+      ObligationName: obligation.obligationName ?? '',
+      ObligationType: obligation.obligationType ?? 'general',
+      TargetDate: obligation.targetDate,
+      EstimatedCost: obligation.estimatedCost,
+      FundsAllocated: obligation.fundsAllocated,
+      FundingStatus: obligation.fundingStatus,
+      IsCritical: obligation.isCritical ?? false,
+      Notes: obligation.notes,
+    })),
+    OptOut: payload.optOut?.isOptedOut ? {
+      IsOptedOut: payload.optOut.isOptedOut,
+      Reason: payload.optOut.reason,
+      AcknowledgedAt: payload.optOut.acknowledgedAt,
+    } : undefined,
+  };
+  await apiClient.post(`/financial-profile/${userId}/long-term-obligations`, request);
 }
 
 export async function fetchLongTermObligationsProfile(userId: number): Promise<LongTermObligationsProfilePayload> {
@@ -616,7 +689,24 @@ export async function fetchLongTermObligationsProfile(userId: number): Promise<L
 }
 
 export async function upsertLiabilitiesProfile(userId: number, payload: LiabilitiesProfilePayload): Promise<void> {
-  await apiClient.post(`/financial-profile/${userId}/liabilities`, payload);
+  // Map camelCase payload to PascalCase for backend
+  const request = {
+    Liabilities: payload.liabilities.map((liability) => ({
+      LiabilityType: liability.liabilityType ?? '',
+      Lender: liability.lender,
+      CurrentBalance: liability.currentBalance ?? 0,
+      InterestRateApr: liability.interestRateApr,
+      MinimumPayment: liability.minimumPayment,
+      PayoffTargetDate: liability.payoffTargetDate,
+      IsPriorityToEliminate: liability.isPriorityToEliminate ?? false,
+    })),
+    OptOut: payload.optOut?.isOptedOut ? {
+      IsOptedOut: payload.optOut.isOptedOut,
+      Reason: payload.optOut.reason,
+      AcknowledgedAt: payload.optOut.acknowledgedAt,
+    } : undefined,
+  };
+  await apiClient.post(`/financial-profile/${userId}/liabilities`, request);
 }
 
 export async function fetchLiabilitiesProfile(userId: number): Promise<LiabilitiesProfilePayload> {
@@ -638,7 +728,21 @@ export async function fetchLiabilitiesProfile(userId: number): Promise<Liabiliti
 }
 
 export async function upsertExpensesProfile(userId: number, payload: ExpensesProfilePayload): Promise<void> {
-  await apiClient.post(`/financial-profile/${userId}/expenses`, payload);
+  // Map camelCase payload to PascalCase for backend
+  const request = {
+    Expenses: payload.expenses.map((expense) => ({
+      Category: expense.category ?? '',
+      MonthlyAmount: expense.monthlyAmount ?? 0,
+      IsEstimated: expense.isEstimated ?? false,
+      Notes: expense.notes,
+    })),
+    OptOut: payload.optOut?.isOptedOut ? {
+      IsOptedOut: payload.optOut.isOptedOut,
+      Reason: payload.optOut.reason,
+      AcknowledgedAt: payload.optOut.acknowledgedAt,
+    } : undefined,
+  };
+  await apiClient.post(`/financial-profile/${userId}/expenses`, request);
 }
 
 export async function fetchExpensesProfile(userId: number): Promise<ExpensesProfilePayload> {
@@ -657,7 +761,24 @@ export async function fetchExpensesProfile(userId: number): Promise<ExpensesProf
 }
 
 export async function upsertTaxProfile(userId: number, payload: TaxProfilePayload): Promise<void> {
-  await apiClient.post(`/financial-profile/${userId}/tax`, payload);
+  // Map camelCase payload to PascalCase for backend
+  const request = {
+    FilingStatus: payload.filingStatus ?? 'single',
+    StateOfResidence: payload.stateOfResidence,
+    MarginalRatePercent: payload.marginalRatePercent,
+    EffectiveRatePercent: payload.effectiveRatePercent,
+    FederalWithholdingPercent: payload.federalWithholdingPercent,
+    ExpectedRefundAmount: payload.expectedRefundAmount,
+    ExpectedPaymentAmount: payload.expectedPaymentAmount,
+    UsesCpaOrPreparer: payload.usesCpaOrPreparer ?? false,
+    Notes: payload.notes,
+    OptOut: payload.optOut?.isOptedOut ? {
+      IsOptedOut: payload.optOut.isOptedOut,
+      Reason: payload.optOut.reason,
+      AcknowledgedAt: payload.optOut.acknowledgedAt,
+    } : undefined,
+  };
+  await apiClient.post(`/financial-profile/${userId}/tax`, request);
 }
 
 export async function fetchTaxProfile(userId: number): Promise<TaxProfilePayload> {
@@ -677,7 +798,26 @@ export async function fetchTaxProfile(userId: number): Promise<TaxProfilePayload
 }
 
 export async function upsertInsurancePoliciesProfile(userId: number, payload: InsurancePoliciesProfilePayload): Promise<void> {
-  await apiClient.post(`/financial-profile/${userId}/insurance`, payload);
+  // Map camelCase payload to PascalCase for backend
+  const request = {
+    Policies: payload.policies.map((policy) => ({
+      PolicyType: policy.policyType ?? '',
+      Carrier: policy.carrier,
+      PolicyName: policy.policyName,
+      CoverageAmount: policy.coverageAmount,
+      PremiumAmount: policy.premiumAmount,
+      PremiumFrequency: policy.premiumFrequency,
+      RenewalDate: policy.renewalDate,
+      IsAdequateCoverage: policy.isAdequateCoverage ?? false,
+      RecommendedCoverage: policy.recommendedCoverage,
+    })),
+    OptOut: payload.optOut?.isOptedOut ? {
+      IsOptedOut: payload.optOut.isOptedOut,
+      Reason: payload.optOut.reason,
+      AcknowledgedAt: payload.optOut.acknowledgedAt,
+    } : undefined,
+  };
+  await apiClient.post(`/financial-profile/${userId}/insurance`, request);
 }
 
 export async function fetchInsurancePoliciesProfile(userId: number): Promise<InsurancePoliciesProfilePayload> {
@@ -701,7 +841,23 @@ export async function fetchInsurancePoliciesProfile(userId: number): Promise<Ins
 }
 
 export async function upsertBenefitsProfile(userId: number, payload: BenefitsProfilePayload): Promise<void> {
-  await apiClient.post(`/financial-profile/${userId}/benefits`, payload);
+  // Map camelCase payload to PascalCase for backend
+  const request = {
+    Benefits: payload.benefits.map((benefit) => ({
+      BenefitType: benefit.benefitType ?? '',
+      Provider: benefit.provider,
+      IsEnrolled: benefit.isEnrolled ?? false,
+      EmployerContributionPercent: benefit.employerContributionPercent,
+      MonthlyCost: benefit.monthlyCost,
+      Notes: benefit.notes,
+    })),
+    OptOut: payload.optOut?.isOptedOut ? {
+      IsOptedOut: payload.optOut.isOptedOut,
+      Reason: payload.optOut.reason,
+      AcknowledgedAt: payload.optOut.acknowledgedAt,
+    } : undefined,
+  };
+  await apiClient.post(`/financial-profile/${userId}/benefits`, request);
 }
 
 export async function fetchBenefitsProfile(userId: number): Promise<BenefitsProfilePayload> {
@@ -722,7 +878,25 @@ export async function fetchBenefitsProfile(userId: number): Promise<BenefitsProf
 }
 
 export async function upsertIncomeStreamsProfile(userId: number, payload: IncomeStreamsProfilePayload): Promise<void> {
-  await apiClient.post(`/financial-profile/${userId}/income`, payload);
+  // Map camelCase to PascalCase for backend DTO
+  const request = {
+    Streams: payload.streams.map(stream => ({
+      Name: stream.name,
+      IncomeType: stream.incomeType,
+      MonthlyAmount: stream.monthlyAmount,
+      AnnualAmount: stream.annualAmount,
+      IsGuaranteed: stream.isGuaranteed,
+      StartDate: stream.startDate,
+      EndDate: stream.endDate,
+      IsActive: stream.isActive,
+    })),
+    OptOut: payload.optOut ? {
+      IsOptedOut: payload.optOut.isOptedOut,
+      Reason: payload.optOut.reason,
+      AcknowledgedAt: payload.optOut.acknowledgedAt,
+    } : undefined,
+  };
+  await apiClient.post(`/financial-profile/${userId}/income`, request);
 }
 
 export async function fetchIncomeStreamsProfile(userId: number): Promise<IncomeStreamsProfilePayload> {
@@ -745,7 +919,17 @@ export async function fetchIncomeStreamsProfile(userId: number): Promise<IncomeS
 }
 
 export async function upsertEquityInterest(userId: number, payload: EquityInterestPayload): Promise<void> {
-  await apiClient.post(`/financial-profile/${userId}/equity`, payload);
+  // Map camelCase payload to PascalCase for backend
+  const request = {
+    IsInterestedInTracking: payload.isInterestedInTracking,
+    Notes: payload.notes,
+    OptOut: payload.optOut ? {
+      IsOptedOut: payload.optOut.isOptedOut,
+      Reason: payload.optOut.reason,
+      AcknowledgedAt: payload.optOut.acknowledgedAt,
+    } : undefined,
+  };
+  await apiClient.post(`/financial-profile/${userId}/equity`, request);
 }
 
 export async function fetchEquityInterest(userId: number): Promise<EquityInterestPayload> {

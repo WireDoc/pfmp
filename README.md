@@ -7,7 +7,13 @@ PFMP is an AI-assisted financial planning platform for government employees and 
 - **Backend**: `PFMP-API/` (.NET 9 Web API, PostgreSQL)
 - **Frontend**: `pfmp-frontend/` (React 19 + TypeScript + Vite)
 - **Authentication**: Azure Entra ID with local bypass mode for development
-- **Current Highlights**: Rebuilt onboarding through long-term obligations, Wave 4 dashboard quick glance metrics, live obligation polling (SignalR-ready), plus TSP summary and daily snapshots with lifecycle funds (L2030–L2075) and idempotent capture
+- **Current Highlights**: 
+  - Rebuilt onboarding flow with 15 financial profile sections (all fully functional with autosave)
+  - Enhanced UX: Cash accounts with type dropdowns, simplified W-4-based tax withholding section
+  - Comprehensive API integration with PascalCase mapping for all backend endpoints
+  - Dev user reset functionality for testing complete data clearing
+  - Wave 4 dashboard with quick glance metrics and live obligation polling (SignalR-ready)
+  - TSP summary and daily snapshots with lifecycle funds (L2030–L2075)
 - **Planning Frames**: Wave 0–6 rebuild plan (tactical) aligned with roadmap Phases 1–5 (product milestones)
 
 The platform is currently in the Wave rebuild effort. Implementation details, historical notes, and migration guidance now live inside the reorganized `docs/` directory.
