@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import { Suspense, lazy } from 'react';
 import { createBrowserRouter, createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { useFeatureFlag } from './flags/featureFlags';
 import { staticChildRoutes, StaticNotFoundComponent } from './routes/staticRoutes';
@@ -7,8 +7,17 @@ import { RootGuard } from './components/routing/RootGuard';
 import { OnboardingGuard } from './components/routing/OnboardingGuard';
 import { DashboardGuard } from './components/routing/DashboardGuard';
 import { AppLayout } from './layout/AppLayout';
+import { DashboardLayout } from './layout/DashboardLayout';
 import { PageSpinner } from './components/common/PageSpinner';
 import { RouteErrorBoundary } from './components/common/RouteErrorBoundary';
+
+// Lazy load dashboard sub-views
+const AccountsView = lazy(() => import('./views/dashboard/AccountsView').then(m => ({ default: m.AccountsView })));
+const InsightsView = lazy(() => import('./views/dashboard/InsightsView').then(m => ({ default: m.InsightsView })));
+const TasksView = lazy(() => import('./views/dashboard/TasksView').then(m => ({ default: m.TasksView })));
+const ProfileView = lazy(() => import('./views/dashboard/ProfileView').then(m => ({ default: m.ProfileView })));
+const SettingsView = lazy(() => import('./views/dashboard/SettingsView').then(m => ({ default: m.SettingsView })));
+const HelpView = lazy(() => import('./views/dashboard/HelpView').then(m => ({ default: m.HelpView })));
 
 // NotFound lazy component supplied via staticRoutes (staticNotFound)
 
@@ -49,6 +58,66 @@ export function AppRouter(props: AppRouterProps) {
       const finalElement: React.ReactElement = <Suspense fallback={<PageSpinner />}>{element}</Suspense>;
       return r.index ? { index: true, element: finalElement } : { path: r.path!, element: finalElement };
     });
+
+  // Add nested dashboard routes with DashboardLayout when Wave4 is enabled
+  if (enableWave4) {
+    // Replace the simple dashboard-wave4 route with a nested route structure
+    const dashboardIndex = baseChildren.findIndex(child => !('index' in child) && child.path === 'dashboard');
+    if (dashboardIndex !== -1) {
+      // Remove the existing dashboard route
+      const [dashboardRoute] = baseChildren.splice(dashboardIndex, 1);
+      
+      // Add nested dashboard routes with DashboardLayout
+      baseChildren.push({
+        path: 'dashboard',
+        element: (
+          <ProtectedRoute>
+            <Suspense fallback={<PageSpinner />}>
+              <DashboardLayout />
+            </Suspense>
+          </ProtectedRoute>
+        ),
+      } as { path: string; element: React.ReactElement; children?: Array<{ path?: string; index?: boolean; element: React.ReactElement}> } & {
+        children: Array<{ path?: string; index?: boolean; element: React.ReactElement}>
+      });
+      
+      // Now add the children to the dashboard route
+      const dashboardRouteIndex = baseChildren.length - 1;
+      const dashboardRouteWithChildren = baseChildren[dashboardRouteIndex] as typeof baseChildren[number] & {
+        children?: Array<{ path?: string; index?: boolean; element: React.ReactElement}>;
+      };
+      dashboardRouteWithChildren.children = [
+        {
+          index: true,
+          element: dashboardRoute.element, // DashboardWave4 as the index route
+        },
+        {
+          path: 'accounts',
+          element: <Suspense fallback={<PageSpinner />}><AccountsView /></Suspense>,
+        },
+        {
+          path: 'insights',
+          element: <Suspense fallback={<PageSpinner />}><InsightsView /></Suspense>,
+        },
+        {
+          path: 'tasks',
+          element: <Suspense fallback={<PageSpinner />}><TasksView /></Suspense>,
+        },
+        {
+          path: 'profile',
+          element: <Suspense fallback={<PageSpinner />}><ProfileView /></Suspense>,
+        },
+        {
+          path: 'settings',
+          element: <Suspense fallback={<PageSpinner />}><SettingsView /></Suspense>,
+        },
+        {
+          path: 'help',
+          element: <Suspense fallback={<PageSpinner />}><HelpView /></Suspense>,
+        },
+      ];
+    }
+  }
 
   // If flag disabled, we removed the /dashboard route. Provide an explicit redirect so tests hitting /dashboard don't 404.
   if (!enableWave4) {
