@@ -69,6 +69,7 @@ export function renderOnboardingPageForTest(options?: RenderOnboardingPageOption
     <MemoryRouter initialEntries={initialEntries}>
       <Routes>
         <Route path="/" element={<div data-testid="onboarding-test-dashboard" />} />
+        <Route path="/dashboard" element={<div data-testid="onboarding-test-dashboard" />} />
         <Route
           path="/onboarding"
           element={
@@ -471,11 +472,11 @@ async function completeExpenses(user: ReturnType<typeof userEvent.setup>, mode: 
 
 async function completeTax(user: ReturnType<typeof userEvent.setup>, mode: 'complete' | 'optOut') {
   if (mode === 'optOut') {
-    await user.click(screen.getByLabelText('A CPA handles this for me'));
-    await fillReason('Add context so we can follow up later', 'Handled externally right now');
+    await user.click(screen.getByLabelText(/I don['']t need tax withholding guidance/i));
+    await fillReason('Add context (optional)', 'Handled externally right now');
   } else {
-    fireEvent.change(screen.getByLabelText('Marginal rate (%)'), { target: { value: '24' } });
-    fireEvent.change(screen.getByLabelText('Effective rate (%)'), { target: { value: '18' } });
+    // Updated to match new W-4 focused Tax section (removed marginal/effective rates)
+    fireEvent.change(screen.getByLabelText('State of residence'), { target: { value: 'Virginia' } });
     fireEvent.change(screen.getByLabelText('Withholding (%)'), { target: { value: '17' } });
   }
   await forceFlushAutosaveAct();

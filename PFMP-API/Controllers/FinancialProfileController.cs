@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models.FinancialProfile;
@@ -278,6 +279,38 @@ namespace PFMP_API.Controllers
         {
             var statuses = await _db.FinancialProfileSectionStatuses.AsNoTracking().Where(s => s.UserId == userId).ToListAsync(ct);
             return Ok(statuses);
+        }
+
+        [HttpPut("{userId:int}/sections/{sectionKey}")]
+        public async Task<ActionResult> UpdateSectionStatus(int userId, string sectionKey, [FromBody] UpdateSectionStatusRequest request, CancellationToken ct = default)
+        {
+            Console.WriteLine($"[UpdateSectionStatus] Called with userId={userId}, sectionKey={sectionKey}, status={request.Status}");
+            
+            var existing = await _db.FinancialProfileSectionStatuses.FirstOrDefaultAsync(s => s.UserId == userId && s.SectionKey == sectionKey, ct);
+            
+            if (existing == null)
+            {
+                Console.WriteLine($"[UpdateSectionStatus] Creating new record for {sectionKey}");
+                existing = new FinancialProfileSectionStatus
+                {
+                    UserId = userId,
+                    SectionKey = sectionKey,
+                    Status = request.Status,
+                    UpdatedAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _db.FinancialProfileSectionStatuses.Add(existing);
+            }
+            else
+            {
+                Console.WriteLine($"[UpdateSectionStatus] Updating existing record for {sectionKey}");
+                existing.Status = request.Status;
+                existing.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await _db.SaveChangesAsync(ct);
+            Console.WriteLine($"[UpdateSectionStatus] Saved to database successfully");
+            return Ok();
         }
     }
 
@@ -739,6 +772,12 @@ namespace PFMP_API.Controllers
             Reason = Reason,
             AcknowledgedAt = AcknowledgedAt
         };
+    }
+
+    public class UpdateSectionStatusRequest
+    {
+        [Required]
+        public string Status { get; set; } = string.Empty;
     }
 
     #endregion

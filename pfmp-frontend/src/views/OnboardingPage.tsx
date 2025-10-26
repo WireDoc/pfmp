@@ -4,7 +4,9 @@ import ProfileStepLayout from '../onboarding/components/ProfileStepLayout';
 import { resolveStepConfig } from '../onboarding/stepRegistry';
 import { useOnboarding } from '../onboarding/useOnboarding';
 import type { FinancialProfileSectionStatusValue } from '../services/financialProfileApi';
+import { updateSectionStatus } from '../services/financialProfileApi';
 import { buildRoute } from '../routes/routeDefs';
+import { isFeatureEnabled } from '../flags/featureFlags';
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
@@ -28,9 +30,23 @@ export default function OnboardingPage() {
     [updateStatus],
   );
 
-  const handleFinalize = () => {
+  const handleFinalize = async () => {
+    console.log('[OnboardingPage] handleFinalize called', { userId, reviewStatus, canFinalize });
     updateStatus('review', 'completed');
-    navigate(buildRoute('root'));
+    // Persist review status to backend so it survives page refreshes
+    try {
+      console.log('[OnboardingPage] Persisting review status to backend...');
+      await updateSectionStatus(userId, 'review', 'completed');
+      console.log('[OnboardingPage] Review status persisted successfully');
+    } catch (error) {
+      console.error('[OnboardingPage] Failed to persist review status:', error);
+      // Continue navigation even if persist fails - user can retry if needed
+    }
+    // Navigate to Wave 4 dashboard if feature flag is enabled, otherwise use root
+    const enableWave4 = isFeatureEnabled('enableDashboardWave4');
+    const targetRoute = enableWave4 ? buildRoute('dashboard-wave4') : buildRoute('root');
+    console.log('[OnboardingPage] Navigating to:', targetRoute, { enableWave4 });
+    navigate(targetRoute);
   };
 
   if (!hydrated) {

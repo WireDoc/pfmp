@@ -117,9 +117,9 @@ describe('DashboardWave4 direct component render', () => {
     renderDashboard();
     const root = await screen.findByTestId('wave4-dashboard-root');
     expect(root).toBeInTheDocument();
-    expect(screen.getByText(/Dashboard \(Wave 4\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Your Financial Dashboard/)).toBeInTheDocument();
     expect(screen.getByText(/Welcome back, John Smith/)).toBeInTheDocument();
-    expect(screen.getByTestId('onboarding-summary-text').textContent).toContain('Onboarding complete');
+    expect(screen.getByTestId('onboarding-summary-text').textContent).toContain('Profile complete');
     const quickGlanceHeading = await screen.findByText('Quick glance');
     expect(quickGlanceHeading).toBeInTheDocument();
   const quickStatsPanel = await screen.findByTestId('quick-stats-panel');

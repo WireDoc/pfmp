@@ -33,8 +33,8 @@ const defaultFlags: FeatureFlagsState = {
   exp_dual_ai_pipeline: false, // Wave 5
   storybook_docs_enabled: false,
   use_simulated_auth: true, // keep true during early waves for velocity
-  enableDashboardWave4: false, // toggles new dashboard skeleton (Wave 4 Phase 1)
-  dashboard_wave4_real_data: false, // swap mock dashboard service for API adapter
+  enableDashboardWave4: true, // Wave 5 MVP - real dashboard with onboarding complete
+  dashboard_wave4_real_data: true, // Wave 5 MVP - use real API instead of mocks
 };
 
 let dynamicOverrides: Partial<FeatureFlagsState> = {};

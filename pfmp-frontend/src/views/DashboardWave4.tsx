@@ -67,18 +67,18 @@ export const DashboardWave4: React.FC = () => {
   const displayName = user?.name ?? user?.username ?? 'Client';
   const stepsSummaryText = onboardingHydrated
     ? onboardingComplete
-      ? 'Onboarding complete. Great job staying on track.'
+      ? 'Your financial profile is complete. Review insights and recommendations below.'
       : totalSteps > 0
-        ? `Onboarding ${completedCount} of ${totalSteps} steps complete${nextStepTitle ? ` — next: ${nextStepTitle}` : ''}.`
-        : 'Onboarding setup is still in progress.'
-    : 'Checking onboarding progress…';
+        ? `You're making progress! Complete ${totalSteps - completedCount} more ${totalSteps - completedCount === 1 ? 'section' : 'sections'}${nextStepTitle ? ` (next: ${nextStepTitle})` : ''} to unlock personalized insights.`
+        : 'Complete your financial profile to unlock personalized insights.'
+    : 'Loading your financial profile…';
   const onboardingStatusText = onboardingHydrated
     ? onboardingComplete
-      ? 'Onboarding complete'
+      ? 'Profile complete'
       : totalSteps > 0
-        ? `Onboarding in progress (${completedCount}/${totalSteps})`
-        : 'Onboarding status unavailable'
-    : 'Syncing onboarding status…';
+        ? `Profile ${completedCount}/${totalSteps} complete`
+        : 'Profile incomplete'
+    : 'Syncing profile…';
   const onboardingStatusColor = onboardingHydrated
     ? (onboardingComplete ? 'success.main' : 'warning.main')
     : 'text.secondary';
@@ -92,7 +92,7 @@ export const DashboardWave4: React.FC = () => {
 
   const logTelemetry = useCallback((event: string, payload: Record<string, unknown> = {}) => {
     if (typeof console !== 'undefined' && typeof console.debug === 'function') {
-      console.debug('[telemetry][dashboard-wave4]', event, payload);
+      console.debug('[telemetry][dashboard]', event, payload);
     }
   }, []);
 
@@ -668,9 +668,9 @@ export const DashboardWave4: React.FC = () => {
   return (
     <Box data-testid="wave4-dashboard-root" p={3} display="flex" flexDirection="column" gap={3}>
       <Box>
-        <Typography variant="h4" gutterBottom>Dashboard (Wave 4)</Typography>
+        <Typography variant="h4" gutterBottom>Your Financial Dashboard</Typography>
         <Typography variant="body2" color="text.secondary">
-          Incremental rebuild: sections are placeholders until data plumbing & intelligence services land.
+          Track your financial progress, act on personalized insights, and stay on top of your goals.
         </Typography>
       </Box>
       <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { md: 'center' }, gap: 2 }}>

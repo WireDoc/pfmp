@@ -32,7 +32,7 @@ describe('Cash Accounts onboarding section', () => {
 
     fireEvent.change(screen.getByLabelText('Nickname'), { target: { value: 'Everyday checking' } });
     fireEvent.change(screen.getByLabelText('Institution'), { target: { value: 'Navy Federal' } });
-    fireEvent.change(screen.getByLabelText('Account type'), { target: { value: 'checking' } });
+    // Account type is now a dropdown - the default "Checking" should work fine
     fireEvent.change(screen.getByLabelText('Balance ($)'), { target: { value: '18500' } });
     fireEvent.change(screen.getByLabelText('Interest rate (APR %)'), { target: { value: '0.15' } });
     fireEvent.change(screen.getByLabelText('Rate last checked'), { target: { value: '2025-01-15' } });
@@ -49,7 +49,9 @@ describe('Cash Accounts onboarding section', () => {
     const withinSecond = within(secondCard as HTMLElement);
     fireEvent.change(withinSecond.getByLabelText('Nickname'), { target: { value: 'High-yield savings' } });
     fireEvent.change(withinSecond.getByLabelText('Institution'), { target: { value: 'Ally Bank' } });
-    fireEvent.change(withinSecond.getByLabelText('Account type'), { target: { value: 'savings' } });
+    // Account type dropdown - use user interaction instead of fireEvent for MUI Select
+    await user.click(withinSecond.getByLabelText('Account type'));
+    await user.click(screen.getByRole('option', { name: 'Savings' }));
     fireEvent.change(withinSecond.getByLabelText('Balance ($)'), { target: { value: '32000' } });
     fireEvent.change(withinSecond.getByLabelText('Interest rate (APR %)'), { target: { value: '4.25' } });
 

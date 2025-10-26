@@ -91,8 +91,8 @@ describe('Onboarding finalize end-to-end', () => {
 
     // Tax Posture (opt-out)
     await robustNavigateToHeading('Tax Posture', /Tax Posture/i);
-    await user.click(screen.getByLabelText('A CPA handles this for me'));
-    await user.type(screen.getByLabelText('Add context so we can follow up later'), 'CPA engaged');
+    await user.click(screen.getByLabelText(/I don['']t need tax withholding guidance/i));
+    await user.type(screen.getByLabelText('Add context (optional)'), 'CPA engaged');
     await waitForAutosaveComplete();
     await forceFlushAutosaveAct();
     await waitForSectionStatusTransition('tax', 'opted_out');

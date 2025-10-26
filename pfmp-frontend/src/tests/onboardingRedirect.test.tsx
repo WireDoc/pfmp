@@ -1,4 +1,4 @@
-import { legacyDashboardTestId } from './helpers/mockStaticRoutes';
+import { legacyDashboardTestId, wave4DashboardTestId } from './helpers/mockStaticRoutes';
 import { useEffect, type ReactNode } from 'react';
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
@@ -45,7 +45,7 @@ function renderScenario(path: string, flag: boolean) {
 describe('Onboarding gating redirects', () => {
   it('when wave4 dashboard enabled and onboarding incomplete, redirects to onboarding', async () => {
     renderScenario('/dashboard', true);
-    // Expect onboarding page content
+    // Expect onboarding page content (incomplete users are redirected)
     expect(await screen.findByRole('heading', { name: /Onboarding/i })).toBeInTheDocument();
   });
 

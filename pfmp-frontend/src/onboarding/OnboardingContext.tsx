@@ -127,12 +127,21 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
 
     try {
       const statusDto = await fetchFinancialProfileSectionStatuses(resolvedUserId);
+      console.log('[OnboardingContext] hydrate - fetched statuses from backend:', {
+        userId: resolvedUserId,
+        count: statusDto.length,
+        statuses: statusDto,
+        sectionKeys: statusDto.map(s => s.sectionKey),
+        reviewStatus: statusDto.find(s => s.sectionKey === 'review')
+      });
       if (runId !== hydrationSeqRef.current) return;
 
       const statuses: StatusMap = createInitialStatuses();
       statusDto.forEach((status) => {
+        console.log(`[OnboardingContext] Processing status: ${status.sectionKey} = ${status.status}`);
         statuses[status.sectionKey] = status.status;
       });
+      console.log('[OnboardingContext] hydrate - final statuses map:', statuses);
 
       const nextIndex = stepsArr.findIndex((step) => statuses[step.id] === 'needs_info');
       const targetIndex = nextIndex >= 0 ? nextIndex : stepsArr.length - 1;

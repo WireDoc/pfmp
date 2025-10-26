@@ -15,7 +15,8 @@ export type FinancialProfileSectionKey =
   | 'insurance'
   | 'benefits'
   | 'income'
-  | 'equity';
+  | 'equity'
+  | 'review';
 
 export type FinancialProfileSectionStatusValue = 'completed' | 'opted_out' | 'needs_info';
 
@@ -321,14 +322,15 @@ function assertSectionKey(value: string): value is FinancialProfileSectionKey {
     value === 'cash' ||
     value === 'investments' ||
     value === 'real-estate' ||
-  value === 'long-term-obligations' ||
+    value === 'long-term-obligations' ||
     value === 'liabilities' ||
     value === 'expenses' ||
     value === 'tax' ||
     value === 'insurance' ||
     value === 'benefits' ||
     value === 'income' ||
-    value === 'equity'
+    value === 'equity' ||
+    value === 'review'
   );
 }
 
@@ -452,6 +454,10 @@ function ensureArray<T>(value: T[] | null | undefined): T[] {
 export async function fetchFinancialProfileSectionStatuses(userId: number): Promise<FinancialProfileSectionStatus[]> {
   const { data } = await apiClient.get<FinancialProfileSectionStatusDto[]>(`/financial-profile/${userId}/sections`);
   return (data ?? []).map(mapStatusDto);
+}
+
+export async function updateSectionStatus(userId: number, sectionKey: string, status: FinancialProfileSectionStatusValue): Promise<void> {
+  await apiClient.put(`/financial-profile/${userId}/sections/${sectionKey}`, { status });
 }
 
 export async function fetchFinancialProfileSnapshot(userId: number): Promise<FinancialProfileSnapshot | null> {

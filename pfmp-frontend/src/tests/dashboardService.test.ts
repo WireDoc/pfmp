@@ -16,6 +16,8 @@ afterEach(() => {
 
 describe('Dashboard services', () => {
   it('mock dashboard service does not hit fetch', async () => {
+    updateFlags({ dashboard_wave4_real_data: false }); // Explicitly use mock
+    __resetDashboardServiceForTest(); // Reset to pick up flag change
     const fetchSpy = vi.spyOn(global, 'fetch');
     const data = await getDashboardService().load();
     expect(fetchSpy).not.toHaveBeenCalled();

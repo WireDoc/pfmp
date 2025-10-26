@@ -21,11 +21,13 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
 import {
   upsertLongTermObligationsProfile,
+  fetchLongTermObligationsProfile,
   type FinancialProfileSectionStatusValue,
   type LongTermObligationsProfilePayload,
   type LongTermObligationPayload,
 } from '../../services/financialProfileApi';
 import { useAutoSaveForm } from '../hooks/useAutoSaveForm';
+import { useSectionHydration } from '../hooks/useSectionHydration';
 import AutoSaveIndicator from '../components/AutoSaveIndicator';
 
 type LongTermObligationsSectionFormProps = {
@@ -130,6 +132,51 @@ export default function LongTermObligationsSectionForm({
 
   const canRemoveRows = obligations.length > 1;
   const payloadObligations = useMemo(() => buildPayloadObligations(obligations), [obligations]);
+
+  type HydratedState = {
+    obligations: ObligationFormState[];
+    optedOut: boolean;
+    optOutReason: string;
+  };
+
+  const mapPayloadToState = useCallback((payload: LongTermObligationsProfilePayload): HydratedState => {
+    const hydratedObligations = (payload.obligations ?? []).map((obligation, index) => ({
+      id: `obligation-${index + 1}`,
+      obligationName: obligation.obligationName ?? '',
+      obligationType: obligation.obligationType ?? 'other',
+      targetDate: obligation.targetDate ? obligation.targetDate.slice(0, 10) : '',
+      estimatedCost: obligation.estimatedCost != null ? String(obligation.estimatedCost) : '',
+      fundsAllocated: obligation.fundsAllocated != null ? String(obligation.fundsAllocated) : '',
+      fundingStatus: obligation.fundingStatus ?? 'planning',
+      isCritical: obligation.isCritical ?? false,
+      notes: obligation.notes ?? '',
+    }));
+
+    const optedOutState = payload.optOut?.isOptedOut === true;
+
+    return {
+      obligations: hydratedObligations.length > 0 ? hydratedObligations : [createObligation(1)],
+      optedOut: optedOutState,
+      optOutReason: payload.optOut?.reason ?? '',
+    };
+  }, []);
+
+  const applyHydratedState = useCallback(
+    ({ obligations: nextObligations, optedOut: nextOptedOut, optOutReason: nextReason }: HydratedState) => {
+      setObligations(nextObligations);
+      setOptedOut(nextOptedOut);
+      setOptOutReason(nextReason ?? '');
+    },
+    [],
+  );
+
+  useSectionHydration({
+    sectionKey: 'long-term-obligations',
+    userId,
+    fetcher: fetchLongTermObligationsProfile,
+    mapPayloadToState,
+    applyState: applyHydratedState,
+  });
 
   const handleObligationChange = <K extends keyof ObligationFormState>(
     id: string,

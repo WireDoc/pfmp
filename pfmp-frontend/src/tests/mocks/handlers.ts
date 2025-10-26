@@ -42,6 +42,7 @@ const onboardingProgressMatcher = /\/api\/onboarding\/progress(?:\?.*)?$/;
 const onboardingStepMatcher = /\/api\/onboarding\/progress\/step\/(?:[^/?]+)(?:\?.*)?$/;
 const onboardingResetMatcher = /\/api\/onboarding\/progress\/reset(?:\?.*)?$/;
 const financialProfileSectionsMatcher = /\/financial-profile\/\d+\/sections(?:\?.*)?$/;
+const financialProfileSectionUpdateMatcher = /\/financial-profile\/\d+\/sections\/[^/?]+(?:\?.*)?$/;
 const financialProfileSnapshotMatcher = /\/financial-profile\/\d+\/snapshot(?:\?.*)?$/;
 const financialProfileHouseholdMatcher = /\/financial-profile\/\d+\/household(?:\?.*)?$/;
 const financialProfileRiskGoalsMatcher = /\/financial-profile\/\d+\/risk-goals(?:\?.*)?$/;
@@ -105,6 +106,7 @@ export const defaultHandlers = [
   http.patch(onboardingStepMatcher, () => HttpResponse.json({}, { status: 204 })),
   http.post(onboardingResetMatcher, () => HttpResponse.json({}, { status: 204 })),
   http.get(financialProfileSectionsMatcher, () => HttpResponse.json([], { status: 200 })),
+  http.put(financialProfileSectionUpdateMatcher, () => HttpResponse.json({}, { status: 200 })),
   http.get(financialProfileSnapshotMatcher, () =>
     HttpResponse.json(
       { message: 'No mock registered for financial profile snapshot' },
