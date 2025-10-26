@@ -83,21 +83,16 @@ export function DashboardNav({
         borderRight: `1px solid ${theme.palette.divider}`,
       }}
     >
-      {/* Header with toggle button */}
+      {/* Toggle button header */}
       <Box
         sx={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'space-between',
-          p: 2,
-          minHeight: 64,
+          justifyContent: collapsed ? 'center' : 'flex-end',
+          p: 1,
+          minHeight: 48,
         }}
       >
-        {!collapsed && (
-          <Typography variant="h6" component="div" sx={{ fontWeight: 700 }}>
-            PFMP
-          </Typography>
-        )}
         <IconButton
           onClick={onToggle}
           size="small"
@@ -273,10 +268,15 @@ export function DashboardNav({
         '& .MuiDrawer-paper': {
           width,
           boxSizing: 'border-box',
+          position: 'fixed',
+          height: 'calc(100vh - 64px)', // Account for header height
+          top: 64, // Start below the header
+          left: 0,
           transition: theme.transitions.create('width', {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.enteringScreen,
           }),
+          zIndex: theme.zIndex.drawer, // Below header (z-index 100)
         },
       }}
     >

@@ -37,7 +37,7 @@ export function DashboardLayout() {
   const sidebarWidth = sidebarCollapsed ? 64 : 240;
   
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
+    <Box sx={{ display: 'flex', width: '100%', minHeight: '100%' }}>
       {/* Sidebar Navigation */}
       <DashboardNav
         collapsed={sidebarCollapsed}
@@ -53,16 +53,13 @@ export function DashboardLayout() {
         component="main"
         sx={{
           flexGrow: 1,
-          width: isMobile ? '100%' : `calc(100% - ${sidebarWidth}px)`,
-          minHeight: '100vh',
-          backgroundColor: 'background.default',
-          transition: theme.transitions.create(['width', 'margin'], {
+          width: '100%',
+          p: 0,
+          transition: theme.transitions.create(['margin'], {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
           }),
-          ...(isMobile && {
-            marginLeft: 0,
-          }),
+          // Add left margin only on desktop to account for fixed sidebar
           ...(!isMobile && {
             marginLeft: `${sidebarWidth}px`,
           }),
