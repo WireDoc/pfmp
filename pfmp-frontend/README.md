@@ -53,21 +53,49 @@ Call `updateFlags({ use_simulated_auth: true })` or refresh after re‑enabling 
 | 1 | Core routing, protected routes, layout, dev flag panel | ✅ Complete |
 | 2 | Onboarding scaffold (context, steps UI, auth simulation control) | ✅ Complete |
 | 3 | Data persistence & onboarding validation | ✅ Complete |
-| 4 | Intelligence dashboards (exp_intelligence_dashboards) & static routing refactor | 🚧 In Progress |
-| 5 | Dual AI pipeline (exp_dual_ai_pipeline) | Planned |
-| 6 | Performance, accessibility, visual regression hardening | Planned |
+| 4 | Intelligence dashboards & static routing refactor | ✅ Complete |
+| 5 | Dashboard MVP with real data & review persistence | ✅ Complete (Oct 26, 2025) |
+| 6 | Navigation shell, performance, accessibility hardening | 🚧 Next |
+| 7 | Data aggregation & account connectivity | 📋 Planned |
+| 8 | **Dual AI Pipeline (Azure OpenAI + Anthropic)** | 📋 **Planned - Critical Feature** |
+| 9 | Daily experience & notifications | 📋 Planned |
 
-### Current Wave (4) – Intelligence Dashboards
-Delivered so far:
-- Static route registry + `AppRouter` integration gated by `enableDashboardWave4`
-- Dashboard shell with overview/accounts/insights panels backed by mock service
-- Auth-aware welcome + onboarding completion summary card on `/dashboard`
-- Onboarding provider wrapped at app root with dev user switcher surfaced for quick account swaps
+### Wave 5 MVP – Complete ✅
+- Dashboard enabled with real backend API (`enableDashboardWave4=true`, `dashboard_wave4_real_data=true`)
+- Backend `DashboardController` aggregates net worth, accounts, insights, and long-term obligations
+- Review status persists to backend via `PUT /api/financial-profile/{userId}/sections/{sectionKey}`
+- Long-term obligations data loading fixed with hydration hook
+- Routing refactored with guard components (RootGuard, OnboardingGuard, DashboardGuard)
+- Production messaging: "Your Financial Dashboard", "Profile complete"
+- All 88 tests passing (100% coverage)
 
-Upcoming within Wave 4:
-- Connect dashboard data hooks to backend services
-- Flesh out smart alerts/task conversion surface
-- Expand integration tests around dashboard summary and feature flag flows
+### Wave 6 – Planned (Next)
+- Navigation shell structure (left sidebar for dashboard sections)
+- Dashboard enhancements (alerts/tasks UI polish, data refresh flows)
+- Performance baseline and visual regression harness
+- Fix routing bounce issue (cosmetic URL bar flash)
+
+### Wave 7 – Planned (Data Aggregation)
+- Bank/brokerage connection strategy (manual CSV/API key ingestion)
+- Account data ingestion across all asset classes
+- Daily data refresh jobs
+- Live balances and multi-asset holdings display
+
+### Wave 8 – Planned (Dual AI Pipeline) 🎯 **CRITICAL FEATURE**
+- **Azure OpenAI + Anthropic dual-model pipeline** with consensus scoring
+- Policy gates for financial recommendations
+- Retirement Monte Carlo projections backed by live data
+- Rule/AI blending for high-impact alerts and reallocations
+- Tax-loss harvesting scans and surplus cash yield optimization
+- Goal tracking dashboard with progress visualization
+- "What changed since yesterday" summary with historical snapshots
+- See `docs/waves/ai-advisor-wave-plan.md` for detailed implementation plan
+
+### Wave 9 – Planned (Daily Experience)
+- Daily summary module (market movement, net worth delta, tasks)
+- Notification system (email/in-app)
+- Calendar/timeline view of goal milestones
+- Performance trend charts and export features
 
 ### Feature Flags Snapshot
 | Flag | Default | Purpose |

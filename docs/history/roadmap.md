@@ -2,37 +2,88 @@
 
 _Last updated: 2025-10-12_
 
-## Current Baseline (Wave 4 rebuild context)
-- **Backend**: Mature .NET 9 API with PostgreSQL, TSP models, task/alert/advice lifecycles, AI analysis endpoints, market data integration, developer bypass auth, seeded demo users.
-- **Frontend**: React 19 shell under reconstruction. Routing, onboarding provider, dashboard quick glance metrics, live obligation polling (service abstraction), feature flags, and Vitest coverage for alerts/tasks orchestration.
-- **Tooling**: MSW-driven testing harness, docs/testing guides, wave planning artifacts, dev bypass workflow.
+## Current Baseline (Wave 5 completion context)
+- **Backend**: Mature .NET 9 API with PostgreSQL, TSP models, task/alert/advice lifecycles, AI analysis endpoints, market data integration, developer bypass auth, seeded demo users, comprehensive dashboard summary endpoint.
+- **Frontend**: React 19 application with complete onboarding flow (15 sections), production dashboard with real data, routing with guard components, feature flags, MSW-driven testing harness (88/88 tests passing).
+- **Completed Milestones**:
+  - ✅ Wave 0-3: Routing, onboarding scaffold, data persistence
+  - ✅ Wave 4: Intelligence dashboard structure and static routing
+  - ✅ Wave 5: Dashboard MVP with real backend data, review status persistence, long-term obligations data loading
+- **Current Status**: **v0.9.0-alpha** (October 26, 2025) - Dashboard with real data enabled, transitioning to navigation shell and polish phase
 
-The roadmap below transitions the stack from today’s demo experience into a production-ready personal financial management platform.
+The roadmap below transitions the stack from today's functional MVP into a production-ready personal financial management platform.
 
 ---
 
 ## Phase 1 – Onboarding MVP (Oct–Nov 2025)
-**Goal:** Capture real user profiles and financial inputs through the UI so the backend’s existing capabilities can operate on live data.
+**Goal:** Capture real user profiles and financial inputs through the UI so the backend's existing capabilities can operate on live data.
+
+**Status:** ✅ **SUBSTANTIALLY COMPLETE** (Wave 5 MVP - October 26, 2025)
+
+### Completed Deliverables ✅
+- ✅ Rebuilt onboarding wizard with 15 data entry sections: Welcome & Household, Risk & Goals, Income, Equity & Private Holdings, Liabilities, Investments, Cash Accounts, Real Estate & Mortgages, Expenses & Budget, Long-Term Obligations, Tax Withholding, Insurance & Benefits, TSP Positions, Review & Finalize
+- ✅ All sections persist state via backend APIs with auto-save functionality
+- ✅ Enhanced UX: Cash accounts with type dropdowns, simplified W-4-based tax section, state selection
+- ✅ Validation errors and progress tracker fully functional
+- ✅ Dev User Switcher with 4 seeded personas plus ability to reset test data
+- ✅ Dashboard with real backend data showing personalized snapshot (name, net worth, accounts, insights, tasks)
+- ✅ Review status persistence survives page refreshes
+- ✅ All 88 tests passing with comprehensive coverage
+
+### Remaining Items (Minor)
+- Form validation schema refinement (field-level validation messages)
+- Advanced profile editing workflow (edit completed sections from dashboard)
+
+### Dependencies Met
+- ✅ Backend endpoints for all profile sections operational
+- ✅ UI components built using MUI Grid v2
+- ✅ PascalCase API mapping for all sections
+
+### Success Criteria Achieved ✅
+- ✅ New user can complete onboarding entirely through UI
+- ✅ Database reflects entered values; refresh retains state
+- ✅ Dashboard shows personalized snapshot with real financial data
+- ✅ Complete users can access dashboard; incomplete users redirected to onboarding
+
+---
+
+---
+
+## Phase 1.5 – Navigation & Dashboard Polish (Nov–Dec 2025)
+**Goal:** Transform dashboard from single-page view into navigable application with professional UX.
+
+**Status:** 🚧 **PLANNED** (Wave 6)
 
 ### Key Deliverables
-- Rebuild onboarding wizard with true data entry steps: demographics, risk tolerance, retirement goals, TSP allocations, banking links (manual entry + placeholder integration), portfolio API keys.
-- Persist onboarding state via existing persistence service; surface validation errors and progress tracker.
-- Dev User Switcher exposes seeded personas plus ability to create new test users via UI.
-- Dashboard banner replaced with real welcome, showing completion state and “Next steps.”
+- Persistent left sidebar navigation with sections: Dashboard, Accounts, Insights, Tasks, Profile, Settings
+- Mobile-responsive navigation (hamburger menu below 900px)
+- Enhanced data display: sparkline charts, sync status badges, last-updated timestamps
+- Data refresh flows: auto-polling, manual refresh, optimistic task updates
+- Comprehensive error handling: retry logic, offline detection, stale data warnings
+- Performance baseline: page load <1.5s, API response <500ms, Lighthouse score >90
+- WCAG 2.1 AA accessibility compliance
+- Visual regression testing infrastructure with Playwright
 
 ### Dependencies
-- Existing backend endpoints for profile, TSP, goals, income, risk already available.
-- UI components to be rebuilt using MUI Grid v2; leverage previous Wave 2/3 designs stored in repo history.
+- Phase 1 complete (onboarding + dashboard MVP) ✅
+- Design system components documented
+- Performance monitoring tooling configured
 
 ### Success Criteria
-- New user can complete onboarding without API calls via Postman.
-- Database reflects entered values; refresh retains state.
-- Dashboard shows personalized snapshot (name, goal, onboarding percent) even while using mock financial data.
+- Dashboard navigable via persistent sidebar on all devices
+- All interactive elements keyboard-accessible
+- Visual regression suite covering 20+ dashboard states
+- Performance metrics within target thresholds
+- 5+ test users validate navigation UX without confusion
+
+See `docs/waves/WAVE-6-NAVIGATION-AND-POLISH.md` for detailed implementation plan.
 
 ---
 
 ## Phase 2 – Data Aggregation & Account Connectivity (Dec 2025–Jan 2026)
 **Goal:** Populate the dashboard with actual account, portfolio, and cash data for each user.
+
+**Status:** 📋 **PLANNED**
 
 ### Key Deliverables
 - Bank/brokerage connection strategy: begin with manual CSV/API key ingestion, prepare abstraction layer for future Plaid/Yodlee integration.
@@ -54,10 +105,21 @@ The roadmap below transitions the stack from today’s demo experience into a pr
 
 ---
 
-## Phase 3 – Intelligence & Advice Engine Activation (Feb–Mar 2026)
-**Goal:** Deliver actionable recommendations leveraging existing AI endpoints and new analytics.
+## Phase 3 – Intelligence & Advice Engine Activation (Feb–Mar 2026) 🎯 **CRITICAL FEATURE**
+**Goal:** Deliver actionable recommendations leveraging the dual AI pipeline and new analytics.
+
+**Status:** 📋 **PLANNED** - This is the core differentiator of PFMP
 
 ### Key Deliverables
+
+#### Dual AI Pipeline (Primary Focus)
+- **Stand up the dual-model AI pipeline (Azure OpenAI + Anthropic)** with consensus scoring and policy gates for financial recommendations.
+- Implement prompt engineering for retirement planning, rebalancing, and tax optimization.
+- Build consensus mechanism: both models must agree within confidence thresholds for recommendations.
+- Create safety gates: no advice issued without minimum confidence score and rule validation.
+- Log all AI interactions for audit trail and continuous improvement.
+
+#### Financial Intelligence Features
 - Wire frontend to advice/alert/task APIs for real data; enable accept/dismiss/complete flows with provenance surfaced to users.
 - Stand up the dual-model AI pipeline (Azure OpenAI + Anthropic) with consensus scoring and policy gates for financial recommendations.
 - Deliver retirement Monte Carlo projections and passive-income timeline visualizations backed by live data.
@@ -69,12 +131,18 @@ The roadmap below transitions the stack from today’s demo experience into a pr
 
 ### Dependencies
 - Phase 2 data ingestion complete (need real holdings for meaningful advice).
+- **Azure OpenAI and Anthropic API access configured.**
 - AI endpoints already support recommendations; may require prompt refinement using live data.
 
 ### Success Criteria
+- **Dual AI pipeline operational** with both models providing consensus-based recommendations.
 - Users see at least three actionable insights spanning cash yield, rebalancing, and tax opportunities after onboarding.
 - Accepting advice creates tasks, schedules automation (when enabled), and updates dashboard state without manual API calls.
 - Retirement simulations surface probability ranges and next-step guidance; QA checklist covers Monte Carlo outputs, cash optimization, tax-loss harvesting, and TSP mix recommendations.
+- **AI recommendation accuracy tracked and logged for continuous improvement.**
+
+### Implementation Notes
+See `docs/waves/ai-advisor-wave-plan.md` for detailed dual AI pipeline architecture and implementation strategy.
 
 ---
 

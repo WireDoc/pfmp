@@ -6,7 +6,39 @@ The format loosely follows [Conventional Commits](https://www.conventionalcommit
 
 ## [Unreleased]
 
-### Added
+### Planned / Pending
+- Wave 6: Navigation shell structure (left sidebar for dashboard)
+- Performance baseline + visual regression harness
+- Fix routing bounce issue (cosmetic URL bar flash through /onboarding)
+
+## [0.9.0-alpha] - 2025-10-26
+
+### Added - Wave 5 MVP Completion
+- feat(backend): Comprehensive dashboard API endpoint (`GET /api/dashboard/summary`)
+  - Aggregates net worth from cash, investments, TSP, properties, and liabilities
+  - Returns accounts list with balances, sync status, and institution details
+  - Includes insights (low cash warnings, yield opportunities)
+  - Long-term obligations summary with count, estimate, and next due date
+- feat(frontend): Production dashboard UI enabled with real backend data
+  - Changed messaging from "Dashboard (Wave 4)" to "Your Financial Dashboard"
+  - Updated completion status from "Onboarding complete" to "Profile complete"
+  - Feature flags enabled: `enableDashboardWave4=true`, `dashboard_wave4_real_data=true`
+- feat(backend): Section status persistence endpoint (`PUT /api/financial-profile/{userId}/sections/{sectionKey}`)
+  - Supports updating individual section statuses including 'review' step
+  - Creates or updates `FinancialProfileSectionStatus` records
+  - Console logging for debugging section status changes
+- feat(frontend): Review status persistence survives page refreshes
+  - Added 'review' to `FinancialProfileSectionKey` type and validation
+  - `OnboardingPage` calls `updateSectionStatus()` on finalize
+  - MSW mock handlers support review status updates
+- feat(frontend): Long-term obligations data loading fixed
+  - Added `useSectionHydration` hook to `LongTermObligationsSectionForm`
+  - Implemented `mapPayloadToState()` and `applyHydratedState()` functions
+  - Data now loads on mount like other onboarding sections
+- feat(frontend): Routing system refactored with guard components
+  - Created `RootGuard`, `OnboardingGuard`, `DashboardGuard` components
+  - Moved redirect logic inside route components for cleaner architecture
+  - Eliminates route reconfiguration on status changes
 - feat(frontend): Cash Accounts section now uses dropdown for account types (Checking, Savings, Money Market, CD, High-Yield Savings, Other) instead of free text
 - feat(frontend): Tax section completely redesigned with W-4 focus and state dropdown
   - Added US states dropdown (all 50 states + DC) for state of residence
@@ -47,11 +79,11 @@ The format loosely follows [Conventional Commits](https://www.conventionalcommit
 - chore(frontend): added comprehensive debug logging for status update chain (temporary, for diagnostics)
 - chore(frontend): fixed TypeScript error in `CashAccountsSectionForm` error rendering
 - test(frontend): fixed regex escape sequences in `onboardingEquity.integration.test.tsx`
+- test(frontend): Updated 6 test files for new routing behavior and dashboard UI copy
+  - All 88 tests passing (100% pass rate)
 
-### Planned / Pending
-- Wave 2 onboarding refinement (validation schemas)
-- Wave 3 persistence implementation (server endpoints, DTO normalization)
-- Performance baseline + visual regression harness
+### Known Issues (Accepted)
+- URL bar briefly shows `/onboarding` before `/dashboard` when complete users navigate (cosmetic only, functionality correct)
 
 ## [0.8.0-alpha] - 2025-10-12
 

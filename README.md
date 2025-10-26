@@ -2,18 +2,24 @@
 
 PFMP is an AI-assisted financial planning platform for government employees and service members. The solution combines a .NET 9 backend, a React 19 frontend, and Azure Entra ID authentication to deliver tailored advice, alerts, and portfolio management.
 
+**Core Innovation**: Dual AI Pipeline (Azure OpenAI + Anthropic) with consensus-based financial recommendations for unparalleled accuracy and safety in automated financial advice.
+
 ## Overview
 
 - **Backend**: `PFMP-API/` (.NET 9 Web API, PostgreSQL)
 - **Frontend**: `pfmp-frontend/` (React 19 + TypeScript + Vite)
 - **Authentication**: Azure Entra ID with local bypass mode for development
+- **AI Architecture**: Dual-model pipeline planned (Azure OpenAI + Anthropic) with consensus scoring - See Phase 3 in roadmap
 - **Current Highlights**: 
+  - **Wave 5 MVP Complete** - Production dashboard enabled with real backend data
   - Rebuilt onboarding flow with 15 financial profile sections (all fully functional with autosave)
   - Enhanced UX: Cash accounts with type dropdowns, simplified W-4-based tax withholding section
   - Comprehensive API integration with PascalCase mapping for all backend endpoints
   - Dev user reset functionality for testing complete data clearing
-  - Wave 4 dashboard with quick glance metrics and live obligation polling (SignalR-ready)
+  - Dashboard with net worth aggregation, accounts summary, insights, and task management
+  - Review status persistence - onboarding completion survives page refreshes
   - TSP summary and daily snapshots with lifecycle funds (L2030–L2075)
+  - All 88 tests passing (100% coverage of onboarding and dashboard flows)
 - **Planning Frames**: Wave 0–6 rebuild plan (tactical) aligned with roadmap Phases 1–5 (product milestones)
 
 The platform is currently in the Wave rebuild effort. Implementation details, historical notes, and migration guidance now live inside the reorganized `docs/` directory.
@@ -101,8 +107,10 @@ See `docs/api/postman.md` for details.
 
 ## Status & roadmap
 
-- Active version: **v0.8.0-alpha**
-- Roadmap Phase 1 (Onboarding MVP) remains active, now bolstered by Wave 4 dashboard metrics and live obligation polling feeding future onboarding insights
+- Active version: **v0.9.0-alpha** (Wave 5 MVP Complete - October 26, 2025)
+- **Milestone**: Dashboard with real data enabled, onboarding flow complete with 15 sections, review status persistence working
+- **Next Phase**: Wave 6 - Navigation shell structure and dashboard enhancements
+- Roadmap Phase 1 (Onboarding MVP) substantially complete; transitioning to Phase 2 (Data Aggregation) preparation
 - Track progress, migration notes, and future waves in `docs/waves/`
 
 ## Testing resources
