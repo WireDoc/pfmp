@@ -68,7 +68,7 @@ This index lists every active document under `docs/` following the subject-first
 - `docs/ops/runbooks/archive/` *(reserved)*
 
 ## 🧪 testing
-- `docs/testing/README.md` – Testing index
+- `docs/testing/README.md` – Testing index with backend API testing, frontend manual/automated testing, and Vitest quick reference
 - `docs/testing/alerts-advice-testing.md`
 - `docs/testing/advice-testing.md`
 - `docs/testing/dashboard-msw-handlers.md`

@@ -7,11 +7,42 @@ Modular testing references grouped by subject. Each guide provides:
 - Validation checklist
 
 ## Available Guides
+
+### Backend API Testing
 - [Advice Testing](./advice-testing.md) - Generate, list, accept (auto-creates task), dismiss, provenance fields
 - [Task Testing](./tasks-testing.md) - Direct task CRUD, status transitions, linkage from accepted advice
 - [Onboarding Testing](./onboarding-testing.md) - Wave 3 persistence (GET/PUT/PATCH/RESET) + dev user switching
-- [Dashboard MSW Handlers](./dashboard-msw-handlers.md) - Troubleshooting matcher patterns and shared fixtures for dashboard API
+
+### Frontend Testing
 - [Dashboard Wave 4 Manual Smoke](./dashboard-wave4-manual-checks.md) - Run the app with mock data to validate end-to-end UX before enabling real data
+- [Dashboard MSW Handlers](./dashboard-msw-handlers.md) - Troubleshooting matcher patterns and shared fixtures for dashboard API
+- [Visual Regression Plan](./visual-regression-plan.md) - Playwright visual regression strategy (future)
+
+### Frontend Vitest Quick Reference
+
+**Fast iteration during development** (instead of running all 112 tests):
+
+```powershell
+# Dashboard tests only (56 tests, ~25s)
+npm test -- --run dashboard
+
+# Pattern matching
+npm test -- --run onboarding
+npm test -- --run navigation
+
+# Watch mode (auto-rerun on changes)
+npm test -- dashboard
+
+# Full suite (112 tests, ~3 min) - before pushing
+npm test -- --run
+```
+
+**Test organization:**
+- Dashboard: 9 files, 56 tests (~25s)
+- Onboarding: ~60 tests (~2 min)
+- Components/Layout: Unit tests for UI components
+
+See [dashboard-wave4-manual-checks.md](./dashboard-wave4-manual-checks.md) for specific Vitest commands to run after manual testing.
 
 ## Conventions
 - Base API URL: `http://localhost:5052/api`
