@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Card, CardContent } from '@mui/material';
+import { SyncStatusBadge } from '../../components/status/SyncStatusBadge';
 import type { DashboardData } from '../../services/dashboard';
 
 interface Props { data: DashboardData | null; loading: boolean; }
@@ -9,13 +10,26 @@ export const AccountsPanel: React.FC<Props> = ({ data, loading }) => {
     <Box data-testid="accounts-panel">
       {loading && !data && <Typography variant="body2">Loading accounts...</Typography>}
       {!loading && data && (
-        <Box component="ul" sx={{ m: 0, p: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {data.accounts.map(a => (
-            <li key={a.id}>
-              <Typography variant="body2">
-                <strong>{a.name}</strong> – ${a.balance.amount.toLocaleString()} ({a.syncStatus})
-              </Typography>
-            </li>
+            <Card key={a.id} variant="outlined">
+              <CardContent sx={{ '&:last-child': { pb: 2 } }}>
+                <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight="medium">
+                      {a.name}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {a.institution} · {a.type}
+                    </Typography>
+                  </Box>
+                  <SyncStatusBadge status={a.syncStatus} lastSync={a.lastSync} />
+                </Box>
+                <Typography variant="h6" color="primary">
+                  ${a.balance.amount.toLocaleString()}
+                </Typography>
+              </CardContent>
+            </Card>
           ))}
         </Box>
       )}
