@@ -1,5 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
+import LightbulbIcon from '@mui/icons-material/Lightbulb';
+import { EmptyState } from '../../components/empty-states/EmptyState';
 import type { DashboardData } from '../../services/dashboard';
 
 interface Props { data: DashboardData | null; loading: boolean; }
@@ -17,7 +19,13 @@ export const InsightsPanel: React.FC<Props> = ({ data, loading }) => {
           ))}
         </Box>
       )}
-      {!loading && data && data.insights.length === 0 && <Typography variant="body2">No insights</Typography>}
+      {!loading && data && data.insights.length === 0 && (
+        <EmptyState
+          icon={LightbulbIcon}
+          title="No insights yet"
+          description="We're analyzing your financial data to generate personalized insights and recommendations. Check back soon for tips on optimizing your finances."
+        />
+      )}
       {!loading && !data && <Typography variant="body2">No insight data</Typography>}
     </Box>
   );

@@ -9,6 +9,8 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
+import ChecklistIcon from '@mui/icons-material/Checklist';
+import { EmptyState } from '../../components/empty-states/EmptyState';
 import type { TaskItem } from '../../services/dashboard';
 
 interface TasksPanelProps {
@@ -47,7 +49,11 @@ export const TasksPanel: React.FC<TasksPanelProps> = ({
   if (!loading && tasks.length === 0) {
     return (
       <Stack spacing={1.5} data-testid="tasks-panel">
-        <Typography variant="body2">No tasks yet</Typography>
+        <EmptyState
+          icon={ChecklistIcon}
+          title="No tasks yet"
+          description="Tasks will appear here when you accept recommendations from alerts or insights. Stay on top of your financial goals by completing tasks as they arrive."
+        />
       </Stack>
     );
   }

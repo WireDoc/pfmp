@@ -256,8 +256,8 @@ describe('DashboardWave4 direct component render', () => {
     });
 
     expect(await screen.findAllByText('$900')).not.toHaveLength(0);
-    expect(await screen.findByText('No accounts')).toBeInTheDocument();
-    expect(screen.getByText('No insights')).toBeInTheDocument();
+    expect(await screen.findByText('No accounts yet')).toBeInTheDocument();
+    expect(screen.getByText('No insights yet')).toBeInTheDocument();
     expect(screen.getByText('No active alerts')).toBeInTheDocument();
     expect(screen.getByText('No advice generated yet')).toBeInTheDocument();
     expect(screen.getByText('No tasks yet')).toBeInTheDocument();
