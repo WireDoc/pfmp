@@ -4,6 +4,8 @@ import Grid from '@mui/material/Grid';
 import { OnboardingContext } from '../onboarding/OnboardingContext.shared';
 import { Navigate } from 'react-router-dom';
 import { useDashboardData } from '../services/dashboard/useDashboardData';
+import { useDataRefresh } from '../hooks/useDataRefresh';
+import { DataRefreshIndicator } from '../components/data/DataRefreshIndicator';
 import { OverviewPanel } from './dashboard/OverviewPanel';
 import { AccountsPanel } from './dashboard/AccountsPanel';
 import { InsightsPanel } from './dashboard/InsightsPanel';
@@ -83,12 +85,21 @@ export const DashboardWave4: React.FC = () => {
     ? (onboardingComplete ? 'success.main' : 'warning.main')
     : 'text.secondary';
 
-  const { data, loading, error } = useDashboardData();
+  const { data, loading, error, refetch } = useDashboardData();
   const [viewData, setViewData] = useState<DashboardData | null>(null);
   const [recentTaskIds, setRecentTaskIds] = useState<Set<number>>(new Set());
   const [pendingTaskIds, setPendingTaskIds] = useState<Set<number>>(new Set());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const displayData = viewData ?? data ?? null;
+
+  // Data refresh functionality
+  const { lastRefreshed, isRefreshing, refresh, timeSinceRefresh } = useDataRefresh({
+    refreshFn: refetch,
+    autoRefresh: false, // TODO: Load from user settings when settings page is implemented
+    refreshOnFocus: true, // TODO: Load from user settings when settings page is implemented
+    isLoading: loading, // Track initial load to set timestamp
+    storageKey: 'dashboard-last-refresh', // Persist timestamp across page reloads
+  });
 
   const logTelemetry = useCallback((event: string, payload: Record<string, unknown> = {}) => {
     if (typeof console !== 'undefined' && typeof console.debug === 'function') {
@@ -668,7 +679,16 @@ export const DashboardWave4: React.FC = () => {
   return (
     <Box data-testid="wave4-dashboard-root" p={3} display="flex" flexDirection="column" gap={3}>
       <Box>
-        <Typography variant="h4" gutterBottom>Your Financial Dashboard</Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+          <Typography variant="h4">Your Financial Dashboard</Typography>
+          <DataRefreshIndicator
+            lastRefreshed={lastRefreshed}
+            isRefreshing={isRefreshing}
+            onRefresh={refresh}
+            timeSinceRefresh={timeSinceRefresh}
+            size="small"
+          />
+        </Box>
         <Typography variant="body2" color="text.secondary">
           Track your financial progress, act on personalized insights, and stay on top of your goals.
         </Typography>
