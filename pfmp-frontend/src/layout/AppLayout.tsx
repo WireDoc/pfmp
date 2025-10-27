@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/auth/useAuth';
 import { HeaderBar } from './HeaderBar';
 import { DevFlagsPanel } from '../components/dev/DevFlagsPanel';
@@ -6,6 +6,9 @@ import { DevUserSwitcher } from '../dev/DevUserSwitcher';
 
 export function AppLayout() {
   const { isDev } = useAuth();
+  const location = useLocation();
+  const isDashboardRoute = location.pathname.startsWith('/dashboard');
+  
   return (
     <div style={{ display: 'flex', minHeight: '100vh', flexDirection: 'column' }}>
       <header
@@ -23,7 +26,7 @@ export function AppLayout() {
       </header>
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Outlet />
-        {isDev && (
+        {isDev && !isDashboardRoute && (
           <div style={{ padding: '12px 16px', marginTop: 'auto' }}>
             <DevUserSwitcher />
           </div>

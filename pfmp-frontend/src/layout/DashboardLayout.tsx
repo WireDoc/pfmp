@@ -1,7 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Box, useMediaQuery, useTheme } from '@mui/material';
+import { DashboardProvider } from '../contexts/dashboard/DashboardProvider';
+import { useDashboard } from '../contexts/dashboard/useDashboard';
 import { DashboardNav } from './DashboardNav';
+import { DevUserSwitcher } from '../dev/DevUserSwitcher';
+import { useAuth } from '../contexts/auth/useAuth';
 
 /**
  * DashboardLayout
@@ -11,9 +15,11 @@ import { DashboardNav } from './DashboardNav';
  * - Desktop (≥900px): Persistent sidebar, collapsible to icon-only mode
  * - Mobile (<900px): Hamburger menu with drawer
  */
-export function DashboardLayout() {
+function DashboardLayoutInner() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md')); // <900px
+  const { setSidebarWidth } = useDashboard();
+  const { isDev } = useAuth();
   
   // Sidebar state: collapsed (icon-only) or expanded (full width)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -34,10 +40,15 @@ export function DashboardLayout() {
   };
   
   // Calculate sidebar width based on state
-  const sidebarWidth = sidebarCollapsed ? 64 : 240;
+  const sidebarWidth = isMobile ? 0 : (sidebarCollapsed ? 64 : 240);
+  
+  // Update context whenever sidebar width changes
+  useEffect(() => {
+    setSidebarWidth(sidebarWidth);
+  }, [sidebarWidth, setSidebarWidth]);
   
   return (
-    <Box sx={{ display: 'flex', width: '100%', minHeight: '100%' }}>
+    <>
       {/* Sidebar Navigation */}
       <DashboardNav
         collapsed={sidebarCollapsed}
@@ -45,29 +56,40 @@ export function DashboardLayout() {
         onToggle={handleToggleSidebar}
         onCloseMobile={handleCloseMobileDrawer}
         isMobile={isMobile}
-        width={sidebarWidth}
+        width={sidebarWidth || 240}
       />
       
-      {/* Main Content Area */}
+      {/* Main Content Area with left margin to account for fixed sidebar */}
       <Box
-        component="main"
         sx={{
-          flexGrow: 1,
-          width: '100%',
-          p: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100%',
           transition: theme.transitions.create(['margin'], {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.leavingScreen,
           }),
           // Add left margin only on desktop to account for fixed sidebar
-          ...(!isMobile && {
-            marginLeft: `${sidebarWidth}px`,
-          }),
+          marginLeft: isMobile ? 0 : `${sidebarWidth}px`,
         }}
       >
-        {/* Route content rendered here */}
-        <Outlet />
+        <Box sx={{ flexGrow: 1 }}>
+          <Outlet />
+        </Box>
+        {isDev && (
+          <Box sx={{ p: '12px 16px', mt: 'auto' }}>
+            <DevUserSwitcher />
+          </Box>
+        )}
       </Box>
-    </Box>
+    </>
+  );
+}
+
+export function DashboardLayout() {
+  return (
+    <DashboardProvider>
+      <DashboardLayoutInner />
+    </DashboardProvider>
   );
 }
