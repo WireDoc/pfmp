@@ -4,6 +4,7 @@ import { Box, useMediaQuery, useTheme } from '@mui/material';
 import { DashboardProvider } from '../contexts/dashboard/DashboardProvider';
 import { useDashboard } from '../contexts/dashboard/useDashboard';
 import { DashboardNav } from './DashboardNav';
+import { DashboardBreadcrumbs } from '../components/navigation/DashboardBreadcrumbs';
 import { DevUserSwitcher } from '../dev/DevUserSwitcher';
 import { useAuth } from '../contexts/auth/useAuth';
 
@@ -73,9 +74,15 @@ function DashboardLayoutInner() {
           marginLeft: isMobile ? 0 : `${sidebarWidth}px`,
         }}
       >
+        {/* Breadcrumb Navigation */}
+        <DashboardBreadcrumbs />
+        
+        {/* Route Content */}
         <Box sx={{ flexGrow: 1 }}>
           <Outlet />
         </Box>
+        
+        {/* Dev Tools */}
         {isDev && (
           <Box sx={{ p: '12px 16px', mt: 'auto' }}>
             <DevUserSwitcher />
