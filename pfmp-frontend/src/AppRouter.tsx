@@ -11,6 +11,9 @@ import { DashboardLayout } from './layout/DashboardLayout';
 import { PageSpinner } from './components/common/PageSpinner';
 import { RouteErrorBoundary } from './components/common/RouteErrorBoundary';
 
+// Lazy load dashboard components
+const DashboardWave4 = lazy(() => import('./views/DashboardWave4'));
+
 // Lazy load dashboard sub-views
 const AccountsView = lazy(() => import('./views/dashboard/AccountsView').then(m => ({ default: m.AccountsView })));
 const InsightsView = lazy(() => import('./views/dashboard/InsightsView').then(m => ({ default: m.InsightsView })));
@@ -64,17 +67,20 @@ export function AppRouter(props: AppRouterProps) {
     // Replace the simple dashboard-wave4 route with a nested route structure
     const dashboardIndex = baseChildren.findIndex(child => !('index' in child) && child.path === 'dashboard');
     if (dashboardIndex !== -1) {
-      // Remove the existing dashboard route
-      const [dashboardRoute] = baseChildren.splice(dashboardIndex, 1);
+      // Remove the existing dashboard route (we'll replace it with nested structure)
+      baseChildren.splice(dashboardIndex, 1);
       
       // Add nested dashboard routes with DashboardLayout
+      // Wrap DashboardLayout with DashboardGuard to protect all nested routes
       baseChildren.push({
         path: 'dashboard',
         element: (
           <ProtectedRoute>
-            <Suspense fallback={<PageSpinner />}>
-              <DashboardLayout />
-            </Suspense>
+            <DashboardGuard>
+              <Suspense fallback={<PageSpinner />}>
+                <DashboardLayout />
+              </Suspense>
+            </DashboardGuard>
           </ProtectedRoute>
         ),
       } as { path: string; element: React.ReactElement; children?: Array<{ path?: string; index?: boolean; element: React.ReactElement}> } & {
@@ -89,7 +95,8 @@ export function AppRouter(props: AppRouterProps) {
       dashboardRouteWithChildren.children = [
         {
           index: true,
-          element: dashboardRoute.element, // DashboardWave4 as the index route
+          // DashboardWave4 as the index route (guard is already at layout level)
+          element: <Suspense fallback={<PageSpinner />}><DashboardWave4 /></Suspense>,
         },
         {
           path: 'accounts',
