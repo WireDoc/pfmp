@@ -6,6 +6,8 @@ import { Navigate } from 'react-router-dom';
 import { useDashboardData } from '../services/dashboard/useDashboardData';
 import { useDataRefresh } from '../hooks/useDataRefresh';
 import { DataRefreshIndicator } from '../components/data/DataRefreshIndicator';
+import { ErrorDisplay } from '../components/error/ErrorDisplay';
+import { DashboardErrorBoundary } from '../components/error/DashboardErrorBoundary';
 import { OverviewPanel } from './dashboard/OverviewPanel';
 import { AccountsPanel } from './dashboard/AccountsPanel';
 import { InsightsPanel } from './dashboard/InsightsPanel';
@@ -677,22 +679,23 @@ export const DashboardWave4: React.FC = () => {
   const tasks = displayData?.tasks ?? [];
 
   return (
-    <Box data-testid="wave4-dashboard-root" p={3} display="flex" flexDirection="column" gap={3}>
-      <Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-          <Typography variant="h4">Your Financial Dashboard</Typography>
-          <DataRefreshIndicator
-            lastRefreshed={lastRefreshed}
-            isRefreshing={isRefreshing}
-            onRefresh={refresh}
-            timeSinceRefresh={timeSinceRefresh}
-            size="small"
-          />
+    <DashboardErrorBoundary onRetry={refetch}>
+      <Box data-testid="wave4-dashboard-root" p={3} display="flex" flexDirection="column" gap={3}>
+        <Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+            <Typography variant="h4">Your Financial Dashboard</Typography>
+            <DataRefreshIndicator
+              lastRefreshed={lastRefreshed}
+              isRefreshing={isRefreshing}
+              onRefresh={refresh}
+              timeSinceRefresh={timeSinceRefresh}
+              size="small"
+            />
+          </Box>
+          <Typography variant="body2" color="text.secondary">
+            Track your financial progress, act on personalized insights, and stay on top of your goals.
+          </Typography>
         </Box>
-        <Typography variant="body2" color="text.secondary">
-          Track your financial progress, act on personalized insights, and stay on top of your goals.
-        </Typography>
-      </Box>
       <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: { md: 'center' }, gap: 2 }}>
         <Box>
           <Typography variant="h6" gutterBottom>Welcome back, {displayName}</Typography>
@@ -706,7 +709,14 @@ export const DashboardWave4: React.FC = () => {
           </Typography>
         </Box>
       </Paper>
-      {Boolean(error) && <Alert severity="error">Failed to load dashboard data</Alert>}
+      {Boolean(error) && (
+        <ErrorDisplay
+          variant="banner"
+          message="Failed to load dashboard data"
+          description="There was an error loading your dashboard. Please try refreshing or contact support if the problem persists."
+          onRetry={refetch}
+        />
+      )}
       <Grid container spacing={2}>
         <Grid size={12}>
           <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -785,6 +795,7 @@ export const DashboardWave4: React.FC = () => {
         </Alert>
       </Snackbar>
     </Box>
+    </DashboardErrorBoundary>
   );
 };
 
