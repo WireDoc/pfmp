@@ -5,9 +5,11 @@ import { OnboardingContext } from '../onboarding/OnboardingContext.shared';
 import { Navigate } from 'react-router-dom';
 import { useDashboardData } from '../services/dashboard/useDashboardData';
 import { useDataRefresh } from '../hooks/useDataRefresh';
+import { useOfflineDetection } from '../hooks/useOfflineDetection';
 import { DataRefreshIndicator } from '../components/data/DataRefreshIndicator';
 import { ErrorDisplay } from '../components/error/ErrorDisplay';
 import { DashboardErrorBoundary } from '../components/error/DashboardErrorBoundary';
+import { OfflineBanner } from '../components/offline/OfflineBanner';
 import { OverviewPanel } from './dashboard/OverviewPanel';
 import { AccountsPanel } from './dashboard/AccountsPanel';
 import { InsightsPanel } from './dashboard/InsightsPanel';
@@ -102,6 +104,9 @@ export const DashboardWave4: React.FC = () => {
     isLoading: loading, // Track initial load to set timestamp
     storageKey: 'dashboard-last-refresh', // Persist timestamp across page reloads
   });
+
+  // Offline detection
+  const { isOffline, wasOffline } = useOfflineDetection();
 
   const logTelemetry = useCallback((event: string, payload: Record<string, unknown> = {}) => {
     if (typeof console !== 'undefined' && typeof console.debug === 'function') {
@@ -680,6 +685,7 @@ export const DashboardWave4: React.FC = () => {
 
   return (
     <DashboardErrorBoundary onRetry={refetch}>
+      <OfflineBanner isOffline={isOffline} wasOffline={wasOffline} />
       <Box data-testid="wave4-dashboard-root" p={3} display="flex" flexDirection="column" gap={3}>
         <Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
@@ -689,6 +695,7 @@ export const DashboardWave4: React.FC = () => {
               isRefreshing={isRefreshing}
               onRefresh={refresh}
               timeSinceRefresh={timeSinceRefresh}
+              isOffline={isOffline}
               size="small"
             />
           </Box>

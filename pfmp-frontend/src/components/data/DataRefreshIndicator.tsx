@@ -1,5 +1,5 @@
 import { Box, IconButton, Tooltip, Typography, CircularProgress } from '@mui/material';
-import { Refresh as RefreshIcon } from '@mui/icons-material';
+import { Refresh as RefreshIcon, Warning as WarningIcon } from '@mui/icons-material';
 
 export interface DataRefreshIndicatorProps {
   /** Timestamp of last refresh */
@@ -14,6 +14,8 @@ export interface DataRefreshIndicatorProps {
   label?: string;
   /** Size variant */
   size?: 'small' | 'medium';
+  /** Whether the app is offline */
+  isOffline?: boolean;
 }
 
 /**
@@ -36,8 +38,13 @@ export function DataRefreshIndicator({
   timeSinceRefresh,
   label = 'Updated',
   size = 'medium',
+  isOffline = false,
 }: DataRefreshIndicatorProps) {
   const isSmall = size === 'small';
+  
+  // Check if data is stale (>15 minutes old)
+  const isStale = lastRefreshed && (Date.now() - lastRefreshed.getTime()) > 15 * 60 * 1000;
+  const showWarning = isStale || isOffline;
   
   return (
     <Box
@@ -47,9 +54,18 @@ export function DataRefreshIndicator({
         gap: 1,
       }}
     >
+      {showWarning && (
+        <Tooltip title={isOffline ? 'Data may be outdated (offline)' : 'Data is stale (>15 min old)'}>
+          <WarningIcon 
+            fontSize={isSmall ? 'small' : 'medium'} 
+            color="warning" 
+            sx={{ fontSize: isSmall ? 16 : 20 }}
+          />
+        </Tooltip>
+      )}
       <Typography
         variant={isSmall ? 'caption' : 'body2'}
-        color="text.secondary"
+        color={showWarning ? 'warning.main' : 'text.secondary'}
         sx={{ fontSize: isSmall ? '0.75rem' : undefined }}
       >
         {label}: {timeSinceRefresh || (lastRefreshed ? 'Just now' : 'Never')}
