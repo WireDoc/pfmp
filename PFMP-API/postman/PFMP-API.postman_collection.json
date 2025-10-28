@@ -225,6 +225,53 @@
       ]
     },
     {
+      "name": "AI Intelligence (Wave 7)",
+      "item": [
+        {
+          "name": "Analysis",
+          "item": [
+            { "name": "Comprehensive Analysis", "request": { "method": "POST", "url": "{{baseUrl}}/api/ai/analyze/{{userId}}?force=false" } },
+            { "name": "Cash Optimization", "request": { "method": "POST", "url": "{{baseUrl}}/api/ai/analyze/{{userId}}/cash-optimization" } },
+            { "name": "Portfolio Rebalancing", "request": { "method": "POST", "url": "{{baseUrl}}/api/ai/analyze/{{userId}}/rebalancing" } },
+            { "name": "TSP Allocation", "request": { "method": "POST", "url": "{{baseUrl}}/api/ai/analyze/{{userId}}/tsp" } },
+            { "name": "Risk Alignment", "request": { "method": "POST", "url": "{{baseUrl}}/api/ai/analyze/{{userId}}/risk" } }
+          ]
+        },
+        {
+          "name": "Alert to Advice",
+          "item": [
+            { "name": "Generate from Alert", "request": { "method": "POST", "url": "{{baseUrl}}/api/ai/advice/from-alert/{{alertId}}" } }
+          ]
+        },
+        {
+          "name": "Chatbot",
+          "item": [
+            { "name": "Send Message", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"message\": \"What should I do with my emergency fund?\",\n  \"conversationId\": null\n}"}, "url": "{{baseUrl}}/api/ai/chat" } },
+            { "name": "Convert to Advice", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"conversationId\": 1,\n  \"reasoning\": \"User accepted the recommendation\"\n}"}, "url": "{{baseUrl}}/api/ai/chat/convert-to-advice" } },
+            { "name": "End Conversation", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"summary\": \"Discussed emergency fund strategy\"\n}"}, "url": "{{baseUrl}}/api/ai/chat/1/end" } },
+            { "name": "Get History", "request": { "method": "GET", "url": "{{baseUrl}}/api/ai/chat/history/1?limit=50" } }
+          ]
+        },
+        {
+          "name": "Memory Management",
+          "item": [
+            { "name": "Record Action", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"actionType\": \"AccountOpened\",\n  \"actionSummary\": \"Opened HYSA with $5000\",\n  \"amountMoved\": 5000,\n  \"assetClass\": \"Cash\",\n  \"isSignificant\": true\n}"}, "url": "{{baseUrl}}/api/ai/memory/action" } },
+            { "name": "Get Recent Actions", "request": { "method": "GET", "url": "{{baseUrl}}/api/ai/memory/actions?days=30" } },
+            { "name": "Get Preferences", "request": { "method": "GET", "url": "{{baseUrl}}/api/ai/memory/preferences?minConfidence=50" } },
+            { "name": "Learn Preference", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"memoryType\": \"RiskTolerance\",\n  \"memoryKey\": \"prefers_conservative_advice\",\n  \"memoryValue\": \"true\",\n  \"source\": \"User explicitly requested conservative options\"\n}"}, "url": "{{baseUrl}}/api/ai/memory/preference" } },
+            { "name": "Delete Preference", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/ai/memory/preference/1?reason=User changed risk profile" } }
+          ]
+        },
+        {
+          "name": "Market Context",
+          "item": [
+            { "name": "Get Latest", "request": { "method": "GET", "url": "{{baseUrl}}/api/ai/market-context/latest" } },
+            { "name": "Get Summary", "request": { "method": "GET", "url": "{{baseUrl}}/api/ai/market-context/summary?days=30" } }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Weather",
       "item": [
         { "name": "Weather Forecast", "request": { "method": "GET", "url": "{{baseUrl}}/weatherforecast" } }
