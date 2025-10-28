@@ -5,8 +5,9 @@ using Microsoft.Extensions.Options;
 namespace PFMP_API.Services.AI;
 
 /// <summary>
-/// Google Gemini 1.5 Pro service - Aggressive AI financial advisor.
+/// Google Gemini 2.5 Pro/Flash service - Aggressive AI financial advisor.
 /// Focuses on growth opportunities, tax optimization, and advanced strategies.
+/// Uses gemini-2.5-pro for deep analysis, gemini-2.5-flash for chat/quick tasks.
 /// </summary>
 public class GeminiService : IAIFinancialAdvisor
 {
@@ -32,9 +33,12 @@ public class GeminiService : IAIFinancialAdvisor
 
     public async Task<AIRecommendation> GetRecommendationAsync(AIPromptRequest request)
     {
+        // Determine which model to use based on request context
+        var modelToUse = DetermineModelForRequest(request);
+        
         _logger.LogInformation(
             "Gemini API call: model={Model}, promptLength={Length}, temperature={Temp}",
-            _options.Model, request.UserPrompt.Length, request.Temperature);
+            modelToUse, request.UserPrompt.Length, request.Temperature);
 
         var geminiRequest = new
         {
@@ -72,17 +76,17 @@ public class GeminiService : IAIFinancialAdvisor
         {
             try
             {
-                var url = $"{_options.Model}:generateContent?key={_options.ApiKey}";
+                var url = $"{modelToUse}:generateContent?key={_options.ApiKey}";
                 var response = await _httpClient.PostAsJsonAsync(url, geminiRequest);
 
                 if (response.IsSuccessStatusCode)
                 {
                     var responseContent = await response.Content.ReadAsStringAsync();
-                    recommendation = ParseGeminiResponse(responseContent, request.UserId);
+                    recommendation = ParseGeminiResponse(responseContent, request.UserId, modelToUse);
 
                     _logger.LogInformation(
-                        "Gemini success: recommendationId={Id}, tokens={Tokens}, cost=${Cost:F4}, confidence={Confidence:P0}",
-                        recommendation.RecommendationId, recommendation.TokensUsed, recommendation.EstimatedCost, recommendation.ConfidenceScore);
+                        "Gemini success: model={Model}, recommendationId={Id}, tokens={Tokens}, cost=${Cost:F4}, confidence={Confidence:P0}",
+                        modelToUse, recommendation.RecommendationId, recommendation.TokensUsed, recommendation.EstimatedCost, recommendation.ConfidenceScore);
 
                     return recommendation;
                 }
@@ -92,6 +96,16 @@ public class GeminiService : IAIFinancialAdvisor
                     attempt, _options.MaxRetries, response.StatusCode, response.ReasonPhrase);
 
                 lastException = new HttpRequestException($"Gemini API returned {response.StatusCode}");
+
+                // Try fallback model on rate limit errors
+                if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests && 
+                    modelToUse != _options.FallbackModel && 
+                    attempt == 1)
+                {
+                    _logger.LogWarning("Rate limit hit, switching to fallback model: {Fallback}", _options.FallbackModel);
+                    modelToUse = _options.FallbackModel;
+                    continue;
+                }
 
                 if (attempt < _options.MaxRetries)
                 {
@@ -152,7 +166,25 @@ public class GeminiService : IAIFinancialAdvisor
         return await GetRecommendationAsync(request);
     }
 
-    private AIRecommendation ParseGeminiResponse(string responseContent, string userId)
+    /// <summary>
+    /// Determines which Gemini model to use based on request characteristics.
+    /// Pro model for deep analysis, Flash model for chat/quick tasks.
+    /// </summary>
+    private string DetermineModelForRequest(AIPromptRequest request)
+    {
+        // Use chatbot model if request seems conversational
+        if (request.SystemPrompt?.Contains("chat", StringComparison.OrdinalIgnoreCase) == true ||
+            request.SystemPrompt?.Contains("conversation", StringComparison.OrdinalIgnoreCase) == true ||
+            request.UserPrompt?.Length < 500) // Short prompts likely chat
+        {
+            return _options.ChatbotModel;
+        }
+
+        // Use pro model for complex analysis
+        return _options.Model;
+    }
+
+    private AIRecommendation ParseGeminiResponse(string responseContent, string userId, string modelUsed)
     {
         using var doc = JsonDocument.Parse(responseContent);
         var root = doc.RootElement;
@@ -181,7 +213,7 @@ public class GeminiService : IAIFinancialAdvisor
         var recommendation = new AIRecommendation
         {
             ServiceName = ServiceName,
-            ModelVersion = ModelVersion,
+            ModelVersion = modelUsed, // Use actual model that responded
             RecommendationText = content,
             Reasoning = ExtractReasoning(content),
             ActionItems = ExtractActionItems(content),
@@ -193,7 +225,8 @@ public class GeminiService : IAIFinancialAdvisor
                 ["userId"] = userId,
                 ["inputTokens"] = inputTokens,
                 ["outputTokens"] = outputTokens,
-                ["finishReason"] = candidates[0].GetProperty("finishReason").GetString() ?? "STOP"
+                ["finishReason"] = candidates[0].GetProperty("finishReason").GetString() ?? "STOP",
+                ["modelUsed"] = modelUsed
             }
         };
 

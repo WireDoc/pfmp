@@ -24,14 +24,35 @@ public class GeminiServiceOptions
 {
     public string ApiKey { get; set; } = string.Empty;
     public string ApiUrl { get; set; } = "https://generativelanguage.googleapis.com/v1beta/models";
-    public string Model { get; set; } = "gemini-1.5-pro-latest";
+    public string Model { get; set; } = "gemini-2.5-pro";
+    public string FallbackModel { get; set; } = "gemini-2.5-flash";
+    public string ChatbotModel { get; set; } = "gemini-2.5-flash";
     public int MaxTokens { get; set; } = 4000;
     public decimal Temperature { get; set; } = 0.5m;
     public int TimeoutSeconds { get; set; } = 60;
     public int MaxRetries { get; set; } = 3;
     public bool EnableCostTracking { get; set; } = true;
-    public decimal InputCostPerMTok { get; set; } = 1.25m;
-    public decimal OutputCostPerMTok { get; set; } = 5.0m;
+    public decimal InputCostPerMTok { get; set; } = 0.0m;
+    public decimal OutputCostPerMTok { get; set; } = 0.0m;
+    
+    // Rate limit tracking (optional, for future enhancement)
+    public RateLimitConfig? RateLimits { get; set; }
+}
+
+/// <summary>
+/// Rate limit configuration for Gemini models.
+/// </summary>
+public class RateLimitConfig
+{
+    public ModelLimits? ProModel { get; set; }
+    public ModelLimits? FlashModel { get; set; }
+}
+
+public class ModelLimits
+{
+    public int RequestsPerMinute { get; set; }
+    public int TokensPerMinute { get; set; }
+    public int RequestsPerDay { get; set; }
 }
 
 /// <summary>
