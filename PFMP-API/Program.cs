@@ -44,6 +44,7 @@ namespace PFMP_API
             builder.Services.AddScoped<PFMP_API.Services.AI.ConsensusEngine>();
             builder.Services.AddScoped<PFMP_API.Services.AI.IDualAIAdvisor, PFMP_API.Services.AI.DualAIAdvisor>();
             builder.Services.AddScoped<PFMP_API.Services.AI.IAIMemoryService, PFMP_API.Services.AI.AIMemoryService>();
+            builder.Services.AddScoped<PFMP_API.Services.AI.IAIIntelligenceService, PFMP_API.Services.AI.AIIntelligenceService>();
 
             // Add Market Data Service
             builder.Services.AddHttpClient<IMarketDataService, MarketDataService>();
