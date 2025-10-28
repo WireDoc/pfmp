@@ -26,6 +26,24 @@ namespace PFMP_API
             // Add AI Service
             builder.Services.AddScoped<IAIService, AIService>();
 
+            // Add Wave 7: Dual AI Intelligence Services
+            builder.Services.Configure<PFMP_API.Services.AI.ClaudeServiceOptions>(
+                builder.Configuration.GetSection("AI:Claude"));
+            builder.Services.Configure<PFMP_API.Services.AI.GeminiServiceOptions>(
+                builder.Configuration.GetSection("AI:Gemini"));
+            builder.Services.Configure<PFMP_API.Services.AI.ConsensusOptions>(
+                builder.Configuration.GetSection("AI:Consensus"));
+            builder.Services.Configure<PFMP_API.Services.AI.AISafetyOptions>(
+                builder.Configuration.GetSection("AI:Safety"));
+
+            builder.Services.AddHttpClient<PFMP_API.Services.AI.ClaudeService>();
+            builder.Services.AddHttpClient<PFMP_API.Services.AI.GeminiService>();
+            
+            builder.Services.AddScoped<PFMP_API.Services.AI.IAIFinancialAdvisor, PFMP_API.Services.AI.ClaudeService>();
+            builder.Services.AddScoped<PFMP_API.Services.AI.IAIFinancialAdvisor, PFMP_API.Services.AI.GeminiService>();
+            builder.Services.AddScoped<PFMP_API.Services.AI.ConsensusEngine>();
+            builder.Services.AddScoped<PFMP_API.Services.AI.IDualAIAdvisor, PFMP_API.Services.AI.DualAIAdvisor>();
+
             // Add Market Data Service
             builder.Services.AddHttpClient<IMarketDataService, MarketDataService>();
             builder.Services.AddScoped<IMarketDataService, MarketDataService>();
