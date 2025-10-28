@@ -28,6 +28,60 @@ Build the foundation for AI-powered financial intelligence by enriching data sou
 - Establish AI service abstraction layer
 - Create prompt engineering framework
 
+## 🎯 AI Model Selection - Premium Tier
+
+### Chosen Configuration: Claude + Gemini "Advisory Team"
+
+After evaluation, we're using **top-tier flagship models** for maximum intelligence:
+
+**Conservative Advisor: Claude 3.5 Sonnet** (Upgrade Path: → Opus 3.5)
+- Provider: Anthropic (anthropic.com)
+- Current Model: `claude-3-5-sonnet-20241022` (Latest: December 2024)
+- **Upgrade Path**: Claude Opus 3.5 when available (Expected: 2025)
+- Strengths: Superior reasoning, safety, nuanced financial analysis, enterprise-grade reliability, constitutional AI
+- Pricing: $3/MTok input, $15/MTok output (Sonnet) | Expected $15/$75 (Opus)
+- Context: 200K tokens
+- Use Case: Risk assessment, retirement planning, conservative rebalancing, regulatory compliance, ethical guidance
+
+**Aggressive Advisor: Gemini 2.0+ Pro** (Cutting Edge)
+- Provider: Google AI (ai.google.dev or Vertex AI)
+- Current Model: `gemini-1.5-pro-latest` (Production: 2024)
+- **Upgrade Path**: Gemini 2.0 Pro (Available: Jan 2025) → Gemini 2.5 Pro → Gemini 3.0 (Rumored)
+- Strengths: Cutting-edge analysis, multimodal capabilities, massive context (2M tokens), native grounding, real-time data
+- Pricing: $1.25/MTok input, $5/MTok output (AI Studio) | $3.50/$10.50 (Vertex AI)
+- Context: 2M tokens (1M effective)
+- Use Case: Growth opportunities, tax optimization, aggressive strategies, market trend analysis, multimodal financial documents
+
+### Cost Projection (100 active users/month) - Premium Tier
+
+- Claude 3.5 Sonnet: ~5K requests × 1K tokens avg × $3-15/MTok = **$15-75/month**
+  - If upgraded to Opus 3.5: ~5K requests × 1K tokens × $15-75/MTok = **$75-375/month**
+- Gemini 1.5/2.0 Pro: ~5K requests × 1K tokens avg × $1.25-5/MTok = **$6-25/month**
+- **Current Total: $20-100/month** (Sonnet + Gemini)
+- **Future Total (Opus + Gemini 2.5+): $80-400/month** for premium-tier intelligence
+- Quality Justification: Top-tier models = better advice = more user value = higher retention
+- Can scale to 500+ users with current config, 100-200 users with Opus upgrade before optimization needed
+
+### Why This Configuration?
+
+**Claude as Conservative Advisor:**
+- Known for careful, thoughtful financial reasoning
+- Strong safety guardrails prevent risky recommendations
+- Excellent at explaining trade-offs
+- Constitutional AI aligns with fiduciary standards
+
+**Gemini as Aggressive Advisor:**
+- Access to latest cutting-edge capabilities (2.0/2.5/3.0)
+- Massive 2M token context for complex scenarios
+- Multimodal support for future document analysis
+- Native grounding for real-time market data
+- Cost-effective for high-volume analysis
+
+**Consensus Mechanism:**
+- When both agree: High confidence recommendation
+- When they disagree: Present both perspectives, let user decide
+- Conservative tie-breaker: Default to Claude for safety
+
 ## Scope
 
 ### Track 1: Data Enrichment (Phase 2 Foundation - 40%)
@@ -90,23 +144,28 @@ Build the foundation for AI-powered financial intelligence by enriching data sou
   
   public class DualAIAdvisor : IAIFinancialAdvisor
   {
-      private readonly AzureOpenAIService _azureAI;
-      private readonly AnthropicService _anthropicAI;
+      private readonly ClaudeService _claudeAI;      // Conservative advisor
+      private readonly GeminiService _geminiAI;      // Aggressive advisor
       private readonly ConsensusEngine _consensus;
   }
   ```
 
-- **Azure OpenAI Integration**
-  - Configure Azure OpenAI service connection
-  - Implement GPT-4 model calls
+- **Anthropic Claude Integration** (Conservative Advisor)
+  - Configure Anthropic API connection (anthropic.com)
+  - Implement Claude 3.5 Sonnet calls (`claude-3-5-sonnet-20241022`)
+  - Plan upgrade path to Opus 3.5 when available
   - Add retry logic and error handling
-  - Rate limiting and cost tracking
+  - Rate limiting and cost tracking ($3/$15 per MTok)
+  - Maximum 4000 tokens output for detailed analysis
 
-- **Anthropic Claude Integration**
-  - Configure Anthropic API connection
-  - Implement Claude model calls
-  - Parallel Azure OpenAI for latency
+- **Google Gemini Integration** (Aggressive Advisor)
+  - Configure Google AI API connection (ai.google.dev)
+  - Implement Gemini 1.5 Pro calls (`gemini-1.5-pro-latest`)
+  - Monitor for Gemini 2.0/2.5/3.0 upgrades
+  - Parallel Claude calls for latency optimization
   - Error handling and fallbacks
+  - Cost tracking ($1.25/$5 per MTok)
+  - Leverage 2M token context for complex scenarios
 
 - **Consensus Mechanism**
   - Compare responses from both models
@@ -197,11 +256,13 @@ Build the foundation for AI-powered financial intelligence by enriching data sou
 
 **Backend Tasks**:
 - [ ] Create AI service interfaces and abstractions
-- [ ] Set up Azure OpenAI client and authentication
-- [ ] Set up Anthropic API client
-- [ ] Implement basic consensus mechanism
+- [ ] Set up Anthropic Claude client (claude-3-5-sonnet-20241022)
+- [ ] Set up Google Gemini client (gemini-1.5-pro-latest)
+- [ ] Configure API keys and authentication for both services
+- [ ] Implement basic consensus mechanism (agreement scoring)
 - [ ] Add asset allocation calculator service
 - [ ] Create net worth history tracking
+- [ ] Add cost tracking telemetry for both AI services
 
 **Frontend Tasks**:
 - [ ] Add asset allocation pie chart to dashboard
@@ -283,8 +344,8 @@ Frontend
 API Controller (/api/intelligence/*)
   ↓
 DualAIAdvisor Service
-  ├─→ AzureOpenAIService → Azure OpenAI (GPT-4)
-  ├─→ AnthropicService → Anthropic (Claude)
+  ├─→ ClaudeService → Anthropic (Claude 3.5 Sonnet) [Conservative]
+  ├─→ GeminiService → Google AI (Gemini 1.5 Pro+) [Aggressive]
   └─→ ConsensusEngine → Validate & Merge
         ↓
   SafetyGuards → Validate Output
@@ -365,10 +426,11 @@ Dashboard Display
 ## Dependencies
 
 ### External Services
-- ✅ Azure OpenAI API access configured
-- ✅ Anthropic API access configured
-- ⏳ Azure Key Vault for API keys (can defer)
-- ⏳ Application Insights for telemetry (optional)
+- ✅ Anthropic API access configured (anthropic.com, Claude 3.5 Sonnet)
+- ✅ Google AI API access configured (ai.google.dev, Gemini 1.5 Pro)
+- ⏳ API key management (environment variables → Azure Key Vault)
+- ⏳ Telemetry and cost tracking dashboard
+- 📋 Monitor for model upgrades (Claude Opus 3.5, Gemini 2.0/2.5/3.0)
 
 ### Internal Prerequisites
 - ✅ User profile data complete (Phase 1)
@@ -421,16 +483,21 @@ Dashboard Display
 
 ## Open Questions
 
-1. **AI Model Selection**: Should we start with GPT-4 or GPT-4-Turbo? (Performance vs cost)
-2. **Consensus Threshold**: What agreement percentage triggers human review? (Suggest 80%)
-3. **Prompt Storage**: Database vs files in repo? (Suggest repo for version control)
-4. **Cost Budget**: What's acceptable per-user AI cost? (Suggest $1-2/month)
-5. **Feedback Mechanism**: Thumbs up/down sufficient or need detailed feedback?
+1. ✅ **AI Model Selection**: RESOLVED - Claude 3.5 Sonnet + Gemini 1.5 Pro (premium tier)
+2. ✅ **Upgrade Path**: Monitor for Claude Opus 3.5, Gemini 2.0/2.5/3.0 releases
+3. **Consensus Threshold**: What agreement percentage triggers human review? (Suggest 80%)
+4. **Prompt Storage**: Database vs files in repo? (Suggest repo for version control)
+5. **Cost Budget**: Acceptable $20-100/month current, $80-400/month with premium upgrades
+6. **Feedback Mechanism**: Thumbs up/down sufficient or need detailed feedback?
+7. **Model Upgrade Triggers**: Auto-upgrade to new versions or manual review first?
 
 ## Next Steps
 
-1. **Review & Approve** this Wave 7 plan
-2. **Configure AI Services** (Azure OpenAI + Anthropic access)
+1. ✅ **Review & Approve** this Wave 7 plan - APPROVED with Claude + Gemini premium tier
+2. **Configure AI Services** (Anthropic Claude + Google Gemini API access)
+   - Sign up for Anthropic API (anthropic.com/api)
+   - Sign up for Google AI API (ai.google.dev) or Vertex AI
+   - Store API keys securely (environment variables initially)
 3. **Create Feature Branches**: `wave-7-ai-foundation`, `wave-7-data-enrichment`
 4. **Sprint Planning**: Break phases into 2-week sprints
 5. **Kick Off Phase 7.1**: AI service abstractions and basic metrics
