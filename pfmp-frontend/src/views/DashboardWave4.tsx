@@ -6,6 +6,7 @@ import { Navigate } from 'react-router-dom';
 import { useDashboardData } from '../services/dashboard/useDashboardData';
 import { useDataRefresh } from '../hooks/useDataRefresh';
 import { useOfflineDetection } from '../hooks/useOfflineDetection';
+import { performanceMark, performanceMeasure } from '../hooks/usePerformanceMetric';
 import { DataRefreshIndicator } from '../components/data/DataRefreshIndicator';
 import { ErrorDisplay } from '../components/error/ErrorDisplay';
 import { DashboardErrorBoundary } from '../components/error/DashboardErrorBoundary';
@@ -115,6 +116,9 @@ export const DashboardWave4: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // Performance: Mark component mount
+    performanceMark('dashboard-mount');
+
     // Ensure daily TSP snapshot is captured for analytics. Backend is idempotent per user+day.
     // TODO(ops): Replace this on-load trigger with a server-side scheduled job (e.g., Hangfire/Quartz) and remove this effect.
     const uid = user?.localAccountId ? Number(user.localAccountId) : undefined;
@@ -127,6 +131,10 @@ export const DashboardWave4: React.FC = () => {
 
   useEffect(() => {
     if (data) {
+      // Performance: Mark data loaded and measure time from mount
+      performanceMark('dashboard-data-loaded');
+      performanceMeasure('dashboard-time-to-data', 'dashboard-mount', 'dashboard-data-loaded');
+      
       setViewData(data);
       setRecentTaskIds(new Set());
     }
