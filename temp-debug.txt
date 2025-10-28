@@ -1,6 +1,8 @@
 API listening http://localhost:5052
 Using launch settings from C:\pfmp\PFMP-API\Properties\launchSettings.json...
 Building...
+C:\pfmp\PFMP-API\Program.cs(16,34): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread.
+C:\pfmp\PFMP-API\Services\AI\AIIntelligenceService.cs(528,36): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread.
 info: Microsoft.Hosting.Lifetime[14]
       Now listening on: http://localhost:5052
 info: Microsoft.Hosting.Lifetime[0]
@@ -13,57 +15,33 @@ info: PFMP_API.Controllers.AIIntelligenceController[0]
       Starting AI analysis for user 2
 info: PFMP_API.Services.AI.AIIntelligenceService[0]
       Starting comprehensive financial analysis for user 2
-fail: Microsoft.EntityFrameworkCore.Query[10100]
-      An exception occurred while iterating over the results of a query for context type 'PFMP_API.ApplicationDbContext'.
-      System.InvalidOperationException: A second operation was started on this context instance before a previous operation completed. This is usually caused by different threads concurrently using the same instance of DbContext. For more information on how to avoid threading issues with DbContext, see https://go.microsoft.com/fwlink/?linkid=2097913.
-         at Microsoft.EntityFrameworkCore.Infrastructure.Internal.ConcurrencyDetector.EnterCriticalSection()
-         at Microsoft.EntityFrameworkCore.Query.Internal.SingleQueryingEnumerable`1.AsyncEnumerator.MoveNextAsync()
-      System.InvalidOperationException: A second operation was started on this context instance before a previous operation completed. This is usually caused by different threads concurrently using the same instance of DbContext. For more information on how to avoid threading issues with DbContext, see https://go.microsoft.com/fwlink/?linkid=2097913.
-         at Microsoft.EntityFrameworkCore.Infrastructure.Internal.ConcurrencyDetector.EnterCriticalSection()
-         at Microsoft.EntityFrameworkCore.Query.Internal.SingleQueryingEnumerable`1.AsyncEnumerator.MoveNextAsync()
-fail: Microsoft.EntityFrameworkCore.Query[10100]
-      An exception occurred while iterating over the results of a query for context type 'PFMP_API.ApplicationDbContext'.
-      System.InvalidOperationException: A second operation was started on this context instance before a previous operation completed. This is usually caused by different threads concurrently using the same instance of DbContext. For more information on how to avoid threading issues with DbContext, see https://go.microsoft.com/fwlink/?linkid=2097913.
-         at Microsoft.EntityFrameworkCore.Infrastructure.Internal.ConcurrencyDetector.EnterCriticalSection()
-         at Microsoft.EntityFrameworkCore.Query.Internal.SingleQueryingEnumerable`1.AsyncEnumerator.MoveNextAsync()
-      System.InvalidOperationException: A second operation was started on this context instance before a previous operation completed. This is usually caused by different threads concurrently using the same instance of DbContext. For more information on how to avoid threading issues with DbContext, see https://go.microsoft.com/fwlink/?linkid=2097913.
-         at Microsoft.EntityFrameworkCore.Infrastructure.Internal.ConcurrencyDetector.EnterCriticalSection()
-         at Microsoft.EntityFrameworkCore.Query.Internal.SingleQueryingEnumerable`1.AsyncEnumerator.MoveNextAsync()
-fail: Microsoft.EntityFrameworkCore.Query[10100]
-      An exception occurred while iterating over the results of a query for context type 'PFMP_API.ApplicationDbContext'.
-      System.InvalidOperationException: A second operation was started on this context instance before a previous operation completed. This is usually caused by different threads concurrently using the same instance of DbContext. For more information on how to avoid threading issues with DbContext, see https://go.microsoft.com/fwlink/?linkid=2097913.
-         at Microsoft.EntityFrameworkCore.Infrastructure.Internal.ConcurrencyDetector.EnterCriticalSection()
-         at Microsoft.EntityFrameworkCore.Query.Internal.SingleQueryingEnumerable`1.AsyncEnumerator.MoveNextAsync()
-      System.InvalidOperationException: A second operation was started on this context instance before a previous operation completed. This is usually caused by different threads concurrently using the same instance of DbContext. For more information on how to avoid threading issues with DbContext, see https://go.microsoft.com/fwlink/?linkid=2097913.
-         at Microsoft.EntityFrameworkCore.Infrastructure.Internal.ConcurrencyDetector.EnterCriticalSection()
-         at Microsoft.EntityFrameworkCore.Query.Internal.SingleQueryingEnumerable`1.AsyncEnumerator.MoveNextAsync()
 info: Microsoft.EntityFrameworkCore.Database.Command[20101]
-      Executed DbCommand (37ms) [Parameters=[@__startDate_0='?' (DbType = DateTime), @__endDate_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      Executed DbCommand (41ms) [Parameters=[@__startDate_0='?' (DbType = DateTime), @__endDate_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
       SELECT m."MarketContextId", m."AffectedSectors", m."ContextDate", m."CryptoSentiment", m."DailySummary", m."GeneratedAt", m."GenerationCost", m."MajorEvents", m."MarketSentiment", m."ModelUsed", m."SPYChange", m."SourceArticleCount", m."TokensUsed", m."TreasuryYield10Y", m."VIXLevel"
       FROM "MarketContexts" AS m
       WHERE m."ContextDate" >= @__startDate_0 AND m."ContextDate" <= @__endDate_1
       ORDER BY m."ContextDate"
 info: Microsoft.EntityFrameworkCore.Database.Command[20101]
-      Executed DbCommand (5ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__cutoff_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      Executed DbCommand (4ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__cutoff_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
       SELECT a."ActionMemoryId", a."AccountsAffected", a."ActionDate", a."ActionSummary", a."ActionType", a."AmountMoved", a."AssetClass", a."ExpiresAt", a."IsSignificant", a."ReferenceCount", a."Referenced", a."SourceAdviceId", a."SourceAlertId", a."UserId"
       FROM "AIActionMemories" AS a
       WHERE a."UserId" = @__userId_0 AND a."ActionDate" >= @__cutoff_1
       ORDER BY a."ActionDate" DESC
 info: Microsoft.EntityFrameworkCore.Database.Command[20101]
-      Executed DbCommand (8ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__minConfidence_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      Executed DbCommand (4ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__minConfidence_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
       SELECT a."UserMemoryId", a."ConfidenceScore", a."Context", a."DeprecatedAt", a."DeprecationReason", a."IsActive", a."LastReinforcedAt", a."LearnedAt", a."MemoryKey", a."MemoryType", a."MemoryValue", a."ReinforcementCount", a."SourceAdviceId", a."SourceConversationId", a."UserId"
       FROM "AIUserMemories" AS a
       WHERE a."UserId" = @__userId_0 AND a."IsActive" AND a."ConfidenceScore" >= @__minConfidence_1
       ORDER BY a."ConfidenceScore" DESC
 info: Microsoft.EntityFrameworkCore.Database.Command[20101]
-      Executed DbCommand (3ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      Executed DbCommand (4ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
       SELECT a."ConversationId", a."ConversationSummary", a."ConversationType", a."EndedAt", a."GeneratedAdvice", a."MessageCount", a."RelatedAdviceId", a."StartedAt", a."TotalCost", a."TotalTokensUsed", a."UserId"
       FROM "AIConversations" AS a
       WHERE a."UserId" = @__userId_0 AND a."EndedAt" IS NULL
       ORDER BY a."StartedAt" DESC
       LIMIT 1
 info: Microsoft.EntityFrameworkCore.Database.Command[20101]
-      Executed DbCommand (4ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__cutoff_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      Executed DbCommand (5ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__cutoff_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
       SELECT a."ActionMemoryId", a."AccountsAffected", a."ActionDate", a."ActionSummary", a."ActionType", a."AmountMoved", a."AssetClass", a."ExpiresAt", a."IsSignificant", a."ReferenceCount", a."Referenced", a."SourceAdviceId", a."SourceAlertId", a."UserId"
       FROM "AIActionMemories" AS a
       WHERE a."UserId" = @__userId_0 AND a."IsSignificant" AND a."ActionDate" >= @__cutoff_1
@@ -90,79 +68,375 @@ info: System.Net.Http.HttpClient.Default.ClientHandler[100]
 info: PFMP_API.Services.AI.GeminiService[0]
       Gemini API call: model=gemini-2.5-flash, promptLength=307, temperature=0.3
 info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
-      Start processing HTTP request POST gemini-2.5-flash://generateContent?*
+      Start processing HTTP request POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?*
 info: System.Net.Http.HttpClient.Default.ClientHandler[100]
-      Sending HTTP request POST gemini-2.5-flash://generateContent?*
-fail: PFMP_API.Services.AI.GeminiService[0]
-      Gemini API exception (attempt 1/3)
-      System.NotSupportedException: The 'gemini-2.5-flash' scheme is not supported.
-         at Microsoft.Extensions.Http.Logging.LoggingHttpMessageHandler.<SendCoreAsync>g__Core|4_0(HttpRequestMessage request, Boolean useAsync, CancellationToken cancellationToken)
-         at Microsoft.Extensions.Http.Logging.LoggingScopeHttpMessageHandler.<SendCoreAsync>g__Core|4_0(HttpRequestMessage request, Boolean useAsync, CancellationToken cancellationToken)
-         at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
-         at PFMP_API.Services.AI.GeminiService.GetRecommendationAsync(AIPromptRequest request) in C:\pfmp\PFMP-API\Services\AI\GeminiService.cs:line 80
-info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
-      Start processing HTTP request POST gemini-2.5-flash://generateContent?*
-info: System.Net.Http.HttpClient.Default.ClientHandler[100]
-      Sending HTTP request POST gemini-2.5-flash://generateContent?*
-fail: PFMP_API.Services.AI.GeminiService[0]
-      Gemini API exception (attempt 2/3)
-      System.NotSupportedException: The 'gemini-2.5-flash' scheme is not supported.
-         at Microsoft.Extensions.Http.Logging.LoggingHttpMessageHandler.<SendCoreAsync>g__Core|4_0(HttpRequestMessage request, Boolean useAsync, CancellationToken cancellationToken)
-         at Microsoft.Extensions.Http.Logging.LoggingScopeHttpMessageHandler.<SendCoreAsync>g__Core|4_0(HttpRequestMessage request, Boolean useAsync, CancellationToken cancellationToken)
-         at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
-         at PFMP_API.Services.AI.GeminiService.GetRecommendationAsync(AIPromptRequest request) in C:\pfmp\PFMP-API\Services\AI\GeminiService.cs:line 80
-info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
-      Start processing HTTP request POST gemini-2.5-flash://generateContent?*
-info: System.Net.Http.HttpClient.Default.ClientHandler[100]
-      Sending HTTP request POST gemini-2.5-flash://generateContent?*
-fail: PFMP_API.Services.AI.GeminiService[0]
-      Gemini API exception (attempt 3/3)
-      System.NotSupportedException: The 'gemini-2.5-flash' scheme is not supported.
-         at Microsoft.Extensions.Http.Logging.LoggingHttpMessageHandler.<SendCoreAsync>g__Core|4_0(HttpRequestMessage request, Boolean useAsync, CancellationToken cancellationToken)
-         at Microsoft.Extensions.Http.Logging.LoggingScopeHttpMessageHandler.<SendCoreAsync>g__Core|4_0(HttpRequestMessage request, Boolean useAsync, CancellationToken cancellationToken)
-         at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
-         at PFMP_API.Services.AI.GeminiService.GetRecommendationAsync(AIPromptRequest request) in C:\pfmp\PFMP-API\Services\AI\GeminiService.cs:line 80
+      Sending HTTP request POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?*
 info: System.Net.Http.HttpClient.Default.ClientHandler[101]
-      Received HTTP response headers after 11197.0232ms - 200
+      Received HTTP response headers after 10445.0195ms - 200
 info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
-      End processing HTTP request after 11204.6794ms - 200
+      End processing HTTP request after 10453.3447ms - 200
 info: PFMP_API.Services.AI.ClaudeService[0]
-      Claude success: recommendationId=b1c387de-63d6-4b42-8e51-5c97ec90731e, tokens=481, cost=$0.0059, confidence=80 %
-fail: PFMP_API.Services.AI.DualAIAdvisor[0]
-      Dual AI request failed: userId=
-      System.InvalidOperationException: Gemini API failed after 3 attempts
-       ---> System.NotSupportedException: The 'gemini-2.5-flash' scheme is not supported.
-         at Microsoft.Extensions.Http.Logging.LoggingHttpMessageHandler.<SendCoreAsync>g__Core|4_0(HttpRequestMessage request, Boolean useAsync, CancellationToken cancellationToken)
-         at Microsoft.Extensions.Http.Logging.LoggingScopeHttpMessageHandler.<SendCoreAsync>g__Core|4_0(HttpRequestMessage request, Boolean useAsync, CancellationToken cancellationToken)
-         at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
-         at PFMP_API.Services.AI.GeminiService.GetRecommendationAsync(AIPromptRequest request) in C:\pfmp\PFMP-API\Services\AI\GeminiService.cs:line 80
+      Claude success: recommendationId=f4eb3051-892a-4e27-b2b1-b934663551dd, tokens=472, cost=$0.0057, confidence=80 %
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 17075.9297ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 17076.1943ms - 200
+info: PFMP_API.Services.AI.GeminiService[0]
+      Gemini success: model=gemini-2.5-flash, recommendationId=3239e131-4187-40fa-a596-1bf8e9c57f59, tokens=962, cost=$0.0000, confidence=80 %
+info: PFMP_API.Services.AI.ConsensusEngine[0]
+      Building consensus: conservative=f4eb3051-892a-4e27-b2b1-b934663551dd, aggressive=3239e131-4187-40fa-a596-1bf8e9c57f59
+info: PFMP_API.Services.AI.ConsensusEngine[0]
+      Consensus result: hasConsensus=False, agreement=34 %, common=0, conservativeOnly=14, aggressiveOnly=16
+info: PFMP_API.Services.AI.DualAIAdvisor[0]
+      Dual AI request completed: consensusId=529c4d97-a2f5-4f49-9c9e-b6b4152cf4e8, hasConsensus=False, agreement=34 %, elapsed=17153.5434ms, cost=$0.0057
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[@__startDate_0='?' (DbType = DateTime), @__endDate_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT m."MarketContextId", m."AffectedSectors", m."ContextDate", m."CryptoSentiment", m."DailySummary", m."GeneratedAt", m."GenerationCost", m."MajorEvents", m."MarketSentiment", m."ModelUsed", m."SPYChange", m."SourceArticleCount", m."TokensUsed", m."TreasuryYield10Y", m."VIXLevel"
+      FROM "MarketContexts" AS m
+      WHERE m."ContextDate" >= @__startDate_0 AND m."ContextDate" <= @__endDate_1
+      ORDER BY m."ContextDate"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__cutoff_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT a."ActionMemoryId", a."AccountsAffected", a."ActionDate", a."ActionSummary", a."ActionType", a."AmountMoved", a."AssetClass", a."ExpiresAt", a."IsSignificant", a."ReferenceCount", a."Referenced", a."SourceAdviceId", a."SourceAlertId", a."UserId"
+      FROM "AIActionMemories" AS a
+      WHERE a."UserId" = @__userId_0 AND a."ActionDate" >= @__cutoff_1
+      ORDER BY a."ActionDate" DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__minConfidence_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT a."UserMemoryId", a."ConfidenceScore", a."Context", a."DeprecatedAt", a."DeprecationReason", a."IsActive", a."LastReinforcedAt", a."LearnedAt", a."MemoryKey", a."MemoryType", a."MemoryValue", a."ReinforcementCount", a."SourceAdviceId", a."SourceConversationId", a."UserId"
+      FROM "AIUserMemories" AS a
+      WHERE a."UserId" = @__userId_0 AND a."IsActive" AND a."ConfidenceScore" >= @__minConfidence_1
+      ORDER BY a."ConfidenceScore" DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT a."ConversationId", a."ConversationSummary", a."ConversationType", a."EndedAt", a."GeneratedAdvice", a."MessageCount", a."RelatedAdviceId", a."StartedAt", a."TotalCost", a."TotalTokensUsed", a."UserId"
+      FROM "AIConversations" AS a
+      WHERE a."UserId" = @__userId_0 AND a."EndedAt" IS NULL
+      ORDER BY a."StartedAt" DESC
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__cutoff_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT a."ActionMemoryId", a."AccountsAffected", a."ActionDate", a."ActionSummary", a."ActionType", a."AmountMoved", a."AssetClass", a."ExpiresAt", a."IsSignificant", a."ReferenceCount", a."Referenced", a."SourceAdviceId", a."SourceAlertId", a."UserId"
+      FROM "AIActionMemories" AS a
+      WHERE a."UserId" = @__userId_0 AND a."IsSignificant" AND a."ActionDate" >= @__cutoff_1
+      ORDER BY a."ActionDate" DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT i."InvestmentAccountId", i."AccountCategory", i."AccountName", i."AssetClass", i."ContributionRatePercent", i."CostBasis", i."CreatedAt", i."CurrentValue", i."Institution", i."IsTaxAdvantaged", i."LastContributionDate", i."UpdatedAt", i."UserId"
+      FROM "InvestmentAccounts" AS i
+      WHERE i."UserId" = @__userId_0
+info: PFMP_API.Services.AI.DualAIAdvisor[0]
+      Dual AI request started: userId=, promptLength=273
+info: PFMP_API.Services.AI.ClaudeService[0]
+      Claude API call: model=claude-sonnet-4-20250514, promptLength=273, temperature=0.3
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request POST https://api.anthropic.com/v1/messages
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request POST https://api.anthropic.com/v1/messages
+info: PFMP_API.Services.AI.GeminiService[0]
+      Gemini API call: model=gemini-2.5-flash, promptLength=273, temperature=0.3
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 8843.868ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 8843.9644ms - 200
+info: PFMP_API.Services.AI.ClaudeService[0]
+      Claude success: recommendationId=8da21f62-63c8-4377-981d-2c4c4d23c440, tokens=398, cost=$0.0048, confidence=70 %
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 16149.9042ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 16150.0406ms - 200
+info: PFMP_API.Services.AI.GeminiService[0]
+      Gemini success: model=gemini-2.5-flash, recommendationId=6842b0c0-e7c9-4a8d-b367-d579b8697b13, tokens=1158, cost=$0.0000, confidence=80 %
+info: PFMP_API.Services.AI.ConsensusEngine[0]
+      Building consensus: conservative=8da21f62-63c8-4377-981d-2c4c4d23c440, aggressive=6842b0c0-e7c9-4a8d-b367-d579b8697b13
+info: PFMP_API.Services.AI.ConsensusEngine[0]
+      Consensus result: hasConsensus=False, agreement=28 %, common=0, conservativeOnly=12, aggressiveOnly=18
+info: PFMP_API.Services.AI.DualAIAdvisor[0]
+      Dual AI request completed: consensusId=a15e912c-69a7-4ec2-8be9-722ca8b6e7bc, hasConsensus=False, agreement=28 %, elapsed=16183.6613ms, cost=$0.0048
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__startDate_0='?' (DbType = DateTime), @__endDate_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT m."MarketContextId", m."AffectedSectors", m."ContextDate", m."CryptoSentiment", m."DailySummary", m."GeneratedAt", m."GenerationCost", m."MajorEvents", m."MarketSentiment", m."ModelUsed", m."SPYChange", m."SourceArticleCount", m."TokensUsed", m."TreasuryYield10Y", m."VIXLevel"
+      FROM "MarketContexts" AS m
+      WHERE m."ContextDate" >= @__startDate_0 AND m."ContextDate" <= @__endDate_1
+      ORDER BY m."ContextDate"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__cutoff_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT a."ActionMemoryId", a."AccountsAffected", a."ActionDate", a."ActionSummary", a."ActionType", a."AmountMoved", a."AssetClass", a."ExpiresAt", a."IsSignificant", a."ReferenceCount", a."Referenced", a."SourceAdviceId", a."SourceAlertId", a."UserId"
+      FROM "AIActionMemories" AS a
+      WHERE a."UserId" = @__userId_0 AND a."ActionDate" >= @__cutoff_1
+      ORDER BY a."ActionDate" DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__minConfidence_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT a."UserMemoryId", a."ConfidenceScore", a."Context", a."DeprecatedAt", a."DeprecationReason", a."IsActive", a."LastReinforcedAt", a."LearnedAt", a."MemoryKey", a."MemoryType", a."MemoryValue", a."ReinforcementCount", a."SourceAdviceId", a."SourceConversationId", a."UserId"
+      FROM "AIUserMemories" AS a
+      WHERE a."UserId" = @__userId_0 AND a."IsActive" AND a."ConfidenceScore" >= @__minConfidence_1
+      ORDER BY a."ConfidenceScore" DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT a."ConversationId", a."ConversationSummary", a."ConversationType", a."EndedAt", a."GeneratedAdvice", a."MessageCount", a."RelatedAdviceId", a."StartedAt", a."TotalCost", a."TotalTokensUsed", a."UserId"
+      FROM "AIConversations" AS a
+      WHERE a."UserId" = @__userId_0 AND a."EndedAt" IS NULL
+      ORDER BY a."StartedAt" DESC
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__cutoff_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT a."ActionMemoryId", a."AccountsAffected", a."ActionDate", a."ActionSummary", a."ActionType", a."AmountMoved", a."AssetClass", a."ExpiresAt", a."IsSignificant", a."ReferenceCount", a."Referenced", a."SourceAdviceId", a."SourceAlertId", a."UserId"
+      FROM "AIActionMemories" AS a
+      WHERE a."UserId" = @__userId_0 AND a."IsSignificant" AND a."ActionDate" >= @__cutoff_1
+      ORDER BY a."ActionDate" DESC
+info: PFMP_API.Services.AI.DualAIAdvisor[0]
+      Dual AI request started: userId=, promptLength=287
+info: PFMP_API.Services.AI.ClaudeService[0]
+      Claude API call: model=claude-sonnet-4-20250514, promptLength=287, temperature=0.3
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request POST https://api.anthropic.com/v1/messages
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request POST https://api.anthropic.com/v1/messages
+info: PFMP_API.Services.AI.GeminiService[0]
+      Gemini API call: model=gemini-2.5-flash, promptLength=287, temperature=0.3
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 8656.4674ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 8656.5781ms - 200
+info: PFMP_API.Services.AI.ClaudeService[0]
+      Claude success: recommendationId=06438a1d-6bc6-406e-b4f1-4a38384fa7ec, tokens=425, cost=$0.0050, confidence=70 %
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 19247.1734ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 19247.2638ms - 200
+info: PFMP_API.Services.AI.GeminiService[0]
+      Gemini success: model=gemini-2.5-flash, recommendationId=8aeb3497-36d3-479b-b6fb-9641e9bdc64e, tokens=1470, cost=$0.0000, confidence=80 %
+info: PFMP_API.Services.AI.ConsensusEngine[0]
+      Building consensus: conservative=06438a1d-6bc6-406e-b4f1-4a38384fa7ec, aggressive=8aeb3497-36d3-479b-b6fb-9641e9bdc64e
+info: PFMP_API.Services.AI.ConsensusEngine[0]
+      Consensus result: hasConsensus=False, agreement=32 %, common=0, conservativeOnly=12, aggressiveOnly=24
+info: PFMP_API.Services.AI.DualAIAdvisor[0]
+      Dual AI request completed: consensusId=1e43b5e4-9d34-4521-ab6b-be2ec51bf30d, hasConsensus=False, agreement=32 %, elapsed=19254.0733ms, cost=$0.0050
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[@__startDate_0='?' (DbType = DateTime), @__endDate_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT m."MarketContextId", m."AffectedSectors", m."ContextDate", m."CryptoSentiment", m."DailySummary", m."GeneratedAt", m."GenerationCost", m."MajorEvents", m."MarketSentiment", m."ModelUsed", m."SPYChange", m."SourceArticleCount", m."TokensUsed", m."TreasuryYield10Y", m."VIXLevel"
+      FROM "MarketContexts" AS m
+      WHERE m."ContextDate" >= @__startDate_0 AND m."ContextDate" <= @__endDate_1
+      ORDER BY m."ContextDate"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__cutoff_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT a."ActionMemoryId", a."AccountsAffected", a."ActionDate", a."ActionSummary", a."ActionType", a."AmountMoved", a."AssetClass", a."ExpiresAt", a."IsSignificant", a."ReferenceCount", a."Referenced", a."SourceAdviceId", a."SourceAlertId", a."UserId"
+      FROM "AIActionMemories" AS a
+      WHERE a."UserId" = @__userId_0 AND a."ActionDate" >= @__cutoff_1
+      ORDER BY a."ActionDate" DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__minConfidence_1='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT a."UserMemoryId", a."ConfidenceScore", a."Context", a."DeprecatedAt", a."DeprecationReason", a."IsActive", a."LastReinforcedAt", a."LearnedAt", a."MemoryKey", a."MemoryType", a."MemoryValue", a."ReinforcementCount", a."SourceAdviceId", a."SourceConversationId", a."UserId"
+      FROM "AIUserMemories" AS a
+      WHERE a."UserId" = @__userId_0 AND a."IsActive" AND a."ConfidenceScore" >= @__minConfidence_1
+      ORDER BY a."ConfidenceScore" DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT a."ConversationId", a."ConversationSummary", a."ConversationType", a."EndedAt", a."GeneratedAdvice", a."MessageCount", a."RelatedAdviceId", a."StartedAt", a."TotalCost", a."TotalTokensUsed", a."UserId"
+      FROM "AIConversations" AS a
+      WHERE a."UserId" = @__userId_0 AND a."EndedAt" IS NULL
+      ORDER BY a."StartedAt" DESC
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__cutoff_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT a."ActionMemoryId", a."AccountsAffected", a."ActionDate", a."ActionSummary", a."ActionType", a."AmountMoved", a."AssetClass", a."ExpiresAt", a."IsSignificant", a."ReferenceCount", a."Referenced", a."SourceAdviceId", a."SourceAlertId", a."UserId"
+      FROM "AIActionMemories" AS a
+      WHERE a."UserId" = @__userId_0 AND a."IsSignificant" AND a."ActionDate" >= @__cutoff_1
+      ORDER BY a."ActionDate" DESC
+info: PFMP_API.Services.AI.DualAIAdvisor[0]
+      Dual AI request started: userId=, promptLength=252
+info: PFMP_API.Services.AI.ClaudeService[0]
+      Claude API call: model=claude-sonnet-4-20250514, promptLength=252, temperature=0.3
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request POST https://api.anthropic.com/v1/messages
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request POST https://api.anthropic.com/v1/messages
+info: PFMP_API.Services.AI.GeminiService[0]
+      Gemini API call: model=gemini-2.5-flash, promptLength=252, temperature=0.3
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 5246.1751ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 5246.27ms - 200
+info: PFMP_API.Services.AI.GeminiService[0]
+      Gemini success: model=gemini-2.5-flash, recommendationId=1cb07306-6ec8-4b89-9818-4116b62d3615, tokens=423, cost=$0.0000, confidence=75 %
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 7516.6957ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 7516.8253ms - 200
+info: PFMP_API.Services.AI.ClaudeService[0]
+      Claude success: recommendationId=7f693317-0ce4-487c-8f0a-9afc1c9f9e18, tokens=357, cost=$0.0043, confidence=70 %
+info: PFMP_API.Services.AI.ConsensusEngine[0]
+      Building consensus: conservative=7f693317-0ce4-487c-8f0a-9afc1c9f9e18, aggressive=1cb07306-6ec8-4b89-9818-4116b62d3615
+info: PFMP_API.Services.AI.ConsensusEngine[0]
+      Consensus result: hasConsensus=False, agreement=37 %, common=0, conservativeOnly=11, aggressiveOnly=5
+info: PFMP_API.Services.AI.DualAIAdvisor[0]
+      Dual AI request completed: consensusId=d7bd8c59-5a2a-4534-8f41-b9a572511240, hasConsensus=False, agreement=37 %, elapsed=7518.6857ms, cost=$0.0043
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__adviceType_1='?'], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "Advice" AS a
+          WHERE a."UserId" = @__userId_0 AND a."Theme" = @__adviceType_1 AND a."CreatedAt" >= now() + INTERVAL '-14 days')
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[@__userId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT count(*)::int
+      FROM "Advice" AS a
+      WHERE a."UserId" = @__userId_0 AND a."CreatedAt" >= now() + INTERVAL '-7 days'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__userId_0='?' (DbType = Int32), @__cutoff_1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      SELECT a."ActionMemoryId", a."AccountsAffected", a."ActionDate", a."ActionSummary", a."ActionType", a."AmountMoved", a."AssetClass", a."ExpiresAt", a."IsSignificant", a."ReferenceCount", a."Referenced", a."SourceAdviceId", a."SourceAlertId", a."UserId"
+      FROM "AIActionMemories" AS a
+      WHERE a."UserId" = @__userId_0 AND a."IsSignificant" AND a."ActionDate" >= @__cutoff_1
+      ORDER BY a."ActionDate" DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT m."MarketContextId", m."AffectedSectors", m."ContextDate", m."CryptoSentiment", m."DailySummary", m."GeneratedAt", m."GenerationCost", m."MajorEvents", m."MarketSentiment", m."ModelUsed", m."SPYChange", m."SourceArticleCount", m."TokensUsed", m."TreasuryYield10Y", m."VIXLevel"
+      FROM "MarketContexts" AS m
+      ORDER BY m."ContextDate" DESC
+      LIMIT 1
+fail: Microsoft.EntityFrameworkCore.Database.Command[20102]
+      Failed executing DbCommand (10ms) [Parameters=[@p0='?' (DbType = Decimal), @p1='?' (DbType = DateTime), @p2='?', @p3='?' (DbType = Decimal), @p4='?' (DbType = Int32), @p5='?', @p6='?', @p7='?' (DbType = DateTime), @p8='?' (DbType = DateTime), @p9='?', @p10='?' (DbType = Boolean), @p11='?' (DbType = Int32), @p12='?' (DbType = Int32), @p13='?', @p14='?', @p15='?', @p16='?' (DbType = Int32), @p17='?', @p18='?', @p19='?', @p20='?' (DbType = Int32), @p21='?' (DbType = DateTime), @p22='?' (DbType = Int32), @p23='?', @p24='?'], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "Advice" ("AIGenerationCost", "AcceptedAt", "AggressiveRecommendation", "AgreementScore", "ConfidenceScore", "ConsensusText", "ConservativeRecommendation", "CreatedAt", "DismissedAt", "GenerationMethod", "HasConsensus", "LinkedTaskId", "MarketContextId", "ModelsUsed", "PreviousStatus", "PrimaryJson", "SourceAlertId", "SourceAlertSnapshot", "Status", "Theme", "TotalTokensUsed", "UpdatedAt", "UserId", "ValidatorJson", "ViolationsJson")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15, @p16, @p17, @p18, @p19, @p20, @p21, @p22, @p23, @p24)
+      RETURNING "AdviceId";
+fail: Microsoft.EntityFrameworkCore.Update[10000]
+      An exception occurred in the database while saving changes for context type 'PFMP_API.ApplicationDbContext'.
+      Microsoft.EntityFrameworkCore.DbUpdateException: An error occurred while saving the entity changes. See the inner exception for details.
+       ---> Npgsql.PostgresException (0x80004005): 22001: value too long for type character varying(2000)
+         at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+         at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+         at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+         at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+         at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+         at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+         at Npgsql.NpgsqlCommand.ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.ReaderModificationCommandBatch.ExecuteAsync(IRelationalConnection connection, CancellationToken cancellationToken)
+        Exception data:
+          Severity: ERROR
+          SqlState: 22001
+          MessageText: value too long for type character varying(2000)
+          File: varchar.c
+          Line: 632
+          Routine: varchar
          --- End of inner exception stack trace ---
-         at PFMP_API.Services.AI.GeminiService.GetRecommendationAsync(AIPromptRequest request) in C:\pfmp\PFMP-API\Services\AI\GeminiService.cs:line 127
-         at PFMP_API.Services.AI.DualAIAdvisor.GetConsensusRecommendationAsync(AIPromptRequest request) in C:\pfmp\PFMP-API\Services\AI\DualAIAdvisor.cs:line 63
+         at Microsoft.EntityFrameworkCore.Update.ReaderModificationCommandBatch.ExecuteAsync(IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalDatabase.SaveChangesAsync(IList`1 entries, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.ChangeTracking.Internal.StateManager.SaveChangesAsync(IList`1 entriesToSave, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.ChangeTracking.Internal.StateManager.SaveChangesAsync(StateManager stateManager, Boolean acceptAllChangesOnSuccess, CancellationToken cancellationToken)
+         at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.DbContext.SaveChangesAsync(Boolean acceptAllChangesOnSuccess, CancellationToken cancellationToken)
+      Microsoft.EntityFrameworkCore.DbUpdateException: An error occurred while saving the entity changes. See the inner exception for details.
+       ---> Npgsql.PostgresException (0x80004005): 22001: value too long for type character varying(2000)
+         at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+         at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+         at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+         at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+         at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+         at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+         at Npgsql.NpgsqlCommand.ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.ReaderModificationCommandBatch.ExecuteAsync(IRelationalConnection connection, CancellationToken cancellationToken)
+        Exception data:
+          Severity: ERROR
+          SqlState: 22001
+          MessageText: value too long for type character varying(2000)
+          File: varchar.c
+          Line: 632
+          Routine: varchar
+         --- End of inner exception stack trace ---
+         at Microsoft.EntityFrameworkCore.Update.ReaderModificationCommandBatch.ExecuteAsync(IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalDatabase.SaveChangesAsync(IList`1 entries, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.ChangeTracking.Internal.StateManager.SaveChangesAsync(IList`1 entriesToSave, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.ChangeTracking.Internal.StateManager.SaveChangesAsync(StateManager stateManager, Boolean acceptAllChangesOnSuccess, CancellationToken cancellationToken)
+         at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.DbContext.SaveChangesAsync(Boolean acceptAllChangesOnSuccess, CancellationToken cancellationToken)
 fail: PFMP_API.Services.AI.AIIntelligenceService[0]
       Error analyzing finances for user 2
-      System.InvalidOperationException: Gemini API failed after 3 attempts
-       ---> System.NotSupportedException: The 'gemini-2.5-flash' scheme is not supported.
-         at Microsoft.Extensions.Http.Logging.LoggingHttpMessageHandler.<SendCoreAsync>g__Core|4_0(HttpRequestMessage request, Boolean useAsync, CancellationToken cancellationToken)
-         at Microsoft.Extensions.Http.Logging.LoggingScopeHttpMessageHandler.<SendCoreAsync>g__Core|4_0(HttpRequestMessage request, Boolean useAsync, CancellationToken cancellationToken)
-         at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
-         at PFMP_API.Services.AI.GeminiService.GetRecommendationAsync(AIPromptRequest request) in C:\pfmp\PFMP-API\Services\AI\GeminiService.cs:line 80
+      Microsoft.EntityFrameworkCore.DbUpdateException: An error occurred while saving the entity changes. See the inner exception for details.
+       ---> Npgsql.PostgresException (0x80004005): 22001: value too long for type character varying(2000)
+         at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+         at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+         at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+         at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+         at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+         at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+         at Npgsql.NpgsqlCommand.ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.ReaderModificationCommandBatch.ExecuteAsync(IRelationalConnection connection, CancellationToken cancellationToken)
+        Exception data:
+          Severity: ERROR
+          SqlState: 22001
+          MessageText: value too long for type character varying(2000)
+          File: varchar.c
+          Line: 632
+          Routine: varchar
          --- End of inner exception stack trace ---
-         at PFMP_API.Services.AI.GeminiService.GetRecommendationAsync(AIPromptRequest request) in C:\pfmp\PFMP-API\Services\AI\GeminiService.cs:line 127
-         at PFMP_API.Services.AI.DualAIAdvisor.GetConsensusRecommendationAsync(AIPromptRequest request) in C:\pfmp\PFMP-API\Services\AI\DualAIAdvisor.cs:line 63
-         at PFMP_API.Services.AI.AIIntelligenceService.AnalyzeCashOptimizationAsync(Int32 userId) in C:\pfmp\PFMP-API\Services\AI\AIIntelligenceService.cs:line 121
-         at PFMP_API.Services.AI.AIIntelligenceService.AnalyzeUserFinancesAsync(Int32 userId, Boolean forceAnalysis) in C:\pfmp\PFMP-API\Services\AI\AIIntelligenceService.cs:line 59
+         at Microsoft.EntityFrameworkCore.Update.ReaderModificationCommandBatch.ExecuteAsync(IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalDatabase.SaveChangesAsync(IList`1 entries, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.ChangeTracking.Internal.StateManager.SaveChangesAsync(IList`1 entriesToSave, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.ChangeTracking.Internal.StateManager.SaveChangesAsync(StateManager stateManager, Boolean acceptAllChangesOnSuccess, CancellationToken cancellationToken)
+         at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.DbContext.SaveChangesAsync(Boolean acceptAllChangesOnSuccess, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.DbContext.SaveChangesAsync(Boolean acceptAllChangesOnSuccess, CancellationToken cancellationToken)
+         at PFMP_API.Services.AI.AIIntelligenceService.CreateAdviceFromConsensusAsync(Int32 userId, String theme, ConsensusResult consensus, Nullable`1 sourceAlertId) in C:\pfmp\PFMP-API\Services\AI\AIIntelligenceService.cs:line 601
+         at PFMP_API.Services.AI.AIIntelligenceService.AnalyzeUserFinancesAsync(Int32 userId, Boolean forceAnalysis) in C:\pfmp\PFMP-API\Services\AI\AIIntelligenceService.cs:line 85
 fail: PFMP_API.Controllers.AIIntelligenceController[0]
       Error analyzing finances for user 2
-      System.InvalidOperationException: Gemini API failed after 3 attempts
-       ---> System.NotSupportedException: The 'gemini-2.5-flash' scheme is not supported.
-         at Microsoft.Extensions.Http.Logging.LoggingHttpMessageHandler.<SendCoreAsync>g__Core|4_0(HttpRequestMessage request, Boolean useAsync, CancellationToken cancellationToken)
-         at Microsoft.Extensions.Http.Logging.LoggingScopeHttpMessageHandler.<SendCoreAsync>g__Core|4_0(HttpRequestMessage request, Boolean useAsync, CancellationToken cancellationToken)
-         at System.Net.Http.HttpClient.<SendAsync>g__Core|83_0(HttpRequestMessage request, HttpCompletionOption completionOption, CancellationTokenSource cts, Boolean disposeCts, CancellationTokenSource pendingRequestsCts, CancellationToken originalCancellationToken)
-         at PFMP_API.Services.AI.GeminiService.GetRecommendationAsync(AIPromptRequest request) in C:\pfmp\PFMP-API\Services\AI\GeminiService.cs:line 80
+      Microsoft.EntityFrameworkCore.DbUpdateException: An error occurred while saving the entity changes. See the inner exception for details.
+       ---> Npgsql.PostgresException (0x80004005): 22001: value too long for type character varying(2000)
+         at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
+         at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
+         at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+         at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
+         at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+         at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
+         at Npgsql.NpgsqlCommand.ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.ReaderModificationCommandBatch.ExecuteAsync(IRelationalConnection connection, CancellationToken cancellationToken)
+        Exception data:
+          Severity: ERROR
+          SqlState: 22001
+          MessageText: value too long for type character varying(2000)
+          File: varchar.c
+          Line: 632
+          Routine: varchar
          --- End of inner exception stack trace ---
-         at PFMP_API.Services.AI.GeminiService.GetRecommendationAsync(AIPromptRequest request) in C:\pfmp\PFMP-API\Services\AI\GeminiService.cs:line 127
-         at PFMP_API.Services.AI.DualAIAdvisor.GetConsensusRecommendationAsync(AIPromptRequest request) in C:\pfmp\PFMP-API\Services\AI\DualAIAdvisor.cs:line 63
-         at PFMP_API.Services.AI.AIIntelligenceService.AnalyzeCashOptimizationAsync(Int32 userId) in C:\pfmp\PFMP-API\Services\AI\AIIntelligenceService.cs:line 121
-         at PFMP_API.Services.AI.AIIntelligenceService.AnalyzeUserFinancesAsync(Int32 userId, Boolean forceAnalysis) in C:\pfmp\PFMP-API\Services\AI\AIIntelligenceService.cs:line 59
+         at Microsoft.EntityFrameworkCore.Update.ReaderModificationCommandBatch.ExecuteAsync(IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Update.Internal.BatchExecutor.ExecuteAsync(IEnumerable`1 commandBatches, IRelationalConnection connection, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.Storage.RelationalDatabase.SaveChangesAsync(IList`1 entries, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.ChangeTracking.Internal.StateManager.SaveChangesAsync(IList`1 entriesToSave, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.ChangeTracking.Internal.StateManager.SaveChangesAsync(StateManager stateManager, Boolean acceptAllChangesOnSuccess, CancellationToken cancellationToken)
+         at Npgsql.EntityFrameworkCore.PostgreSQL.Storage.Internal.NpgsqlExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.DbContext.SaveChangesAsync(Boolean acceptAllChangesOnSuccess, CancellationToken cancellationToken)
+         at Microsoft.EntityFrameworkCore.DbContext.SaveChangesAsync(Boolean acceptAllChangesOnSuccess, CancellationToken cancellationToken)
+         at PFMP_API.Services.AI.AIIntelligenceService.CreateAdviceFromConsensusAsync(Int32 userId, String theme, ConsensusResult consensus, Nullable`1 sourceAlertId) in C:\pfmp\PFMP-API\Services\AI\AIIntelligenceService.cs:line 601
+         at PFMP_API.Services.AI.AIIntelligenceService.AnalyzeUserFinancesAsync(Int32 userId, Boolean forceAnalysis) in C:\pfmp\PFMP-API\Services\AI\AIIntelligenceService.cs:line 85
          at PFMP_API.Controllers.AIIntelligenceController.AnalyzeUserFinances(Int32 userId, Boolean force) in C:\pfmp\PFMP-API\Controllers\AIIntelligenceController.cs:line 43

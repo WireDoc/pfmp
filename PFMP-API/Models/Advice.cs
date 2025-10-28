@@ -99,13 +99,13 @@ namespace PFMP_API.Models
         /// <summary>
         /// Conservative AI recommendation (Claude typically)
         /// </summary>
-        [MaxLength(2000)]
+        [MaxLength(5000)]
         public string? ConservativeRecommendation { get; set; }
 
         /// <summary>
         /// Aggressive AI recommendation (Gemini typically)
         /// </summary>
-        [MaxLength(2000)]
+        [MaxLength(5000)]
         public string? AggressiveRecommendation { get; set; }
 
         /// <summary>

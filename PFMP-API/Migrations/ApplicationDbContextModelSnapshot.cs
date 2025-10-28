@@ -404,8 +404,8 @@ namespace PFMP_API.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("AggressiveRecommendation")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
+                        .HasMaxLength(5000)
+                        .HasColumnType("character varying(5000)");
 
                     b.Property<decimal?>("AgreementScore")
                         .HasColumnType("decimal(5,2)");
@@ -418,8 +418,8 @@ namespace PFMP_API.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("ConservativeRecommendation")
-                        .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
+                        .HasMaxLength(5000)
+                        .HasColumnType("character varying(5000)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
