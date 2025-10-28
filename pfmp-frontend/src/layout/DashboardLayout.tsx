@@ -50,6 +50,28 @@ function DashboardLayoutInner() {
   
   return (
     <>
+      {/* Skip Link for Keyboard Navigation */}
+      <Box
+        component="a"
+        href="#main-content"
+        sx={{
+          position: 'absolute',
+          left: '-9999px',
+          top: '0',
+          zIndex: 9999,
+          padding: '8px 16px',
+          backgroundColor: 'primary.main',
+          color: 'primary.contrastText',
+          textDecoration: 'none',
+          borderRadius: '0 0 4px 0',
+          '&:focus': {
+            left: '0',
+          },
+        }}
+      >
+        Skip to main content
+      </Box>
+
       {/* Sidebar Navigation */}
       <DashboardNav
         collapsed={sidebarCollapsed}
@@ -78,7 +100,7 @@ function DashboardLayoutInner() {
         <DashboardBreadcrumbs />
         
         {/* Route Content */}
-        <Box sx={{ flexGrow: 1 }}>
+        <Box id="main-content" sx={{ flexGrow: 1 }}>
           <Outlet />
         </Box>
         
