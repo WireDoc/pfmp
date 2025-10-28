@@ -94,6 +94,56 @@ namespace PFMP_API.Models
     /// </summary>
     public string? SourceAlertSnapshot { get; set; }
 
+        // ===== Wave 7: Dual AI Integration Fields =====
+
+        /// <summary>
+        /// Conservative AI recommendation (Claude typically)
+        /// </summary>
+        [MaxLength(2000)]
+        public string? ConservativeRecommendation { get; set; }
+
+        /// <summary>
+        /// Aggressive AI recommendation (Gemini typically)
+        /// </summary>
+        [MaxLength(2000)]
+        public string? AggressiveRecommendation { get; set; }
+
+        /// <summary>
+        /// Agreement score between dual AIs (0-1)
+        /// </summary>
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal? AgreementScore { get; set; }
+
+        /// <summary>
+        /// Did both AIs agree on this recommendation?
+        /// </summary>
+        public bool? HasConsensus { get; set; }
+
+        /// <summary>
+        /// Total cost to generate this advice (USD)
+        /// </summary>
+        [Column(TypeName = "decimal(10,6)")]
+        public decimal? AIGenerationCost { get; set; }
+
+        /// <summary>
+        /// Total tokens used across both AI models
+        /// </summary>
+        public int? TotalTokensUsed { get; set; }
+
+        /// <summary>
+        /// Market context ID used when generating this advice
+        /// </summary>
+        public int? MarketContextId { get; set; }
+
+        [ForeignKey(nameof(MarketContextId))]
+        public MarketContext? MarketContext { get; set; }
+
+        /// <summary>
+        /// Which AI models were used (JSON array): ["claude-3-5-sonnet", "gemini-1.5-pro"]
+        /// </summary>
+        [MaxLength(200)]
+        public string? ModelsUsed { get; set; }
+
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

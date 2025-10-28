@@ -57,6 +57,32 @@ namespace PFMP_API.Models
     /// </summary>
     public int PortfolioImpactScore { get; set; } = 0;
 
+        // ===== Wave 7: AI Context Fields =====
+
+        /// <summary>
+        /// Has AI analyzed this alert yet?
+        /// </summary>
+        public bool AIAnalyzed { get; set; } = false;
+
+        /// <summary>
+        /// When AI last analyzed this alert
+        /// </summary>
+        public DateTime? AIAnalyzedAt { get; set; }
+
+        /// <summary>
+        /// Market context ID when alert was generated
+        /// </summary>
+        public int? MarketContextId { get; set; }
+
+        [ForeignKey(nameof(MarketContextId))]
+        public MarketContext? MarketContext { get; set; }
+
+        /// <summary>
+        /// AI-generated context or reasoning (brief)
+        /// </summary>
+        [MaxLength(500)]
+        public string? AIContext { get; set; }
+
         // Navigation properties
         [JsonIgnore] // Prevent circular reference in JSON serialization
         public virtual User User { get; set; } = null!;

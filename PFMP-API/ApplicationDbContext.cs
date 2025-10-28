@@ -35,6 +35,13 @@ namespace PFMP_API
     // Advisory / Recommendations
     public DbSet<Advice> Advice { get; set; }
 
+        // Wave 7: AI Intelligence & Memory
+        public DbSet<MarketContext> MarketContexts { get; set; }
+        public DbSet<AIConversation> AIConversations { get; set; }
+        public DbSet<AIMessage> AIMessages { get; set; }
+        public DbSet<AIActionMemory> AIActionMemories { get; set; }
+        public DbSet<AIUserMemory> AIUserMemories { get; set; }
+
     // Onboarding (Wave 3)
         public DbSet<OnboardingProgress> OnboardingProgress { get; set; }
 
