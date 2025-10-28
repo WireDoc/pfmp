@@ -5,8 +5,9 @@ using Microsoft.Extensions.Options;
 namespace PFMP_API.Services.AI;
 
 /// <summary>
-/// Anthropic Claude 3.5 Sonnet service - Conservative AI financial advisor.
+/// Anthropic Claude Sonnet 4 service - Conservative AI financial advisor.
 /// Focuses on safety, risk mitigation, and prudent financial strategies.
+/// Uses the latest Claude Sonnet 4 model (May 2025) for enhanced reasoning.
 /// </summary>
 public class ClaudeService : IAIFinancialAdvisor
 {
