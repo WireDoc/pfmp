@@ -11,7 +11,10 @@
     "smoke": "node scripts/smoke.mjs",
     "generate:api": "openapi-typescript http://localhost:5052/swagger/v1/swagger.json --output src/api/generated/openapi-types.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:update": "playwright test --update-snapshots"
   },
   "dependencies": {
     "@azure/msal-browser": "^3.24.0",
@@ -32,10 +35,12 @@
   "devDependencies": {
     "@axe-core/react": "^4.11.0",
     "@eslint/js": "^9.35.0",
+    "@playwright/test": "^1.56.1",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.5.0",
     "@testing-library/react": "^16.0.0",
     "@testing-library/user-event": "^14.5.2",
+    "@types/node": "^24.9.1",
     "@types/react": "^19.1.14",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.4",

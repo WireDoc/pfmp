@@ -79,7 +79,7 @@ export function useDataRefresh(options: UseDataRefreshOptions): UseDataRefreshRe
   const [error, setError] = useState<Error | null>(null);
   const [timeSinceRefresh, setTimeSinceRefresh] = useState<string>('Never');
   
-  const intervalRef = useRef<number | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isRefreshingRef = useRef(false);
   const hasSetInitialTimestamp = useRef(false);
 
