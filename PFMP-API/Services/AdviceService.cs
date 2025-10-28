@@ -1,24 +1,31 @@
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
 using PFMP_API.Services;
+using PFMP_API.Services.AI;
 
 namespace PFMP_API.Services
 {
     /// <summary>
-    /// Wave 1 stub implementation: wraps existing AI portfolio analysis into an Advice record.
-    /// Future waves will add validator + rule evaluation + structured JSON.
+    /// Wave 7 enhanced: Uses AIIntelligenceService for comprehensive dual-AI analysis with memory
     /// </summary>
     public class AdviceService : IAdviceService
     {
         private readonly ApplicationDbContext _db;
-        private readonly IAIService _aiService;
-    private readonly IAdviceValidator _validator;
-    private readonly ILogger<AdviceService> _logger;
+        private readonly IAIService _aiService; // Legacy - keep for fallback
+        private readonly IAIIntelligenceService _aiIntelligence; // Wave 7 AI system
+        private readonly IAdviceValidator _validator;
+        private readonly ILogger<AdviceService> _logger;
 
-        public AdviceService(ApplicationDbContext db, IAIService aiService, IAdviceValidator validator, ILogger<AdviceService> logger)
+        public AdviceService(
+            ApplicationDbContext db, 
+            IAIService aiService, 
+            IAIIntelligenceService aiIntelligence,
+            IAdviceValidator validator, 
+            ILogger<AdviceService> logger)
         {
             _db = db;
             _aiService = aiService;
+            _aiIntelligence = aiIntelligence;
             _validator = validator;
             _logger = logger;
         }
@@ -31,33 +38,67 @@ namespace PFMP_API.Services
                 throw new ArgumentException($"User {userId} not found");
             }
 
-            string analysisText = string.Empty;
+            Advice advice;
+
             try
             {
-                analysisText = await _aiService.AnalyzePortfolioAsync(userId) ?? string.Empty;
+                // Wave 7: Use new AI intelligence system with comprehensive analysis
+                _logger.LogInformation("Generating AI advice for user {UserId} using Wave 7 intelligence system", userId);
+                
+                var analysis = await _aiIntelligence.AnalyzeCashOptimizationAsync(userId);
+                
+                advice = new Advice
+                {
+                    UserId = userId,
+                    Theme = "CashOptimization",
+                    Status = "Proposed",
+                    ConsensusText = analysis.ConsensusRecommendation ?? "See individual AI recommendations below",
+                    ConservativeRecommendation = analysis.ConservativeAdvice?.RecommendationText,
+                    AggressiveRecommendation = analysis.AggressiveAdvice?.RecommendationText,
+                    ConfidenceScore = (int)((analysis.ConservativeAdvice?.ConfidenceScore ?? 0.6m) * 100),
+                    HasConsensus = analysis.HasConsensus,
+                    AgreementScore = analysis.AgreementScore,
+                    AIGenerationCost = analysis.TotalCost,
+                    TotalTokensUsed = analysis.TotalTokens,
+                    GenerationMethod = "AI",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "AI analysis failed for user {UserId}; using fallback", userId);
-                analysisText = "Unable to retrieve AI analysis at this time. Please try again later.";
-            }
+                // Fallback to legacy AI service
+                _logger.LogError(ex, "Wave 7 AI analysis failed for user {UserId}; using legacy fallback", userId);
+                
+                string analysisText = string.Empty;
+                try
+                {
+                    analysisText = await _aiService.AnalyzePortfolioAsync(userId) ?? string.Empty;
+                }
+                catch (Exception legacyEx)
+                {
+                    _logger.LogError(legacyEx, "Legacy AI analysis also failed for user {UserId}", userId);
+                    analysisText = "Unable to retrieve AI analysis at this time. Please try again later.";
+                }
 
-            // Trim & bound length (simple safety net)
-            if (analysisText.Length > 8000)
-            {
-                analysisText = analysisText.Substring(0, 8000) + "...";
-            }
+                // Trim & bound length
+                if (analysisText.Length > 8000)
+                {
+                    analysisText = analysisText.Substring(0, 8000) + "...";
+                }
 
-            var advice = new Advice
-            {
-                UserId = userId,
-                Theme = "General",
-                Status = "Proposed",
-                ConsensusText = analysisText.Trim(),
-                ConfidenceScore = 60,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+                advice = new Advice
+                {
+                    UserId = userId,
+                    Theme = "General",
+                    Status = "Proposed",
+                    ConsensusText = analysisText.Trim(),
+                    ConfidenceScore = 60,
+                    GenerationMethod = "LegacyAI",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+            }
 
             // Run validator stub
             try
@@ -179,6 +220,22 @@ namespace PFMP_API.Services
             advice.UpdatedAt = DateTime.UtcNow;
             advice.DismissedAt = null; // ensure cleared if previously dismissed
             await _db.SaveChangesAsync();
+
+            // Wave 7: Record action in AI memory
+            try
+            {
+                await _aiIntelligence.RecordUserActionAsync(
+                    advice.UserId,
+                    "AdviceAccepted",
+                    $"Accepted advice: {advice.Theme}",
+                    sourceAdviceId: advice.AdviceId
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to record advice acceptance in AI memory for advice {AdviceId}", adviceId);
+            }
+
             return advice;
         }
 
@@ -207,42 +264,73 @@ namespace PFMP_API.Services
                 throw new ArgumentException($"Alert {alertId} not found for user {userId}");
             }
 
-            var baseText = $"Alert: {alert.Title}\n{alert.Message}";
-            string enriched = baseText;
+            Advice advice;
+
             try
             {
-                // Attempt AI expansion - fallback to base alert text if fails
-                var analysis = await _aiService.AnalyzePortfolioAsync(userId) ?? string.Empty;
-                enriched = (analysis.Length > 0 ? analysis + "\n\n" : string.Empty) + baseText;
+                // Wave 7: Use AI intelligence system for alert-to-advice conversion
+                _logger.LogInformation("Generating AI advice from alert {AlertId} for user {UserId}", alertId, userId);
+                advice = await _aiIntelligence.GenerateAdviceFromAlertAsync(alertId, userId);
+                
+                // Add snapshot if requested
+                if (includeSnapshot && string.IsNullOrEmpty(advice.SourceAlertSnapshot))
+                {
+                    advice.SourceAlertSnapshot = System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        alert.AlertId,
+                        alert.Title,
+                        alert.Message,
+                        alert.Category,
+                        alert.Severity,
+                        alert.CreatedAt
+                    });
+                    await _db.SaveChangesAsync();
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "AI enrichment failed for alert advice generation {AlertId}", alertId);
-            }
-
-            if (enriched.Length > 8000) enriched = enriched[..8000] + "...";
-
-            var advice = new Advice
-            {
-                UserId = userId,
-                Theme = alert.Category.ToString(),
-                Status = "Proposed",
-                ConsensusText = enriched,
-                ConfidenceScore = 55,
-                SourceAlertId = alert.AlertId,
-                GenerationMethod = "FromAlert",
-                SourceAlertSnapshot = includeSnapshot ? System.Text.Json.JsonSerializer.Serialize(new
+                // Fallback to legacy approach
+                _logger.LogWarning(ex, "Wave 7 alert-to-advice failed for alert {AlertId}, using legacy approach", alertId);
+                
+                var baseText = $"Alert: {alert.Title}\n{alert.Message}";
+                string enriched = baseText;
+                try
                 {
-                    alert.AlertId,
-                    alert.Title,
-                    alert.Message,
-                    alert.Category,
-                    alert.Severity,
-                    alert.CreatedAt
-                }) : null,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+                    // Attempt AI expansion - fallback to base alert text if fails
+                    var analysis = await _aiService.AnalyzePortfolioAsync(userId) ?? string.Empty;
+                    enriched = (analysis.Length > 0 ? analysis + "\n\n" : string.Empty) + baseText;
+                }
+                catch (Exception aiEx)
+                {
+                    _logger.LogWarning(aiEx, "AI enrichment failed for alert advice generation {AlertId}", alertId);
+                }
+
+                if (enriched.Length > 8000) enriched = enriched[..8000] + "...";
+
+                advice = new Advice
+                {
+                    UserId = userId,
+                    Theme = alert.Category.ToString(),
+                    Status = "Proposed",
+                    ConsensusText = enriched,
+                    ConfidenceScore = 55,
+                    SourceAlertId = alert.AlertId,
+                    GenerationMethod = "FromAlert",
+                    SourceAlertSnapshot = includeSnapshot ? System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        alert.AlertId,
+                        alert.Title,
+                        alert.Message,
+                        alert.Category,
+                        alert.Severity,
+                        alert.CreatedAt
+                    }) : null,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                
+                _db.Advice.Add(advice);
+            }
 
             // Apply validator heuristic
             try
@@ -257,7 +345,11 @@ namespace PFMP_API.Services
                 _logger.LogWarning(ex, "Validator failed for alert-derived advice {AlertId}", alertId);
             }
 
-            _db.Advice.Add(advice);
+            // Ensure advice is saved (either new legacy one, or Wave 7 one that was already saved)
+            if (advice.AdviceId == 0)
+            {
+                _db.Advice.Add(advice);
+            }
             await _db.SaveChangesAsync();
             return advice;
         }
