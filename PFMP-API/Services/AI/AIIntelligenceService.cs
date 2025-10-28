@@ -111,9 +111,9 @@ namespace PFMP_API.Services.AI
             
             var prompt = new AIPromptRequest
             {
-                SystemPrompt = "You are a financial advisor analyzing cash management.",
+                SystemPrompt = "You are a financial advisor analyzing cash management. Be concise and actionable. Use bullet points.",
                 UserPrompt = context,
-                MaxTokens = 3000,
+                MaxTokens = 1500,
                 Temperature = 0.3m
             };
 
@@ -126,9 +126,9 @@ namespace PFMP_API.Services.AI
             
             var prompt = new AIPromptRequest
             {
-                SystemPrompt = "You are a financial advisor analyzing portfolio allocation and rebalancing needs.",
+                SystemPrompt = "You are a financial advisor analyzing portfolio allocation and rebalancing needs. Be concise and actionable. Use bullet points.",
                 UserPrompt = context,
-                MaxTokens = 3000,
+                MaxTokens = 1500,
                 Temperature = 0.3m
             };
 
@@ -141,9 +141,9 @@ namespace PFMP_API.Services.AI
             
             var prompt = new AIPromptRequest
             {
-                SystemPrompt = "You are a federal employee retirement advisor analyzing TSP (Thrift Savings Plan) allocations.",
+                SystemPrompt = "You are a federal employee retirement advisor analyzing TSP (Thrift Savings Plan) allocations. Be concise and actionable. Use bullet points.",
                 UserPrompt = context,
-                MaxTokens = 3000,
+                MaxTokens = 1500,
                 Temperature = 0.3m
             };
 
@@ -156,9 +156,9 @@ namespace PFMP_API.Services.AI
             
             var prompt = new AIPromptRequest
             {
-                SystemPrompt = "You are a financial advisor analyzing risk tolerance alignment.",
+                SystemPrompt = "You are a financial advisor analyzing risk tolerance alignment. Be concise and actionable. Use bullet points.",
                 UserPrompt = context,
-                MaxTokens = 3000,
+                MaxTokens = 1500,
                 Temperature = 0.3m
             };
 
@@ -188,9 +188,9 @@ namespace PFMP_API.Services.AI
 
             var prompt = new AIPromptRequest
             {
-                SystemPrompt = "You are a financial advisor providing actionable recommendations based on portfolio alerts.",
+                SystemPrompt = "You are a financial advisor providing actionable recommendations based on portfolio alerts. Be concise and focus on specific actions.",
                 UserPrompt = context,
-                MaxTokens = 3000,
+                MaxTokens = 1500,
                 Temperature = 0.3m
             };
 
@@ -236,7 +236,7 @@ namespace PFMP_API.Services.AI
             {
                 SystemPrompt = BuildChatSystemPrompt(),
                 UserPrompt = context,
-                MaxTokens = 2000,
+                MaxTokens = 1000,
                 Temperature = 0.4m
             };
 
@@ -475,13 +475,13 @@ namespace PFMP_API.Services.AI
             return @"You are a knowledgeable financial advisor having a conversation with a client.
 
 Guidelines:
-- Be conversational but professional
+- Be conversational but professional and CONCISE
+- Keep responses under 200 words unless complex analysis required
+- Use bullet points for action items
 - Reference their recent actions and preferences when relevant
-- Consider current market conditions in your advice
-- If you notice they just made a financial move, acknowledge it
-- Suggest 'holding' or 'waiting' if they recently acted
+- If you notice they just made a financial move, acknowledge it and suggest waiting
 - Be specific with numbers and timeframes
-- End with a clear recommendation or next step
+- End with a clear, actionable next step
 
 Remember: You have memory of past conversations and their financial actions.";
         }
