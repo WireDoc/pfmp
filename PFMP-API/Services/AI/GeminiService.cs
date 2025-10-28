@@ -76,8 +76,14 @@ public class GeminiService : IAIFinancialAdvisor
         {
             try
             {
-                var url = $"{modelToUse}:generateContent?key={_options.ApiKey}";
-                var response = await _httpClient.PostAsJsonAsync(url, geminiRequest);
+                // Construct full URL: base + model + operation + key
+                var fullUrl = $"{_options.ApiUrl}/{modelToUse}:generateContent?key={_options.ApiKey}";
+                var httpRequest = new HttpRequestMessage(HttpMethod.Post, fullUrl)
+                {
+                    Content = JsonContent.Create(geminiRequest)
+                };
+                
+                var response = await _httpClient.SendAsync(httpRequest);
 
                 if (response.IsSuccessStatusCode)
                 {

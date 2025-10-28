@@ -50,19 +50,18 @@ namespace PFMP_API.Services.AI
 
             try
             {
-                // Run specific analyses in parallel
-                var cashTask = AnalyzeCashOptimizationAsync(userId);
-                var rebalanceTask = AnalyzePortfolioRebalancingAsync(userId);
-                var tspTask = AnalyzeTSPAllocationAsync(userId);
-                var riskTask = AnalyzeRiskAlignmentAsync(userId);
-
-                await Task.WhenAll(cashTask, rebalanceTask, tspTask, riskTask);
+                // Run specific analyses sequentially to avoid DbContext threading issues
+                // TODO: Optimize with IDbContextFactory for parallel execution
+                var cashResult = await AnalyzeCashOptimizationAsync(userId);
+                var rebalanceResult = await AnalyzePortfolioRebalancingAsync(userId);
+                var tspResult = await AnalyzeTSPAllocationAsync(userId);
+                var riskResult = await AnalyzeRiskAlignmentAsync(userId);
 
                 // Collect results
-                result.DetailedFindings["CashOptimization"] = await cashTask;
-                result.DetailedFindings["Rebalancing"] = await rebalanceTask;
-                result.DetailedFindings["TSP"] = await tspTask;
-                result.DetailedFindings["Risk"] = await riskTask;
+                result.DetailedFindings["CashOptimization"] = cashResult;
+                result.DetailedFindings["Rebalancing"] = rebalanceResult;
+                result.DetailedFindings["TSP"] = tspResult;
+                result.DetailedFindings["Risk"] = riskResult;
 
                 // Generate alerts and advice based on findings
                 foreach (var finding in result.DetailedFindings)
