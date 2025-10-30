@@ -1,6 +1,23 @@
 namespace PFMP_API.Services.AI;
 
 /// <summary>
+/// Configuration options for OpenAI GPT service (Primary AI).
+/// </summary>
+public class OpenAIServiceOptions
+{
+    public string ApiKey { get; set; } = string.Empty;
+    public string Endpoint { get; set; } = "https://api.openai.com/v1";
+    public string Model { get; set; } = "gpt-4"; // Will use GPT-5 when available
+    public int MaxTokens { get; set; } = 4000;
+    public decimal Temperature { get; set; } = 0.3m;
+    public int TimeoutSeconds { get; set; } = 60;
+    public int MaxRetries { get; set; } = 3;
+    public bool EnableCostTracking { get; set; } = true;
+    public decimal InputCostPerMTok { get; set; } = 5.0m;  // GPT-4 Turbo pricing
+    public decimal OutputCostPerMTok { get; set; } = 15.0m; // GPT-4 Turbo pricing
+}
+
+/// <summary>
 /// Configuration options for Anthropic Claude service.
 /// </summary>
 public class ClaudeServiceOptions

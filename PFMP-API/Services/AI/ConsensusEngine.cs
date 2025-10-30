@@ -81,6 +81,220 @@ public class ConsensusEngine
     }
 
     /// <summary>
+    /// Build corroboration result from primary AI recommendation and backup review.
+    /// This is different from consensus - the backup is validating/adjusting the primary, not providing independent analysis.
+    /// </summary>
+    public ConsensusResult BuildCorroboration(
+        AIRecommendation primary,
+        AIRecommendation backup)
+    {
+        _logger.LogInformation(
+            "Building corroboration: primary={PrimaryId} ({PrimaryService}), backup={BackupId} ({BackupService})",
+            primary.RecommendationId, primary.ServiceName, backup.RecommendationId, backup.ServiceName);
+
+        // Parse backup's agreement level from its response
+        var (agreementLevel, backupAgreementScore) = ParseBackupAgreement(backup.RecommendationText);
+
+        // Determine if backup corroborates or disagrees
+        var hasCorroboration = backupAgreementScore >= 0.6m; // 60% agreement threshold for corroboration
+
+        // Extract backup's concerns and adjustments
+        var backupConcerns = ExtractBackupConcerns(backup.RecommendationText);
+        var backupAdjustments = ExtractBackupAdjustments(backup.RecommendationText);
+
+        // Build final recommendation
+        string finalRecommendation;
+        string disagreementExplanation = string.Empty;
+
+        if (hasCorroboration)
+        {
+            // Backup corroborates with potential minor adjustments
+            finalRecommendation = BuildCorroboratedRecommendation(primary, backup, backupAdjustments);
+            
+            if (backupConcerns.Any())
+            {
+                finalRecommendation += "\n\n**Backup AI Cautions:**\n";
+                foreach (var concern in backupConcerns)
+                {
+                    finalRecommendation += $"- {concern}\n";
+                }
+            }
+        }
+        else
+        {
+            // Backup disagrees - provide both perspectives
+            disagreementExplanation = BuildCorroborationDisagreement(
+                primary, backup, agreementLevel, backupConcerns);
+            
+            // Default to primary but note the disagreement
+            finalRecommendation = primary.RecommendationText;
+        }
+
+        var result = new ConsensusResult
+        {
+            ConsensusId = Guid.NewGuid().ToString(),
+            PrimaryRecommendation = primary,
+            BackupCorroboration = backup,
+            AgreementScore = backupAgreementScore,
+            HasConsensus = hasCorroboration,
+            ConsensusRecommendation = finalRecommendation,
+            DisagreementExplanation = hasCorroboration ? null : disagreementExplanation,
+            CommonActionItems = hasCorroboration ? primary.ActionItems : new List<string>(),
+            ConservativeOnlyItems = new List<string>(), // Not applicable in primary-backup model
+            AggressiveOnlyItems = new List<string>(),   // Not applicable in primary-backup model
+            TotalCost = primary.EstimatedCost + backup.EstimatedCost,
+            TotalTokens = primary.TokensUsed + backup.TokensUsed,
+            GeneratedAt = DateTime.UtcNow,
+            Metadata = new Dictionary<string, object>
+            {
+                { "mode", "primary-backup" },
+                { "primaryService", primary.ServiceName },
+                { "backupService", backup.ServiceName },
+                { "agreementLevel", agreementLevel },
+                { "backupConcerns", backupConcerns.Count },
+                { "backupAdjustments", backupAdjustments.Count }
+            }
+        };
+
+        _logger.LogInformation(
+            "Corroboration result: hasCorroboration={HasCorroboration}, agreement={Agreement:P0}, concerns={Concerns}, adjustments={Adjustments}",
+            hasCorroboration, backupAgreementScore, backupConcerns.Count, backupAdjustments.Count);
+
+        return result;
+    }
+
+    /// <summary>
+    /// Parse the backup AI's agreement level from its response text.
+    /// Returns (agreementLevel, score) where score is 0.0-1.0.
+    /// </summary>
+    private (string level, decimal score) ParseBackupAgreement(string backupText)
+    {
+        var lowerText = backupText.ToLower();
+
+        if (lowerText.Contains("strongly agree"))
+            return ("Strongly Agree", 1.0m);
+        if (lowerText.Contains("agree"))
+            return ("Agree", 0.8m);
+        if (lowerText.Contains("neutral") || lowerText.Contains("mixed"))
+            return ("Neutral", 0.5m);
+        if (lowerText.Contains("disagree") && !lowerText.Contains("strongly disagree"))
+            return ("Disagree", 0.3m);
+        if (lowerText.Contains("strongly disagree"))
+            return ("Strongly Disagree", 0.0m);
+
+        // Default if not explicitly stated
+        return ("Neutral", 0.5m);
+    }
+
+    private List<string> ExtractBackupConcerns(string backupText)
+    {
+        var concerns = new List<string>();
+        var lines = backupText.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        bool inConcernsSection = false;
+
+        foreach (var line in lines)
+        {
+            var trimmed = line.Trim();
+            
+            if (trimmed.Contains("Concerns", StringComparison.OrdinalIgnoreCase) ||
+                trimmed.Contains("Caution", StringComparison.OrdinalIgnoreCase) ||
+                trimmed.Contains("Risks", StringComparison.OrdinalIgnoreCase))
+            {
+                inConcernsSection = true;
+                continue;
+            }
+
+            if (trimmed.StartsWith("**") && inConcernsSection)
+            {
+                inConcernsSection = false;
+            }
+
+            if (inConcernsSection && (trimmed.StartsWith("-") || trimmed.StartsWith("•")))
+            {
+                concerns.Add(trimmed.TrimStart('-', '•', ' '));
+            }
+        }
+
+        return concerns;
+    }
+
+    private List<string> ExtractBackupAdjustments(string backupText)
+    {
+        var adjustments = new List<string>();
+        var lines = backupText.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        bool inAdjustmentsSection = false;
+
+        foreach (var line in lines)
+        {
+            var trimmed = line.Trim();
+            
+            if (trimmed.Contains("Adjustment", StringComparison.OrdinalIgnoreCase) ||
+                trimmed.Contains("Alternative", StringComparison.OrdinalIgnoreCase) ||
+                trimmed.Contains("Suggestion", StringComparison.OrdinalIgnoreCase))
+            {
+                inAdjustmentsSection = true;
+                continue;
+            }
+
+            if (trimmed.StartsWith("**") && inAdjustmentsSection)
+            {
+                inAdjustmentsSection = false;
+            }
+
+            if (inAdjustmentsSection && (trimmed.StartsWith("-") || trimmed.StartsWith("•")))
+            {
+                adjustments.Add(trimmed.TrimStart('-', '•', ' '));
+            }
+        }
+
+        return adjustments;
+    }
+
+    private string BuildCorroboratedRecommendation(
+        AIRecommendation primary,
+        AIRecommendation backup,
+        List<string> adjustments)
+    {
+        var corroborated = $"**Primary AI Recommendation ({primary.ServiceName}):**\n\n";
+        corroborated += primary.RecommendationText;
+
+        if (adjustments.Any())
+        {
+            corroborated += "\n\n**Backup AI Adjustments ({backup.ServiceName}):**\n";
+            foreach (var adjustment in adjustments)
+            {
+                corroborated += $"- {adjustment}\n";
+            }
+        }
+        else
+        {
+            corroborated += $"\n\n**Backup AI ({backup.ServiceName}) Corroboration:** ✓ Validated with no significant concerns";
+        }
+
+        return corroborated;
+    }
+
+    private string BuildCorroborationDisagreement(
+        AIRecommendation primary,
+        AIRecommendation backup,
+        string agreementLevel,
+        List<string> concerns)
+    {
+        var disagreement = $"**Backup AI ({backup.ServiceName}) {agreementLevel}**\n\n";
+        disagreement += "The backup AI has identified concerns with the primary recommendation:\n\n";
+
+        foreach (var concern in concerns)
+        {
+            disagreement += $"- {concern}\n";
+        }
+
+        disagreement += "\n**What this means:** The primary recommendation may need adjustment. Review the backup AI's full response for details.";
+        disagreement += $"\n\n**Backup AI Full Response:**\n{backup.RecommendationText}";
+
+        return disagreement;
+    }
+
+    /// <summary>
     /// Calculate agreement score between two recommendations (0.0 to 1.0).
     /// Uses semantic similarity of recommendations and action item overlap.
     /// </summary>

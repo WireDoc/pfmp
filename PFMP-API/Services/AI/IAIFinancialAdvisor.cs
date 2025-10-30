@@ -98,13 +98,21 @@ public class AIRecommendation
 }
 
 /// <summary>
-/// Consensus result from dual AI advisory system.
+/// Consensus result from AI advisory system.
+/// Supports both dual-panel (Conservative/Aggressive) and primary-backup models.
 /// </summary>
 public class ConsensusResult
 {
     public string ConsensusId { get; set; } = Guid.NewGuid().ToString();
-    public AIRecommendation ConservativeAdvice { get; set; } = new();
-    public AIRecommendation AggressiveAdvice { get; set; } = new();
+    
+    // Legacy dual-panel properties (for backward compatibility)
+    public AIRecommendation? ConservativeAdvice { get; set; }
+    public AIRecommendation? AggressiveAdvice { get; set; }
+    
+    // New primary-backup properties
+    public AIRecommendation? PrimaryRecommendation { get; set; }
+    public AIRecommendation? BackupCorroboration { get; set; }
+    
     public decimal AgreementScore { get; set; } // 0.0 to 1.0
     public bool HasConsensus { get; set; }
     public string? ConsensusRecommendation { get; set; }
@@ -115,4 +123,5 @@ public class ConsensusResult
     public decimal TotalCost { get; set; }
     public int TotalTokens { get; set; }
     public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
+    public Dictionary<string, object>? Metadata { get; set; }
 }
