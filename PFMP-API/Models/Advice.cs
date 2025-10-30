@@ -94,19 +94,39 @@ namespace PFMP_API.Models
     /// </summary>
     public string? SourceAlertSnapshot { get; set; }
 
-        // ===== Wave 7: Dual AI Integration Fields =====
+        // ===== Wave 7: Dual AI Integration Fields (Legacy) =====
 
         /// <summary>
-        /// Conservative AI recommendation (Claude typically)
+        /// Conservative AI recommendation (Claude typically) - LEGACY: Use PrimaryRecommendation for new code
         /// </summary>
         [MaxLength(5000)]
         public string? ConservativeRecommendation { get; set; }
 
         /// <summary>
-        /// Aggressive AI recommendation (Gemini typically)
+        /// Aggressive AI recommendation (Gemini typically) - LEGACY: Use BackupCorroboration for new code
         /// </summary>
         [MaxLength(5000)]
         public string? AggressiveRecommendation { get; set; }
+
+        // ===== Wave 7.3: Primary-Backup AI Model =====
+
+        /// <summary>
+        /// Primary AI recommendation (OpenAI GPT-5 typically)
+        /// </summary>
+        [MaxLength(5000)]
+        public string? PrimaryRecommendation { get; set; }
+
+        /// <summary>
+        /// Backup AI corroboration/review (Gemini typically)
+        /// </summary>
+        [MaxLength(5000)]
+        public string? BackupCorroboration { get; set; }
+
+        /// <summary>
+        /// Agreement level from backup AI (Strongly Agree, Agree, Neutral, Disagree, Strongly Disagree)
+        /// </summary>
+        [MaxLength(50)]
+        public string? BackupAgreementLevel { get; set; }
 
         /// <summary>
         /// Agreement score between dual AIs (0-1)

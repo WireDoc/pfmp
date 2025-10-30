@@ -410,6 +410,14 @@ namespace PFMP_API.Migrations
                     b.Property<decimal?>("AgreementScore")
                         .HasColumnType("decimal(5,2)");
 
+                    b.Property<string>("BackupAgreementLevel")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("BackupCorroboration")
+                        .HasMaxLength(5000)
+                        .HasColumnType("character varying(5000)");
+
                     b.Property<int>("ConfidenceScore")
                         .HasColumnType("integer");
 
@@ -450,6 +458,10 @@ namespace PFMP_API.Migrations
 
                     b.Property<string>("PrimaryJson")
                         .HasColumnType("text");
+
+                    b.Property<string>("PrimaryRecommendation")
+                        .HasMaxLength(5000)
+                        .HasColumnType("character varying(5000)");
 
                     b.Property<int?>("SourceAlertId")
                         .HasColumnType("integer");

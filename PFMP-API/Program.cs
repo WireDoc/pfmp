@@ -26,7 +26,9 @@ namespace PFMP_API
             // Add AI Service
             builder.Services.AddScoped<IAIService, AIService>();
 
-            // Add Wave 7: Dual AI Intelligence Services
+            // Add Wave 7: Primary-Backup AI Intelligence Services (OpenAI GPT-5 primary, Gemini backup)
+            builder.Services.Configure<PFMP_API.Services.AI.OpenAIServiceOptions>(
+                builder.Configuration.GetSection("AI:OpenAI"));
             builder.Services.Configure<PFMP_API.Services.AI.ClaudeServiceOptions>(
                 builder.Configuration.GetSection("AI:Claude"));
             builder.Services.Configure<PFMP_API.Services.AI.GeminiServiceOptions>(
@@ -36,13 +38,15 @@ namespace PFMP_API
             builder.Services.Configure<PFMP_API.Services.AI.AISafetyOptions>(
                 builder.Configuration.GetSection("AI:Safety"));
 
+            builder.Services.AddHttpClient<PFMP_API.Services.AI.OpenAIService>();
             builder.Services.AddHttpClient<PFMP_API.Services.AI.ClaudeService>();
             builder.Services.AddHttpClient<PFMP_API.Services.AI.GeminiService>();
             
+            builder.Services.AddScoped<PFMP_API.Services.AI.IAIFinancialAdvisor, PFMP_API.Services.AI.OpenAIService>();
             builder.Services.AddScoped<PFMP_API.Services.AI.IAIFinancialAdvisor, PFMP_API.Services.AI.ClaudeService>();
             builder.Services.AddScoped<PFMP_API.Services.AI.IAIFinancialAdvisor, PFMP_API.Services.AI.GeminiService>();
             builder.Services.AddScoped<PFMP_API.Services.AI.ConsensusEngine>();
-            builder.Services.AddScoped<PFMP_API.Services.AI.IDualAIAdvisor, PFMP_API.Services.AI.DualAIAdvisor>();
+            builder.Services.AddScoped<PFMP_API.Services.AI.IDualAIAdvisor, PFMP_API.Services.AI.PrimaryBackupAIAdvisor>();
             builder.Services.AddScoped<PFMP_API.Services.AI.IAIMemoryService, PFMP_API.Services.AI.AIMemoryService>();
             builder.Services.AddScoped<PFMP_API.Services.AI.IAIIntelligenceService, PFMP_API.Services.AI.AIIntelligenceService>();
 
