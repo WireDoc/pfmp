@@ -15,6 +15,11 @@ public class ClaudeServiceOptions
     public bool EnableCostTracking { get; set; } = true;
     public decimal InputCostPerMTok { get; set; } = 3.0m;
     public decimal OutputCostPerMTok { get; set; } = 15.0m;
+    
+    // Prompt Caching Configuration
+    public bool EnablePromptCaching { get; set; } = true;
+    public decimal CacheWriteCostPerMTok { get; set; } = 3.75m; // 25% premium
+    public decimal CacheReadCostPerMTok { get; set; } = 0.30m;  // 90% discount
 }
 
 /// <summary>

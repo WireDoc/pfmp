@@ -50,6 +50,15 @@ namespace PFMP_API
             builder.Services.AddHttpClient<IMarketDataService, MarketDataService>();
             builder.Services.AddScoped<IMarketDataService, MarketDataService>();
 
+            // Add TSP Service with DailyTSP API
+            builder.Services.AddHttpClient("TSPClient", client =>
+            {
+                client.BaseAddress = new Uri("https://api.dailytsp.com/");
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+                client.Timeout = TimeSpan.FromSeconds(18);
+            });
+            builder.Services.AddScoped<TSPService>();
+
             // Add Portfolio Valuation Service
             builder.Services.AddScoped<IPortfolioValuationService, PortfolioValuationService>();
 

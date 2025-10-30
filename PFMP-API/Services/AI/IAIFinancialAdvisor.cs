@@ -69,6 +69,14 @@ public class AIPromptRequest
     public int MaxTokens { get; set; } = 4000;
     public decimal Temperature { get; set; } = 0.3m;
     public Dictionary<string, object>? Context { get; set; }
+    
+    // Prompt Caching Support (Claude only)
+    /// <summary>
+    /// Cacheable context that stays constant across multiple requests.
+    /// This will be marked with cache_control in Claude API calls.
+    /// Examples: user profile, financial accounts, market context
+    /// </summary>
+    public string? CacheableContext { get; set; }
 }
 
 /// <summary>

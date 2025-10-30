@@ -54,12 +54,6 @@ namespace PFMP_API.Models
         [Column(TypeName = "decimal(5,2)")]
         public decimal? LiquidityBufferMonths { get; set; }
 
-        // VA Disability - Guaranteed Income
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal? VADisabilityMonthlyAmount { get; set; }
-
-        public int? VADisabilityPercentage { get; set; } // 0-100%
-
         // Government Employment
         public bool IsGovernmentEmployee { get; set; } = true;
         public string? GovernmentAgency { get; set; }
@@ -69,6 +63,11 @@ namespace PFMP_API.Models
     public string? MaritalStatus { get; set; }
     public int? DependentCount { get; set; }
     public string? HouseholdServiceNotes { get; set; }
+
+        // VA Benefits
+        public int? VADisabilityPercentage { get; set; }
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? VADisabilityMonthlyAmount { get; set; }
 
         // Profile & Demographics (NEW FIELDS)
         public DateTime? DateOfBirth { get; set; }

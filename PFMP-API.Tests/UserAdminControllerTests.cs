@@ -11,7 +11,7 @@ public class UserAdminControllerTests : IClassFixture<TestingWebAppFactory>
     public UserAdminControllerTests(TestingWebAppFactory factory) => _factory = factory;
 
     private record CreateUserRequest(string FirstName, string LastName, string Email, decimal EmergencyFundTarget = 0m);
-    private record UserDto(int UserId, string FirstName, string LastName, string Email, bool IsTestAccount, bool BypassAuthentication);
+    public record UserDto(int UserId, string FirstName, string LastName, string Email, bool IsTestAccount, bool BypassAuthentication);
 
     [Fact]
     public async Task CreateAndDeleteUser_Works()

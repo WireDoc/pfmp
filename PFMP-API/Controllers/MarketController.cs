@@ -11,11 +11,16 @@ namespace PFMP_API.Controllers
     public class MarketController : ControllerBase
     {
         private readonly IMarketDataService _marketDataService;
+        private readonly TSPService _tspService;
         private readonly ILogger<MarketController> _logger;
 
-        public MarketController(IMarketDataService marketDataService, ILogger<MarketController> logger)
+        public MarketController(
+            IMarketDataService marketDataService, 
+            TSPService tspService,
+            ILogger<MarketController> logger)
         {
             _marketDataService = marketDataService;
+            _tspService = tspService;
             _logger = logger;
         }
 
@@ -111,7 +116,7 @@ namespace PFMP_API.Controllers
         }
 
         /// <summary>
-        /// Get TSP fund prices (G, F, C, S, I, and lifecycle funds)
+        /// Get TSP fund prices (G, F, C, S, I, and lifecycle funds) from DailyTSP.com
         /// </summary>
         /// <returns>Current TSP fund prices</returns>
         [HttpGet("tsp")]
@@ -119,7 +124,37 @@ namespace PFMP_API.Controllers
         {
             try
             {
-                var tspPrices = await _marketDataService.GetTSPFundPricesAsync();
+                // Get real TSP prices from DailyTSP API
+                var tspData = await _tspService.GetTSPDataAsync();
+                
+                if (tspData == null)
+                {
+                    _logger.LogWarning("Failed to retrieve TSP data from DailyTSP API");
+                    return StatusCode(500, "Failed to retrieve TSP data");
+                }
+
+                // Convert TSPModel to MarketPrice dictionary format
+                var tspPrices = new Dictionary<string, MarketPrice>
+                {
+                    ["G Fund"] = new MarketPrice { Symbol = "G", Price = (decimal)tspData.GFund, CompanyName = "Government Securities Investment Fund" },
+                    ["F Fund"] = new MarketPrice { Symbol = "F", Price = (decimal)tspData.FFund, CompanyName = "Fixed Income Index Investment Fund" },
+                    ["C Fund"] = new MarketPrice { Symbol = "C", Price = (decimal)tspData.CFund, CompanyName = "Common Stock Index Investment Fund" },
+                    ["S Fund"] = new MarketPrice { Symbol = "S", Price = (decimal)tspData.SFund, CompanyName = "Small Capitalization Stock Index Investment Fund" },
+                    ["I Fund"] = new MarketPrice { Symbol = "I", Price = (decimal)tspData.IFund, CompanyName = "International Stock Index Investment Fund" },
+                    ["L Income"] = new MarketPrice { Symbol = "L-Income", Price = (decimal)tspData.LIncome, CompanyName = "L Income Fund" },
+                    ["L 2025"] = new MarketPrice { Symbol = "L2025", Price = (decimal)tspData.L2025, CompanyName = "L 2025 Fund" },
+                    ["L 2030"] = new MarketPrice { Symbol = "L2030", Price = (decimal)tspData.L2030, CompanyName = "L 2030 Fund" },
+                    ["L 2035"] = new MarketPrice { Symbol = "L2035", Price = (decimal)tspData.L2035, CompanyName = "L 2035 Fund" },
+                    ["L 2040"] = new MarketPrice { Symbol = "L2040", Price = (decimal)tspData.L2040, CompanyName = "L 2040 Fund" },
+                    ["L 2045"] = new MarketPrice { Symbol = "L2045", Price = (decimal)tspData.L2045, CompanyName = "L 2045 Fund" },
+                    ["L 2050"] = new MarketPrice { Symbol = "L2050", Price = (decimal)tspData.L2050, CompanyName = "L 2050 Fund" },
+                    ["L 2055"] = new MarketPrice { Symbol = "L2055", Price = (decimal)tspData.L2055, CompanyName = "L 2055 Fund" },
+                    ["L 2060"] = new MarketPrice { Symbol = "L2060", Price = (decimal)tspData.L2060, CompanyName = "L 2060 Fund" },
+                    ["L 2065"] = new MarketPrice { Symbol = "L2065", Price = (decimal)tspData.L2065, CompanyName = "L 2065 Fund" },
+                    ["L 2070"] = new MarketPrice { Symbol = "L2070", Price = (decimal)tspData.L2070, CompanyName = "L 2070 Fund" },
+                    ["L 2075"] = new MarketPrice { Symbol = "L2075", Price = (decimal)tspData.L2075, CompanyName = "L 2075 Fund" }
+                };
+
                 return Ok(tspPrices);
             }
             catch (Exception ex)

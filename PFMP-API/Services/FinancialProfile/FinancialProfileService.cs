@@ -586,13 +586,26 @@ namespace PFMP_API.Services.FinancialProfile
                 var now = DateTime.UtcNow;
                 foreach (var stream in input.Streams)
                 {
+                    // Calculate missing amount if one is provided
+                    decimal monthlyAmount = stream.MonthlyAmount ?? 0;
+                    decimal annualAmount = stream.AnnualAmount ?? 0;
+                    
+                    if (monthlyAmount == 0 && annualAmount > 0)
+                    {
+                        monthlyAmount = annualAmount / 12;
+                    }
+                    else if (annualAmount == 0 && monthlyAmount > 0)
+                    {
+                        annualAmount = monthlyAmount * 12;
+                    }
+                    
                     _db.IncomeStreams.Add(new IncomeStreamProfile
                     {
                         UserId = userId,
                         Name = stream.Name.Trim(),
                         IncomeType = stream.IncomeType,
-                        MonthlyAmount = stream.MonthlyAmount,
-                        AnnualAmount = stream.AnnualAmount,
+                        MonthlyAmount = monthlyAmount,
+                        AnnualAmount = annualAmount,
                         IsGuaranteed = stream.IsGuaranteed,
                         StartDate = stream.StartDate,
                         EndDate = stream.EndDate,

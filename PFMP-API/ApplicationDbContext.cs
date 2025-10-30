@@ -45,6 +45,9 @@ namespace PFMP_API
     // Onboarding (Wave 3)
         public DbSet<OnboardingProgress> OnboardingProgress { get; set; }
 
+    // Market Data
+        public DbSet<TSPFundPrice> TSPFundPrices { get; set; }
+
     // Financial profile (Wave 5)
     public DbSet<FinancialProfileSectionStatus> FinancialProfileSectionStatuses { get; set; }
     public DbSet<FinancialProfileSnapshot> FinancialProfileSnapshots { get; set; }

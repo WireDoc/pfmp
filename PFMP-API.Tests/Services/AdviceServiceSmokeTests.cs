@@ -15,8 +15,9 @@ public class AdviceServiceSmokeTests
         db.Users.Add(new User { UserId = userId, FirstName = "Test", LastName = "User", Email = "test@example.com", EmergencyFundTarget = 1000 });
         db.SaveChanges();
         var ai = new FakeAiService("AI Text");
+        var aiIntelligence = new FakeAIIntelligenceService();
         var validator = new AdviceValidator();
-        return new AdviceService(db, ai, validator, new NullLogger<AdviceService>());
+        return new AdviceService(db, ai, aiIntelligence, validator, new NullLogger<AdviceService>());
     }
 
     [Fact]

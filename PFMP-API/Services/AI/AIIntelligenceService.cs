@@ -107,12 +107,14 @@ namespace PFMP_API.Services.AI
 
         public async Task<ConsensusResult> AnalyzeCashOptimizationAsync(int userId)
         {
-            var context = await BuildAnalysisContextAsync(userId, "CashOptimization");
+            var cacheableContext = await BuildCacheableContextAsync(userId);
+            var analysisContext = await BuildCashContextAsync(userId);
             
             var prompt = new AIPromptRequest
             {
                 SystemPrompt = "You are a financial advisor analyzing cash management. Be concise and actionable. Use bullet points.",
-                UserPrompt = context,
+                CacheableContext = cacheableContext,  // Will be cached by Claude
+                UserPrompt = $"=== CASH OPTIMIZATION ANALYSIS ===\n\n{analysisContext}",
                 MaxTokens = 1500,
                 Temperature = 0.3m
             };
@@ -122,12 +124,14 @@ namespace PFMP_API.Services.AI
 
         public async Task<ConsensusResult> AnalyzePortfolioRebalancingAsync(int userId)
         {
-            var context = await BuildAnalysisContextAsync(userId, "Rebalancing");
+            var cacheableContext = await BuildCacheableContextAsync(userId);
+            var analysisContext = await BuildPortfolioContextAsync(userId);
             
             var prompt = new AIPromptRequest
             {
                 SystemPrompt = "You are a financial advisor analyzing portfolio allocation and rebalancing needs. Be concise and actionable. Use bullet points.",
-                UserPrompt = context,
+                CacheableContext = cacheableContext,  // Will be cached by Claude
+                UserPrompt = $"=== PORTFOLIO REBALANCING ANALYSIS ===\n\n{analysisContext}",
                 MaxTokens = 1500,
                 Temperature = 0.3m
             };
@@ -137,12 +141,14 @@ namespace PFMP_API.Services.AI
 
         public async Task<ConsensusResult> AnalyzeTSPAllocationAsync(int userId)
         {
-            var context = await BuildAnalysisContextAsync(userId, "TSP");
+            var cacheableContext = await BuildCacheableContextAsync(userId);
+            var analysisContext = await BuildTSPContextAsync(userId);
             
             var prompt = new AIPromptRequest
             {
                 SystemPrompt = "You are a federal employee retirement advisor analyzing TSP (Thrift Savings Plan) allocations. Be concise and actionable. Use bullet points.",
-                UserPrompt = context,
+                CacheableContext = cacheableContext,  // Will be cached by Claude
+                UserPrompt = $"=== TSP OPTIMIZATION ANALYSIS ===\n\n{analysisContext}",
                 MaxTokens = 1500,
                 Temperature = 0.3m
             };
@@ -152,12 +158,14 @@ namespace PFMP_API.Services.AI
 
         public async Task<ConsensusResult> AnalyzeRiskAlignmentAsync(int userId)
         {
-            var context = await BuildAnalysisContextAsync(userId, "Risk");
+            var cacheableContext = await BuildCacheableContextAsync(userId);
+            var analysisContext = await BuildRiskContextAsync(userId);
             
             var prompt = new AIPromptRequest
             {
                 SystemPrompt = "You are a financial advisor analyzing risk tolerance alignment. Be concise and actionable. Use bullet points.",
-                UserPrompt = context,
+                CacheableContext = cacheableContext,  // Will be cached by Claude
+                UserPrompt = $"=== RISK EXPOSURE ANALYSIS ===\n\n{analysisContext}",
                 MaxTokens = 1500,
                 Temperature = 0.3m
             };
@@ -176,20 +184,24 @@ namespace PFMP_API.Services.AI
 
             _logger.LogInformation("Generating advice from alert {AlertId} for user {UserId}", alertId, userId);
 
-            // Build context including alert details
-            var context = await BuildAnalysisContextAsync(userId, "AlertAnalysis");
-            context += $"\n\nALERT DETAILS:\n";
-            context += $"- Title: {alert.Title}\n";
-            context += $"- Message: {alert.Message}\n";
-            context += $"- Severity: {alert.Severity}\n";
-            context += $"- Category: {alert.Category}\n";
-            context += $"- Impact Score: {alert.PortfolioImpactScore}/100\n\n";
-            context += "Provide specific, actionable advice to address this alert.";
+            // Build context with cacheable profile and specific alert details
+            var cacheableContext = await BuildCacheableContextAsync(userId);
+            var alertDetails = $@"
+=== ALERT REQUIRING ACTION ===
+
+Alert: {alert.Title}
+Message: {alert.Message}
+Severity: {alert.Severity}
+Category: {alert.Category}
+Portfolio Impact: {alert.PortfolioImpactScore}/100
+
+Provide specific, actionable advice to address this alert.";
 
             var prompt = new AIPromptRequest
             {
                 SystemPrompt = "You are a financial advisor providing actionable recommendations based on portfolio alerts. Be concise and focus on specific actions.",
-                UserPrompt = context,
+                CacheableContext = cacheableContext,  // Will be cached by Claude
+                UserPrompt = alertDetails,
                 MaxTokens = 1500,
                 Temperature = 0.3m
             };
@@ -403,6 +415,100 @@ namespace PFMP_API.Services.AI
 
         // ===== Helper Methods =====
 
+        /// <summary>
+        /// Builds cacheable context that persists across multiple analyses.
+        /// This includes user profile, accounts, memory, and market context.
+        /// </summary>
+        private async Task<string> BuildCacheableContextAsync(int userId)
+        {
+            var context = new StringBuilder();
+            
+            context.AppendLine("=== FINANCIAL PROFILE ===");
+            
+            // User profile (cacheable - changes rarely)
+            var user = await _context.Users.FindAsync(userId);
+            if (user != null)
+            {
+                int age = user.DateOfBirth != null 
+                    ? DateTime.UtcNow.Year - user.DateOfBirth.Value.Year 
+                    : 40; // default
+                    
+                context.AppendLine("USER DETAILS:");
+                context.AppendLine($"- Age: {age}");
+                context.AppendLine($"- Marital Status: {user.MaritalStatus ?? "Not specified"}");
+                context.AppendLine($"- Government Employee: {(user.IsGovernmentEmployee ? "Yes" : "No")}");
+                if (user.IsGovernmentEmployee && !string.IsNullOrEmpty(user.GovernmentAgency))
+                {
+                    context.AppendLine($"- Agency: {user.GovernmentAgency}");
+                }
+                context.AppendLine($"- Risk Tolerance: {user.RiskTolerance}/10");
+                if (user.VADisabilityPercentage.HasValue)
+                {
+                    context.AppendLine($"- VA Disability: {user.VADisabilityPercentage}%");
+                    if (user.VADisabilityMonthlyAmount.HasValue)
+                    {
+                        context.AppendLine($"  Monthly Amount: ${user.VADisabilityMonthlyAmount:N2}");
+                    }
+                }
+                context.AppendLine();
+            }
+            
+            // Financial accounts (cacheable - changes daily at most)
+            var accounts = await _context.Accounts
+                .Where(a => a.UserId == userId)
+                .ToListAsync();
+                
+            if (accounts.Any())
+            {
+                context.AppendLine("ACCOUNTS:");
+                var totalBalance = 0m;
+                foreach (var account in accounts)
+                {
+                    context.AppendLine($"- {account.AccountName} ({account.AccountType}): ${account.CurrentBalance:N2}");
+                    totalBalance += account.CurrentBalance;
+                }
+                context.AppendLine($"Total: ${totalBalance:N2}");
+                context.AppendLine();
+            }
+            
+            // Goals (from user profile)
+            if (user != null)
+            {
+                context.AppendLine("FINANCIAL GOALS:");
+                if (user.RetirementGoalAmount.HasValue)
+                {
+                    context.AppendLine($"- Retirement Goal: ${user.RetirementGoalAmount:N0}");
+                    if (user.TargetRetirementDate.HasValue)
+                    {
+                        var yearsToRetirement = (user.TargetRetirementDate.Value.Year - DateTime.UtcNow.Year);
+                        context.AppendLine($"  Target Date: {user.TargetRetirementDate.Value:yyyy-MM-dd} ({yearsToRetirement} years)");
+                    }
+                }
+                if (user.TargetMonthlyPassiveIncome.HasValue)
+                {
+                    context.AppendLine($"- Target Monthly Passive Income: ${user.TargetMonthlyPassiveIncome:N0}");
+                }
+                if (user.EmergencyFundTarget > 0)
+                {
+                    context.AppendLine($"- Emergency Fund Target: ${user.EmergencyFundTarget:N2}");
+                }
+                context.AppendLine();
+            }
+            
+            // Recent action memory (cacheable - includes last 10 actions)
+            var memoryContext = await _memory.BuildMemoryContextAsync(userId, includeRecent: true, includePreferences: true);
+            context.AppendLine("RECENT ACTIONS & PREFERENCES:");
+            context.AppendLine(memoryContext);
+            context.AppendLine();
+            
+            // Market context summary (cacheable - daily market data)
+            var marketSummary = await _memory.BuildMarketContextSummaryAsync(30);
+            context.AppendLine("MARKET CONTEXT:");
+            context.AppendLine(marketSummary);
+            
+            return context.ToString();
+        }
+
         private async Task<string> BuildAnalysisContextAsync(int userId, string analysisType)
         {
             var context = new StringBuilder();
@@ -497,7 +603,9 @@ Remember: You have memory of past conversations and their financial actions.";
             decimal totalCash = 0;
             foreach (var account in cashAccounts)
             {
-                sb.AppendLine($"- {account.Nickname}: ${account.Balance:N2} (APY: {account.InterestRateApr:P2})");
+                // Note: InterestRateApr is stored as whole percentage (1.0 = 1%), so divide by 100 for display
+                var aprDisplay = account.InterestRateApr.HasValue ? $"{account.InterestRateApr.Value:F2}%" : "N/A";
+                sb.AppendLine($"- {account.Nickname}: ${account.Balance:N2} (APY: {aprDisplay})");
                 totalCash += account.Balance;
             }
             sb.AppendLine($"Total Cash: ${totalCash:N2}");

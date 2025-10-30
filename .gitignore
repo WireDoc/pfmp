@@ -47,6 +47,10 @@ secrets.json
 *.pfx
 *.p12
 
+# NOTE: appsettings.Development.json IS tracked but should NEVER contain real API keys
+# Use placeholder values like "YOUR_API_KEY_HERE" in the repo version
+# Real keys should be set via environment variables or Azure Key Vault in production
+
 # Azure AD configuration (contains client secrets)
 azure-ad-config.json
 guest-user-info.json

@@ -37,15 +37,42 @@ public class ClaudeService : IAIFinancialAdvisor
     public async Task<AIRecommendation> GetRecommendationAsync(AIPromptRequest request)
     {
         _logger.LogInformation(
-            "Claude API call: model={Model}, promptLength={Length}, temperature={Temp}",
-            _options.Model, request.UserPrompt.Length, request.Temperature);
+            "Claude API call: model={Model}, promptLength={Length}, caching={Caching}, temperature={Temp}",
+            _options.Model, request.UserPrompt.Length, _options.EnablePromptCaching && !string.IsNullOrEmpty(request.CacheableContext), request.Temperature);
+
+        // Build system message with optional caching
+        var systemMessages = new List<object>();
+        
+        if (_options.EnablePromptCaching && !string.IsNullOrEmpty(request.CacheableContext))
+        {
+            // Log the cacheable context size for debugging
+            var estimatedTokens = request.CacheableContext.Length / 4; // Rough estimate: 1 token ≈ 4 chars
+            _logger.LogInformation(
+                "Prompt caching enabled: context length={Length} chars, estimated tokens={Tokens}. Minimum 1024 tokens required for caching.",
+                request.CacheableContext.Length, estimatedTokens);
+            
+            // Add cacheable context with cache_control breakpoint
+            systemMessages.Add(new
+            {
+                type = "text",
+                text = request.CacheableContext,
+                cache_control = new { type = "ephemeral" }
+            });
+        }
+        
+        // Add non-cacheable system prompt
+        systemMessages.Add(new
+        {
+            type = "text",
+            text = request.SystemPrompt
+        });
 
         var anthropicRequest = new
         {
             model = _options.Model,
             max_tokens = request.MaxTokens > 0 ? request.MaxTokens : _options.MaxTokens,
             temperature = (double)request.Temperature,
-            system = request.SystemPrompt,
+            system = systemMessages.ToArray(),
             messages = new[]
             {
                 new { role = "user", content = request.UserPrompt }
@@ -151,13 +178,50 @@ public class ClaudeService : IAIFinancialAdvisor
         var usage = root.GetProperty("usage");
         var inputTokens = usage.GetProperty("input_tokens").GetInt32();
         var outputTokens = usage.GetProperty("output_tokens").GetInt32();
+        
+        // Extract cache usage if available (Prompt Caching feature)
+        var cacheCreationTokens = 0;
+        var cacheReadTokens = 0;
+        
+        if (usage.TryGetProperty("cache_creation_input_tokens", out var cacheCreation))
+        {
+            cacheCreationTokens = cacheCreation.GetInt32();
+        }
+        
+        if (usage.TryGetProperty("cache_read_input_tokens", out var cacheRead))
+        {
+            cacheReadTokens = cacheRead.GetInt32();
+        }
+        
         var totalTokens = inputTokens + outputTokens;
 
-        // Calculate cost
-        var estimatedCost = _options.EnableCostTracking
-            ? (inputTokens / 1_000_000m * _options.InputCostPerMTok) + 
-              (outputTokens / 1_000_000m * _options.OutputCostPerMTok)
-            : 0m;
+        // Calculate cost with cache pricing
+        var estimatedCost = 0m;
+        if (_options.EnableCostTracking)
+        {
+            // Regular input tokens (non-cached)
+            var regularInputTokens = inputTokens - cacheCreationTokens - cacheReadTokens;
+            var inputCost = regularInputTokens / 1_000_000m * _options.InputCostPerMTok;
+            
+            // Cache write cost (25% premium)
+            var cacheWriteCost = cacheCreationTokens / 1_000_000m * _options.CacheWriteCostPerMTok;
+            
+            // Cache read cost (90% discount)
+            var cacheReadCost = cacheReadTokens / 1_000_000m * _options.CacheReadCostPerMTok;
+            
+            // Output cost
+            var outputCost = outputTokens / 1_000_000m * _options.OutputCostPerMTok;
+            
+            estimatedCost = inputCost + cacheWriteCost + cacheReadCost + outputCost;
+            
+            if (cacheReadTokens > 0 || cacheCreationTokens > 0)
+            {
+                _logger.LogInformation(
+                    "Cache stats: created={Created}, read={Read}, saved=${Saved:F4}",
+                    cacheCreationTokens, cacheReadTokens, 
+                    (cacheReadTokens / 1_000_000m * (_options.InputCostPerMTok - _options.CacheReadCostPerMTok)));
+            }
+        }
 
         // Parse recommendation text (basic extraction, will enhance with structured output)
         var recommendation = new AIRecommendation
@@ -175,7 +239,10 @@ public class ClaudeService : IAIFinancialAdvisor
                 ["userId"] = userId,
                 ["inputTokens"] = inputTokens,
                 ["outputTokens"] = outputTokens,
-                ["stopReason"] = root.GetProperty("stop_reason").GetString() ?? "end_turn"
+                ["stopReason"] = root.GetProperty("stop_reason").GetString() ?? "end_turn",
+                ["cacheCreationTokens"] = cacheCreationTokens,
+                ["cacheReadTokens"] = cacheReadTokens,
+                ["cacheHit"] = cacheReadTokens > 0
             }
         };
 

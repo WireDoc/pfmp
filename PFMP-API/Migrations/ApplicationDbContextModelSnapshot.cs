@@ -2016,6 +2016,77 @@ namespace PFMP_API.Migrations
                     b.ToTable("RealEstateProperties");
                 });
 
+            modelBuilder.Entity("PFMP_API.Models.TSPFundPrice", b =>
+                {
+                    b.Property<int>("TSPFundPriceId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("TSPFundPriceId"));
+
+                    b.Property<decimal>("CFundPrice")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DataSource")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("FFundPrice")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<decimal>("GFundPrice")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<decimal>("IFundPrice")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<decimal?>("L2030FundPrice")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<decimal?>("L2035FundPrice")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<decimal?>("L2040FundPrice")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<decimal?>("L2045FundPrice")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<decimal?>("L2050FundPrice")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<decimal?>("L2055FundPrice")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<decimal?>("L2060FundPrice")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<decimal?>("L2065FundPrice")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<decimal?>("L2070FundPrice")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<decimal?>("L2075FundPrice")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<decimal?>("LIncomeFundPrice")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<DateTime>("PriceDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("SFundPrice")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.HasKey("TSPFundPriceId");
+
+                    b.ToTable("TSPFundPrices");
+                });
+
             modelBuilder.Entity("PFMP_API.Models.Transaction", b =>
                 {
                     b.Property<int>("TransactionId")

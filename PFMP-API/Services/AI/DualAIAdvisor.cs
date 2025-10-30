@@ -31,8 +31,8 @@ public class DualAIAdvisor : IDualAIAdvisor
     public async Task<ConsensusResult> GetConsensusRecommendationAsync(AIPromptRequest request)
     {
         _logger.LogInformation(
-            "Dual AI request started: userId={UserId}, promptLength={Length}",
-            request.UserId, request.UserPrompt.Length);
+            "Dual AI request started: userId={UserId}, promptLength={Length}, cacheableContextLength={CacheLength}",
+            request.UserId, request.UserPrompt.Length, request.CacheableContext?.Length ?? 0);
 
         var startTime = DateTime.UtcNow;
 

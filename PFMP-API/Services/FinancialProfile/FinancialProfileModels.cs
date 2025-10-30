@@ -143,8 +143,8 @@ namespace PFMP_API.Services.FinancialProfile
     {
         public string Name { get; set; } = string.Empty;
         public string IncomeType { get; set; } = "salary";
-        public decimal MonthlyAmount { get; set; }
-        public decimal AnnualAmount { get; set; }
+        public decimal? MonthlyAmount { get; set; }
+        public decimal? AnnualAmount { get; set; }
         public bool IsGuaranteed { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
