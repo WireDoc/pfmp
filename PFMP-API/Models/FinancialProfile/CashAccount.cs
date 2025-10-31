@@ -30,6 +30,9 @@ namespace PFMP_API.Models.FinancialProfile
 
         public bool IsEmergencyFund { get; set; }
 
+        [MaxLength(500)]
+        public string? Purpose { get; set; } // e.g., "Transactional Account", "Emergency Fund", "Home Improvement Savings"
+
         public DateTime? RateLastChecked { get; set; }
 
         [Required]

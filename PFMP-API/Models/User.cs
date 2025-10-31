@@ -51,6 +51,9 @@ namespace PFMP_API.Models
         [Required]
         public decimal EmergencyFundTarget { get; set; }
 
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? TransactionalAccountDesiredBalance { get; set; } // Desired checking account buffer
+
         [Column(TypeName = "decimal(5,2)")]
         public decimal? LiquidityBufferMonths { get; set; }
 

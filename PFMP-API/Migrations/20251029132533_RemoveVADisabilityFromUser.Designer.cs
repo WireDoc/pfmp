@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PFMP_API;
@@ -12,9 +13,11 @@ using PFMP_API;
 namespace PFMP_API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251029132533_RemoveVADisabilityFromUser")]
+    partial class RemoveVADisabilityFromUser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -367,10 +370,6 @@ namespace PFMP_API.Migrations
                     b.Property<decimal?>("OptimalInterestRate")
                         .HasColumnType("numeric");
 
-                    b.Property<string>("Purpose")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
                     b.Property<DateTime?>("RateLastChecked")
                         .HasColumnType("timestamp with time zone");
 
@@ -414,14 +413,6 @@ namespace PFMP_API.Migrations
                     b.Property<decimal?>("AgreementScore")
                         .HasColumnType("decimal(5,2)");
 
-                    b.Property<string>("BackupAgreementLevel")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("BackupCorroboration")
-                        .HasMaxLength(5000)
-                        .HasColumnType("character varying(5000)");
-
                     b.Property<int>("ConfidenceScore")
                         .HasColumnType("integer");
 
@@ -462,10 +453,6 @@ namespace PFMP_API.Migrations
 
                     b.Property<string>("PrimaryJson")
                         .HasColumnType("text");
-
-                    b.Property<string>("PrimaryRecommendation")
-                        .HasMaxLength(5000)
-                        .HasColumnType("character varying(5000)");
 
                     b.Property<int?>("SourceAlertId")
                         .HasColumnType("integer");
@@ -665,10 +652,6 @@ namespace PFMP_API.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
-
-                    b.Property<string>("Purpose")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
 
                     b.Property<DateTime?>("RateLastChecked")
                         .HasColumnType("timestamp with time zone");
@@ -2036,77 +2019,6 @@ namespace PFMP_API.Migrations
                     b.ToTable("RealEstateProperties");
                 });
 
-            modelBuilder.Entity("PFMP_API.Models.TSPFundPrice", b =>
-                {
-                    b.Property<int>("TSPFundPriceId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("TSPFundPriceId"));
-
-                    b.Property<decimal>("CFundPrice")
-                        .HasColumnType("decimal(18,8)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DataSource")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<decimal>("FFundPrice")
-                        .HasColumnType("decimal(18,8)");
-
-                    b.Property<decimal>("GFundPrice")
-                        .HasColumnType("decimal(18,8)");
-
-                    b.Property<decimal>("IFundPrice")
-                        .HasColumnType("decimal(18,8)");
-
-                    b.Property<decimal?>("L2030FundPrice")
-                        .HasColumnType("decimal(18,8)");
-
-                    b.Property<decimal?>("L2035FundPrice")
-                        .HasColumnType("decimal(18,8)");
-
-                    b.Property<decimal?>("L2040FundPrice")
-                        .HasColumnType("decimal(18,8)");
-
-                    b.Property<decimal?>("L2045FundPrice")
-                        .HasColumnType("decimal(18,8)");
-
-                    b.Property<decimal?>("L2050FundPrice")
-                        .HasColumnType("decimal(18,8)");
-
-                    b.Property<decimal?>("L2055FundPrice")
-                        .HasColumnType("decimal(18,8)");
-
-                    b.Property<decimal?>("L2060FundPrice")
-                        .HasColumnType("decimal(18,8)");
-
-                    b.Property<decimal?>("L2065FundPrice")
-                        .HasColumnType("decimal(18,8)");
-
-                    b.Property<decimal?>("L2070FundPrice")
-                        .HasColumnType("decimal(18,8)");
-
-                    b.Property<decimal?>("L2075FundPrice")
-                        .HasColumnType("decimal(18,8)");
-
-                    b.Property<decimal?>("LIncomeFundPrice")
-                        .HasColumnType("decimal(18,8)");
-
-                    b.Property<DateTime>("PriceDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("SFundPrice")
-                        .HasColumnType("decimal(18,8)");
-
-                    b.HasKey("TSPFundPriceId");
-
-                    b.ToTable("TSPFundPrices");
-                });
-
             modelBuilder.Entity("PFMP_API.Models.Transaction", b =>
                 {
                     b.Property<int>("TransactionId")
@@ -2345,9 +2257,6 @@ namespace PFMP_API.Migrations
 
                     b.Property<DateTime?>("TargetRetirementDate")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal?>("TransactionalAccountDesiredBalance")
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");

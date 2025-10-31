@@ -62,6 +62,10 @@ namespace PFMP_API.Models
         public decimal? OptimalInterestRate { get; set; } // Market comparison rate
         public DateTime? RateLastChecked { get; set; }
 
+        // Account Purpose & Context
+        [MaxLength(500)]
+        public string? Purpose { get; set; } // e.g., "Transactional Account", "Emergency Fund", "Home Improvement Savings", "Vacation Fund"
+
         // Metadata
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

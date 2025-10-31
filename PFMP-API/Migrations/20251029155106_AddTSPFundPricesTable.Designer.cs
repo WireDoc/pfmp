@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PFMP_API;
@@ -12,9 +13,11 @@ using PFMP_API;
 namespace PFMP_API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251029155106_AddTSPFundPricesTable")]
+    partial class AddTSPFundPricesTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -367,10 +370,6 @@ namespace PFMP_API.Migrations
                     b.Property<decimal?>("OptimalInterestRate")
                         .HasColumnType("numeric");
 
-                    b.Property<string>("Purpose")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
                     b.Property<DateTime?>("RateLastChecked")
                         .HasColumnType("timestamp with time zone");
 
@@ -414,14 +413,6 @@ namespace PFMP_API.Migrations
                     b.Property<decimal?>("AgreementScore")
                         .HasColumnType("decimal(5,2)");
 
-                    b.Property<string>("BackupAgreementLevel")
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("BackupCorroboration")
-                        .HasMaxLength(5000)
-                        .HasColumnType("character varying(5000)");
-
                     b.Property<int>("ConfidenceScore")
                         .HasColumnType("integer");
 
@@ -462,10 +453,6 @@ namespace PFMP_API.Migrations
 
                     b.Property<string>("PrimaryJson")
                         .HasColumnType("text");
-
-                    b.Property<string>("PrimaryRecommendation")
-                        .HasMaxLength(5000)
-                        .HasColumnType("character varying(5000)");
 
                     b.Property<int?>("SourceAlertId")
                         .HasColumnType("integer");
@@ -665,10 +652,6 @@ namespace PFMP_API.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
-
-                    b.Property<string>("Purpose")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
 
                     b.Property<DateTime?>("RateLastChecked")
                         .HasColumnType("timestamp with time zone");
@@ -2345,9 +2328,6 @@ namespace PFMP_API.Migrations
 
                     b.Property<DateTime?>("TargetRetirementDate")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal?>("TransactionalAccountDesiredBalance")
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
