@@ -52,6 +52,7 @@ type AccountFormState = {
   interestRateApr: string;
   isEmergencyFund: boolean;
   rateLastChecked: string;
+  purpose: string;
 };
 
 const DEFAULT_ACCOUNT: AccountFormState = {
@@ -63,6 +64,7 @@ const DEFAULT_ACCOUNT: AccountFormState = {
   interestRateApr: '',
   isEmergencyFund: false,
   rateLastChecked: '',
+  purpose: '',
 };
 
 function createAccount(index: number): AccountFormState {
@@ -92,6 +94,7 @@ function buildPayloadAccounts(accounts: AccountFormState[]): CashAccountPayload[
       interestRateApr: parseNumber(account.interestRateApr) ?? null,
       isEmergencyFund: account.isEmergencyFund,
       rateLastChecked: account.rateLastChecked ? new Date(account.rateLastChecked).toISOString() : null,
+      purpose: account.purpose.trim() || null,
     });
   });
   return payloads;
@@ -114,6 +117,7 @@ export default function CashAccountsSectionForm({ userId, onStatusChange, curren
       interestRateApr: account.interestRateApr != null ? String(account.interestRateApr) : '',
       isEmergencyFund: account.isEmergencyFund ?? false,
       rateLastChecked: account.rateLastChecked ? account.rateLastChecked.slice(0, 10) : '',
+      purpose: account.purpose ?? '',
     }));
     const optedOutState = payload.optOut?.isOptedOut === true;
     return { accounts: hydratedAccounts.length > 0 ? hydratedAccounts : [createAccount(1)], optedOut: optedOutState, optOutReason: payload.optOut?.reason ?? '' };
@@ -223,6 +227,19 @@ export default function CashAccountsSectionForm({ userId, onStatusChange, curren
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 2 }}>
                       <TextField type="date" label="Rate last checked" InputLabelProps={{ shrink: true }} value={account.rateLastChecked} onChange={(e) => handleAccountChange(account.id, 'rateLastChecked', e.target.value)} fullWidth />
                       <FormControlLabel control={<Checkbox checked={account.isEmergencyFund} onChange={(e) => handleAccountChange(account.id, 'isEmergencyFund', e.target.checked)} />} label="Emergency fund" />
+                    </Stack>
+                    <Stack spacing={2} sx={{ mt: 2 }}>
+                      <TextField 
+                        label="Purpose/Notes (optional)" 
+                        placeholder="e.g. Emergency Fund, Vacation Savings, Home Down Payment"
+                        value={account.purpose} 
+                        onChange={(e) => handleAccountChange(account.id, 'purpose', e.target.value)} 
+                        helperText="Describe what this account is for (max 500 characters)"
+                        inputProps={{ maxLength: 500 }}
+                        fullWidth 
+                        multiline
+                        rows={2}
+                      />
                     </Stack>
                   </Box>
                   {canRemoveAccounts && (

@@ -52,6 +52,7 @@ export interface RiskGoalsProfilePayload {
   passiveIncomeGoal?: number | null;
   liquidityBufferMonths?: number | null;
   emergencyFundTarget?: number | null;
+  transactionalAccountDesiredBalance?: number | null;
   optOut?: SectionOptOutPayload | null;
 }
 
@@ -102,6 +103,7 @@ export interface CashAccountPayload {
   interestRateApr?: number | null;
   isEmergencyFund?: boolean | null;
   rateLastChecked?: string | null;
+  purpose?: string | null;
 }
 
 export interface CashAccountsProfilePayload {

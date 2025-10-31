@@ -51,6 +51,7 @@ function createInitialState(currentStatus: FinancialProfileSectionStatusValue): 
     passiveIncomeGoal: undefined,
     liquidityBufferMonths: undefined,
     emergencyFundTarget: undefined,
+    transactionalAccountDesiredBalance: undefined,
     optOut: undefined,
   };
 }
@@ -61,8 +62,9 @@ function hasCompletedRiskGoals(payload: RiskGoalsProfilePayload): boolean {
   const hasPassiveIncome = typeof payload.passiveIncomeGoal === 'number';
   const hasLiquidity = typeof payload.liquidityBufferMonths === 'number';
   const hasEmergencyFund = typeof payload.emergencyFundTarget === 'number';
+  const hasTransactionalBalance = typeof payload.transactionalAccountDesiredBalance === 'number';
 
-  return hasTolerance && hasRetirementDate && hasPassiveIncome && hasLiquidity && hasEmergencyFund;
+  return hasTolerance && hasRetirementDate && hasPassiveIncome && hasLiquidity && hasEmergencyFund && hasTransactionalBalance;
 }
 
 function deriveStatus(payload: RiskGoalsProfilePayload): FinancialProfileSectionStatusValue {
@@ -96,6 +98,7 @@ function sanitizePayload(draft: RiskGoalsProfilePayload): RiskGoalsProfilePayloa
     passiveIncomeGoal: draft.passiveIncomeGoal ?? undefined,
     liquidityBufferMonths: draft.liquidityBufferMonths ?? undefined,
     emergencyFundTarget: draft.emergencyFundTarget ?? undefined,
+    transactionalAccountDesiredBalance: draft.transactionalAccountDesiredBalance ?? undefined,
     optOut: undefined,
   };
 }
@@ -150,6 +153,7 @@ export default function RiskGoalsSectionForm({ userId, onStatusChange, currentSt
       passiveIncomeGoal: typeof payload.passiveIncomeGoal === 'number' ? payload.passiveIncomeGoal : undefined,
       liquidityBufferMonths: typeof payload.liquidityBufferMonths === 'number' ? payload.liquidityBufferMonths : undefined,
       emergencyFundTarget: typeof payload.emergencyFundTarget === 'number' ? payload.emergencyFundTarget : undefined,
+      transactionalAccountDesiredBalance: typeof payload.transactionalAccountDesiredBalance === 'number' ? payload.transactionalAccountDesiredBalance : undefined,
       optOut: undefined,
     };
   }, []);
@@ -289,6 +293,18 @@ export default function RiskGoalsSectionForm({ userId, onStatusChange, currentSt
                 setField('emergencyFundTarget', event.target.value === '' ? undefined : Number(event.target.value))
               }
               inputProps={{ min: 0, step: 500 }}
+              fullWidth
+            />
+
+            <TextField
+              type="number"
+              label="Desired checking account balance ($)"
+              value={formState.transactionalAccountDesiredBalance ?? ''}
+              onChange={(event) =>
+                setField('transactionalAccountDesiredBalance', event.target.value === '' ? undefined : Number(event.target.value))
+              }
+              inputProps={{ min: 0, step: 500 }}
+              helperText="How much do you like to keep in checking for day-to-day expenses?"
               fullWidth
             />
           </Stack>
