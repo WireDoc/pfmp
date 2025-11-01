@@ -501,6 +501,7 @@ export async function fetchRiskGoalsProfile(userId: number): Promise<RiskGoalsPr
     passiveIncomeGoal: data?.passiveIncomeGoal ?? null,
     liquidityBufferMonths: data?.liquidityBufferMonths ?? null,
     emergencyFundTarget: data?.emergencyFundTarget ?? null,
+    transactionalAccountDesiredBalance: data?.transactionalAccountDesiredBalance ?? null,
     optOut: normalizeOptOut(data?.optOut ?? null),
   };
 }
@@ -559,6 +560,7 @@ export async function fetchCashAccountsProfile(userId: number): Promise<CashAcco
     interestRateApr: account?.interestRateApr ?? null,
     isEmergencyFund: account?.isEmergencyFund ?? false,
     rateLastChecked: account?.rateLastChecked ?? null,
+    purpose: account?.purpose ?? null,
   }));
 
   return {
