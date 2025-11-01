@@ -170,3 +170,6 @@ PFMP-API.Tests/TestResults/
 **/TestResults/
 **/coverage.cobertura.xml
 db-backups/
+
+# Temp debug files
+temp-debug.txt

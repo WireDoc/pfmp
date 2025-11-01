@@ -540,6 +540,7 @@ export async function upsertCashAccountsProfile(userId: number, payload: CashAcc
       InterestRateApr: account.interestRateApr,
       IsEmergencyFund: account.isEmergencyFund ?? false,
       RateLastChecked: account.rateLastChecked,
+      Purpose: account.purpose,
     })),
     OptOut: payload.optOut?.isOptedOut ? {
       IsOptedOut: payload.optOut.isOptedOut,

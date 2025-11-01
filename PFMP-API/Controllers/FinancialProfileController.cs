@@ -341,6 +341,7 @@ namespace PFMP_API.Controllers
         public decimal? PassiveIncomeGoal { get; set; }
         public decimal? LiquidityBufferMonths { get; set; }
         public decimal? EmergencyFundTarget { get; set; }
+        public decimal? TransactionalAccountDesiredBalance { get; set; }
         public SectionOptOutRequest? OptOut { get; set; }
 
         public RiskGoalsInput ToInput() => new()
@@ -350,6 +351,7 @@ namespace PFMP_API.Controllers
             PassiveIncomeGoal = PassiveIncomeGoal,
             LiquidityBufferMonths = LiquidityBufferMonths,
             EmergencyFundTarget = EmergencyFundTarget,
+            TransactionalAccountDesiredBalance = TransactionalAccountDesiredBalance,
             OptOut = OptOut?.ToOptOut()
         };
     }
@@ -425,6 +427,7 @@ namespace PFMP_API.Controllers
         public decimal? InterestRateApr { get; set; }
         public bool IsEmergencyFund { get; set; }
         public DateTime? RateLastChecked { get; set; }
+        public string? Purpose { get; set; }
 
         public CashAccountInput ToInput() => new()
         {
@@ -434,7 +437,8 @@ namespace PFMP_API.Controllers
             Balance = Balance,
             InterestRateApr = InterestRateApr,
             IsEmergencyFund = IsEmergencyFund,
-            RateLastChecked = RateLastChecked
+            RateLastChecked = RateLastChecked,
+            Purpose = Purpose
         };
     }
 

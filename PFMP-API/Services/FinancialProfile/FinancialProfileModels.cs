@@ -28,6 +28,7 @@ namespace PFMP_API.Services.FinancialProfile
         public decimal? PassiveIncomeGoal { get; set; }
         public decimal? LiquidityBufferMonths { get; set; }
         public decimal? EmergencyFundTarget { get; set; }
+        public decimal? TransactionalAccountDesiredBalance { get; set; }
         public SectionOptOut? OptOut { get; set; }
     }
 
@@ -74,6 +75,7 @@ namespace PFMP_API.Services.FinancialProfile
         public decimal? InterestRateApr { get; set; }
         public bool IsEmergencyFund { get; set; }
         public DateTime? RateLastChecked { get; set; }
+        public string? Purpose { get; set; }
     }
 
     public class CashAccountsInput

@@ -160,6 +160,10 @@ namespace PFMP_API.Services.FinancialProfile
                 {
                     user.LiquidityBufferMonths = input.LiquidityBufferMonths.Value;
                 }
+                if (input.TransactionalAccountDesiredBalance.HasValue)
+                {
+                    user.TransactionalAccountDesiredBalance = input.TransactionalAccountDesiredBalance.Value;
+                }
             }
 
             user.UpdatedAt = DateTime.UtcNow;
@@ -255,6 +259,7 @@ namespace PFMP_API.Services.FinancialProfile
                         InterestRateApr = account.InterestRateApr,
                         IsEmergencyFund = account.IsEmergencyFund,
                         RateLastChecked = account.RateLastChecked,
+                        Purpose = account.Purpose?.Trim(),
                         CreatedAt = now,
                         UpdatedAt = now
                     });
@@ -654,6 +659,7 @@ namespace PFMP_API.Services.FinancialProfile
                 PassiveIncomeGoal = user.TargetMonthlyPassiveIncome,
                 EmergencyFundTarget = user.EmergencyFundTarget,
                 LiquidityBufferMonths = user.LiquidityBufferMonths,
+                TransactionalAccountDesiredBalance = user.TransactionalAccountDesiredBalance,
                 OptOut = optOut
             };
         }
@@ -786,7 +792,8 @@ namespace PFMP_API.Services.FinancialProfile
                     Balance = a.Balance,
                     InterestRateApr = a.InterestRateApr,
                     IsEmergencyFund = a.IsEmergencyFund,
-                    RateLastChecked = a.RateLastChecked
+                    RateLastChecked = a.RateLastChecked,
+                    Purpose = a.Purpose
                 })
                 .ToListAsync(ct);
 
