@@ -112,14 +112,33 @@ See `docs/waves/WAVE-6-NAVIGATION-AND-POLISH.md` for detailed implementation pla
 
 ### Key Deliverables
 
-#### Dual AI Pipeline (Primary Focus)
-- **Stand up the dual-model AI pipeline (Azure OpenAI + Anthropic)** with consensus scoring and policy gates for financial recommendations.
-- Implement prompt engineering for retirement planning, rebalancing, and tax optimization.
-- Build consensus mechanism: both models must agree within confidence thresholds for recommendations.
-- Create safety gates: no advice issued without minimum confidence score and rule validation.
+#### Core AI Features (PRIORITY 1)
+- ✅ **Dual AI pipeline operational** (Gemini 2.5 Pro + Claude Opus 4) - **COMPLETED EARLY** (Wave 7.3)
+- ✅ **Comprehensive analysis** (cash optimization, TSP allocation, portfolio rebalancing, risk alignment) - **OPERATIONAL** (Wave 7.4)
+- ✅ **Alert → Advice → Task workflow** with full provenance tracking - **IMPLEMENTED** (Wave 7.3)
+- ✅ **Context caching** for cost optimization (90% reduction on chatbot conversations) - **READY**
+- Implement prompt engineering refinement for retirement planning and tax optimization.
+- Build enhanced consensus mechanism with confidence thresholds and safety gates.
 - Log all AI interactions for audit trail and continuous improvement.
 
-#### Financial Intelligence Features
+#### Chatbot with Memory (PRIORITY 2) ⭐ **NEW**
+- **AIConversation and AIMessage tables** - Conversation history storage with user context
+- **AIChatService** - Multi-turn conversations with full financial profile injection
+- **Context injection** - Full financial profile + memory + recent actions in every chat
+- **Frontend chat interface** - MUI ChatBox component with real-time streaming responses
+- **Rate limiting** - 20 messages/day free tier, throttling for cost control
+- **Conversation export** - PDF/email transcript of advice sessions
+- **"Convert to Advice" button** - Promote actionable chat recommendations to formal Advice records
+- **Memory system** - Track conversation context across sessions
+
+#### Market Context Awareness (PRIORITY 3) ⭐ **NEW**
+- **MarketContext table design** - Store market news, sentiment, and economic indicators
+- **News aggregation service** - RSS/API feeds from financial news sources
+- **Daily market digest generation** - AI-powered summarization of relevant market events
+- **Context injection into AI prompts** - Provide market context for time-sensitive advice
+- **"What's happening in markets?" dashboard widget** - User-facing market summary
+
+#### Financial Intelligence Features (PRIORITY 4)
 - Wire frontend to advice/alert/task APIs for real data; enable accept/dismiss/complete flows with provenance surfaced to users.
 - Stand up the dual-model AI pipeline (Azure OpenAI + Anthropic) with consensus scoring and policy gates for financial recommendations.
 - Deliver retirement Monte Carlo projections and passive-income timeline visualizations backed by live data.
@@ -129,17 +148,26 @@ See `docs/waves/WAVE-6-NAVIGATION-AND-POLISH.md` for detailed implementation pla
 - Add “What changed since yesterday” summary powered by stored historical snapshots.
 - Expand telemetry to log advice acceptance, task completion, and portfolio changes (server + client).
 
+#### Advanced Memory (PRIORITY 5)
+- **AIActionMemory tracking** - Record user decisions to prevent contradictory future advice
+- **AIUserMemory** - Learn user preferences over time ("user prefers conservative advice", "always ask before selling")
+- **Memory pruning** - Expire action memory after 90 days, preference memory persists longer
+- **"Why did you recommend this?" explanation system** - Surface AI reasoning and data sources used
+
 ### Dependencies
 - Phase 2 data ingestion complete (need real holdings for meaningful advice).
 - **Azure OpenAI and Anthropic API access configured.**
 - AI endpoints already support recommendations; may require prompt refinement using live data.
 
 ### Success Criteria
-- **Dual AI pipeline operational** with both models providing consensus-based recommendations.
+- ✅ **Dual AI pipeline operational** with both models providing consensus-based recommendations - **COMPLETED**
 - Users see at least three actionable insights spanning cash yield, rebalancing, and tax opportunities after onboarding.
 - Accepting advice creates tasks, schedules automation (when enabled), and updates dashboard state without manual API calls.
 - Retirement simulations surface probability ranges and next-step guidance; QA checklist covers Monte Carlo outputs, cash optimization, tax-loss harvesting, and TSP mix recommendations.
 - **AI recommendation accuracy tracked and logged for continuous improvement.**
+- **Chatbot supports multi-turn conversations** with full financial context and memory persistence across sessions.
+- **Market context influences AI recommendations** - users see timely advice that responds to current economic conditions.
+- **Memory system prevents contradictory advice** - AI recalls user's past decisions and stated preferences.
 
 ### Implementation Notes
 See `docs/waves/ai-advisor-wave-plan.md` for detailed dual AI pipeline architecture and implementation strategy.
@@ -189,8 +217,13 @@ See `docs/waves/ai-advisor-wave-plan.md` for detailed dual AI pipeline architect
 ---
 
 ## Future Enhancements
-- **Advisor/Family Mode:** Multi-tenant support, shared dashboards, and advisor collaboration tooling derived from the vision’s white-label aspirations.
-- **Voice & Assistant Interfaces:** Alexa/Google assistant prototypes for portfolio snapshots and task acceptance.
+
+### Phase 4-5 Candidates
+- **Mobile App with Push Notifications:** Native iOS/Android apps with real-time alerts for portfolio changes, task reminders, and market events. Push notifications for time-sensitive advice and goal milestone achievements.
+- **Voice & Assistant Interfaces:** Alexa/Google Assistant/Siri prototypes for portfolio snapshots, account balance queries, and voice-activated task acceptance. "Alexa, what's my net worth?" and "Hey Google, accept my cash optimization advice."
+
+### Long-term Vision
+- **Advisor/Family Mode:** Multi-tenant support, shared dashboards, and advisor collaboration tooling derived from the vision's white-label aspirations.
 - **Monetization Experiments:** Premium tiers for faster data refresh, advanced analytics, or advisory APIs.
 - **Automation Escalation:** Self-service toggles for auto-executing rebalances or cash sweeps once compliance requirements are met.
 
