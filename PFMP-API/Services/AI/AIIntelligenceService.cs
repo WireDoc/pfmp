@@ -122,6 +122,8 @@ Format your response as:
 - Recommendations: Prioritized action items with specific values
 - Next Steps: Concrete actions with timelines
 
+When recommending alternative financial products (such as higher-yield accounts, money market accounts, or investment vehicles), provide specific, current examples where applicable. Include actual institution names, account types, and approximate current rates to make recommendations actionable and verifiable.
+
 Your analysis will be reviewed by a backup AI system for validation.",
                 CacheableContext = cacheableContext,  // Will be cached by Claude
                 UserPrompt = $"=== CASH OPTIMIZATION ANALYSIS ===\n\n{analysisContext}",
@@ -695,6 +697,7 @@ Remember: You have memory of past conversations and their financial actions.";
             
             sb.AppendLine();
             sb.AppendLine("ANALYZE: Is cash optimally allocated? Any excess in low-yield accounts? Is emergency fund properly funded?");
+            sb.AppendLine("If recommending transfers to higher-yield alternatives, provide specific examples of current accounts/institutions with competitive rates (e.g., specific banks offering high-yield savings or money market accounts).");
 
             return sb.ToString();
         }
