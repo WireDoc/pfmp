@@ -22,54 +22,132 @@ try {
   process.exit(1);
 }
 
-const stdio = new StdioServerTransport();
-const sse = new SSEClientTransport(endpoint);
+let stdio = new StdioServerTransport();
+let sse = null;
 
 let shuttingDown = false;
 let sseReady = false;
+let reconnecting = false;
 const pendingOutgoing = [];
 
+const MAX_RECONNECT_ATTEMPTS = 10;
+const RECONNECT_DELAY_MS = 2000;
+let reconnectAttempts = 0;
+
 const flushPending = () => {
-  if (!sseReady) {
+  if (!sseReady || !sse) {
     return;
   }
 
   while (pendingOutgoing.length > 0) {
     const message = pendingOutgoing.shift();
-    sse.send(message).catch(bail);
+    sse.send(message).catch((error) => {
+      console.error(`[bridge] Failed to send pending message: ${error.message}`);
+    });
   }
 };
 
 const bail = (error) => {
-  if (shuttingDown) {
+  if (shuttingDown || reconnecting) {
     return;
   }
 
-  shuttingDown = true;
   const message =
     error instanceof Error ? error.stack ?? error.message : String(error);
+  
+  // Check if this is a recoverable network error
+  const isNetworkError = 
+    message.includes("ECONNRESET") ||
+    message.includes("ECONNREFUSED") ||
+    message.includes("ETIMEDOUT") ||
+    message.includes("SSE error");
+
+  if (isNetworkError && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+    console.error(`[bridge] Connection lost: ${message}`);
+    console.error(`[bridge] Attempting reconnect (${reconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS})...`);
+    attemptReconnect();
+    return;
+  }
+
+  // Fatal error - shut down
+  shuttingDown = true;
   console.error(`[bridge] Fatal error: ${message}`);
 
-  Promise.allSettled([stdio.close(), sse.close()]).finally(() => {
+  Promise.allSettled([
+    stdio ? stdio.close() : Promise.resolve(),
+    sse ? sse.close() : Promise.resolve()
+  ]).finally(() => {
     process.exit(1);
   });
 };
 
+const attemptReconnect = async () => {
+  if (reconnecting || shuttingDown) {
+    return;
+  }
+
+  reconnecting = true;
+  reconnectAttempts++;
+  sseReady = false;
+
+  // Close existing SSE connection
+  if (sse) {
+    try {
+      await sse.close();
+    } catch (error) {
+      // Ignore close errors
+    }
+    sse = null;
+  }
+
+  // Wait before reconnecting
+  await new Promise(resolve => setTimeout(resolve, RECONNECT_DELAY_MS));
+
+  if (shuttingDown) {
+    return;
+  }
+
+  try {
+    // Create new SSE transport
+    sse = new SSEClientTransport(endpoint);
+    
+    // Set up handlers
+    sse.onmessage = (message) => {
+      if (stdio) {
+        stdio.send(message).catch(bail);
+      }
+    };
+    
+    sse.onerror = bail;
+
+    // Start the transport
+    await sse.start();
+    
+    sseReady = true;
+    reconnecting = false;
+    reconnectAttempts = 0;
+    
+    console.error(`[bridge] Reconnected to ${endpoint.href}`);
+    flushPending();
+  } catch (error) {
+    reconnecting = false;
+    console.error(`[bridge] Reconnect failed: ${error.message}`);
+    bail(error);
+  }
+};
+
 stdio.onmessage = (message) => {
-  if (!sseReady) {
+  if (!sseReady || reconnecting) {
     pendingOutgoing.push(message);
     return;
   }
 
-  sse.send(message).catch(bail);
-};
-
-sse.onmessage = (message) => {
-  stdio.send(message).catch(bail);
+  if (sse) {
+    sse.send(message).catch(bail);
+  }
 };
 
 stdio.onerror = bail;
-sse.onerror = bail;
 
 const shutdown = (signal) => {
   if (shuttingDown) {
@@ -79,7 +157,10 @@ const shutdown = (signal) => {
   shuttingDown = true;
   console.error(`[bridge] Received ${signal}, closing transports...`);
 
-  Promise.allSettled([stdio.close(), sse.close()]).finally(() => {
+  Promise.allSettled([
+    stdio ? stdio.close() : Promise.resolve(),
+    sse ? sse.close() : Promise.resolve()
+  ]).finally(() => {
     process.exit(0);
   });
 };
@@ -87,19 +168,35 @@ const shutdown = (signal) => {
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
 
-const stdioStartPromise = stdio.start().catch(bail);
-const sseStartPromise = sse
-  .start()
-  .then(() => {
-    sseReady = true;
-    flushPending();
-  })
-  .catch(bail);
+const startBridge = async () => {
+  try {
+    // Start stdio transport
+    await stdio.start();
+    console.error("[bridge] Stdio transport started");
 
-Promise.all([stdioStartPromise, sseStartPromise])
-  .then(() => {
+    // Create and start SSE transport
+    sse = new SSEClientTransport(endpoint);
+    
+    sse.onmessage = (message) => {
+      if (stdio) {
+        stdio.send(message).catch(bail);
+      }
+    };
+    
+    sse.onerror = bail;
+
+    await sse.start();
+    
+    sseReady = true;
+    reconnectAttempts = 0;
+    
     console.error(`[bridge] Connected to ${endpoint.href}`);
-  })
-  .catch(() => {
-    /* handled via bail */
-  });
+    flushPending();
+  } catch (error) {
+    console.error(`[bridge] Failed to start: ${error.message}`);
+    bail(error);
+  }
+};
+
+// Start the bridge
+startBridge();
