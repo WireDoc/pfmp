@@ -1,22 +1,26 @@
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
 
 namespace PFMP_API.Services.AI;
 
 /// <summary>
-/// OpenAI GPT-5 service - Primary AI financial advisor.
+/// OpenAI GPT service - Primary AI financial advisor.
+/// Supports both direct OpenAI API and Azure OpenAI Service.
 /// Provides comprehensive financial analysis with advanced reasoning capabilities.
-/// Uses GPT-5 (or latest available GPT-4 variant) as the primary recommendation engine.
+/// Uses GPT-4 (or GPT-5 when available) as the primary recommendation engine.
 /// </summary>
 public class OpenAIService : IAIFinancialAdvisor
 {
     private readonly HttpClient _httpClient;
     private readonly OpenAIServiceOptions _options;
     private readonly ILogger<OpenAIService> _logger;
+    private readonly bool _isAzure;
 
     public string ServiceName => "OpenAI";
-    public string ModelVersion => _options.Model;
+    public string ModelVersion => _isAzure ? _options.DeploymentName : _options.Model;
 
     public OpenAIService(
         HttpClient httpClient,
@@ -26,54 +30,90 @@ public class OpenAIService : IAIFinancialAdvisor
         _httpClient = httpClient;
         _options = options.Value;
         _logger = logger;
+        _isAzure = _options.Provider.Equals("Azure", StringComparison.OrdinalIgnoreCase);
 
-        // Configure HttpClient
-        _httpClient.BaseAddress = new Uri(_options.Endpoint);
-        _httpClient.DefaultRequestHeaders.Authorization = 
-            new AuthenticationHeaderValue("Bearer", _options.ApiKey);
-        _httpClient.Timeout = TimeSpan.FromSeconds(_options.TimeoutSeconds);
+        // Configure HttpClient based on provider
+        if (_isAzure)
+        {
+            // Azure OpenAI configuration
+            _httpClient.BaseAddress = new Uri(_options.AzureEndpoint);
+            _httpClient.DefaultRequestHeaders.Add("api-key", _options.ApiKey);
+            _httpClient.Timeout = TimeSpan.FromSeconds(_options.TimeoutSeconds);
+            
+            _logger.LogInformation(
+                "OpenAIService initialized with Azure OpenAI: endpoint={Endpoint}, deployment={Deployment}",
+                _options.AzureEndpoint, _options.DeploymentName);
+        }
+        else
+        {
+            // Standard OpenAI configuration
+            _httpClient.BaseAddress = new Uri(_options.Endpoint);
+            _httpClient.DefaultRequestHeaders.Authorization = 
+                new AuthenticationHeaderValue("Bearer", _options.ApiKey);
+            _httpClient.Timeout = TimeSpan.FromSeconds(_options.TimeoutSeconds);
+            
+            _logger.LogInformation(
+                "OpenAIService initialized with OpenAI API: endpoint={Endpoint}, model={Model}",
+                _options.Endpoint, _options.Model);
+        }
     }
 
     public async Task<AIRecommendation> GetRecommendationAsync(AIPromptRequest request)
     {
         _logger.LogInformation(
-            "OpenAI API call: model={Model}, promptLength={Length}, temperature={Temp}",
-            _options.Model, request.UserPrompt.Length, request.Temperature);
+            "OpenAI API call: provider={Provider}, model={Model}, promptLength={Length}, temperature={Temp}",
+            _isAzure ? "Azure" : "OpenAI", ModelVersion, request.UserPrompt.Length, request.Temperature);
 
         // Build messages array
         var messages = new List<object>();
         
-        // Add cacheable context as a system message if provided
-        if (!string.IsNullOrEmpty(request.CacheableContext))
+        // For Azure, combine cacheable context with system prompt (no caching support)
+        // For OpenAI, add as separate message for potential prompt caching
+        if (_isAzure)
         {
-            messages.Add(new
+            var systemContent = request.SystemPrompt;
+            if (!string.IsNullOrEmpty(request.CacheableContext))
             {
-                role = "system",
-                content = request.CacheableContext
-            });
+                systemContent = request.CacheableContext + "\n\n" + request.SystemPrompt;
+            }
+            messages.Add(new { role = "system", content = systemContent });
         }
-        
-        // Add system prompt
-        messages.Add(new
+        else
         {
-            role = "system",
-            content = request.SystemPrompt
-        });
+            // Add cacheable context as a separate system message for caching
+            if (!string.IsNullOrEmpty(request.CacheableContext))
+            {
+                messages.Add(new { role = "system", content = request.CacheableContext });
+            }
+            messages.Add(new { role = "system", content = request.SystemPrompt });
+        }
 
         // Add user prompt
-        messages.Add(new
-        {
-            role = "user",
-            content = request.UserPrompt
-        });
+        messages.Add(new { role = "user", content = request.UserPrompt });
 
-        var openAIRequest = new
-        {
-            model = _options.Model,
-            messages = messages.ToArray(),
-            max_tokens = request.MaxTokens > 0 ? request.MaxTokens : _options.MaxTokens,
-            temperature = (double)request.Temperature
-        };
+        // Build request - Azure doesn't include model in body (it's in the URL)
+        // GPT-5 reasoning models require max_completion_tokens instead of max_tokens
+        var maxTokens = request.MaxTokens > 0 ? request.MaxTokens : _options.MaxTokens;
+
+        var requestBody = _isAzure
+            ? new
+            {
+                messages = messages.ToArray(),
+                max_completion_tokens = maxTokens, // Changed from max_tokens
+                // Don't include temperature for reasoning models - they don't support it
+            }
+            : (object)new
+            {
+                model = _options.Model,
+                messages = messages.ToArray(),
+                max_completion_tokens = maxTokens, // Changed from max_tokens
+                // Don't include temperature for reasoning models - they don't support it
+            };
+
+        // Build URL - different format for Azure vs OpenAI
+        var url = _isAzure
+            ? $"openai/deployments/{_options.DeploymentName}/chat/completions?api-version=2024-10-21"
+            : "chat/completions";
 
         AIRecommendation? recommendation = null;
         Exception? lastException = null;
@@ -82,7 +122,7 @@ public class OpenAIService : IAIFinancialAdvisor
         {
             try
             {
-                var response = await _httpClient.PostAsJsonAsync("chat/completions", openAIRequest);
+                var response = await _httpClient.PostAsJsonAsync(url, requestBody);
                 
                 if (response.IsSuccessStatusCode)
                 {
@@ -90,17 +130,18 @@ public class OpenAIService : IAIFinancialAdvisor
                     recommendation = ParseOpenAIResponse(responseContent, request.UserId);
                     
                     _logger.LogInformation(
-                        "OpenAI success: recommendationId={Id}, tokens={Tokens}, cost=${Cost:F4}, confidence={Confidence:P0}",
-                        recommendation.RecommendationId, recommendation.TokensUsed, recommendation.EstimatedCost, recommendation.ConfidenceScore);
+                        "OpenAI success: provider={Provider}, recommendationId={Id}, tokens={Tokens}, cost=${Cost:F4}, confidence={Confidence:P0}",
+                        _isAzure ? "Azure" : "OpenAI", recommendation.RecommendationId, recommendation.TokensUsed, recommendation.EstimatedCost, recommendation.ConfidenceScore);
                     
                     return recommendation;
                 }
 
+                var errorContent = await response.Content.ReadAsStringAsync();
                 _logger.LogWarning(
-                    "OpenAI API error (attempt {Attempt}/{Max}): {StatusCode} - {Reason}",
-                    attempt, _options.MaxRetries, response.StatusCode, response.ReasonPhrase);
+                    "OpenAI API error (attempt {Attempt}/{Max}): {StatusCode} - {Reason} - {Error}",
+                    attempt, _options.MaxRetries, response.StatusCode, response.ReasonPhrase, errorContent);
 
-                lastException = new HttpRequestException($"OpenAI API returned {response.StatusCode}");
+                lastException = new HttpRequestException($"OpenAI API returned {response.StatusCode}: {errorContent}");
 
                 if (attempt < _options.MaxRetries)
                 {

@@ -58,7 +58,12 @@ public class GeminiService : IAIFinancialAdvisor
                 temperature = (double)(request.Temperature > 0 ? request.Temperature : _options.Temperature),
                 maxOutputTokens = request.MaxTokens > 0 ? request.MaxTokens : _options.MaxTokens,
                 topP = 0.95,
-                topK = 40
+                topK = 40,
+                thinkingConfig = new
+                {
+                    thinkingBudget = 1024,  // Allow up to 1024 tokens for thinking (Gemini 2.5 Pro minimum is 128)
+                    includeThoughts = false  // Don't include thought summaries in response
+                }
             },
             safetySettings = new[]
             {
@@ -88,13 +93,26 @@ public class GeminiService : IAIFinancialAdvisor
                 if (response.IsSuccessStatusCode)
                 {
                     var responseContent = await response.Content.ReadAsStringAsync();
-                    recommendation = ParseGeminiResponse(responseContent, request.UserId, modelToUse);
+                    
+                    // Check if response contains an error despite 200 OK
+                    if (responseContent.Contains("\"error\""))
+                    {
+                        _logger.LogWarning(
+                            "Gemini API error (attempt {Attempt}/{Max}): Response contains error: {Error}",
+                            attempt, _options.MaxRetries, responseContent.Length > 500 ? responseContent.Substring(0, 500) : responseContent);
+                        
+                        lastException = new HttpRequestException($"Gemini API returned error in response body");
+                    }
+                    else
+                    {
+                        recommendation = ParseGeminiResponse(responseContent, request.UserId, modelToUse);
 
-                    _logger.LogInformation(
-                        "Gemini success: model={Model}, recommendationId={Id}, tokens={Tokens}, cost=${Cost:F4}, confidence={Confidence:P0}",
-                        modelToUse, recommendation.RecommendationId, recommendation.TokensUsed, recommendation.EstimatedCost, recommendation.ConfidenceScore);
+                        _logger.LogInformation(
+                            "Gemini success: model={Model}, recommendationId={Id}, tokens={Tokens}, cost=${Cost:F4}, confidence={Confidence:P0}",
+                            modelToUse, recommendation.RecommendationId, recommendation.TokensUsed, recommendation.EstimatedCost, recommendation.ConfidenceScore);
 
-                    return recommendation;
+                        return recommendation;
+                    }
                 }
 
                 _logger.LogWarning(
@@ -204,9 +222,18 @@ public class GeminiService : IAIFinancialAdvisor
             .GetString() ?? "";
 
         // Extract token usage (Gemini provides this in usageMetadata)
-        var usage = root.GetProperty("usageMetadata");
-        var inputTokens = usage.GetProperty("promptTokenCount").GetInt32();
-        var outputTokens = usage.GetProperty("candidatesTokenCount").GetInt32();
+        // Handle cases where usageMetadata might not be present
+        int inputTokens = 0;
+        int outputTokens = 0;
+        
+        if (root.TryGetProperty("usageMetadata", out var usage))
+        {
+            if (usage.TryGetProperty("promptTokenCount", out var promptCount))
+                inputTokens = promptCount.GetInt32();
+            if (usage.TryGetProperty("candidatesTokenCount", out var candidatesCount))
+                outputTokens = candidatesCount.GetInt32();
+        }
+        
         var totalTokens = inputTokens + outputTokens;
 
         // Calculate cost

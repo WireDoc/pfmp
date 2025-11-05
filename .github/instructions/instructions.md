@@ -113,7 +113,69 @@ Log monitoring: keep the API and frontend PowerShell windows visible, and use th
 
 Stay disciplined: follow these instructions for rapid onboarding, keep the documentation tree coherent, and surface any gaps in `docs/meta/documentation-strategy.md` so the audit trail remains accurate.
 
-## 8. Frontend layout and testing guidance
+## 8. MCP PostgreSQL integration (AI database access)
+
+The PFMP project includes a custom Model Context Protocol (MCP) server that exposes PostgreSQL database operations to AI assistants. This enables natural-language database queries without manual SQL.
+
+**When to use MCP tools**:
+- **Database schema inspection**: When asked about table structures, columns, constraints, or foreign key relationships
+- **Data exploration**: When asked to query specific records, count rows, or examine database contents
+- **User data operations**: When asked to clone user data, analyze user-specific records, or inspect test data
+- **Database debugging**: When troubleshooting data issues, checking record counts, or validating migrations
+
+**Available MCP tools** (prefix requests with "Using MCP Postgres"):
+1. `list_tables` – List all database tables with row counts and UserId detection
+2. `get_table_schema` – Get detailed schema for a specific table (columns, types, constraints, FKs)
+3. `execute_query` – Execute SQL queries with parameter binding (read or write mode)
+4. `clone_user_data` – Clone all user data from one user to another (handles FKs automatically)
+5. `get_foreign_keys` – Get FK relationships for a table or all tables
+
+**Examples**:
+- "Using MCP Postgres, list all tables"
+- "Using MCP Postgres, show me the schema for the Accounts table"
+- "Using MCP Postgres, how many users are in the database?"
+- "Using MCP Postgres, clone all data from user 1 to user 15"
+
+**Setup & troubleshooting**: See `docs/dev/mcp-integration.md` for bridge configuration, server management, and debugging steps.
+
+**Direct testing** (without AI assistant):
+```powershell
+cd C:\pfmp\mcp-bridge
+node .\test-client.mjs
+```
+
+## 8. MCP PostgreSQL integration (AI database access)
+
+The PFMP project includes a custom Model Context Protocol (MCP) server that exposes PostgreSQL database operations to AI assistants. This enables natural-language database queries without manual SQL.
+
+**When to use MCP tools**:
+- **Database schema inspection**: When asked about table structures, columns, constraints, or foreign key relationships
+- **Data exploration**: When asked to query specific records, count rows, or examine database contents
+- **User data operations**: When asked to clone user data, analyze user-specific records, or inspect test data
+- **Database debugging**: When troubleshooting data issues, checking record counts, or validating migrations
+
+**Available MCP tools** (prefix requests with "Using MCP Postgres"):
+1. `list_tables` – List all database tables with row counts and UserId detection
+2. `get_table_schema` – Get detailed schema for a specific table (columns, types, constraints, FKs)
+3. `execute_query` – Execute SQL queries with parameter binding (read or write mode)
+4. `clone_user_data` – Clone all user data from one user to another (handles FKs automatically)
+5. `get_foreign_keys` – Get FK relationships for a table or all tables
+
+**Examples**:
+- "Using MCP Postgres, list all tables"
+- "Using MCP Postgres, show me the schema for the Accounts table"
+- "Using MCP Postgres, how many users are in the database?"
+- "Using MCP Postgres, clone all data from user 1 to user 15"
+
+**Setup & troubleshooting**: See `docs/dev/mcp-integration.md` for bridge configuration, server management, and debugging steps.
+
+**Direct testing** (without AI assistant):
+```powershell
+cd C:\pfmp\mcp-bridge
+node .\test-client.mjs
+```
+
+## 9. Frontend layout and testing guidance
 
 - UI layout: Prefer Material UI components only (no custom CSS width hacks). Use:
    - `Stack` for vertical rhythm and spacing

@@ -42,10 +42,17 @@ namespace PFMP_API.Services
 
             try
             {
-                // Wave 7: Use new AI intelligence system with comprehensive analysis
-                _logger.LogInformation("Generating AI advice for user {UserId} using Wave 7 intelligence system", userId);
+                // Wave 7.3: Use new primary-backup AI system
+                _logger.LogInformation("Generating AI advice for user {UserId} using primary-backup intelligence system", userId);
                 
                 var analysis = await _aiIntelligence.AnalyzeCashOptimizationAsync(userId);
+                
+                // Extract agreement level from metadata if available
+                string? agreementLevel = null;
+                if (analysis.Metadata != null && analysis.Metadata.TryGetValue("agreementLevel", out var level))
+                {
+                    agreementLevel = level?.ToString();
+                }
                 
                 advice = new Advice
                 {
@@ -53,9 +60,17 @@ namespace PFMP_API.Services
                     Theme = "CashOptimization",
                     Status = "Proposed",
                     ConsensusText = analysis.ConsensusRecommendation ?? "See individual AI recommendations below",
+                    
+                    // New primary+backup fields (Wave 7.3)
+                    PrimaryRecommendation = analysis.PrimaryRecommendation?.RecommendationText,
+                    BackupCorroboration = analysis.BackupCorroboration?.RecommendationText,
+                    BackupAgreementLevel = agreementLevel,
+                    
+                    // Legacy fields (preserve for backward compatibility)
                     ConservativeRecommendation = analysis.ConservativeAdvice?.RecommendationText,
                     AggressiveRecommendation = analysis.AggressiveAdvice?.RecommendationText,
-                    ConfidenceScore = (int)((analysis.ConservativeAdvice?.ConfidenceScore ?? 0.6m) * 100),
+                    
+                    ConfidenceScore = (int)((analysis.PrimaryRecommendation?.ConfidenceScore ?? analysis.ConservativeAdvice?.ConfidenceScore ?? 0.6m) * 100),
                     HasConsensus = analysis.HasConsensus,
                     AgreementScore = analysis.AgreementScore,
                     AIGenerationCost = analysis.TotalCost,
@@ -68,7 +83,7 @@ namespace PFMP_API.Services
             catch (Exception ex)
             {
                 // Fallback to legacy AI service
-                _logger.LogError(ex, "Wave 7 AI analysis failed for user {UserId}; using legacy fallback", userId);
+                _logger.LogError(ex, "Primary-backup AI analysis failed for user {UserId}; using legacy fallback", userId);
                 
                 string analysisText = string.Empty;
                 try

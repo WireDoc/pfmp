@@ -76,6 +76,7 @@ All in-depth documentation lives under `docs/`, organised by subject. Start with
 - `docs/waves/MIGRATION_STATUS.md` – latest migration + onboarding updates (including TSP lifecycle positions and daily snapshots)
 - `docs/testing/onboarding-persistence.md` – QA checklist + integration test commands for the onboarding flow
 - `docs/auth/overview.md` and `docs/auth/getting-started.md` – authentication guidance & bypass mode
+- `docs/dev/mcp-integration.md` – MCP PostgreSQL server integration for AI database access
 - `.github/instructions/instructions.md` – PowerShell workflow, daily startup, npm-only note
 
 Update the documentation map whenever you add or relocate material.
@@ -86,6 +87,9 @@ Update the documentation map whenever you add or relocate material.
 - Keep backend and frontend running in dedicated terminals (see `start-dev-servers.bat`)
 - MUI Grid v2 `size` API is mandatory; ESLint blocks legacy `<Grid item>` usage
 - Feature development follows conventional commits (e.g., `feat(auth): enable azure callback logging`)
+- **MCP PostgreSQL Integration**: AI assistants can query the database directly using natural language (see `docs/dev/mcp-integration.md`)
+  - Example: "Using MCP Postgres, list all tables" or "Using MCP Postgres, show me the schema for the Accounts table"
+  - Test the bridge: `cd C:\pfmp\mcp-bridge; node .\test-client.mjs`
 - Run sanity checks before committing:
   - `dotnet build C:\pfmp\PFMP-API\PFMP-API.csproj`
   - `npm run lint`

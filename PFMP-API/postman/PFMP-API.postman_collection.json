@@ -276,6 +276,91 @@
       "item": [
         { "name": "Weather Forecast", "request": { "method": "GET", "url": "{{baseUrl}}/weatherforecast" } }
       ]
+    },
+    {
+      "name": "External AI Services",
+      "item": [
+        {
+          "name": "OpenAI Health Check",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{openaiApiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"gpt-5\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Say 'API connection successful'\"\n    }\n  ],\n  \"max_completion_tokens\": 100\n}"
+            },
+            "url": "https://api.openai.com/v1/chat/completions"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has model\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.model).to.exist;",
+                  "});",
+                  "",
+                  "pm.test(\"Response has content\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.choices[0].message.content).to.exist;",
+                  "});",
+                  "",
+                  "pm.test(\"Token usage reported\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.usage.total_tokens).to.be.above(0);",
+                  "    console.log('Tokens used:', jsonData.usage.total_tokens);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "OpenAI Models List",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{openaiApiKey}}" }
+            ],
+            "url": "https://api.openai.com/v1/models"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Has models list\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.be.an('array');",
+                  "    console.log('Available models:', jsonData.data.length);",
+                  "});",
+                  "",
+                  "pm.test(\"GPT-5 model exists\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    var gpt5 = jsonData.data.find(m => m.id.includes('gpt-5'));",
+                  "    pm.expect(gpt5).to.exist;",
+                  "    console.log('Found GPT-5 models:', jsonData.data.filter(m => m.id.includes('gpt-5')).map(m => m.id));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "variable": [
@@ -288,6 +373,7 @@
     { "key": "goalId", "value": "1" },
     { "key": "incomeSourceId", "value": "1" },
     { "key": "guid", "value": "00000000000000000000000000000000" },
-    { "key": "refreshToken", "value": "" }
+    { "key": "refreshToken", "value": "" },
+    { "key": "openaiApiKey", "value": "your-openai-api-key-here" }
   ]
 }

@@ -28,6 +28,8 @@ This index lists every active document under `docs/` following the subject-first
 - `docs/dev/build.md` – Full-stack build instructions and automation notes
 - `docs/dev/library-version-guidelines.md` – Supported library versions and upgrade policy
 - `docs/dev/storybook-setup.md` – Storybook scaffold and usage notes
+- `docs/dev/mcp-integration.md` – MCP PostgreSQL server setup, tools, and usage guide
+- `docs/dev/mcp-server-project-spec.md` – Original MCP server specification and architecture
 - `docs/dev/archive/` *(reserved)*
 
 ## 📘 guides

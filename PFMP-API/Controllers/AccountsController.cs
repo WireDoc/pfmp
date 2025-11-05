@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
+using PFMP_API.Models.DTOs;
 
 namespace PFMP_API.Controllers
 {
@@ -68,22 +69,40 @@ namespace PFMP_API.Controllers
 
         // PUT: api/Accounts/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutAccount(int id, Account account)
+        public async Task<ActionResult<Account>> PutAccount(int id, AccountUpdateRequest updateRequest)
         {
-            if (id != account.AccountId)
-            {
-                return BadRequest("Account ID mismatch");
-            }
-
             try
             {
-                account.UpdatedAt = DateTime.UtcNow;
-                account.LastBalanceUpdate = DateTime.UtcNow;
-                
-                _context.Entry(account).State = EntityState.Modified;
+                var existingAccount = await _context.Accounts
+                    .FirstOrDefaultAsync(a => a.AccountId == id);
+
+                if (existingAccount == null)
+                {
+                    return NotFound($"Account with ID {id} not found");
+                }
+
+                // Update only the allowed fields
+                existingAccount.AccountName = updateRequest.Name;
+                existingAccount.Institution = updateRequest.Institution;
+                existingAccount.CurrentBalance = updateRequest.Balance;
+                existingAccount.AccountNumber = updateRequest.AccountNumber;
+                existingAccount.UpdatedAt = DateTime.UtcNow;
+                existingAccount.LastBalanceUpdate = DateTime.UtcNow;
+
+                // Parse and validate account type
+                if (Enum.TryParse<AccountType>(updateRequest.Type, out var accountType))
+                {
+                    existingAccount.AccountType = accountType;
+                }
+                else
+                {
+                    return BadRequest($"Invalid account type: {updateRequest.Type}");
+                }
+
                 await _context.SaveChangesAsync();
 
-                return NoContent();
+                // Return the updated account
+                return Ok(existingAccount);
             }
             catch (DbUpdateConcurrencyException)
             {

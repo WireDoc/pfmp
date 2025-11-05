@@ -2,11 +2,15 @@ namespace PFMP_API.Services.AI;
 
 /// <summary>
 /// Configuration options for OpenAI GPT service (Primary AI).
+/// Supports both direct OpenAI API and Azure OpenAI Service.
 /// </summary>
 public class OpenAIServiceOptions
 {
+    public string Provider { get; set; } = "OpenAI"; // "OpenAI" or "Azure"
     public string ApiKey { get; set; } = string.Empty;
     public string Endpoint { get; set; } = "https://api.openai.com/v1";
+    public string AzureEndpoint { get; set; } = string.Empty; // For Azure: https://your-resource.openai.azure.com/
+    public string DeploymentName { get; set; } = string.Empty; // For Azure: your deployment name
     public string Model { get; set; } = "gpt-4"; // Will use GPT-5 when available
     public int MaxTokens { get; set; } = 4000;
     public decimal Temperature { get; set; } = 0.3m;
@@ -82,6 +86,8 @@ public class ModelLimits
 /// </summary>
 public class ConsensusOptions
 {
+    public string PrimaryService { get; set; } = "OpenAI"; // Which service to use as primary
+    public string BackupService { get; set; } = "Gemini";  // Which service to use as backup
     public decimal MinimumAgreementScore { get; set; } = 0.8m; // 80% agreement required
     public decimal MinimumConfidenceScore { get; set; } = 0.7m; // 70% confidence required
     public bool DefaultToConservative { get; set; } = true; // Tie-breaker

@@ -75,6 +75,20 @@ foreach ($dp in $dotnetApi) {
     }
 }
 
+# Also kill any dotnet/PFMP-API processes running on port 5052 (the API port)
+$dotnetOnPort = Get-NetTCPConnection -LocalPort 5052 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique
+foreach ($procId in $dotnetOnPort) {
+    try {
+        $proc = Get-Process -Id $procId -ErrorAction Stop
+        if ($proc.ProcessName -match 'dotnet|PFMP-API') {
+            Stop-Process -Id $procId -Force -ErrorAction Stop
+            Write-Host "Killed API process on port 5052 (PID $procId, $($proc.ProcessName))" -ForegroundColor Green
+        }
+    } catch {
+        Write-Host "Failed to kill process on port 5052 (PID $procId): $($_.Exception.Message)" -ForegroundColor Red
+    }
+}
+
 $total = $stopped.Count + $viteProcs.Count + $dotnetApi.Count
 if ($total -eq 0) {
     Write-Host "No PFMP dev processes found." -ForegroundColor Yellow

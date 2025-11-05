@@ -17,6 +17,16 @@ namespace PFMP_API
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            // Explicitly load local configuration file for development secrets
+            if (builder.Environment.IsDevelopment())
+            {
+                var localConfigPath = Path.Combine(builder.Environment.ContentRootPath, "appsettings.Development.local.json");
+                if (File.Exists(localConfigPath))
+                {
+                    builder.Configuration.AddJsonFile("appsettings.Development.local.json", optional: true, reloadOnChange: true);
+                }
+            }
+
             // Add services to the container.
             
             // Add Entity Framework

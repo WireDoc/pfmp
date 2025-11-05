@@ -73,6 +73,7 @@ switch ($numericMode) { 0 { $msg='Both services starting' } 1 { $msg='Backend st
 Write-Host $msg -ForegroundColor Green
 Write-Host 'API:      http://localhost:5052'
 Write-Host 'Frontend: http://localhost:5173'
+Write-Host 'Database: postgresql://localhost:5433 (pfmp_dev)'
 Write-Host 'Health:   http://localhost:5052/health   (liveness)'
 Write-Host 'Ready:    http://localhost:5052/health/ready (readiness)'
 Write-Host "Stop by closing windows or Ctrl+C in each." -ForegroundColor Yellow
