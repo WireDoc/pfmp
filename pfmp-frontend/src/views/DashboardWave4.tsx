@@ -20,6 +20,7 @@ import { TasksPanel } from './dashboard/TasksPanel';
 import { QuickStatsPanel } from './dashboard/QuickStatsPanel';
 import PropertiesPanel from './dashboard/PropertiesPanel';
 import LiabilitiesPanel from './dashboard/LiabilitiesPanel';
+import TspPanel from './dashboard/TspPanel';
 import { useAuth } from '../contexts/auth/useAuth';
 import { getDashboardService, TASK_PRIORITY_TO_ENUM, DEFAULT_TASK_PRIORITY_ENUM } from '../services/dashboard';
 import { ensureTspSnapshotFresh } from '../services/financialProfileApi';
@@ -692,6 +693,10 @@ export const DashboardWave4: React.FC = () => {
   const alerts = displayData?.alerts ?? [];
   const advice = displayData?.advice ?? [];
   const tasks = displayData?.tasks ?? [];
+  
+  // Separate TSP accounts from regular accounts
+  const tspAccount = displayData?.accounts?.find(acc => acc.type === 'retirement' && acc.institution === 'TSP');
+  const regularAccounts = displayData?.accounts?.filter(acc => !(acc.type === 'retirement' && acc.institution === 'TSP')) ?? [];
 
   return (
     <DashboardErrorBoundary onRetry={refetch}>
@@ -750,8 +755,18 @@ export const DashboardWave4: React.FC = () => {
         <Grid size={{ xs: 12, md: 6 }}>
           <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography variant="h6" gutterBottom>Accounts</Typography>
-            {loading ? <Skeleton variant="rectangular" height={120} /> : <AccountsPanel data={displayData} loading={loading} userId={1} onRefresh={refresh} />}
+            {loading ? <Skeleton variant="rectangular" height={120} /> : (
+              <AccountsPanel 
+                data={displayData ? { ...displayData, accounts: regularAccounts } : null} 
+                loading={loading} 
+                userId={1} 
+                onRefresh={refresh} 
+              />
+            )}
           </Paper>
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          {loading ? <Skeleton variant="rectangular" height={200} /> : <TspPanel tspAccount={tspAccount} loading={loading} />}
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
           <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
