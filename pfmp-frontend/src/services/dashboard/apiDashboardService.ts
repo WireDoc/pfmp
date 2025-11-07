@@ -37,6 +37,8 @@ function isTaskCreateResponseDto(payload: unknown): payload is TaskCreateRespons
 interface ApiDashboardSummaryResponse {
   netWorth: DashboardData['netWorth'];
   accounts?: DashboardData['accounts'];
+  properties?: DashboardData['properties'];
+  liabilities?: DashboardData['liabilities'];
   insights?: DashboardData['insights'];
   longTermObligationCount?: number | null;
   longTermObligationEstimate?: number | null;
@@ -289,6 +291,8 @@ export function createApiDashboardService(): DashboardService {
       return {
         netWorth: dto.netWorth,
         accounts: dto.accounts ?? [],
+        properties: dto.properties ?? [],
+        liabilities: dto.liabilities ?? [],
         insights: dto.insights ?? [],
         longTermObligations: obligations,
         alerts,
