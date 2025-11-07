@@ -179,6 +179,46 @@ public class DashboardController : ControllerBase
                 });
             }
 
+            // Build properties list
+            var propertyList = properties.Select(p => new
+            {
+                id = p.PropertyId,
+                address = p.PropertyName ?? "Unknown Property",
+                type = p.PropertyType ?? "Residence",
+                estimatedValue = new { amount = p.EstimatedValue, currency = "USD" },
+                mortgageBalance = new { amount = p.MortgageBalance ?? 0, currency = "USD" },
+                lastUpdated = p.UpdatedAt
+            }).ToList();
+
+            // Build liabilities list (includes standalone liabilities + mortgages from properties)
+            var liabilitiesList = liabilities.Select(l => new
+            {
+                id = l.LiabilityAccountId,
+                name = l.LiabilityType,
+                type = l.LiabilityType ?? "Other",
+                currentBalance = new { amount = l.CurrentBalance, currency = "USD" },
+                minimumPayment = new { amount = l.MinimumPayment ?? 0, currency = "USD" },
+                interestRate = l.InterestRateApr,
+                lastUpdated = l.UpdatedAt
+            }).ToList();
+
+            // Add mortgages from properties as liabilities if they have balances
+            var mortgageIdOffset = 100000; // Use large offset to avoid ID collision
+            var mortgageIndex = 0;
+            foreach (var property in properties.Where(p => p.MortgageBalance.HasValue && p.MortgageBalance > 0))
+            {
+                liabilitiesList.Add(new
+                {
+                    id = mortgageIdOffset + mortgageIndex++,
+                    name = $"Mortgage - {property.PropertyName ?? "Property"}",
+                    type = "Mortgage",
+                    currentBalance = new { amount = property.MortgageBalance!.Value, currency = "USD" },
+                    minimumPayment = new { amount = property.MonthlyMortgagePayment ?? 0, currency = "USD" },
+                    interestRate = (decimal?)null,
+                    lastUpdated = property.UpdatedAt
+                });
+            }
+
             // Long-term obligations
             var obligations = await _context.LongTermObligations
                 .Where(o => o.UserId == effectiveUserId)
@@ -196,6 +236,8 @@ public class DashboardController : ControllerBase
                     lastUpdated = DateTime.UtcNow
                 },
                 accounts,
+                properties = propertyList,
+                liabilities = liabilitiesList,
                 insights,
                 longTermObligationCount = obligations.Count,
                 longTermObligationEstimate = obligations.Sum(o => o.EstimatedCost ?? 0),

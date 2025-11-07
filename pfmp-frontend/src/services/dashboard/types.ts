@@ -107,9 +107,30 @@ export interface LongTermObligationSummary {
 
 export type LongTermObligationListener = (summary: LongTermObligationSummary | undefined) => void;
 
+export interface PropertySnapshot {
+  id: number;
+  address: string;
+  type: string;
+  estimatedValue: CurrencyAmount;
+  mortgageBalance: CurrencyAmount;
+  lastUpdated: string | null;
+}
+
+export interface LiabilitySnapshot {
+  id: number;
+  name: string;
+  type: string;
+  currentBalance: CurrencyAmount;
+  minimumPayment: CurrencyAmount;
+  interestRate: number | null;
+  lastUpdated: string | null;
+}
+
 export interface DashboardData {
   netWorth: NetWorthSummary;
   accounts: AccountSnapshot[];
+  properties?: PropertySnapshot[];
+  liabilities?: LiabilitySnapshot[];
   insights: Insight[];
   alerts: AlertCard[];
   advice: AdviceItem[];

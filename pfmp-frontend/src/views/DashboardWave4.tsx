@@ -18,6 +18,8 @@ import { AlertsPanel } from './dashboard/AlertsPanel';
 import { AdvicePanel } from './dashboard/AdvicePanel';
 import { TasksPanel } from './dashboard/TasksPanel';
 import { QuickStatsPanel } from './dashboard/QuickStatsPanel';
+import PropertiesPanel from './dashboard/PropertiesPanel';
+import LiabilitiesPanel from './dashboard/LiabilitiesPanel';
 import { useAuth } from '../contexts/auth/useAuth';
 import { getDashboardService, TASK_PRIORITY_TO_ENUM, DEFAULT_TASK_PRIORITY_ENUM } from '../services/dashboard';
 import { ensureTspSnapshotFresh } from '../services/financialProfileApi';
@@ -756,6 +758,12 @@ export const DashboardWave4: React.FC = () => {
             <Typography variant="h6" gutterBottom>Insights</Typography>
             {loading ? <Skeleton variant="rectangular" height={120} /> : <InsightsPanel data={insightsPanelData} loading={loading} />}
           </Paper>
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          {loading ? <Skeleton variant="rectangular" height={200} /> : <PropertiesPanel properties={displayData?.properties} loading={loading} />}
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          {loading ? <Skeleton variant="rectangular" height={200} /> : <LiabilitiesPanel liabilities={displayData?.liabilities} loading={loading} />}
         </Grid>
         <Grid size={12}>
           <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
