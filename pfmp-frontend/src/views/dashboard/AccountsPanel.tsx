@@ -6,7 +6,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import { SyncStatusBadge } from '../../components/status/SyncStatusBadge';
 import { EmptyState } from '../../components/empty-states/EmptyState';
 import { CashAccountModal } from '../../components/accounts/CashAccountModal';
-import { createCashAccount, updateCashAccount, type CreateCashAccountRequest, type UpdateCashAccountRequest, type CashAccountResponse } from '../../services/cashAccountsApi';
+import { createCashAccount, updateCashAccount, getCashAccount, type CreateCashAccountRequest, type UpdateCashAccountRequest, type CashAccountResponse } from '../../services/cashAccountsApi';
 import type { DashboardData } from '../../services/dashboard';
 import type { AccountSnapshot } from '../../services/dashboard/types';
 
@@ -20,6 +20,7 @@ interface Props {
 export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefresh }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<CashAccountResponse | null>(null);
+  const [loadingAccount, setLoadingAccount] = useState(false);
 
   // Filter to show only cash accounts (investments/TSP managed elsewhere)
   const cashAccounts = data?.accounts.filter(a => a.type === 'cash') || [];
@@ -29,27 +30,37 @@ export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefres
     setModalOpen(true);
   };
 
-  const handleOpenEditModal = (account: AccountSnapshot) => {
-    // Convert AccountSnapshot to CashAccountResponse for editing
+  const handleOpenEditModal = async (account: AccountSnapshot) => {
     // Extract Guid from id format: "cash_{guid}"
     const cashAccountId = account.id.replace('cash_', '');
     
-    const cashAccountData: CashAccountResponse = {
-      cashAccountId,
-      userId,
-      institution: account.institution,
-      nickname: account.name,
-      accountType: 'checking', // Default, will be loaded from API if needed
-      balance: account.balance.amount,
-      interestRateApr: 0,
-      purpose: undefined,
-      isEmergencyFund: false,
-      createdAt: account.lastSync,
-      updatedAt: account.lastSync,
-    };
-    
-    setEditingAccount(cashAccountData);
-    setModalOpen(true);
+    setLoadingAccount(true);
+    try {
+      // Fetch full account details from API to get all fields
+      const fullAccount = await getCashAccount(cashAccountId);
+      setEditingAccount(fullAccount);
+      setModalOpen(true);
+    } catch (error) {
+      console.error('Failed to load account details:', error);
+      // Fall back to basic data from dashboard if API fails
+      const cashAccountData: CashAccountResponse = {
+        cashAccountId,
+        userId,
+        institution: account.institution,
+        nickname: account.name,
+        accountType: 'checking',
+        balance: account.balance.amount,
+        interestRateApr: 0,
+        purpose: undefined,
+        isEmergencyFund: false,
+        createdAt: account.lastSync,
+        updatedAt: account.lastSync,
+      };
+      setEditingAccount(cashAccountData);
+      setModalOpen(true);
+    } finally {
+      setLoadingAccount(false);
+    }
   };
 
   const handleCloseModal = () => {
@@ -105,7 +116,12 @@ export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefres
                   </Box>
                   <Box display="flex" alignItems="center" gap={1}>
                     <SyncStatusBadge status={a.syncStatus} lastSync={a.lastSync} />
-                    <IconButton size="small" onClick={() => handleOpenEditModal(a)} aria-label="Edit account">
+                    <IconButton 
+                      size="small" 
+                      onClick={() => handleOpenEditModal(a)} 
+                      aria-label="Edit account"
+                      disabled={loadingAccount}
+                    >
                       <EditIcon fontSize="small" />
                     </IconButton>
                   </Box>
