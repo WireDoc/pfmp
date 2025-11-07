@@ -15,7 +15,7 @@ export interface NetWorthSummary {
   lastUpdated: string; // ISO string
 }
 
-export type AccountType = 'bank' | 'brokerage' | 'credit' | 'loan' | 'retirement' | 'other';
+export type AccountType = 'cash' | 'bank' | 'brokerage' | 'credit' | 'loan' | 'retirement' | 'other';
 export type SyncStatus = 'ok' | 'pending' | 'error' | 'manual';
 
 export interface AccountSnapshot {
