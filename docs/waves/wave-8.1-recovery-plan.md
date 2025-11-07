@@ -216,21 +216,38 @@ Wave 8.1 disruption: We removed the unified `Accounts` table and disabled Add/Ed
 ### ✅ 2. FIX: Display all accounts - COMPLETE
 Dashboard now correctly displays all 7 accounts with proper net worth calculation.
 
-### 🔶 3. ADD: Properties and Liabilities sections - IN PROGRESS
-- Create PropertiesPanel component
-- Create LiabilitiesPanel component
-- Add to DashboardWave4 layout
+### ✅ 3. ADD: Properties and Liabilities sections - COMPLETE
+**Implementation:**
+- ✅ Created PropertySnapshot and LiabilitySnapshot types
+- ✅ Extended DashboardData interface with properties and liabilities arrays
+- ✅ Updated backend DashboardController to return properties/liabilities in summary response
+- ✅ Created PropertiesPanel.tsx component with equity calculations
+- ✅ Created LiabilitiesPanel.tsx component with debt totals
+- ✅ Added both panels to DashboardWave4 grid layout
+- ✅ Created comprehensive unit tests (11 tests, all passing)
 
-### 4. TEST: Verify full data display (30 minutes)
-- ✅ Net worth: $785k
-- ✅ 7 account cards visible
-- ⏳ Property card visible
-- ⏳ Liabilities total visible
+**Backend Changes:**
+- Properties list includes: id, address, type, estimatedValue, mortgageBalance, lastUpdated
+- Liabilities list includes: standalone liabilities + mortgages from properties
+- Mortgages use offset ID (100000+) to avoid collisions
 
-### 5. DECIDE: Proceed with Phase 2 or Phase 3?
-- Dashboard display is now working
-- Next: Complete Phase 1 by adding Properties/Liabilities panels
-- Then: Proceed to Phase 2 (restore Add/Edit for cash accounts)
+**Frontend Components:**
+- PropertiesPanel shows property cards with equity percentage and calculations
+- LiabilitiesPanel shows liability cards with interest rates and minimum payments
+- Both panels display totals and handle empty states
+
+### 4. TEST: Verify full data display - COMPLETE
+- ✅ Net worth: $785k displayed correctly
+- ✅ 7 account cards visible (5 cash, 1 investment, 1 TSP)
+- ✅ Property panel visible showing $600k property with $238k mortgage = $362k equity
+- ✅ Liabilities panel visible showing $239k total debt (includes mortgage + $1k liability)
+- ✅ All 11 automated tests passing (propertiesPanel.test.tsx + liabilitiesPanel.test.tsx)
+
+### 5. NEXT: Proceed with Phase 2 (Cash Account Management)
+- Phase 1 is now 100% COMPLETE ✅
+- Dashboard correctly displays all financial data ($785k net worth with all components)
+- Ready to proceed with Phase 2: Restore Add/Edit functionality for cash accounts only
+- Or prioritize Wave 8.2 (CSV Import) or other features based on user needs
 
 ---
 
@@ -264,23 +281,28 @@ Dashboard now correctly displays all 7 accounts with proper net worth calculatio
 
 ## Success Criteria
 
-### Phase 1 Complete (Dashboard Display Fixed)
-- ✅ Dashboard shows $785k net worth
+### ✅ Phase 1 Complete (Dashboard Display Fixed)
+- ✅ Dashboard shows $785k net worth correctly
 - ✅ All 7 accounts visible (5 cash, 1 investment, 1 TSP)
-- ✅ Properties section visible ($600k)
-- ✅ Liabilities section visible ($239k)
-- ✅ No Edit buttons (read-only view)
+- ✅ Properties panel visible showing $600k property with equity calculation
+- ✅ Liabilities panel visible showing $239k total debt
+- ✅ No Edit buttons (read-only view maintained)
+- ✅ All automated tests passing (11 tests for Properties and Liabilities panels)
+- ✅ Backend correctly returns properties and liabilities in dashboard summary
+- ✅ Git commit ac05fc9 pushed to main
 
-### Phase 2 Complete (Wave 8.1 Restored for Cash)
-- ✅ Cash accounts have Edit button
-- ✅ Cash section has "Add Account" button
-- ✅ Other sections remain read-only
-- ✅ Changes persist and refresh dashboard
+**Phase 1 Status: 100% COMPLETE** 🎉
 
-### Phase 3 Complete (Wave 8 Complete)
-- ✅ CSV import functional
-- ✅ Holdings schema in place
-- ✅ Ready for Wave 9 (investment account details)
+### Phase 2 Pending (Wave 8.1 Restored for Cash)
+- ⏳ Cash accounts have Edit button
+- ⏳ Cash section has "Add Account" button
+- ⏳ Other sections remain read-only
+- ⏳ Changes persist and refresh dashboard
+
+### Phase 3 Pending (Wave 8 Complete)
+- ⏳ CSV import functional
+- ⏳ Holdings schema in place
+- ⏳ Ready for Wave 9 (investment account details)
 
 ---
 
