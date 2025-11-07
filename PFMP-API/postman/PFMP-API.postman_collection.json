@@ -94,7 +94,63 @@
         { "name": "Income: Upsert", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"streams\": [ { \"name\": \"Salary\", \"monthlyAmount\": 5000 } ]\n}" }, "url": "{{baseUrl}}/api/financial-profile/{{userId}}/income" } },
         { "name": "Income: Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/income" } },
         { "name": "Equity: Upsert", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"isInterestedInTracking\": true\n}" }, "url": "{{baseUrl}}/api/financial-profile/{{userId}}/equity" } },
-        { "name": "Equity: Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/equity" } }
+                { "name": "Equity: Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/equity" } }
+      ]
+    },
+    {
+      "name": "Cash Accounts Management",
+      "item": [
+        { 
+          "name": "List Cash Accounts", 
+          "request": { 
+            "method": "GET", 
+            "url": "{{baseUrl}}/api/cashaccounts?userId={{userId}}" 
+          } 
+        },
+        { 
+          "name": "Get Cash Account", 
+          "request": { 
+            "method": "GET", 
+            "url": "{{baseUrl}}/api/cashaccounts/{{cashAccountId}}" 
+          } 
+        },
+        { 
+          "name": "Create Cash Account", 
+          "request": { 
+            "method": "POST", 
+            "header": [{"key":"Content-Type","value":"application/json"}], 
+            "body": { 
+              "mode": "raw", 
+              "raw": "{\n  \"userId\": {{userId}},\n  \"institution\": \"Chase\",\n  \"nickname\": \"Emergency Fund\",\n  \"accountType\": \"savings\",\n  \"balance\": 5000.00,\n  \"interestRateApr\": 4.5,\n  \"purpose\": \"Emergency savings\",\n  \"isEmergencyFund\": true\n}" 
+            }, 
+            "url": "{{baseUrl}}/api/cashaccounts" 
+          } 
+        },
+        { 
+          "name": "Update Cash Account", 
+          "request": { 
+            "method": "PUT", 
+            "header": [{"key":"Content-Type","value":"application/json"}], 
+            "body": { 
+              "mode": "raw", 
+              "raw": "{\n  \"nickname\": \"Updated Checking\",\n  \"institution\": \"Wells Fargo\",\n  \"balance\": 3500.00,\n  \"interestRateApr\": 0.01,\n  \"purpose\": \"Daily transactions\"\n}" 
+            }, 
+            "url": "{{baseUrl}}/api/cashaccounts/{{cashAccountId}}" 
+          } 
+        },
+        { 
+          "name": "Delete Cash Account", 
+          "request": { 
+            "method": "DELETE", 
+            "url": "{{baseUrl}}/api/cashaccounts/{{cashAccountId}}" 
+          } 
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        { "name": "Get Dashboard", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard?userId={{userId}}" } }
       ]
     },
     {
@@ -369,6 +425,7 @@
     { "key": "adviceId", "value": "1" },
     { "key": "taskId", "value": "1" },
     { "key": "accountId", "value": "1" },
+    { "key": "cashAccountId", "value": "00000000-0000-0000-0000-000000000000" },
     { "key": "alertId", "value": "1" },
     { "key": "goalId", "value": "1" },
     { "key": "incomeSourceId", "value": "1" },
