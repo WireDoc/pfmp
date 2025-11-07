@@ -43,12 +43,9 @@ interface ApiDashboardSummaryResponse {
   nextObligationDueDate?: string | null;
 }
 
-const API_ORIGIN = (() => {
-  if (typeof window === 'undefined' || typeof window.location?.origin !== 'string') {
-    return 'http://localhost';
-  }
-  return window.location.origin;
-})();
+// Use the configured API base URL from environment variable
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api';
+const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, ''); // Remove trailing /api or /api/
 
 const DASHBOARD_BASE = `${API_ORIGIN}/api/dashboard`;
 const DEFAULT_DASHBOARD_USER_ID = (import.meta.env?.VITE_PFMP_DASHBOARD_USER_ID ?? '1').toString();
@@ -126,7 +123,12 @@ async function safeJson<T>(resp: Response): Promise<T> {
 }
 
 async function fetchSummary(headers: HeadersInit): Promise<ApiDashboardSummaryResponse> {
-  const resp = await fetch(`${DASHBOARD_BASE}/summary`, {
+  const url = `${DASHBOARD_BASE}/summary?userId=${encodeURIComponent(DEFAULT_DASHBOARD_USER_ID)}`;
+  console.log('[Dashboard API] Fetching summary from:', url);
+  console.log('[Dashboard API] DASHBOARD_BASE:', DASHBOARD_BASE);
+  console.log('[Dashboard API] API_ORIGIN:', API_ORIGIN);
+  console.log('[Dashboard API] API_BASE_URL:', API_BASE_URL);
+  const resp = await fetch(url, {
     headers,
   });
   if (!resp.ok) {

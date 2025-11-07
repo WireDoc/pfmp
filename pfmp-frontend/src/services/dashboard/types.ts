@@ -16,7 +16,7 @@ export interface NetWorthSummary {
 }
 
 export type AccountType = 'bank' | 'brokerage' | 'credit' | 'loan' | 'retirement' | 'other';
-export type SyncStatus = 'ok' | 'pending' | 'error';
+export type SyncStatus = 'ok' | 'pending' | 'error' | 'manual';
 
 export interface AccountSnapshot {
   id: string;

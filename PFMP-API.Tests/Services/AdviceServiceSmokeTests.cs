@@ -26,7 +26,7 @@ public class AdviceServiceSmokeTests
         var svc = CreateService(out var db);
         var advice = await svc.GenerateBasicAdviceAsync(1);
         Assert.Equal("Proposed", advice.Status);
-        Assert.Contains("AI Text", advice.ConsensusText);
+        Assert.Contains("cash recommendation", advice.ConsensusText);
         Assert.False(string.IsNullOrWhiteSpace(advice.ValidatorJson));
     }
 

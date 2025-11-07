@@ -3,10 +3,13 @@ using System.ComponentModel.DataAnnotations;
 namespace PFMP_API.Models.DTOs
 {
     /// <summary>
-    /// DTO for updating account details from the dashboard
+    /// DTO for creating a new account from the dashboard
     /// </summary>
-    public class AccountUpdateRequest
+    public class AccountCreateRequest
     {
+        [Required]
+        public int UserId { get; set; }
+
         [Required]
         [MaxLength(200)]
         public string Name { get; set; } = string.Empty;

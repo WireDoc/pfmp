@@ -79,6 +79,12 @@ export const SyncStatusBadge: React.FC<Props> = ({
       label: 'Error',
       tooltip: `Sync failed. Last attempt: ${lastSyncText}`,
     },
+    manual: {
+      color: 'default' as const,
+      icon: <CheckCircleIcon />,
+      label: 'Manual',
+      tooltip: `Manually entered account. Last updated: ${lastSyncText}`,
+    },
   };
 
   const { color, icon, label, tooltip } = config[status];

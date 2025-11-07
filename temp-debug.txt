@@ -1,92 +1,73 @@
-API listening http://localhost:5052
-Using launch settings from C:\pfmp\PFMP-API\Properties\launchSettings.json...
-Building...
-C:\pfmp\PFMP-API\PfmpDevContext.cs(92,10): warning CS1030: #warning: 'To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.'
-C:\pfmp\PFMP-API\Program.cs(16,34): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread.
-C:\pfmp\PFMP-API\Services\AI\AIIntelligenceService.cs(690,36): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread.
-info: Microsoft.Hosting.Lifetime[14]
-      Now listening on: http://localhost:5052
-info: Microsoft.Hosting.Lifetime[0]
-      Application started. Press Ctrl+C to shut down.
-info: Microsoft.Hosting.Lifetime[0]
-      Hosting environment: Development
-info: Microsoft.Hosting.Lifetime[0]
-      Content root path: C:\pfmp\PFMP-API
-info: PFMP_API.Services.AI.OpenAIService[0]
-      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-5
-info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
-      Primary-Backup AI request started: userId=, promptLength=379, cacheableContextLength=704
-info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
-      Calling primary AI (OpenAI)...
-info: PFMP_API.Services.AI.OpenAIService[0]
-      OpenAI API call: provider=OpenAI, model=gpt-5, promptLength=379, temperature=0.3
-info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
-      Start processing HTTP request POST https://api.openai.com/v1/chat/completions
-info: System.Net.Http.HttpClient.Default.ClientHandler[100]
-      Sending HTTP request POST https://api.openai.com/v1/chat/completions
-info: System.Net.Http.HttpClient.Default.ClientHandler[101]
-      Received HTTP response headers after 34362.3181ms - 200
-info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
-      End processing HTTP request after 34371.0061ms - 200
-info: PFMP_API.Services.AI.OpenAIService[0]
-      OpenAI success: provider=OpenAI, recommendationId=d8720d47-2d8b-49c2-b3da-99b8360450a6, tokens=1994, cost=$0.0974, confidence=85 %
-info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
-      Primary AI responded: recommendationId=d8720d47-2d8b-49c2-b3da-99b8360450a6, tokens=1994, cost=$0.0974, confidence=85 %
-info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
-      Calling backup AI (Gemini) for corroboration...
-info: PFMP_API.Services.AI.GeminiService[0]
-      Gemini API call: model=gemini-2.5-pro, promptLength=1113, temperature=0.4
-info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
-      Start processing HTTP request POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?*
-info: System.Net.Http.HttpClient.Default.ClientHandler[100]
-      Sending HTTP request POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?*
-info: System.Net.Http.HttpClient.Default.ClientHandler[101]
-      Received HTTP response headers after 14651.9425ms - 200
-info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
-      End processing HTTP request after 14652.0995ms - 200
-fail: PFMP_API.Services.AI.GeminiService[0]
-      Gemini API exception (attempt 1/3)
-      System.Collections.Generic.KeyNotFoundException: The given key was not present in the dictionary.
-         at System.Text.Json.JsonElement.GetProperty(String propertyName)
-         at PFMP_API.Services.AI.GeminiService.ParseGeminiResponse(String responseContent, String userId, String modelUsed) in C:\pfmp\PFMP-API\Services\AI\GeminiService.cs:line 213
-         at PFMP_API.Services.AI.GeminiService.GetRecommendationAsync(AIPromptRequest request) in C:\pfmp\PFMP-API\Services\AI\GeminiService.cs:line 103
-info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
-      Start processing HTTP request POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?*
-info: System.Net.Http.HttpClient.Default.ClientHandler[100]
-      Sending HTTP request POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?*
-info: System.Net.Http.HttpClient.Default.ClientHandler[101]
-      Received HTTP response headers after 14468.8568ms - 200
-info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
-      End processing HTTP request after 14469.1245ms - 200
-fail: PFMP_API.Services.AI.GeminiService[0]
-      Gemini API exception (attempt 2/3)
-      System.Collections.Generic.KeyNotFoundException: The given key was not present in the dictionary.
-         at System.Text.Json.JsonElement.GetProperty(String propertyName)
-         at PFMP_API.Services.AI.GeminiService.ParseGeminiResponse(String responseContent, String userId, String modelUsed) in C:\pfmp\PFMP-API\Services\AI\GeminiService.cs:line 213
-         at PFMP_API.Services.AI.GeminiService.GetRecommendationAsync(AIPromptRequest request) in C:\pfmp\PFMP-API\Services\AI\GeminiService.cs:line 103
-info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
-      Start processing HTTP request POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?*
-info: System.Net.Http.HttpClient.Default.ClientHandler[100]
-      Sending HTTP request POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?*
-info: System.Net.Http.HttpClient.Default.ClientHandler[101]
-      Received HTTP response headers after 19511.3068ms - 200
-info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
-      End processing HTTP request after 19511.6352ms - 200
-fail: PFMP_API.Services.AI.GeminiService[0]
-      Gemini API exception (attempt 3/3)
-      System.Collections.Generic.KeyNotFoundException: The given key was not present in the dictionary.
-         at System.Text.Json.JsonElement.GetProperty(String propertyName)
-         at PFMP_API.Services.AI.GeminiService.ParseGeminiResponse(String responseContent, String userId, String modelUsed) in C:\pfmp\PFMP-API\Services\AI\GeminiService.cs:line 213
-         at PFMP_API.Services.AI.GeminiService.GetRecommendationAsync(AIPromptRequest request) in C:\pfmp\PFMP-API\Services\AI\GeminiService.cs:line 103
-warn: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
-      Backup AI (Gemini) failed - proceeding with primary recommendation only
-      System.InvalidOperationException: Gemini API failed after 3 attempts
-       ---> System.Collections.Generic.KeyNotFoundException: The given key was not present in the dictionary.
-         at System.Text.Json.JsonElement.GetProperty(String propertyName)
-         at PFMP_API.Services.AI.GeminiService.ParseGeminiResponse(String responseContent, String userId, String modelUsed) in C:\pfmp\PFMP-API\Services\AI\GeminiService.cs:line 213
-         at PFMP_API.Services.AI.GeminiService.GetRecommendationAsync(AIPromptRequest request) in C:\pfmp\PFMP-API\Services\AI\GeminiService.cs:line 103
-         --- End of inner exception stack trace ---
-         at PFMP_API.Services.AI.GeminiService.GetRecommendationAsync(AIPromptRequest request) in C:\pfmp\PFMP-API\Services\AI\GeminiService.cs:line 146
-         at PFMP_API.Services.AI.PrimaryBackupAIAdvisor.GetConsensusRecommendationAsync(AIPromptRequest request) in C:\pfmp\PFMP-API\Services\AI\PrimaryBackupAIAdvisor.cs:line 71
-info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
-      Primary-Backup AI request completed: consensusId=9ddf35a7-cb07-4125-82b4-43bbe4314a94, hasCorroboration=True, agreement=100 %, elapsed=89040.6938ms, cost=$0.0974
+Development Error Details:
+Cannot destructure property 'color' of 'config[status]' as it is undefined.
+
+    at SyncStatusBadge (http://localhost:3000/src/components/status/SyncStatusBadge.tsx:8:3)
+    at div (<anonymous>)
+    at Styled(div) (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:2509:45)
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:5533:19)
+    at div (<anonymous>)
+    at Styled(div) (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:2509:45)
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:5533:19)
+    at div (<anonymous>)
+    at MuiCardContent-root (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:2509:45)
+    at CardContent2 (http://localhost:3000/node_modules/.vite/deps/@mui_material.js?v=388d9b73:15555:17)
+    at div (<anonymous>)
+    at MuiPaper-root (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:2509:45)
+    at Paper2 (http://localhost:3000/node_modules/.vite/deps/@mui_material.js?v=388d9b73:2266:17)
+    at MuiCard-root (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:2509:45)
+    at Card2 (http://localhost:3000/node_modules/.vite/deps/@mui_material.js?v=388d9b73:15214:17)
+    at div (<anonymous>)
+    at Styled(div) (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:2509:45)
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:5533:19)
+    at div (<anonymous>)
+    at Styled(div) (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:2509:45)
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:5533:19)
+    at AccountsPanel (http://localhost:3000/src/views/dashboard/AccountsPanel.tsx:12:33)
+    at div (<anonymous>)
+    at MuiPaper-root (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:2509:45)
+    at Paper2 (http://localhost:3000/node_modules/.vite/deps/@mui_material.js?v=388d9b73:2266:17)
+    at div (<anonymous>)
+    at MuiGrid-root (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:2509:45)
+    at Grid3 (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:7901:19)
+    at div (<anonymous>)
+    at MuiGrid-root (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:2509:45)
+    at Grid3 (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:7901:19)
+    at div (<anonymous>)
+    at Styled(div) (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:2509:45)
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:5533:19)
+    at DashboardErrorBoundary (http://localhost:3000/src/components/error/DashboardErrorBoundary.tsx:7:5)
+    at DashboardWave4 (http://localhost:3000/src/views/DashboardWave4.tsx:53:20)
+    at Suspense (<anonymous>)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=388d9b73:4088:5)
+    at Outlet (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=388d9b73:4494:26)
+    at div (<anonymous>)
+    at Styled(div) (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:2509:45)
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:5533:19)
+    at div (<anonymous>)
+    at Styled(div) (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:2509:45)
+    at Box3 (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:5533:19)
+    at DashboardLayoutInner (http://localhost:3000/src/layout/DashboardLayout.tsx:14:17)
+    at DashboardProvider (http://localhost:3000/src/contexts/dashboard/DashboardProvider.tsx:5:37)
+    at DashboardLayout (<anonymous>)
+    at Suspense (<anonymous>)
+    at DashboardGuard (http://localhost:3000/src/components/routing/DashboardGuard.tsx:6:34)
+    at ProtectedRoute (http://localhost:3000/src/components/routing/ProtectedRoute.tsx:6:34)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=388d9b73:4088:5)
+    at Outlet (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=388d9b73:4494:26)
+    at main (<anonymous>)
+    at div (<anonymous>)
+    at AppLayout (http://localhost:3000/src/layout/AppLayout.tsx:10:21)
+    at RenderedRoute (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=388d9b73:4088:5)
+    at RenderErrorBoundary (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=388d9b73:4048:5)
+    at DataRoutes (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=388d9b73:5239:5)
+    at Router (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=388d9b73:4501:15)
+    at RouterProvider (http://localhost:3000/node_modules/.vite/deps/react-router-dom.js?v=388d9b73:5053:5)
+    at AppRouter (http://localhost:3000/src/AppRouter.tsx:31:23)
+    at OnboardingProvider (http://localhost:3000/src/onboarding/OnboardingContext.tsx:56:3)
+    at AuthProvider (http://localhost:3000/src/contexts/auth/AuthProvider.tsx:11:32)
+    at DefaultPropsProvider (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:6195:3)
+    at RtlProvider (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:6171:3)
+    at ThemeProvider2 (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:6127:5)
+    at ThemeProvider3 (http://localhost:3000/node_modules/.vite/deps/chunk-REZCELVZ.js?v=388d9b73:6349:5)
+    at ThemeProviderNoVars (http://localhost:3000/node_modules/.vite/deps/chunk-SXKKPQHR.js?v=388d9b73:277:10)
+    at ThemeProvider (http://localhost:3000/node_modules/.vite/deps/chunk-SXKKPQHR.js?v=388d9b73:430:3)

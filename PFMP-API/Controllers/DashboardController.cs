@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
 using PFMP_API.Models.FinancialProfile;
+using PFMP_API.Services;
 using PFMP_API.Services.FinancialProfile;
 
 namespace PFMP_API.Controllers;
@@ -12,13 +13,16 @@ public class DashboardController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<DashboardController> _logger;
+    private readonly TSPService _tspService;
 
     public DashboardController(
         ApplicationDbContext context,
-        ILogger<DashboardController> logger)
+        ILogger<DashboardController> logger,
+        TSPService tspService)
     {
         _context = context;
         _logger = logger;
+        _tspService = tspService;
     }
 
     /// <summary>
@@ -43,7 +47,7 @@ public class DashboardController : ControllerBase
                 return NotFound(new { message = "User not found" });
             }
 
-            // Fetch related entities
+            // Fetch related entities from onboarding tables (authoritative data source)
             var cashAccounts = await _context.CashAccounts
                 .Where(a => a.UserId == effectiveUserId)
                 .ToListAsync();
@@ -64,11 +68,30 @@ public class DashboardController : ControllerBase
                 .Where(l => l.UserId == effectiveUserId)
                 .ToListAsync();
 
-            // Calculate net worth
+            // Calculate net worth from onboarding tables only
             var totalCash = cashAccounts.Sum(a => a.Balance);
             var totalInvestments = investmentAccounts.Sum(a => a.CurrentValue);
-            var totalTsp = tspPositions.Sum(p => p.CurrentMarketValue ?? 0);
+            
+            // Calculate TSP with current market prices from DailyTSP API
+            decimal totalTsp = 0;
+            if (tspPositions.Any(p => p.Units > 0))
+            {
+                var tspData = await _tspService.GetTSPDataAsync();
+                if (tspData != null)
+                {
+                    foreach (var position in tspPositions.Where(p => p.Units > 0))
+                    {
+                        var price = GetTspFundPrice(tspData, position.FundCode);
+                        if (price.HasValue)
+                        {
+                            totalTsp += position.Units * price.Value;
+                        }
+                    }
+                }
+            }
+            
             var totalProperties = properties.Sum(p => p.EstimatedValue);
+            
             var totalAssets = totalCash + totalInvestments + totalTsp + totalProperties;
 
             var totalLiabilities = liabilities.Sum(l => l.CurrentBalance) + 
@@ -190,5 +213,31 @@ public class DashboardController : ControllerBase
             _logger.LogError(ex, "Error generating dashboard summary for user {UserId}", userId);
             return StatusCode(500, new { message = "Internal server error while building dashboard summary" });
         }
+    }
+
+    private static decimal? GetTspFundPrice(TSPModel tspData, string fundCode)
+    {
+        var code = fundCode.Trim().ToUpperInvariant();
+        
+        return code switch
+        {
+            "G" => (decimal)tspData.GFund,
+            "F" => (decimal)tspData.FFund,
+            "C" => (decimal)tspData.CFund,
+            "S" => (decimal)tspData.SFund,
+            "I" => (decimal)tspData.IFund,
+            "L-INCOME" or "LINCOME" => (decimal)tspData.LIncome,
+            "L2030" => (decimal)tspData.L2030,
+            "L2035" => (decimal)tspData.L2035,
+            "L2040" => (decimal)tspData.L2040,
+            "L2045" => (decimal)tspData.L2045,
+            "L2050" => (decimal)tspData.L2050,
+            "L2055" => (decimal)tspData.L2055,
+            "L2060" => (decimal)tspData.L2060,
+            "L2065" => (decimal)tspData.L2065,
+            "L2070" => (decimal)tspData.L2070,
+            "L2075" => (decimal)tspData.L2075,
+            _ => null
+        };
     }
 }

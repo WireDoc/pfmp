@@ -26,6 +26,7 @@ export interface AccountUpdateData {
   type: string;
   balance: number;
   accountNumber?: string;
+  purpose?: string;
 }
 
 const accountTypes = [
@@ -55,6 +56,7 @@ export function AccountDetailModal({ open, account, onClose, onSave }: Props) {
     type: account?.type || 'Checking',
     balance: account?.balance.amount || 0,
     accountNumber: '',
+    purpose: '',
   });
   
   const [saving, setSaving] = useState(false);
@@ -67,9 +69,10 @@ export function AccountDetailModal({ open, account, onClose, onSave }: Props) {
         id: account.id,
         name: account.name,
         institution: account.institution,
-        type: account.type,
+        type: account.type || 'Checking', // Fallback to Checking if type is missing
         balance: account.balance.amount,
         accountNumber: '',
+        purpose: '',
       });
     }
   }, [account]);
@@ -169,6 +172,16 @@ export function AccountDetailModal({ open, account, onClose, onSave }: Props) {
               </MenuItem>
             ))}
           </TextField>
+
+          <TextField
+            label="Purpose (optional)"
+            value={formData.purpose}
+            onChange={handleChange('purpose')}
+            fullWidth
+            multiline
+            rows={2}
+            helperText='e.g., "Emergency Fund", "Down Payment Savings"'
+          />
 
           <TextField
             label="Current Balance"

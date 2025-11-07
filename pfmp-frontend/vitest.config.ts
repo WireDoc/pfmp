@@ -9,7 +9,7 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
     globals: true,
-    exclude: ['docs/**', '**/dist/**', '**/node_modules/**'],
+    exclude: ['docs/**', '**/dist/**', '**/node_modules/**', 'e2e/**', '**/*.visual.spec.ts'],
     pool: 'threads',
     poolOptions: {
       threads: {

@@ -748,7 +748,7 @@ export const DashboardWave4: React.FC = () => {
         <Grid size={{ xs: 12, md: 6 }}>
           <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography variant="h6" gutterBottom>Accounts</Typography>
-            {loading ? <Skeleton variant="rectangular" height={120} /> : <AccountsPanel data={displayData} loading={loading} onRefresh={refresh} />}
+            {loading ? <Skeleton variant="rectangular" height={120} /> : <AccountsPanel data={displayData} loading={loading} userId={1} onRefresh={refresh} />}
           </Paper>
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>

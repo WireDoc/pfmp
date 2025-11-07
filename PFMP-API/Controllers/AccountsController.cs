@@ -86,6 +86,7 @@ namespace PFMP_API.Controllers
                 existingAccount.Institution = updateRequest.Institution;
                 existingAccount.CurrentBalance = updateRequest.Balance;
                 existingAccount.AccountNumber = updateRequest.AccountNumber;
+                existingAccount.Purpose = updateRequest.Purpose;
                 existingAccount.UpdatedAt = DateTime.UtcNow;
                 existingAccount.LastBalanceUpdate = DateTime.UtcNow;
 
@@ -121,14 +122,38 @@ namespace PFMP_API.Controllers
 
         // POST: api/Accounts
         [HttpPost]
-        public async Task<ActionResult<Account>> PostAccount(Account account)
+        public async Task<ActionResult<Account>> PostAccount(AccountCreateRequest createRequest)
         {
             try
             {
-                account.CreatedAt = DateTime.UtcNow;
-                account.UpdatedAt = DateTime.UtcNow;
-                account.LastBalanceUpdate = DateTime.UtcNow;
-                account.IsActive = true;
+                // Validate user exists
+                var userExists = await _context.Users.AnyAsync(u => u.UserId == createRequest.UserId);
+                if (!userExists)
+                {
+                    return NotFound($"User with ID {createRequest.UserId} not found");
+                }
+
+                // Parse and validate account type
+                if (!Enum.TryParse<AccountType>(createRequest.Type, out var accountType))
+                {
+                    return BadRequest($"Invalid account type: {createRequest.Type}");
+                }
+
+                // Create new account
+                var account = new Account
+                {
+                    UserId = createRequest.UserId,
+                    AccountName = createRequest.Name,
+                    Institution = createRequest.Institution,
+                    AccountType = accountType,
+                    CurrentBalance = createRequest.Balance,
+                    AccountNumber = createRequest.AccountNumber,
+                    Purpose = createRequest.Purpose,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    LastBalanceUpdate = DateTime.UtcNow
+                };
 
                 _context.Accounts.Add(account);
                 await _context.SaveChangesAsync();
@@ -137,7 +162,7 @@ namespace PFMP_API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating account");
+                _logger.LogError(ex, "Error creating account for user {UserId}", createRequest.UserId);
                 return StatusCode(500, "Internal server error");
             }
         }
