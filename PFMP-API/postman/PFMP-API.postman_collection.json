@@ -144,6 +144,26 @@
             "method": "DELETE", 
             "url": "{{baseUrl}}/api/cashaccounts/{{cashAccountId}}" 
           } 
+        },
+        {
+          "name": "Import Cash Accounts (CSV)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/path/to/your/cash-accounts.csv",
+                  "description": "CSV file with columns: Institution, Nickname, AccountType, Balance, InterestRateApr, Purpose, IsEmergencyFund"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/cashaccounts/import?userId={{userId}}"
+          },
+          "response": []
         }
       ]
     },
