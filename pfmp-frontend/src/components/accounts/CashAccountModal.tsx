@@ -18,7 +18,9 @@ import {
   Alert,
   FormControlLabel,
   Checkbox,
+  IconButton,
 } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
 import type { CashAccountResponse, CreateCashAccountRequest, UpdateCashAccountRequest } from '../../services/cashAccountsApi';
 
 interface Props {
@@ -27,6 +29,7 @@ interface Props {
   account?: CashAccountResponse | null; // If provided, edit mode; otherwise create mode
   onClose: () => void;
   onSave: (request: CreateCashAccountRequest | UpdateCashAccountRequest, accountId?: string) => Promise<void>;
+  onDelete?: (accountId: string) => Promise<void>;
 }
 
 const accountTypes = [
@@ -35,7 +38,7 @@ const accountTypes = [
   { value: 'money_market', label: 'Money Market' },
 ];
 
-export function CashAccountModal({ open, userId, account, onClose, onSave }: Props) {
+export function CashAccountModal({ open, userId, account, onClose, onSave, onDelete }: Props) {
   const isEditMode = !!account;
 
   const [formData, setFormData] = useState({
@@ -48,8 +51,9 @@ export function CashAccountModal({ open, userId, account, onClose, onSave }: Pro
     isEmergencyFund: account?.isEmergencyFund || false,
   });
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [saveError, setSaveError] = useState<string | null>(null);
 
   // Update form when account prop changes
@@ -163,6 +167,26 @@ export function CashAccountModal({ open, userId, account, onClose, onSave }: Pro
     setSaveError(null);
   };
 
+  const handleDelete = async () => {
+    if (!isEditMode || !account || !onDelete) return;
+
+    setDeleting(true);
+    setSaveError(null);
+
+    try {
+      await onDelete(account.cashAccountId);
+      resetForm();
+      onClose();
+    } catch (error) {
+      console.error('Failed to delete cash account:', error);
+      setSaveError(
+        error instanceof Error ? error.message : 'Failed to delete account. Please try again.'
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const handleClose = () => {
     if (!saving) {
       resetForm();
@@ -269,11 +293,22 @@ export function CashAccountModal({ open, userId, account, onClose, onSave }: Pro
           )}
         </Box>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={handleClose} disabled={saving}>
+      <DialogActions sx={{ justifyContent: 'space-between' }}>
+        {isEditMode && onDelete && (
+          <IconButton
+            onClick={handleDelete}
+            disabled={saving || deleting}
+            color="error"
+            aria-label="Delete account"
+          >
+            <DeleteIcon />
+          </IconButton>
+        )}
+        <Box sx={{ flex: 1 }} />
+        <Button onClick={handleClose} disabled={saving || deleting}>
           Cancel
         </Button>
-        <Button onClick={handleSave} variant="contained" disabled={saving}>
+        <Button onClick={handleSave} variant="contained" disabled={saving || deleting}>
           {saving ? 'Saving...' : isEditMode ? 'Update Account' : 'Create Account'}
         </Button>
       </DialogActions>

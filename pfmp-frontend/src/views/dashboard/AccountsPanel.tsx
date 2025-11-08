@@ -8,7 +8,7 @@ import { SyncStatusBadge } from '../../components/status/SyncStatusBadge';
 import { EmptyState } from '../../components/empty-states/EmptyState';
 import { CashAccountModal } from '../../components/accounts/CashAccountModal';
 import { CsvImportModal } from '../../components/accounts/CsvImportModal';
-import { createCashAccount, updateCashAccount, getCashAccount, type CreateCashAccountRequest, type UpdateCashAccountRequest, type CashAccountResponse } from '../../services/cashAccountsApi';
+import { createCashAccount, updateCashAccount, getCashAccount, deleteCashAccount, type CreateCashAccountRequest, type UpdateCashAccountRequest, type CashAccountResponse } from '../../services/cashAccountsApi';
 import type { DashboardData } from '../../services/dashboard';
 import type { AccountSnapshot } from '../../services/dashboard/types';
 
@@ -94,6 +94,15 @@ export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefres
       // Create new account
       await createCashAccount(request as CreateCashAccountRequest);
     }
+    
+    // Refresh dashboard data
+    if (onRefresh) {
+      onRefresh();
+    }
+  };
+
+  const handleDelete = async (accountId: string) => {
+    await deleteCashAccount(accountId);
     
     // Refresh dashboard data
     if (onRefresh) {
@@ -189,6 +198,7 @@ export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefres
         account={editingAccount}
         onClose={handleCloseModal}
         onSave={handleSave}
+        onDelete={handleDelete}
       />
       
       <CsvImportModal

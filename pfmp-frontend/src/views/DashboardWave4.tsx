@@ -3,6 +3,7 @@ import { Box, Typography, Paper, Alert, Skeleton, Snackbar } from '@mui/material
 import Grid from '@mui/material/Grid';
 import { OnboardingContext } from '../onboarding/OnboardingContext.shared';
 import { Navigate } from 'react-router-dom';
+import { useDevUserId } from '../dev/devUserState';
 import { useDashboardData } from '../services/dashboard/useDashboardData';
 import { useDataRefresh } from '../hooks/useDataRefresh';
 import { useOfflineDetection } from '../hooks/useOfflineDetection';
@@ -65,6 +66,7 @@ function monotonicNow(): number {
 
 export const DashboardWave4: React.FC = () => {
   const { user } = useAuth();
+  const devUserId = useDevUserId();
   const onboarding = useContext(OnboardingContext);
   const completedSteps = onboarding?.completed ?? new Set<OnboardingStepId>();
   const onboardingSteps = onboarding?.steps ?? [];
@@ -759,7 +761,7 @@ export const DashboardWave4: React.FC = () => {
               <AccountsPanel 
                 data={displayData ? { ...displayData, accounts: regularAccounts } : null} 
                 loading={loading} 
-                userId={1} 
+                userId={devUserId ?? Number(import.meta.env.VITE_PFMP_DASHBOARD_USER_ID || '1')} 
                 onRefresh={refresh} 
               />
             )}

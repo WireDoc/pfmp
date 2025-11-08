@@ -66,13 +66,13 @@ if ($numericMode -eq 0 -or $numericMode -eq 1) {
     Start-Sleep -Seconds 2
 }
 if ($numericMode -eq 0 -or $numericMode -eq 2) {
-        Start-PfmpWindow -Title 'PFMP Frontend' -WorkDir $frontendPath -Body "Write-Host 'Frontend dev server http://localhost:5173' -ForegroundColor Green; npm run dev"
+        Start-PfmpWindow -Title 'PFMP Frontend' -WorkDir $frontendPath -Body "Write-Host 'Frontend dev server http://localhost:3000' -ForegroundColor Green; npm run dev"
 }
 
 switch ($numericMode) { 0 { $msg='Both services starting' } 1 { $msg='Backend starting' } 2 { $msg='Frontend starting' } }
 Write-Host $msg -ForegroundColor Green
 Write-Host 'API:      http://localhost:5052'
-Write-Host 'Frontend: http://localhost:5173'
+Write-Host 'Frontend: http://localhost:3000'
 Write-Host 'Database: postgresql://localhost:5433 (pfmp_dev)'
 Write-Host 'Health:   http://localhost:5052/health   (liveness)'
 Write-Host 'Ready:    http://localhost:5052/health/ready (readiness)'

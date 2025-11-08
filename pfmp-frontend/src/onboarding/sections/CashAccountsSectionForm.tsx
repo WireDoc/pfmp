@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddIcon from '@mui/icons-material/Add';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
 import {
   fetchCashAccountsProfile,
   upsertCashAccountsProfile,
@@ -27,6 +28,7 @@ import {
 import { useSectionHydration } from '../hooks/useSectionHydration';
 import { useAutoSaveForm } from '../hooks/useAutoSaveForm';
 import AutoSaveIndicator from '../components/AutoSaveIndicator';
+import { CsvImportModal } from '../../components/accounts/CsvImportModal';
 
 type CashAccountsSectionFormProps = {
   userId: number;
@@ -104,6 +106,7 @@ export default function CashAccountsSectionForm({ userId, onStatusChange, curren
   const [accounts, setAccounts] = useState<AccountFormState[]>([createAccount(1)]);
   const [optedOut, setOptedOut] = useState<boolean>(currentStatus === 'opted_out');
   const [optOutReason, setOptOutReason] = useState<string>('');
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
   const canRemoveAccounts = accounts.length > 1;
 
   type HydratedState = { accounts: AccountFormState[]; optedOut: boolean; optOutReason: string };
@@ -140,6 +143,13 @@ export default function CashAccountsSectionForm({ userId, onStatusChange, curren
       const remaining = prev.filter((a) => a.id !== id);
       return remaining.length > 0 ? remaining : [createAccount(1)];
     });
+  };
+
+  const handleOpenCsvImport = () => setCsvImportOpen(true);
+  const handleCloseCsvImport = () => setCsvImportOpen(false);
+  const handleCsvImportSuccess = () => {
+    // Refresh the form data from backend after import
+    window.location.reload();
   };
 
   const payloadAccounts = useMemo(() => buildPayloadAccounts(accounts), [accounts]);
@@ -254,7 +264,10 @@ export default function CashAccountsSectionForm({ userId, onStatusChange, curren
                 <Typography variant="caption" sx={{ display: 'block', mt: 2, color: '#607d8b' }}>Account {index + 1}</Typography>
               </Box>
             ))}
-            <Button type="button" variant="outlined" startIcon={<AddIcon />} onClick={handleAddAccount} sx={{ alignSelf: 'flex-start' }}>Add another account</Button>
+            <Stack direction="row" spacing={2}>
+              <Button type="button" variant="outlined" startIcon={<AddIcon />} onClick={handleAddAccount} sx={{ alignSelf: 'flex-start' }}>Add another account</Button>
+              <Button type="button" variant="outlined" startIcon={<UploadFileIcon />} onClick={handleOpenCsvImport} sx={{ alignSelf: 'flex-start' }}>Import CSV</Button>
+            </Stack>
           </Stack>
         )}
         {autoError ? (
@@ -264,6 +277,13 @@ export default function CashAccountsSectionForm({ userId, onStatusChange, curren
         ) : null}
         <Typography variant="body2" color="text.secondary">Link these accounts so we can track your liquidity and emergency fund.</Typography>
       </Stack>
+      
+      <CsvImportModal
+        open={csvImportOpen}
+        userId={userId}
+        onClose={handleCloseCsvImport}
+        onSuccess={handleCsvImportSuccess}
+      />
     </Box>
   );
 }
