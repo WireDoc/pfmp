@@ -210,7 +210,7 @@ export function CashAccountModal({ open, userId, account, onClose, onSave }: Pro
             helperText={errors.accountType}
             required
             fullWidth
-            disabled={saving || isEditMode} // Disable in edit mode
+            disabled={saving}
           >
             {accountTypes.map((type) => (
               <MenuItem key={type.value} value={type.value}>
