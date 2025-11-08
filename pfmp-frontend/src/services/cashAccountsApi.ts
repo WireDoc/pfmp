@@ -45,7 +45,7 @@ export interface UpdateCashAccountRequest {
  */
 export async function listCashAccounts(userId: number): Promise<CashAccountResponse[]> {
   const response = await axios.get<CashAccountResponse[]>(
-    `${API_BASE_URL}/api/cashaccounts`,
+    `${API_BASE_URL}/cashaccounts`,
     { params: { userId } }
   );
   return response.data;
@@ -56,7 +56,7 @@ export async function listCashAccounts(userId: number): Promise<CashAccountRespo
  */
 export async function getCashAccount(cashAccountId: string): Promise<CashAccountResponse> {
   const response = await axios.get<CashAccountResponse>(
-    `${API_BASE_URL}/api/cashaccounts/${cashAccountId}`
+    `${API_BASE_URL}/cashaccounts/${cashAccountId}`
   );
   return response.data;
 }
@@ -68,7 +68,7 @@ export async function createCashAccount(
   request: CreateCashAccountRequest
 ): Promise<CashAccountResponse> {
   const response = await axios.post<CashAccountResponse>(
-    `${API_BASE_URL}/api/cashaccounts`,
+    `${API_BASE_URL}/cashaccounts`,
     request
   );
   return response.data;
@@ -82,7 +82,7 @@ export async function updateCashAccount(
   request: UpdateCashAccountRequest
 ): Promise<CashAccountResponse> {
   const response = await axios.put<CashAccountResponse>(
-    `${API_BASE_URL}/api/cashaccounts/${cashAccountId}`,
+    `${API_BASE_URL}/cashaccounts/${cashAccountId}`,
     request
   );
   return response.data;
@@ -92,5 +92,5 @@ export async function updateCashAccount(
  * Delete a cash account
  */
 export async function deleteCashAccount(cashAccountId: string): Promise<void> {
-  await axios.delete(`${API_BASE_URL}/api/cashaccounts/${cashAccountId}`);
+  await axios.delete(`${API_BASE_URL}/cashaccounts/${cashAccountId}`);
 }
