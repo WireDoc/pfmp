@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models.FinancialProfile;
+using PFMP_API.Services;
 using System.ComponentModel.DataAnnotations;
 
 namespace PFMP_API.Controllers;
@@ -11,11 +12,13 @@ public class CashAccountsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<CashAccountsController> _logger;
+    private readonly CsvImportService _csvImportService;
 
-    public CashAccountsController(ApplicationDbContext context, ILogger<CashAccountsController> logger)
+    public CashAccountsController(ApplicationDbContext context, ILogger<CashAccountsController> logger, CsvImportService csvImportService)
     {
         _context = context;
         _logger = logger;
+        _csvImportService = csvImportService;
     }
 
     /// <summary>
@@ -192,6 +195,72 @@ public class CashAccountsController : ControllerBase
 
         return NoContent();
     }
+
+    /// <summary>
+    /// Import cash accounts from CSV file
+    /// </summary>
+    [HttpPost("import")]
+    public async Task<ActionResult<CsvImportResponse>> ImportFromCsv([FromQuery] int userId, IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new { message = "No file uploaded" });
+        }
+
+        if (!file.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new { message = "File must be a CSV file" });
+        }
+
+        if (file.Length > 5 * 1024 * 1024) // 5MB limit
+        {
+            return BadRequest(new { message = "File size must be less than 5MB" });
+        }
+
+        try
+        {
+            using var stream = file.OpenReadStream();
+            var result = await _csvImportService.ImportCashAccountsAsync(stream, userId);
+
+            _logger.LogInformation("CSV import completed for user {UserId}: {SuccessCount} successful, {ErrorCount} errors", 
+                userId, result.SuccessCount, result.ErrorCount);
+
+            return Ok(new CsvImportResponse
+            {
+                TotalRows = result.TotalRows,
+                SuccessCount = result.SuccessCount,
+                ErrorCount = result.ErrorCount,
+                Errors = result.Errors.Select(e => new CsvImportErrorDto
+                {
+                    Row = e.Row,
+                    Field = e.Field,
+                    Message = e.Message
+                }).ToList(),
+                ImportedAccountIds = result.ImportedAccountIds
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to import CSV for user {UserId}", userId);
+            return StatusCode(500, new { message = "Failed to process CSV file", error = ex.Message });
+        }
+    }
+}
+
+public class CsvImportResponse
+{
+    public int TotalRows { get; set; }
+    public int SuccessCount { get; set; }
+    public int ErrorCount { get; set; }
+    public List<CsvImportErrorDto> Errors { get; set; } = new();
+    public List<string> ImportedAccountIds { get; set; } = new();
+}
+
+public class CsvImportErrorDto
+{
+    public int Row { get; set; }
+    public string Field { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
 }
 
 public class CashAccountResponse

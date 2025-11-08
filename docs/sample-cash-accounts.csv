@@ -1,0 +1,7 @@
+Institution,Nickname,AccountType,Balance,InterestRateApr,Purpose,IsEmergencyFund
+Chase,Primary Checking,checking,5000.00,0.01,Monthly transactions,false
+Ally Bank,High Yield Savings,savings,15000.00,4.35,Emergency fund - 6 months expenses,true
+Navy Federal,Vacation Fund,savings,3000.00,2.5,Annual vacation savings,false
+USAA,Money Market Account,money_market,25000.00,3.75,Short-term investment parking,false
+Wells Fargo,Business Checking,checking,10000.00,0.10,Business operating expenses,false
+Capital One,Holiday Savings,savings,1200.00,3.0,Holiday gift budget,false

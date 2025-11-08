@@ -86,6 +86,9 @@ namespace PFMP_API
             // Financial Profile Service (Wave 5)
             builder.Services.AddScoped<IFinancialProfileService, FinancialProfileService>();
 
+            // CSV Import Service (Wave 8.2)
+            builder.Services.AddScoped<CsvImportService>();
+
             // Add Authentication Services
             builder.Services.AddScoped<IPasswordHashService, PasswordHashService>();
             builder.Services.AddHttpClient<IAuthenticationService, AuthenticationService>();
