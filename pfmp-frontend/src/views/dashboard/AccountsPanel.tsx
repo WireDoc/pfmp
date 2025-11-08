@@ -3,9 +3,11 @@ import { Box, Typography, Card, CardContent, Button, IconButton } from '@mui/mat
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { SyncStatusBadge } from '../../components/status/SyncStatusBadge';
 import { EmptyState } from '../../components/empty-states/EmptyState';
 import { CashAccountModal } from '../../components/accounts/CashAccountModal';
+import { CsvImportModal } from '../../components/accounts/CsvImportModal';
 import { createCashAccount, updateCashAccount, getCashAccount, type CreateCashAccountRequest, type UpdateCashAccountRequest, type CashAccountResponse } from '../../services/cashAccountsApi';
 import type { DashboardData } from '../../services/dashboard';
 import type { AccountSnapshot } from '../../services/dashboard/types';
@@ -19,6 +21,7 @@ interface Props {
 
 export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefresh }) => {
   const [modalOpen, setModalOpen] = useState(false);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<CashAccountResponse | null>(null);
   const [loadingAccount, setLoadingAccount] = useState(false);
 
@@ -28,6 +31,21 @@ export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefres
   const handleOpenAddModal = () => {
     setEditingAccount(null);
     setModalOpen(true);
+  };
+
+  const handleOpenCsvImport = () => {
+    setCsvImportOpen(true);
+  };
+
+  const handleCloseCsvImport = () => {
+    setCsvImportOpen(false);
+  };
+
+  const handleCsvImportSuccess = () => {
+    // Refresh dashboard to show newly imported accounts
+    if (onRefresh) {
+      onRefresh();
+    }
   };
 
   const handleOpenEditModal = async (account: AccountSnapshot) => {
@@ -92,14 +110,24 @@ export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefres
             <Typography variant="h6" component="h2">
               Cash Accounts
             </Typography>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<AddIcon />}
-              onClick={handleOpenAddModal}
-            >
-              Add Cash Account
-            </Button>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<UploadFileIcon />}
+                onClick={handleOpenCsvImport}
+              >
+                Import CSV
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={<AddIcon />}
+                onClick={handleOpenAddModal}
+              >
+                Add Cash Account
+              </Button>
+            </Box>
           </Box>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {cashAccounts.map(a => (
@@ -161,6 +189,13 @@ export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefres
         account={editingAccount}
         onClose={handleCloseModal}
         onSave={handleSave}
+      />
+      
+      <CsvImportModal
+        open={csvImportOpen}
+        userId={userId}
+        onClose={handleCloseCsvImport}
+        onSuccess={handleCsvImportSuccess}
       />
     </Box>
   );
