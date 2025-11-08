@@ -168,6 +168,151 @@
       ]
     },
     {
+      "name": "Holdings",
+      "item": [
+        {
+          "name": "List Holdings by Account",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/holdings?accountId={{accountId}}"
+          }
+        },
+        {
+          "name": "Get Holding",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/holdings/{{holdingId}}"
+          }
+        },
+        {
+          "name": "Create Holding",
+          "request": {
+            "method": "POST",
+            "header": [{"key":"Content-Type","value":"application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": {{accountId}},\n  \"symbol\": \"AAPL\",\n  \"name\": \"Apple Inc.\",\n  \"assetType\": 0,\n  \"quantity\": 100,\n  \"averageCostBasis\": 150.00,\n  \"currentPrice\": 180.00,\n  \"annualDividendYield\": 0.0052,\n  \"isQualifiedDividend\": true,\n  \"purchaseDate\": \"2023-01-15T00:00:00Z\",\n  \"isLongTermCapitalGains\": true,\n  \"beta\": 1.2,\n  \"sectorAllocation\": \"Technology\",\n  \"notes\": \"Test holding\"\n}"
+            },
+            "url": "{{baseUrl}}/api/holdings"
+          }
+        },
+        {
+          "name": "Update Holding",
+          "request": {
+            "method": "PUT",
+            "header": [{"key":"Content-Type","value":"application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPrice\": 185.50,\n  \"annualDividendIncome\": 93.60,\n  \"notes\": \"Updated price\"\n}"
+            },
+            "url": "{{baseUrl}}/api/holdings/{{holdingId}}"
+          }
+        },
+        {
+          "name": "Delete Holding",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/holdings/{{holdingId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "List Transactions (by Account)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/transactions?accountId={{accountId}}"
+          }
+        },
+        {
+          "name": "List Transactions (by Holding)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/transactions?holdingId={{holdingId}}"
+          }
+        },
+        {
+          "name": "List Transactions (Date Range)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/transactions?accountId={{accountId}}&startDate=2023-01-01T00:00:00Z&endDate=2023-12-31T23:59:59Z"
+          }
+        },
+        {
+          "name": "List Transactions (by Type)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/transactions?accountId={{accountId}}&transactionType=BUY"
+          }
+        },
+        {
+          "name": "Get Transaction",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/transactions/{{transactionId}}"
+          }
+        },
+        {
+          "name": "Create Transaction (BUY)",
+          "request": {
+            "method": "POST",
+            "header": [{"key":"Content-Type","value":"application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": {{accountId}},\n  \"holdingId\": {{holdingId}},\n  \"transactionType\": \"BUY\",\n  \"symbol\": \"AAPL\",\n  \"quantity\": 100,\n  \"price\": 150.00,\n  \"amount\": 15000.00,\n  \"fee\": 9.95,\n  \"transactionDate\": \"2023-01-15T10:30:00Z\",\n  \"settlementDate\": \"2023-01-17T00:00:00Z\",\n  \"isTaxable\": true,\n  \"costBasis\": 15009.95,\n  \"source\": 0,\n  \"description\": \"Initial purchase\"\n}"
+            },
+            "url": "{{baseUrl}}/api/transactions"
+          }
+        },
+        {
+          "name": "Create Transaction (DIVIDEND)",
+          "request": {
+            "method": "POST",
+            "header": [{"key":"Content-Type","value":"application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": {{accountId}},\n  \"holdingId\": {{holdingId}},\n  \"transactionType\": \"DIVIDEND\",\n  \"symbol\": \"AAPL\",\n  \"amount\": 93.60,\n  \"fee\": 0,\n  \"transactionDate\": \"2023-06-15T00:00:00Z\",\n  \"settlementDate\": \"2023-06-15T00:00:00Z\",\n  \"isTaxable\": true,\n  \"isQualifiedDividend\": true,\n  \"source\": 0,\n  \"description\": \"Quarterly dividend\"\n}"
+            },
+            "url": "{{baseUrl}}/api/transactions"
+          }
+        },
+        {
+          "name": "Create Transaction (DEPOSIT)",
+          "request": {
+            "method": "POST",
+            "header": [{"key":"Content-Type","value":"application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": {{accountId}},\n  \"transactionType\": \"DEPOSIT\",\n  \"amount\": 5000.00,\n  \"fee\": 0,\n  \"transactionDate\": \"2023-07-01T00:00:00Z\",\n  \"settlementDate\": \"2023-07-01T00:00:00Z\",\n  \"isTaxable\": false,\n  \"source\": 0,\n  \"description\": \"Cash deposit\"\n}"
+            },
+            "url": "{{baseUrl}}/api/transactions"
+          }
+        },
+        {
+          "name": "Update Transaction",
+          "request": {
+            "method": "PUT",
+            "header": [{"key":"Content-Type","value":"application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Updated description\",\n  \"notes\": \"Added notes\"\n}"
+            },
+            "url": "{{baseUrl}}/api/transactions/{{transactionId}}"
+          }
+        },
+        {
+          "name": "Delete Transaction",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/transactions/{{transactionId}}"
+          }
+        }
+      ]
+    },
+    {
       "name": "Dashboard",
       "item": [
         { "name": "Get Dashboard", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard?userId={{userId}}" } }
