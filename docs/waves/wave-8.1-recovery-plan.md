@@ -243,11 +243,17 @@ Dashboard now correctly displays all 7 accounts with proper net worth calculatio
 - ✅ Liabilities panel visible showing $239k total debt (includes mortgage + $1k liability)
 - ✅ All 11 automated tests passing (propertiesPanel.test.tsx + liabilitiesPanel.test.tsx)
 
-### 5. NEXT: Proceed with Phase 2 (Cash Account Management)
-- Phase 1 is now 100% COMPLETE ✅
-- Dashboard correctly displays all financial data ($785k net worth with all components)
-- Ready to proceed with Phase 2: Restore Add/Edit functionality for cash accounts only
-- Or prioritize Wave 8.2 (CSV Import) or other features based on user needs
+### ✅ 5. Phase 2: Cash Account Management - COMPLETE
+- ✅ Phase 1 is 100% COMPLETE (Dashboard display fixed)
+- ✅ Phase 2 is 100% COMPLETE (Cash account CRUD implemented)
+- ✅ Backend CashAccountsController with full REST API (GET/POST/PUT/DELETE)
+- ✅ Frontend CashAccountModal component for Add/Edit
+- ✅ AccountsPanel updated with Add/Edit buttons for cash accounts only
+- ✅ All CRUD operations tested and working
+- ✅ Postman collection updated (v1.1.0)
+- ✅ Git commits: e76008a (Postman), 9c940e7 (Cash Account Management)
+
+**Next:** Wave 8.2 - CSV Import for Cash Accounts
 
 ---
 
@@ -293,24 +299,50 @@ Dashboard now correctly displays all 7 accounts with proper net worth calculatio
 
 **Phase 1 Status: 100% COMPLETE** 🎉
 
-### Phase 2 Pending (Wave 8.1 Restored for Cash)
-- ⏳ Cash accounts have Edit button
-- ⏳ Cash section has "Add Account" button
-- ⏳ Other sections remain read-only
-- ⏳ Changes persist and refresh dashboard
+### ✅ Phase 2 Complete (Cash Account Management Restored)
+- ✅ Cash accounts have Edit button (AccountsPanel.tsx updated)
+- ✅ Cash section has "Add Cash Account" button
+- ✅ CashAccountModal component for Add/Edit with proper fields:
+  - Institution, Nickname, AccountType (checking/savings/money_market)
+  - Balance, InterestRateApr, Purpose, IsEmergencyFund
+- ✅ Backend CashAccountsController with full CRUD API
+- ✅ Other account types remain read-only (TSP, Investments, Properties, Liabilities)
+- ✅ Changes persist and dashboard refreshes automatically
+- ✅ All CRUD operations tested via API (create, read, update, delete)
+- ✅ Postman collection updated with Cash Accounts Management endpoints (v1.1.0)
+- ✅ Git commits: e76008a (Postman), 9c940e7 (Cash Account Management)
 
-### Phase 3 Pending (Wave 8 Complete)
-- ⏳ CSV import functional
-- ⏳ Holdings schema in place
-- ⏳ Ready for Wave 9 (investment account details)
+**Phase 2 Status: 100% COMPLETE** 🎉
+
+### Phase 3 Next (Wave 8.2 - CSV Import)
+- ⏳ CSV import for cash accounts (bulk data entry)
+- ⏳ Frontend upload component with preview and validation
+- ⏳ Backend CSV parsing and batch import
 
 ---
 
 ## Communication
 
-**Status:** Wave 8.1 was disrupted by Accounts table deprecation. We correctly removed the unified table approach, but inadvertently removed dashboard display functionality. Recovery plan splits work into:
-1. Fix display (immediate)
-2. Restore cash account editing (Wave 8.1 scope clarification)
-3. Complete remaining Wave 8 objectives (CSV, holdings schema)
+**Status:** Wave 8.1 Recovery Plan - **100% COMPLETE** ✅
 
-**Recommendation:** Execute Phase 1 immediately to restore dashboard visibility, then reassess Wave 8.1 scope based on user needs.
+**Phase 1 (Dashboard Display):** COMPLETE
+- Fixed dashboard to show all accounts ($785k net worth)
+- Added Properties and Liabilities panels
+- All data displaying correctly with 11 passing tests
+- Git commit: ac05fc9, 55739c7 (TSP panel)
+
+**Phase 2 (Cash Account Management):** COMPLETE  
+- Restored Add/Edit functionality for cash accounts only
+- Created CashAccountsController with full CRUD API
+- Created CashAccountModal component with proper validation
+- Updated AccountsPanel with Add/Edit buttons for cash accounts
+- Investment/TSP/Properties/Liabilities remain read-only
+- All CRUD operations tested and working
+- Git commits: e76008a (Postman v1.1.0), 9c940e7 (Implementation)
+
+**Next Steps:** Proceed to Wave 8.2 - CSV Import for Cash Accounts
+- Enable bulk import of checking/savings accounts
+- CSV format: Institution, Nickname, AccountType, Balance, InterestRateApr, Purpose, IsEmergencyFund
+- Frontend upload modal with preview and validation
+- Backend CSV parsing service with batch insert
+
