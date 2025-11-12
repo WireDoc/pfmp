@@ -60,9 +60,16 @@ namespace PFMP_API
             builder.Services.AddScoped<PFMP_API.Services.AI.IAIMemoryService, PFMP_API.Services.AI.AIMemoryService>();
             builder.Services.AddScoped<PFMP_API.Services.AI.IAIIntelligenceService, PFMP_API.Services.AI.AIIntelligenceService>();
 
-            // Add Market Data Service
+            // Add Market Data Services
             builder.Services.AddHttpClient<IMarketDataService, MarketDataService>();
             builder.Services.AddScoped<IMarketDataService, MarketDataService>();
+            
+            // Add FMP Market Data Service (Wave 9.2)
+            builder.Services.Configure<PFMP_API.Services.MarketData.FmpOptions>(
+                builder.Configuration.GetSection("FMP"));
+            builder.Services.AddHttpClient<PFMP_API.Services.MarketData.FmpMarketDataService>();
+            builder.Services.AddScoped<PFMP_API.Services.MarketData.IMarketDataService, PFMP_API.Services.MarketData.FmpMarketDataService>();
+            builder.Services.AddMemoryCache(); // Required for FMP service caching
 
             // Add TSP Service with DailyTSP API
             builder.Services.AddHttpClient("TSPClient", client =>
@@ -157,6 +164,7 @@ namespace PFMP_API
                 {
                     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
                     options.JsonSerializerOptions.WriteIndented = true;
+                    options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
                 });
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddEndpointsApiExplorer();

@@ -47,13 +47,10 @@ public class DashboardController : ControllerBase
                 return NotFound(new { message = "User not found" });
             }
 
-            // Fetch related entities from onboarding tables (authoritative data source)
-            var cashAccounts = await _context.CashAccounts
+            // Fetch all accounts from unified Accounts table
+            var accounts = await _context.Accounts
                 .Where(a => a.UserId == effectiveUserId)
-                .ToListAsync();
-
-            var investmentAccounts = await _context.InvestmentAccounts
-                .Where(a => a.UserId == effectiveUserId)
+                .Include(a => a.Holdings)
                 .ToListAsync();
 
             var tspPositions = await _context.TspLifecyclePositions
@@ -68,9 +65,22 @@ public class DashboardController : ControllerBase
                 .Where(l => l.UserId == effectiveUserId)
                 .ToListAsync();
 
-            // Calculate net worth from onboarding tables only
-            var totalCash = cashAccounts.Sum(a => a.Balance);
-            var totalInvestments = investmentAccounts.Sum(a => a.CurrentValue);
+            // Calculate net worth from new unified Accounts table
+            var cashAccounts = accounts.Where(a => 
+                a.AccountType == AccountType.Checking || 
+                a.AccountType == AccountType.Savings || 
+                a.AccountType == AccountType.MoneyMarket ||
+                a.AccountType == AccountType.CertificateOfDeposit).ToList();
+                
+            var investmentAccounts = accounts.Where(a => 
+                a.AccountType == AccountType.Brokerage || 
+                a.AccountType == AccountType.RetirementAccountIRA || 
+                a.AccountType == AccountType.RetirementAccount401k || 
+                a.AccountType == AccountType.RetirementAccountRoth ||
+                a.AccountType == AccountType.HSA).ToList();
+            
+            var totalCash = cashAccounts.Sum(a => a.CurrentBalance);
+            var totalInvestments = investmentAccounts.Sum(a => a.CurrentBalance);
             
             // Calculate TSP with current market prices from DailyTSP API
             decimal totalTsp = 0;
@@ -100,39 +110,38 @@ public class DashboardController : ControllerBase
             var netWorth = totalAssets - totalLiabilities;
 
             // Build accounts list
-            var accounts = new List<object>();
+            var accountsList = new List<object>();
 
-            foreach (var cash in cashAccounts)
+            foreach (var acct in accounts)
             {
-                accounts.Add(new
+                // Map account type to frontend expected types
+                var displayType = acct.AccountType switch
                 {
-                    id = $"cash_{cash.CashAccountId}",
-                    name = cash.Nickname,
-                    institution = cash.Institution ?? "Unknown",
-                    type = "cash",
-                    balance = new { amount = cash.Balance, currency = "USD" },
-                    syncStatus = "ok",
-                    lastSync = cash.UpdatedAt
-                });
-            }
+                    AccountType.Checking or AccountType.Savings or AccountType.MoneyMarket or AccountType.CertificateOfDeposit => "cash",
+                    AccountType.Brokerage => "brokerage",
+                    AccountType.RetirementAccountIRA or AccountType.RetirementAccount401k or AccountType.RetirementAccountRoth or AccountType.HSA => "investment",
+                    AccountType.TSP => "retirement",
+                    AccountType.CryptocurrencyExchange or AccountType.CryptocurrencyWallet => "crypto",
+                    _ => acct.AccountType.ToString().ToLower()
+                };
 
-            foreach (var inv in investmentAccounts)
-            {
-                accounts.Add(new
+                accountsList.Add(new
                 {
-                    id = $"investment_{inv.InvestmentAccountId}",
-                    name = inv.AccountName,
-                    institution = inv.Institution ?? "Unknown",
-                    type = "brokerage",
-                    balance = new { amount = inv.CurrentValue, currency = "USD" },
+                    id = acct.AccountId,  // Use integer AccountId for navigation
+                    name = acct.AccountName,
+                    institution = acct.Institution ?? "Unknown",
+                    type = displayType,
+                    accountType = acct.AccountType.ToString(),  // Include specific type
+                    balance = new { amount = acct.CurrentBalance, currency = "USD" },
+                    holdingsCount = acct.Holdings?.Count ?? 0,
                     syncStatus = "ok",
-                    lastSync = inv.UpdatedAt
+                    lastSync = acct.UpdatedAt
                 });
             }
 
             if (tspPositions.Any())
             {
-                accounts.Add(new
+                accountsList.Add(new
                 {
                     id = "tsp_aggregate",
                     name = "Thrift Savings Plan",
@@ -162,12 +171,12 @@ public class DashboardController : ControllerBase
             }
 
             var lowYieldAccounts = cashAccounts
-                .Where(a => a.InterestRateApr.HasValue && a.InterestRateApr < 4.0m && a.Balance > 5000)
+                .Where(a => a.InterestRate.HasValue && a.InterestRate < 0.04m && a.CurrentBalance > 5000)
                 .ToList();
 
             if (lowYieldAccounts.Any())
             {
-                var totalLowYield = lowYieldAccounts.Sum(a => a.Balance);
+                var totalLowYield = lowYieldAccounts.Sum(a => a.CurrentBalance);
                 insights.Add(new
                 {
                     id = "insight_yield_opportunity",
@@ -235,7 +244,7 @@ public class DashboardController : ControllerBase
                     change30dPct = 0.0m,  // Placeholder - need historical data
                     lastUpdated = DateTime.UtcNow
                 },
-                accounts,
+                accounts = accountsList,  // Use renamed variable
                 properties = propertyList,
                 liabilities = liabilitiesList,
                 insights,

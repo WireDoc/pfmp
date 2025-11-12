@@ -242,26 +242,51 @@ namespace PFMP_API.Services.FinancialProfile
         {
             await using var tx = await _db.Database.BeginTransactionAsync(ct);
 
-            await _db.CashAccounts.Where(a => a.UserId == userId).ExecuteDeleteAsync(ct);
+            // Delete existing cash accounts from unified Accounts table
+            await _db.Accounts
+                .Where(a => a.UserId == userId && 
+                    (a.AccountType == AccountType.Checking || 
+                     a.AccountType == AccountType.Savings || 
+                     a.AccountType == AccountType.MoneyMarket ||
+                     a.AccountType == AccountType.CertificateOfDeposit))
+                .ExecuteDeleteAsync(ct);
 
             if (input.OptOut?.IsOptedOut != true)
             {
                 var now = DateTime.UtcNow;
                 foreach (var account in input.Accounts)
                 {
-                    _db.CashAccounts.Add(new CashAccount
+                    // Map old account type strings to new enum
+                    var accountType = account.AccountType?.ToLower() switch
+                    {
+                        "checking" => AccountType.Checking,
+                        "savings" => AccountType.Savings,
+                        "money_market" or "money market" => AccountType.MoneyMarket,
+                        "cd" or "certificate_of_deposit" => AccountType.CertificateOfDeposit,
+                        _ => AccountType.Checking // Default to checking
+                    };
+
+                    var category = accountType == AccountType.MoneyMarket || accountType == AccountType.Savings 
+                        ? AccountCategory.Cash 
+                        : AccountCategory.Cash;
+
+                    _db.Accounts.Add(new Account
                     {
                         UserId = userId,
-                        Nickname = account.Nickname.Trim(),
-                        AccountType = account.AccountType,
+                        AccountName = account.Nickname.Trim(),
+                        AccountType = accountType,
+                        Category = category,
                         Institution = account.Institution?.Trim(),
-                        Balance = account.Balance,
-                        InterestRateApr = account.InterestRateApr,
+                        CurrentBalance = account.Balance,
+                        InterestRate = account.InterestRateApr.HasValue ? account.InterestRateApr.Value / 100m : null, // Convert APR% to decimal
+                        InterestRateUpdatedAt = account.RateLastChecked,
                         IsEmergencyFund = account.IsEmergencyFund,
                         RateLastChecked = account.RateLastChecked,
                         Purpose = account.Purpose?.Trim(),
                         CreatedAt = now,
-                        UpdatedAt = now
+                        UpdatedAt = now,
+                        LastBalanceUpdate = now,
+                        IsActive = true
                     });
                 }
             }
@@ -276,27 +301,53 @@ namespace PFMP_API.Services.FinancialProfile
         {
             await using var tx = await _db.Database.BeginTransactionAsync(ct);
 
-            await _db.InvestmentAccounts.Where(a => a.UserId == userId).ExecuteDeleteAsync(ct);
+            // Delete existing investment accounts from unified Accounts table
+            await _db.Accounts
+                .Where(a => a.UserId == userId && 
+                    (a.AccountType == AccountType.Brokerage || 
+                     a.AccountType == AccountType.RetirementAccountIRA || 
+                     a.AccountType == AccountType.RetirementAccount401k || 
+                     a.AccountType == AccountType.RetirementAccountRoth ||
+                     a.AccountType == AccountType.HSA))
+                .ExecuteDeleteAsync(ct);
 
             if (input.OptOut?.IsOptedOut != true)
             {
                 var now = DateTime.UtcNow;
                 foreach (var account in input.Accounts)
                 {
-                    _db.InvestmentAccounts.Add(new InvestmentAccount
+                    // Map old account category strings to new enums
+                    var accountType = account.AccountCategory?.ToLower() switch
+                    {
+                        "brokerage" or "taxable" => AccountType.Brokerage,
+                        "401k" or "401(k)" => AccountType.RetirementAccount401k,
+                        "ira" or "traditional_ira" => AccountType.RetirementAccountIRA,
+                        "roth_ira" or "roth" => AccountType.RetirementAccountRoth,
+                        "hsa" => AccountType.HSA,
+                        _ => AccountType.Brokerage // Default to brokerage
+                    };
+
+                    var category = accountType switch
+                    {
+                        AccountType.Brokerage => AccountCategory.Taxable,
+                        AccountType.RetirementAccountRoth => AccountCategory.TaxFree,
+                        AccountType.HSA => AccountCategory.TaxAdvantaged,
+                        _ => AccountCategory.TaxDeferred
+                    };
+
+                    _db.Accounts.Add(new Account
                     {
                         UserId = userId,
                         AccountName = account.AccountName.Trim(),
-                        AccountCategory = account.AccountCategory,
+                        AccountType = accountType,
+                        Category = category,
                         Institution = account.Institution?.Trim(),
-                        AssetClass = account.AssetClass?.Trim(),
-                        CurrentValue = account.CurrentValue,
-                        CostBasis = account.CostBasis,
-                        ContributionRatePercent = account.ContributionRatePercent,
-                        IsTaxAdvantaged = account.IsTaxAdvantaged,
-                        LastContributionDate = account.LastContributionDate,
+                        CurrentBalance = account.CurrentValue,
                         CreatedAt = now,
-                        UpdatedAt = now
+                        UpdatedAt = now,
+                        LastBalanceUpdate = now,
+                        IsActive = true,
+                        Notes = account.AssetClass != null ? $"Asset Class: {account.AssetClass}" : null
                     });
                 }
             }
@@ -781,16 +832,20 @@ namespace PFMP_API.Services.FinancialProfile
 
         public async Task<CashAccountsInput> GetCashAccountsAsync(int userId, CancellationToken ct = default)
         {
-            var accounts = await _db.CashAccounts.AsNoTracking()
-                .Where(a => a.UserId == userId)
+            var accounts = await _db.Accounts.AsNoTracking()
+                .Where(a => a.UserId == userId && 
+                    (a.AccountType == AccountType.Checking || 
+                     a.AccountType == AccountType.Savings || 
+                     a.AccountType == AccountType.MoneyMarket ||
+                     a.AccountType == AccountType.CertificateOfDeposit))
                 .OrderBy(a => a.CreatedAt)
                 .Select(a => new CashAccountInput
                 {
-                    Nickname = a.Nickname,
-                    AccountType = a.AccountType,
+                    Nickname = a.AccountName,
+                    AccountType = a.AccountType.ToString().ToLower(),
                     Institution = a.Institution,
-                    Balance = a.Balance,
-                    InterestRateApr = a.InterestRateApr,
+                    Balance = a.CurrentBalance,
+                    InterestRateApr = a.InterestRate.HasValue ? a.InterestRate.Value * 100m : null, // Convert decimal to APR%
                     IsEmergencyFund = a.IsEmergencyFund,
                     RateLastChecked = a.RateLastChecked,
                     Purpose = a.Purpose
@@ -808,20 +863,29 @@ namespace PFMP_API.Services.FinancialProfile
 
         public async Task<InvestmentAccountsInput> GetInvestmentAccountsAsync(int userId, CancellationToken ct = default)
         {
-            var accounts = await _db.InvestmentAccounts.AsNoTracking()
-                .Where(a => a.UserId == userId)
+            var accounts = await _db.Accounts.AsNoTracking()
+                .Where(a => a.UserId == userId && 
+                    (a.AccountType == AccountType.Brokerage || 
+                     a.AccountType == AccountType.RetirementAccountIRA || 
+                     a.AccountType == AccountType.RetirementAccount401k || 
+                     a.AccountType == AccountType.RetirementAccountRoth ||
+                     a.AccountType == AccountType.HSA))
                 .OrderBy(a => a.CreatedAt)
                 .Select(a => new InvestmentAccountInput
                 {
                     AccountName = a.AccountName,
-                    AccountCategory = a.AccountCategory,
+                    AccountCategory = a.AccountType.ToString().ToLower(),
                     Institution = a.Institution,
-                    AssetClass = a.AssetClass,
-                    CurrentValue = a.CurrentValue,
-                    CostBasis = a.CostBasis,
-                    ContributionRatePercent = a.ContributionRatePercent,
-                    IsTaxAdvantaged = a.IsTaxAdvantaged,
-                    LastContributionDate = a.LastContributionDate
+                    AssetClass = a.Notes != null && a.Notes.StartsWith("Asset Class:") 
+                        ? a.Notes.Substring("Asset Class:".Length).Trim() 
+                        : null,
+                    CurrentValue = a.CurrentBalance,
+                    CostBasis = null, // Not stored in unified table yet
+                    ContributionRatePercent = null, // Not stored in unified table yet
+                    IsTaxAdvantaged = a.Category == AccountCategory.TaxDeferred || 
+                                     a.Category == AccountCategory.TaxFree || 
+                                     a.Category == AccountCategory.TaxAdvantaged,
+                    LastContributionDate = null // Not stored in unified table yet
                 })
                 .ToListAsync(ct);
 
@@ -1124,8 +1188,24 @@ namespace PFMP_API.Services.FinancialProfile
 
             var completionPercent = SectionKeys.Length == 0 ? 0 : Math.Round(((decimal)(completed.Count + optedOut.Count) / SectionKeys.Length) * 100, 2);
 
-            var cashTotal = await _db.CashAccounts.Where(c => c.UserId == userId).SumAsync(c => (decimal?)c.Balance, ct) ?? 0m;
-            var investmentTotal = await _db.InvestmentAccounts.Where(c => c.UserId == userId).SumAsync(c => (decimal?)c.CurrentValue, ct) ?? 0m;
+            // Updated to use unified Accounts table
+            var cashTotal = await _db.Accounts
+                .Where(c => c.UserId == userId && 
+                    (c.AccountType == AccountType.Checking || 
+                     c.AccountType == AccountType.Savings || 
+                     c.AccountType == AccountType.MoneyMarket ||
+                     c.AccountType == AccountType.CertificateOfDeposit))
+                .SumAsync(c => (decimal?)c.CurrentBalance, ct) ?? 0m;
+                
+            var investmentTotal = await _db.Accounts
+                .Where(c => c.UserId == userId && 
+                    (c.AccountType == AccountType.Brokerage || 
+                     c.AccountType == AccountType.RetirementAccountIRA || 
+                     c.AccountType == AccountType.RetirementAccount401k || 
+                     c.AccountType == AccountType.RetirementAccountRoth ||
+                     c.AccountType == AccountType.HSA))
+                .SumAsync(c => (decimal?)c.CurrentBalance, ct) ?? 0m;
+                
             var propertyValue = await _db.Properties.Where(c => c.UserId == userId).SumAsync(c => (decimal?)c.EstimatedValue, ct) ?? 0m;
             var propertyDebt = await _db.Properties.Where(c => c.UserId == userId).SumAsync(c => (decimal?)(c.MortgageBalance ?? 0m), ct) ?? 0m;
             var liabilityTotal = await _db.LiabilityAccounts.Where(c => c.UserId == userId).SumAsync(c => (decimal?)c.CurrentBalance, ct) ?? 0m;

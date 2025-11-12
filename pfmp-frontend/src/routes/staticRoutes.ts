@@ -5,7 +5,7 @@ type RouteComponent = ComponentType | LazyExoticComponent<ComponentType>;
 
 const DashboardLegacyLazy = lazyWithPreload(() => import('../views/DashboardPage'));
 const OnboardingLazy = lazyWithPreload(() => import('../views/OnboardingPage'));
-const DashboardWave4Lazy = lazyWithPreload(() => import('../views/DashboardWave4'));
+const DashboardLazy = lazyWithPreload(() => import('../views/Dashboard'));
 const LoginLazy = lazyWithPreload(() => import('../views/LoginPlaceholder'));
 const NotFoundLazy = lazyWithPreload(() => import('../views/NotFoundPage'));
 
@@ -20,7 +20,7 @@ export const staticChildRoutes: StaticRouteDef[] = [
   { id: 'root-index', index: true, Component: DashboardLegacyLazy },
   { id: 'root-alias', path: '', Component: DashboardLegacyLazy },
   { id: 'onboarding', path: 'onboarding', Component: OnboardingLazy },
-  { id: 'dashboard-wave4', path: 'dashboard', Component: DashboardWave4Lazy },
+  { id: 'dashboard-wave4', path: 'dashboard', Component: DashboardLazy },
   { id: 'login', path: 'login', Component: LoginLazy },
 ];
 

@@ -46,15 +46,39 @@ interface ApiDashboardSummaryResponse {
 }
 
 // Use the configured API base URL from environment variable
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api';
+import { getDevUserId } from '../../dev/devUserState';
+
+const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || 'http://localhost:5052/api';
 const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, ''); // Remove trailing /api or /api/
 
 const DASHBOARD_BASE = `${API_ORIGIN}/api/dashboard`;
-const DEFAULT_DASHBOARD_USER_ID = (import.meta.env?.VITE_PFMP_DASHBOARD_USER_ID ?? '1').toString();
+// DEPRECATED: Use getEffectiveUserId() instead of this constant
+const FALLBACK_USER_ID = (import.meta.env?.VITE_PFMP_DASHBOARD_USER_ID ?? '1').toString();
 
-const ALERTS_URL = `${API_ORIGIN}/api/alerts?userId=${encodeURIComponent(DEFAULT_DASHBOARD_USER_ID)}&isActive=true`;
-const ADVICE_URL = `${API_ORIGIN}/api/Advice/user/${encodeURIComponent(DEFAULT_DASHBOARD_USER_ID)}?status=Proposed&includeDismissed=false`;
-const TASKS_URL = `${API_ORIGIN}/api/Tasks?userId=${encodeURIComponent(DEFAULT_DASHBOARD_USER_ID)}&status=Pending`;
+/**
+ * Get the effective user ID for API calls.
+ * Priority: Dev user selector > Env variable > Default (1)
+ */
+function getEffectiveUserId(): string {
+  const devUserId = getDevUserId();
+  if (devUserId !== null) {
+    return devUserId.toString();
+  }
+  return FALLBACK_USER_ID;
+}
+
+// Build URLs dynamically using effective user ID
+function getAlertsUrl(): string {
+  return `${API_ORIGIN}/api/alerts?userId=${encodeURIComponent(getEffectiveUserId())}&isActive=true`;
+}
+
+function getAdviceUrl(): string {
+  return `${API_ORIGIN}/api/Advice/user/${encodeURIComponent(getEffectiveUserId())}?status=Proposed&includeDismissed=false`;
+}
+
+function getTasksUrl(): string {
+  return `${API_ORIGIN}/api/Tasks?userId=${encodeURIComponent(getEffectiveUserId())}&status=Pending`;
+}
 const TASKS_CREATE_URL = `${API_ORIGIN}/api/Tasks`;
 const TASK_STATUS_URL = (taskId: number | string) => `${API_ORIGIN}/api/Tasks/${encodeURIComponent(taskId)}/status`;
 const TASK_PROGRESS_URL = (taskId: number | string) => `${API_ORIGIN}/api/Tasks/${encodeURIComponent(taskId)}/progress`;
@@ -125,8 +149,10 @@ async function safeJson<T>(resp: Response): Promise<T> {
 }
 
 async function fetchSummary(headers: HeadersInit): Promise<ApiDashboardSummaryResponse> {
-  const url = `${DASHBOARD_BASE}/summary?userId=${encodeURIComponent(DEFAULT_DASHBOARD_USER_ID)}`;
+  const effectiveUserId = getEffectiveUserId();
+  const url = `${DASHBOARD_BASE}/summary?userId=${encodeURIComponent(effectiveUserId)}`;
   console.log('[Dashboard API] Fetching summary from:', url);
+  console.log('[Dashboard API] Using userId:', effectiveUserId);
   console.log('[Dashboard API] DASHBOARD_BASE:', DASHBOARD_BASE);
   console.log('[Dashboard API] API_ORIGIN:', API_ORIGIN);
   console.log('[Dashboard API] API_BASE_URL:', API_BASE_URL);
@@ -263,19 +289,19 @@ export function createApiDashboardService(): DashboardService {
 
       const [dto, alerts, advice, tasks] = await Promise.all([
         fetchSummary(headers),
-        fetchList<AlertCard>(ALERTS_URL, headers, 'alerts').catch((error) => {
+        fetchList<AlertCard>(getAlertsUrl(), headers, 'alerts').catch((error) => {
           if (import.meta.env?.MODE !== 'production') {
             console.warn('Dashboard API alerts fetch failed; defaulting to empty list', error);
           }
           return [] as AlertCard[];
         }),
-        fetchList<AdviceItem>(ADVICE_URL, headers, 'advice').catch((error) => {
+        fetchList<AdviceItem>(getAdviceUrl(), headers, 'advice').catch((error) => {
           if (import.meta.env?.MODE !== 'production') {
             console.warn('Dashboard API advice fetch failed; defaulting to empty list', error);
           }
           return [] as AdviceItem[];
         }),
-        fetchList<Record<string, unknown>>(TASKS_URL, headers, 'tasks').catch((error) => {
+        fetchList<Record<string, unknown>>(getTasksUrl(), headers, 'tasks').catch((error) => {
           if (import.meta.env?.MODE !== 'production') {
             console.warn('Dashboard API tasks fetch failed; defaulting to empty list', error);
           }

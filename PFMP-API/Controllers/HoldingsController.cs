@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
+using PFMP_API.Services.MarketData;
 using System.ComponentModel.DataAnnotations;
 
 namespace PFMP_API.Controllers;
@@ -11,11 +12,16 @@ public class HoldingsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<HoldingsController> _logger;
+    private readonly IMarketDataService? _marketDataService;
 
-    public HoldingsController(ApplicationDbContext context, ILogger<HoldingsController> logger)
+    public HoldingsController(
+        ApplicationDbContext context, 
+        ILogger<HoldingsController> logger,
+        IMarketDataService? marketDataService = null)
     {
         _context = context;
         _logger = logger;
+        _marketDataService = marketDataService;
     }
 
     /// <summary>
@@ -49,6 +55,145 @@ public class HoldingsController : ControllerBase
         }
 
         return Ok(MapToResponse(holding));
+    }
+
+    /// <summary>
+    /// Get price history for a holding with optional period filtering
+    /// </summary>
+    /// <param name="id">Holding ID</param>
+    /// <param name="period">Period: 1D, 1W, 1M, 3M, 6M, 1Y, 5Y, ALL</param>
+    [HttpGet("{id}/price-history")]
+    public async Task<ActionResult<List<PriceHistoryResponse>>> GetPriceHistory(int id, [FromQuery] string period = "1M")
+    {
+        var holding = await _context.Holdings.FindAsync(id);
+        if (holding == null)
+        {
+            return NotFound(new { message = "Holding not found" });
+        }
+
+        // Calculate date range based on period
+        DateTime? fromDate = period.ToUpper() switch
+        {
+            "1D" => DateTime.UtcNow.AddDays(-1),
+            "1W" => DateTime.UtcNow.AddDays(-7),
+            "1M" => DateTime.UtcNow.AddMonths(-1),
+            "3M" => DateTime.UtcNow.AddMonths(-3),
+            "6M" => DateTime.UtcNow.AddMonths(-6),
+            "1Y" => DateTime.UtcNow.AddYears(-1),
+            "5Y" => DateTime.UtcNow.AddYears(-5),
+            "10Y" => DateTime.UtcNow.AddYears(-10),
+            "ALL" => null, // Keep for backwards compatibility but use 10Y in frontend
+            _ => DateTime.UtcNow.AddMonths(-1) // Default to 1M
+        };
+
+        // Try to get from database first
+        var query = _context.PriceHistory
+            .Where(p => p.Symbol == holding.Symbol.ToUpper());
+
+        if (fromDate.HasValue)
+        {
+            query = query.Where(p => p.Date >= fromDate.Value);
+        }
+
+        var priceHistory = await query.OrderBy(p => p.Date).ToListAsync();
+
+        // Check if we need to fetch more data from FMP
+        // We need to fetch if: no data exists, OR if the oldest data we have is newer than fromDate
+        bool needsMoreData = false;
+        if (_marketDataService != null)
+        {
+            if (!priceHistory.Any())
+            {
+                needsMoreData = true;
+            }
+            else if (fromDate.HasValue)
+            {
+                var oldestDate = await _context.PriceHistory
+                    .Where(p => p.Symbol == holding.Symbol.ToUpper())
+                    .MinAsync(p => p.Date);
+                
+                // If our oldest data is newer than what we need, fetch more
+                needsMoreData = oldestDate > fromDate.Value;
+            }
+        }
+
+        if (needsMoreData)
+        {
+            _logger.LogInformation("Fetching historical data from FMP for {Symbol} from {FromDate}", holding.Symbol, fromDate);
+            
+            var fmpPrices = await _marketDataService!.GetHistoricalPricesAsync(
+                holding.Symbol, 
+                fromDate, 
+                DateTime.UtcNow
+            );
+
+            if (fmpPrices.Any())
+            {
+                // Store in database for future use
+                foreach (var fmpPrice in fmpPrices)
+                {
+                    // Ensure DateTime is UTC for PostgreSQL first
+                    var dateUtc = fmpPrice.Date.Kind == DateTimeKind.Unspecified
+                        ? DateTime.SpecifyKind(fmpPrice.Date, DateTimeKind.Utc)
+                        : fmpPrice.Date.ToUniversalTime();
+
+                    // Check if this date already exists to avoid duplicates
+                    var exists = await _context.PriceHistory
+                        .AnyAsync(p => p.Symbol == holding.Symbol.ToUpper() && p.Date.Date == dateUtc.Date);
+                    
+                    if (exists)
+                        continue;
+
+                    var historyEntry = new PriceHistory
+                    {
+                        HoldingId = holding.HoldingId,
+                        Symbol = holding.Symbol.ToUpper(),
+                        Date = dateUtc,
+                        Open = fmpPrice.Open,
+                        High = fmpPrice.High,
+                        Low = fmpPrice.Low,
+                        Close = fmpPrice.Close,
+                        Volume = fmpPrice.Volume,
+                        AdjustedClose = fmpPrice.AdjClose,
+                        Change = fmpPrice.Change,
+                        ChangePercent = fmpPrice.ChangePercent
+                    };
+                    _context.PriceHistory.Add(historyEntry);
+                }
+
+                await _context.SaveChangesAsync();
+                
+                // Reload from database with the date filter
+                priceHistory = await _context.PriceHistory
+                    .Where(p => p.Symbol == holding.Symbol.ToUpper())
+                    .Where(p => !fromDate.HasValue || p.Date >= fromDate.Value)
+                    .OrderBy(p => p.Date)
+                    .ToListAsync();
+
+                _logger.LogInformation("Stored {Count} historical prices for {Symbol}", fmpPrices.Count, holding.Symbol);
+            }
+        }
+
+        // Return unique dates only (in case there are duplicates from multiple fetches)
+        // Group by date and take the most recent entry for each date
+        var uniquePriceHistory = priceHistory
+            .GroupBy(p => p.Date.Date)
+            .Select(g => g.OrderByDescending(p => p.CreatedAt).First())
+            .OrderBy(p => p.Date)
+            .ToList();
+
+        return Ok(uniquePriceHistory.Select(p => new PriceHistoryResponse
+        {
+            Date = p.Date,
+            Open = p.Open,
+            High = p.High,
+            Low = p.Low,
+            Close = p.Close,
+            Volume = p.Volume,
+            AdjustedClose = p.AdjustedClose,
+            Change = p.Change,
+            ChangePercent = p.ChangePercent
+        }));
     }
 
     /// <summary>
@@ -172,6 +317,75 @@ public class HoldingsController : ControllerBase
             holding.HoldingId, holding.Symbol, holding.AccountId);
 
         return NoContent();
+    }
+
+    /// <summary>
+    /// Refresh prices for all holdings in an account using live market data
+    /// </summary>
+    /// <param name="accountId">Account ID to refresh</param>
+    [HttpPost("refresh-prices")]
+    public async Task<ActionResult<RefreshPricesResponse>> RefreshPrices([FromQuery] int accountId)
+    {
+        if (_marketDataService == null)
+        {
+            return BadRequest(new { message = "Market data service is not configured" });
+        }
+
+        var holdings = await _context.Holdings
+            .Where(h => h.AccountId == accountId)
+            .ToListAsync();
+
+        if (!holdings.Any())
+        {
+            return Ok(new RefreshPricesResponse 
+            { 
+                AccountId = accountId, 
+                UpdatedCount = 0, 
+                FailedCount = 0, 
+                Message = "No holdings found for this account" 
+            });
+        }
+
+        // Get unique symbols
+        var symbols = holdings.Select(h => h.Symbol.ToUpper()).Distinct().ToList();
+        
+        // Fetch quotes from FMP
+        var quotes = await _marketDataService.GetQuotesAsync(symbols);
+        var quoteDict = quotes.ToDictionary(q => q.Symbol, q => q);
+
+        int updatedCount = 0;
+        int failedCount = 0;
+        var errors = new List<string>();
+
+        foreach (var holding in holdings)
+        {
+            if (quoteDict.TryGetValue(holding.Symbol.ToUpper(), out var quote))
+            {
+                // Update price
+                holding.CurrentPrice = quote.Price;
+                holding.LastPriceUpdate = DateTime.UtcNow;
+
+                updatedCount++;
+                _logger.LogInformation("Updated price for {Symbol}: ${Price}", holding.Symbol, quote.Price);
+            }
+            else
+            {
+                failedCount++;
+                errors.Add($"No quote found for {holding.Symbol}");
+                _logger.LogWarning("Failed to get quote for {Symbol}", holding.Symbol);
+            }
+        }
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new RefreshPricesResponse
+        {
+            AccountId = accountId,
+            UpdatedCount = updatedCount,
+            FailedCount = failedCount,
+            Message = $"Successfully updated {updatedCount} of {holdings.Count} holdings",
+            Errors = errors.Any() ? errors : null
+        });
     }
 
     private static HoldingResponse MapToResponse(Holding holding)
@@ -317,4 +531,26 @@ public class UpdateHoldingRequest
     public DateTime? PurchaseDate { get; set; }
     public bool? IsLongTermCapitalGains { get; set; }
     public string? Notes { get; set; }
+}
+
+public class RefreshPricesResponse
+{
+    public int AccountId { get; set; }
+    public int UpdatedCount { get; set; }
+    public int FailedCount { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public List<string>? Errors { get; set; }
+}
+
+public class PriceHistoryResponse
+{
+    public DateTime Date { get; set; }
+    public decimal Open { get; set; }
+    public decimal High { get; set; }
+    public decimal Low { get; set; }
+    public decimal Close { get; set; }
+    public long Volume { get; set; }
+    public decimal? AdjustedClose { get; set; }
+    public decimal? Change { get; set; }
+    public decimal? ChangePercent { get; set; }
 }

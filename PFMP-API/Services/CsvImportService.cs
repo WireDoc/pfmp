@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using CsvHelper;
 using CsvHelper.Configuration;
+using PFMP_API.Models;
 using PFMP_API.Models.FinancialProfile;
 
 namespace PFMP_API.Services
@@ -24,7 +25,7 @@ namespace PFMP_API.Services
         public async Task<CsvImportResult> ImportCashAccountsAsync(Stream csvStream, int userId)
         {
             var result = new CsvImportResult();
-            var accountsToAdd = new List<CashAccount>();
+            var accountsToAdd = new List<Account>();
 
             using var reader = new StreamReader(csvStream, Encoding.UTF8);
             var config = new CsvConfiguration(CultureInfo.InvariantCulture)
@@ -45,7 +46,7 @@ namespace PFMP_API.Services
                 while (csv.Read())
                 {
                     result.TotalRows++;
-                    var rowNumber = csv.Context.Parser.Row;
+                    var rowNumber = csv.Context.Parser?.Row ?? 0;
 
                     try
                     {
@@ -69,14 +70,14 @@ namespace PFMP_API.Services
                     }
                 }
 
-                // Batch insert valid accounts
+                // Batch insert valid accounts into unified Accounts table
                 if (accountsToAdd.Any())
                 {
-                    await _context.CashAccounts.AddRangeAsync(accountsToAdd);
+                    await _context.Accounts.AddRangeAsync(accountsToAdd);
                     await _context.SaveChangesAsync();
 
                     result.SuccessCount = accountsToAdd.Count;
-                    result.ImportedAccountIds = accountsToAdd.Select(a => a.CashAccountId.ToString()).ToList();
+                    result.ImportedAccountIds = accountsToAdd.Select(a => a.AccountId.ToString()).ToList();
                 }
             }
             catch (Exception ex)
@@ -93,41 +94,52 @@ namespace PFMP_API.Services
             return result;
         }
 
-        private CashAccount ParseCashAccountRow(CsvReader csv, int userId)
+        private Account ParseCashAccountRow(CsvReader csv, int userId)
         {
-            var account = new CashAccount
+            var now = DateTime.UtcNow;
+            
+            // Parse CSV fields
+            var institution = csv.GetField<string>("Institution") ?? string.Empty;
+            var accountTypeStr = csv.GetField<string>("AccountType")?.ToLower() ?? "checking";
+            var nickname = csv.GetField<string>("Nickname");
+            var balanceStr = csv.GetField<string>("Balance");
+            var balance = decimal.TryParse(balanceStr, out var bal) ? bal : 0;
+            var aprStr = csv.GetField<string>("InterestRateApr");
+            var purpose = csv.GetField<string>("Purpose");
+            var isEmergencyStr = csv.GetField<string>("IsEmergencyFund")?.ToLower();
+            var isEmergencyFund = isEmergencyStr is "true" or "1" or "yes";
+
+            // Map account type string to enum
+            var accountType = accountTypeStr switch
             {
-                CashAccountId = Guid.NewGuid(),
-                UserId = userId,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                "checking" => AccountType.Checking,
+                "savings" => AccountType.Savings,
+                "money_market" or "money market" => AccountType.MoneyMarket,
+                "cd" or "certificate_of_deposit" => AccountType.CertificateOfDeposit,
+                _ => AccountType.Checking
             };
 
-            // Required fields
-            account.Institution = csv.GetField<string>("Institution") ?? string.Empty;
-            account.AccountType = csv.GetField<string>("AccountType")?.ToLower() ?? "checking";
-            
-            var balanceStr = csv.GetField<string>("Balance");
-            account.Balance = decimal.TryParse(balanceStr, out var balance) ? balance : 0;
-
-            // Optional fields
-            account.Nickname = csv.GetField<string>("Nickname") ?? $"{account.Institution} {account.AccountType}";
-
-            var aprStr = csv.GetField<string>("InterestRateApr");
-            if (!string.IsNullOrWhiteSpace(aprStr) && decimal.TryParse(aprStr, out var apr))
+            var account = new Account
             {
-                account.InterestRateApr = apr;
-            }
-
-            account.Purpose = csv.GetField<string>("Purpose");
-
-            var isEmergencyStr = csv.GetField<string>("IsEmergencyFund")?.ToLower();
-            account.IsEmergencyFund = isEmergencyStr is "true" or "1" or "yes";
+                UserId = userId,
+                AccountName = nickname ?? $"{institution} {accountTypeStr}",
+                AccountType = accountType,
+                Category = AccountCategory.Cash,
+                Institution = institution,
+                CurrentBalance = balance,
+                InterestRate = decimal.TryParse(aprStr, out var apr) ? apr / 100m : null, // Convert APR% to decimal
+                IsEmergencyFund = isEmergencyFund,
+                Purpose = purpose,
+                CreatedAt = now,
+                UpdatedAt = now,
+                LastBalanceUpdate = now,
+                IsActive = true
+            };
 
             return account;
         }
 
-        private void ValidateCashAccount(CashAccount account, int rowNumber, CsvImportResult result)
+        private void ValidateCashAccount(Account account, int rowNumber, CsvImportResult result)
         {
             // Validate Institution
             if (string.IsNullOrWhiteSpace(account.Institution))
@@ -152,20 +164,20 @@ namespace PFMP_API.Services
             }
 
             // Validate AccountType
-            var validTypes = new[] { "checking", "savings", "money_market" };
+            var validTypes = new[] { AccountType.Checking, AccountType.Savings, AccountType.MoneyMarket, AccountType.CertificateOfDeposit };
             if (!validTypes.Contains(account.AccountType))
             {
                 result.Errors.Add(new CsvImportError
                 {
                     Row = rowNumber,
                     Field = "AccountType",
-                    Message = $"AccountType must be one of: {string.Join(", ", validTypes)}"
+                    Message = $"AccountType must be one of: checking, savings, money_market, cd"
                 });
                 result.ErrorCount++;
             }
 
             // Validate Balance
-            if (account.Balance < 0)
+            if (account.CurrentBalance < 0)
             {
                 result.Errors.Add(new CsvImportError
                 {
@@ -176,26 +188,26 @@ namespace PFMP_API.Services
                 result.ErrorCount++;
             }
 
-            // Validate InterestRateApr if provided
-            if (account.InterestRateApr.HasValue && (account.InterestRateApr < 0 || account.InterestRateApr > 100))
+            // Validate InterestRate if provided (stored as decimal, not percentage)
+            if (account.InterestRate.HasValue && (account.InterestRate < 0 || account.InterestRate > 1))
             {
                 result.Errors.Add(new CsvImportError
                 {
                     Row = rowNumber,
                     Field = "InterestRateApr",
-                    Message = "Interest rate must be between 0 and 100"
+                    Message = "Interest rate must be between 0 and 100%"
                 });
                 result.ErrorCount++;
             }
 
-            // Validate Nickname length
-            if (!string.IsNullOrEmpty(account.Nickname) && account.Nickname.Length > 200)
+            // Validate AccountName length
+            if (!string.IsNullOrEmpty(account.AccountName) && account.AccountName.Length > 200)
             {
                 result.Errors.Add(new CsvImportError
                 {
                     Row = rowNumber,
                     Field = "Nickname",
-                    Message = "Nickname must be 200 characters or less"
+                    Message = "Account name must be 200 characters or less"
                 });
                 result.ErrorCount++;
             }

@@ -15,6 +15,7 @@ namespace PFMP_API
         public DbSet<Account> Accounts { get; set; }
         public DbSet<Holding> Holdings { get; set; }
         public DbSet<Transaction> Transactions { get; set; }
+        public DbSet<PriceHistory> PriceHistory { get; set; }
         public DbSet<Goal> Goals { get; set; }
         public DbSet<GoalMilestone> GoalMilestones { get; set; }
 
@@ -51,6 +52,7 @@ namespace PFMP_API
     // Financial profile (Wave 5)
     public DbSet<FinancialProfileSectionStatus> FinancialProfileSectionStatuses { get; set; }
     public DbSet<FinancialProfileSnapshot> FinancialProfileSnapshots { get; set; }
+    // DEPRECATED (Wave 9.2): Still referenced by legacy endpoints, models in Archive folder
     public DbSet<CashAccount> CashAccounts { get; set; }
     public DbSet<InvestmentAccount> InvestmentAccounts { get; set; }
     public DbSet<PropertyProfile> Properties { get; set; }

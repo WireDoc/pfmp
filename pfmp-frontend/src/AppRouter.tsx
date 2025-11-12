@@ -12,10 +12,11 @@ import { PageSpinner } from './components/common/PageSpinner';
 import { RouteErrorBoundary } from './components/common/RouteErrorBoundary';
 
 // Lazy load dashboard components
-const DashboardWave4 = lazy(() => import('./views/DashboardWave4'));
+const Dashboard = lazy(() => import('./views/Dashboard'));
 
 // Lazy load dashboard sub-views
 const AccountsView = lazy(() => import('./views/dashboard/AccountsView').then(m => ({ default: m.AccountsView })));
+const AccountDetailView = lazy(() => import('./views/dashboard/AccountDetailView').then(m => ({ default: m.AccountDetailView })));
 const InsightsView = lazy(() => import('./views/dashboard/InsightsView').then(m => ({ default: m.InsightsView })));
 const TasksView = lazy(() => import('./views/dashboard/TasksView').then(m => ({ default: m.TasksView })));
 const ProfileView = lazy(() => import('./views/dashboard/ProfileView').then(m => ({ default: m.ProfileView })));
@@ -95,12 +96,16 @@ export function AppRouter(props: AppRouterProps) {
       dashboardRouteWithChildren.children = [
         {
           index: true,
-          // DashboardWave4 as the index route (guard is already at layout level)
-          element: <Suspense fallback={<PageSpinner />}><DashboardWave4 /></Suspense>,
+          // Dashboard as the index route (guard is already at layout level)
+          element: <Suspense fallback={<PageSpinner />}><Dashboard /></Suspense>,
         },
         {
           path: 'accounts',
           element: <Suspense fallback={<PageSpinner />}><AccountsView /></Suspense>,
+        },
+        {
+          path: 'accounts/:accountId',
+          element: <Suspense fallback={<PageSpinner />}><AccountDetailView /></Suspense>,
         },
         {
           path: 'insights',

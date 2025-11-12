@@ -64,7 +64,7 @@ function monotonicNow(): number {
 
 // (Removed old sections placeholder list; replaced by dedicated panel components.)
 
-export const DashboardWave4: React.FC = () => {
+export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const devUserId = useDevUserId();
   const onboarding = useContext(OnboardingContext);
@@ -839,4 +839,4 @@ export const DashboardWave4: React.FC = () => {
   );
 };
 
-export default DashboardWave4;
+export default Dashboard;

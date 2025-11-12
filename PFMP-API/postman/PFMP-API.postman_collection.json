@@ -214,6 +214,53 @@
             "method": "DELETE",
             "url": "{{baseUrl}}/api/holdings/{{holdingId}}"
           }
+        },
+        {
+          "name": "Refresh Prices",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/holdings/refresh-prices?accountId={{accountId}}"
+          }
+        },
+        {
+          "name": "Get Price History",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/holdings/{{holdingId}}/price-history?period=1M"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Market Data",
+      "item": [
+        {
+          "name": "Get Quote (Single)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/market-data/quote/AAPL"
+          }
+        },
+        {
+          "name": "Get Quotes (Bulk)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/market-data/quotes?symbols=AAPL,MSFT,SPY,BTC-USD"
+          }
+        },
+        {
+          "name": "Get Historical Prices",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/market-data/historical/AAPL?from=2024-01-01&to=2024-12-31"
+          }
+        },
+        {
+          "name": "Get Company Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/market-data/company/AAPL"
+          }
         }
       ]
     },

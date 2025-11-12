@@ -1935,6 +1935,59 @@ namespace PFMP_API.Migrations
                     b.ToTable("OnboardingProgress");
                 });
 
+            modelBuilder.Entity("PFMP_API.Models.PriceHistory", b =>
+                {
+                    b.Property<int>("PriceHistoryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PriceHistoryId"));
+
+                    b.Property<decimal?>("AdjustedClose")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<decimal?>("Change")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<decimal?>("ChangePercent")
+                        .HasColumnType("decimal(10,4)");
+
+                    b.Property<decimal>("Close")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("High")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<int?>("HoldingId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Low")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<decimal>("Open")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<string>("Symbol")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<long>("Volume")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("PriceHistoryId");
+
+                    b.HasIndex("HoldingId");
+
+                    b.ToTable("PriceHistory");
+                });
+
             modelBuilder.Entity("PFMP_API.Models.RealEstate", b =>
                 {
                     b.Property<int>("RealEstateId")
@@ -2856,6 +2909,15 @@ namespace PFMP_API.Migrations
                         .HasForeignKey("PFMP_API.Models.OnboardingProgress", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.PriceHistory", b =>
+                {
+                    b.HasOne("PFMP_API.Models.Holding", "Holding")
+                        .WithMany()
+                        .HasForeignKey("HoldingId");
+
+                    b.Navigation("Holding");
                 });
 
             modelBuilder.Entity("PFMP_API.Models.RealEstate", b =>

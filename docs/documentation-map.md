@@ -21,6 +21,7 @@ This index lists every active document under `docs/` following the subject-first
 
 ## 🗄️ data
 - `docs/data/database-tools-setup.md` – Local tooling and connection tips
+- `docs/data/import-formats/cash-accounts.md` – CSV import format specification for cash accounts (checking, savings, money market)
 - `docs/data/runbooks/database-backup.md` – Backup runbook (PostgreSQL + Synology workflow)
 - `docs/data/archive/` *(reserved)*
 
@@ -100,6 +101,7 @@ This index lists every active document under `docs/` following the subject-first
 - `docs/waves/WAVE-6-NAVIGATION-AND-POLISH.md` – Navigation shell structure and dashboard polish plan (NEW - Oct 2025)
 - `docs/waves/wave-8.1-implementation-summary.md` – Wave 8.1 Account Detail Modal implementation (Nov 2025)
 - `docs/waves/wave-8.1-recovery-plan.md` – Wave 8.1 Recovery: Dashboard data display fix and Phase 2 plan (Nov 2025)
+- `docs/waves/wave-9.2-complete.md` – Wave 9.2 Market Data Integration: FMP API integration with real-time quotes, historical charts, and price refresh (Nov 2025)
 - `docs/waves/PHASE-2-DATA-AGGREGATION.md` – Phase 2 complete plan: Manual data entry, CSV import, holdings management
 - `docs/waves/ai-advisor-wave-plan.md`
 - `docs/waves/archive/` *(reserved)*
