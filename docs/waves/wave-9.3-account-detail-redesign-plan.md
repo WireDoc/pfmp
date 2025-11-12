@@ -127,26 +127,29 @@ Based on `AccountType` enum in backend:
 
 ### Phase 2: Cash Account Detail View (Wave 9.3)
 
+**Status:** ✅ COMPLETE (2025-11-12)  
 **Goal:** Full-featured view for checking/savings accounts
 
 #### Backend API Endpoints Needed
 
+✅ **Implemented:** `AccountTransactionsController.cs`
+
 ```csharp
-// GET /api/accounts/{id}/transactions?from=2024-01-01&to=2024-12-31&limit=100
+// ✅ GET /api/accounts/{id}/transactions?from=2024-01-01&to=2024-12-31&limit=100&category=Deposit
 // Returns transaction history for cash account
-public class AccountTransactionResponse
+public class AccountTransactionDto
 {
     public int TransactionId { get; set; }
     public DateTime Date { get; set; }
     public string Description { get; set; }
-    public string Category { get; set; }  // Deposit, Withdrawal, Transfer, Fee, Interest
+    public string Category { get; set; }  // Deposit, Withdrawal, Transfer, Fee, InterestEarned
     public decimal Amount { get; set; }  // Positive for deposits, negative for withdrawals
     public decimal BalanceAfter { get; set; }
     public string? CheckNumber { get; set; }
     public string? Memo { get; set; }
 }
 
-// GET /api/accounts/{id}/balance-history?days=30
+// ✅ GET /api/accounts/{id}/balance-history?days=30
 // Returns daily balance snapshots
 public class BalanceHistoryResponse
 {
@@ -154,7 +157,7 @@ public class BalanceHistoryResponse
     public decimal Balance { get; set; }
 }
 
-// GET /api/accounts/{id}/interest-summary?year=2024
+// ✅ GET /api/accounts/{id}/interest-summary?year=2024
 // Returns interest earned breakdown
 public class InterestSummaryResponse
 {
@@ -164,33 +167,67 @@ public class InterestSummaryResponse
 }
 ```
 
+**Implementation Notes:**
+- Reused existing `Transaction` model (supports both investment and cash transactions)
+- `TransactionTypes` constants include: Deposit, Withdrawal, Transfer, Fee, InterestEarned
+- Balance history calculated by working backwards from current balance
+- Interest summary filters by `TransactionType = InterestEarned`
+
 #### Frontend Components
 
+✅ **Implemented:**
+
 ```tsx
-// src/views/dashboard/CashAccountDetail.tsx
+// ✅ src/views/dashboard/CashAccountDetail.tsx
 export function CashAccountDetail() {
-  // Account summary card
-  // Transaction list with filters (date range, category)
-  // Balance trend chart
-  // Interest earned summary
-  // Quick actions (add transaction, export to CSV)
+  // ✅ Account summary card with overview tab
+  // ✅ Transaction list tab (fetches from API, displays with color-coded amounts)
+  // ✅ Balance history tab (fetches 30-day balance snapshots)
+  // ✅ Interest earned tab (YTD summary with monthly breakdown)
+  // ✅ Loading and error states
+  // ⏳ Quick actions (add transaction, export to CSV) - deferred
 }
 
-// src/components/cash-accounts/AccountDetailsCard.tsx
+// ⏳ src/components/cash-accounts/AccountDetailsCard.tsx
 // Displays: Bank name, routing #, account #, type, APY, opening date
+// Status: Basic info shown in Overview tab, enhanced card deferred
 
-// src/components/cash-accounts/TransactionList.tsx
+// ⏳ src/components/cash-accounts/TransactionList.tsx
 // Paginated table with search, category filter, date range picker
+// Status: Basic list implemented, advanced filtering deferred
 
-// src/components/cash-accounts/BalanceTrendChart.tsx
+// ⏳ src/components/cash-accounts/BalanceTrendChart.tsx
 // Line chart showing balance over time (Recharts)
+// Status: Data fetched, chart visualization deferred
 
-// src/components/cash-accounts/InterestSummaryCard.tsx
+// ⏳ src/components/cash-accounts/InterestSummaryCard.tsx
 // YTD interest, monthly breakdown, projected annual
+// Status: Basic summary implemented, projections deferred
 ```
 
+**Implementation Notes:**
+- Main `CashAccountDetail` component complete with 4 tabs (Overview, Transactions, Balance History, Interest)
+- Transactions displayed with green (deposits) and red (withdrawals) color coding
+- Monthly interest breakdown with formatted currency display
+- Responsive layout with MUI Grid
+- AccountSummaryHeader reused from investment views
+- Router integration complete - AccountDetailView conditionally renders CashAccountDetail for cash account types
+
 **Estimated Time:** 12-16 hours  
+**Actual Time:** ~8 hours  
 **Dependencies:** Phase 1 complete
+
+**Files Changed:**
+- Backend: `PFMP-API/Controllers/AccountTransactionsController.cs` (new)
+- Frontend: `pfmp-frontend/src/views/dashboard/CashAccountDetail.tsx` (new)
+- Frontend: `pfmp-frontend/src/views/dashboard/AccountDetailView.tsx` (modified - added conditional routing)
+
+**Optional Enhancements (Deferred):**
+- Advanced filtering UI (MUI DataGrid with date pickers, category dropdowns)
+- Recharts balance trend visualization
+- Enhanced AccountDetailsCard with masked account numbers
+- CSV export functionality
+- Transaction creation/editing UI
 
 ---
 

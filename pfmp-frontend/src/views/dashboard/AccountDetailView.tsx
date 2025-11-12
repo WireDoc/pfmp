@@ -20,6 +20,7 @@ import { AssetAllocationChart } from '../../components/holdings/AssetAllocationC
 import { PriceChartCard } from '../../components/holdings/PriceChartCard';
 import { getAccount, type AccountResponse } from '../../services/accountsApi';
 import type { Holding } from '../../types/holdings';
+import CashAccountDetail from './CashAccountDetail';
 
 // Account type categories for conditional rendering
 type AccountCategory = 'investment' | 'cash' | 'loan' | 'credit' | 'other';
@@ -209,6 +210,11 @@ export function AccountDetailView() {
     );
   }
 
+  // If this is a cash account, use the dedicated CashAccountDetail component
+  if (accountCategory === 'cash') {
+    return <CashAccountDetail />;
+  }
+
   return (
     <Box sx={{ p: 3 }}>
       {/* Breadcrumbs */}
@@ -304,8 +310,7 @@ export function AccountDetailView() {
           ) : (
             <Box>
               <Typography variant="h6" gutterBottom>
-                {accountCategory === 'cash' ? 'Cash Account View' : 
-                 accountCategory === 'loan' ? 'Loan Account View' : 
+                {accountCategory === 'loan' ? 'Loan Account View' : 
                  accountCategory === 'credit' ? 'Credit Card View' : 
                  'Account View'}
               </Typography>
@@ -313,8 +318,6 @@ export function AccountDetailView() {
                 This account type will have a dedicated detail view in a future update (Wave 9.3+).
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {accountCategory === 'cash' && 
-                  'Coming soon: Transaction history, balance trends, interest tracking, and CSV import.'}
                 {accountCategory === 'loan' && 
                   'Coming soon: Payment schedule, amortization calculator, principal/interest breakdown, and payoff calculator.'}
                 {accountCategory === 'credit' && 
