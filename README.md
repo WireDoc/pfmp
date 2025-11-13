@@ -11,6 +11,12 @@ PFMP is an AI-assisted financial planning platform for government employees and 
 - **Authentication**: Azure Entra ID with local bypass mode for development
 - **AI Architecture**: Dual-model pipeline planned (Azure OpenAI + Anthropic) with consensus scoring - See Phase 3 in roadmap
 - **Current Highlights**: 
+  - **Wave 9.3 Phase 2 Complete** - Cash account detail views with transaction tracking
+  - Cash accounts now have dedicated detail views with 4 tabs (Overview, Transactions, Balance History, Interest)
+  - Transaction API with filtering, pagination, and balance history calculation
+  - Interest tracking with monthly breakdown and year-to-date summaries
+  - Type-specific account routing (investment vs cash accounts show appropriate features)
+  - **Wave 9.2 Complete** - Market data integration with FMP API for real-time quotes and historical charts
   - **Wave 5 MVP Complete** - Production dashboard enabled with real backend data
   - Rebuilt onboarding flow with 15 financial profile sections (all fully functional with autosave)
   - Enhanced UX: Cash accounts with type dropdowns, simplified W-4-based tax withholding section

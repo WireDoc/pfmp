@@ -6,7 +6,29 @@ The format loosely follows [Conventional Commits](https://www.conventionalcommit
 
 ## [Unreleased]
 
+### Added - Wave 9.3 Phase 2: Cash Account Detail Views
+- feat(backend): AccountTransactionsController with comprehensive transaction APIs
+  - GET `/api/accounts/{id}/transactions` - Filter by date range, category, pagination (limit, offset)
+  - GET `/api/accounts/{id}/balance-history` - Daily balance snapshots calculated backwards from current balance
+  - GET `/api/accounts/{id}/interest-summary` - Monthly interest aggregation for year-to-date tracking
+- feat(backend): Fixed TransactionType filtering to use InterestEarned for cash accounts
+- feat(backend): UTC DateTime handling for PostgreSQL timestamp compatibility
+- feat(frontend): CashAccountDetail component with 4-tab interface
+  - Overview tab: Account details (institution, type, balance)
+  - Transactions tab: Color-coded transaction list (green deposits, red withdrawals)
+  - Balance History tab: 30-day balance snapshot data
+  - Interest tab: Year-to-date interest summary with monthly breakdown
+- feat(frontend): CashAccountSummaryHeader component for cash-specific metrics
+  - Displays current balance instead of holdings/cost basis
+  - Shows institution and account type information
+- feat(frontend): Conditional routing in AccountDetailView based on account category
+  - Investment accounts render InvestmentAccountDetail with holdings/charts
+  - Cash accounts render CashAccountDetail with transactions/interest
+- fix(frontend): URL parameter extraction corrected (accountId vs id) to match route definition
+- fix(frontend): Removed blocking loading states for progressive enhancement UX
+
 ### Planned / Pending
+- Wave 9.3 Phase 3: Enhanced investment metrics and analytics
 - Wave 6: Navigation shell structure (left sidebar for dashboard)
 - Performance baseline + visual regression harness
 - Fix routing bounce issue (cosmetic URL bar flash through /onboarding)
