@@ -169,14 +169,13 @@ public class AccountTransactionsController : ControllerBase
                 year = DateTime.UtcNow.Year;
             }
 
-            // Get all interest transactions for the year
-            var startDate = new DateTime(year, 1, 1);
-            var endDate = new DateTime(year, 12, 31, 23, 59, 59);
+            // Get all interest transactions for the year (UTC timestamps for PostgreSQL)
+            var startDate = new DateTime(year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            var endDate = new DateTime(year, 12, 31, 23, 59, 59, DateTimeKind.Utc);
 
             var interestTransactions = await _context.Transactions
                 .Where(t => t.AccountId == accountId &&
-                           (t.TransactionType == TransactionTypes.Interest ||
-                            t.TransactionType == TransactionTypes.InterestEarned) &&
+                           t.TransactionType == TransactionTypes.InterestEarned &&
                            t.TransactionDate >= startDate &&
                            t.TransactionDate <= endDate)
                 .ToListAsync();

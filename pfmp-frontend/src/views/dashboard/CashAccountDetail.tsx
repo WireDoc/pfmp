@@ -11,7 +11,7 @@ import {
   Grid
 } from '@mui/material';
 import { getAccount, type AccountResponse } from '../../services/accountsApi';
-import { AccountSummaryHeader } from '../../components/holdings/AccountSummaryHeader';
+import { CashAccountSummaryHeader } from '../../components/cash-accounts/CashAccountSummaryHeader';
 
 // Transaction interfaces
 interface Transaction {
@@ -64,8 +64,8 @@ function TabPanel(props: TabPanelProps) {
 }
 
 const CashAccountDetail: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const accountId = parseInt(id || '0', 10);
+  const { accountId: accountIdParam } = useParams<{ accountId: string }>();
+  const accountId = parseInt(accountIdParam || '0', 10);
 
   const [currentTab, setCurrentTab] = useState(0);
   const [account, setAccount] = useState<AccountResponse | null>(null);
@@ -73,25 +73,18 @@ const CashAccountDetail: React.FC = () => {
   const [balanceHistory, setBalanceHistory] = useState<BalanceHistory[]>([]);
   const [interestSummary, setInterestSummary] = useState<InterestSummary | null>(null);
   
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [transactionsLoading, setTransactionsLoading] = useState(false);
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [interestLoading, setInterestLoading] = useState(false);
 
-  // Fetch account details
+  // Fetch account details for local use (tabs need this data)
   useEffect(() => {
     const fetchAccount = async () => {
       try {
-        setLoading(true);
-        setError(null);
         const data = await getAccount(accountId);
         setAccount(data);
       } catch (err) {
         console.error('Error fetching account:', err);
-        setError('Failed to load account details');
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -168,29 +161,12 @@ const CashAccountDetail: React.FC = () => {
     setCurrentTab(newValue);
   };
 
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error || !account) {
-    return (
-      <Box p={3}>
-        <Alert severity="error">{error || 'Account not found'}</Alert>
-      </Box>
-    );
-  }
-
   return (
     <Box>
       {/* Account Header */}
-      <AccountSummaryHeader 
+      <CashAccountSummaryHeader 
         accountId={accountId} 
-        holdings={[]} 
-        loading={loading} 
+        loading={false} 
       />
 
       {/* Tabs */}
@@ -210,63 +186,69 @@ const CashAccountDetail: React.FC = () => {
         {/* Overview Tab */}
         <TabPanel value={currentTab} index={0}>
           <Box px={3}>
-            <Grid container spacing={3}>
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Paper sx={{ p: 3 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Account Details
-                  </Typography>
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Institution
+            {!account ? (
+              <Box display="flex" justifyContent="center" py={4}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <Grid container spacing={3}>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Paper sx={{ p: 3 }}>
+                    <Typography variant="h6" gutterBottom>
+                      Account Details
                     </Typography>
-                    <Typography variant="body1">
-                      {account.institution || 'N/A'}
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Institution
+                      </Typography>
+                      <Typography variant="body1">
+                        {account.institution || 'N/A'}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Account Type
+                      </Typography>
+                      <Typography variant="body1">
+                        {account.accountType}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Current Balance
+                      </Typography>
+                      <Typography variant="h5" color="primary">
+                        ${account.currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </Typography>
+                    </Box>
+                  </Paper>
+                </Grid>
+                
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Paper sx={{ p: 3 }}>
+                    <Typography variant="h6" gutterBottom>
+                      Quick Stats
                     </Typography>
-                  </Box>
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Account Type
-                    </Typography>
-                    <Typography variant="body1">
-                      {account.accountType}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Current Balance
-                    </Typography>
-                    <Typography variant="h5" color="primary">
-                      ${account.currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </Typography>
-                  </Box>
-                </Paper>
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Account Number
+                      </Typography>
+                      <Typography variant="body1">
+                        {account.accountNumber || 'N/A'}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Last Updated
+                      </Typography>
+                      <Typography variant="body1">
+                        {new Date(account.updatedAt).toLocaleDateString()}
+                      </Typography>
+                    </Box>
+                  </Paper>
+                </Grid>
               </Grid>
-              
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Paper sx={{ p: 3 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Quick Stats
-                  </Typography>
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Account Number
-                    </Typography>
-                    <Typography variant="body1">
-                      {account.accountNumber || 'N/A'}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Last Updated
-                    </Typography>
-                    <Typography variant="body1">
-                      {new Date(account.updatedAt).toLocaleDateString()}
-                    </Typography>
-                  </Box>
-                </Paper>
-              </Grid>
-            </Grid>
+            )}
           </Box>
         </TabPanel>
 
