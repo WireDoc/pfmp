@@ -20,5 +20,10 @@ export default defineConfig({
     coverage: {
       reporter: ['text', 'lcov'],
     },
+    server: {
+      deps: {
+        inline: ['@mui/x-data-grid']  // Inline MUI DataGrid to avoid CSS import issues
+      }
+    }
   },
 });
