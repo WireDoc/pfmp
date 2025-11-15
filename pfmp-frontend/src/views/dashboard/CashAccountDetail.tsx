@@ -52,8 +52,7 @@ function TabPanel(props: TabPanelProps) {
 }
 
 const CashAccountDetail: React.FC = () => {
-  const { accountId: accountIdParam } = useParams<{ accountId: string }>();
-  const accountId = parseInt(accountIdParam || '0', 10);
+  const { cashAccountId } = useParams<{ cashAccountId: string }>();
 
   const [currentTab, setCurrentTab] = useState(0);
   const [account, setAccount] = useState<AccountResponse | null>(null);

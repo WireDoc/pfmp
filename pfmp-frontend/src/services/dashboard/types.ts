@@ -26,6 +26,7 @@ export interface AccountSnapshot {
   balance: CurrencyAmount;
   syncStatus: SyncStatus;
   lastSync: string; // ISO
+  isCashAccount?: boolean; // Flag for UUID-based cash accounts
 }
 
 export type InsightCategory = 'cashflow' | 'allocation' | 'savings' | 'risk' | 'general';

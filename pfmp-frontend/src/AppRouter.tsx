@@ -17,6 +17,7 @@ const Dashboard = lazy(() => import('./views/Dashboard'));
 // Lazy load dashboard sub-views
 const AccountsView = lazy(() => import('./views/dashboard/AccountsView').then(m => ({ default: m.AccountsView })));
 const AccountDetailView = lazy(() => import('./views/dashboard/AccountDetailView').then(m => ({ default: m.AccountDetailView })));
+const CashAccountDetailView = lazy(() => import('./views/dashboard/CashAccountDetailView'));
 const InsightsView = lazy(() => import('./views/dashboard/InsightsView').then(m => ({ default: m.InsightsView })));
 const TasksView = lazy(() => import('./views/dashboard/TasksView').then(m => ({ default: m.TasksView })));
 const ProfileView = lazy(() => import('./views/dashboard/ProfileView').then(m => ({ default: m.ProfileView })));
@@ -106,6 +107,10 @@ export function AppRouter(props: AppRouterProps) {
         {
           path: 'accounts/:accountId',
           element: <Suspense fallback={<PageSpinner />}><AccountDetailView /></Suspense>,
+        },
+        {
+          path: 'cash-accounts/:cashAccountId',
+          element: <Suspense fallback={<PageSpinner />}><CashAccountDetailView /></Suspense>,
         },
         {
           path: 'insights',

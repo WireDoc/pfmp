@@ -21,6 +21,8 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { Search, FileDownload, FilterList } from '@mui/icons-material';
 import { format } from 'date-fns';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api';
+
 export interface Transaction {
   transactionId: number;
   date: string;
@@ -33,7 +35,8 @@ export interface Transaction {
 }
 
 interface TransactionListProps {
-  accountId: number;
+  accountId?: number;
+  cashAccountId?: string;
   accountName?: string;
   onExport?: (transactions: Transaction[]) => void;
 }
@@ -48,7 +51,8 @@ const TRANSACTION_CATEGORIES = [
 ];
 
 export const TransactionList: React.FC<TransactionListProps> = ({ 
-  accountId, 
+  accountId,
+  cashAccountId,
   accountName,
   onExport 
 }) => {
@@ -96,7 +100,11 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         params.append('category', categoryFilter);
       }
 
-      const response = await fetch(`/api/accounts/${accountId}/transactions?${params.toString()}`);
+      const endpoint = cashAccountId 
+        ? `/cash-accounts/${cashAccountId}/transactions`
+        : `/accounts/${accountId}/transactions`;
+      
+      const response = await fetch(`${API_BASE_URL}${endpoint}?${params.toString()}`);
       if (!response.ok) {
         throw new Error('Failed to fetch transactions');
       }
@@ -109,7 +117,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [accountId, startDate, endDate, categoryFilter]);
+  }, [accountId, cashAccountId, startDate, endDate, categoryFilter]);
 
   // Load transactions on mount and when filters change
   React.useEffect(() => {
@@ -134,8 +142,11 @@ export const TransactionList: React.FC<TransactionListProps> = ({
       field: 'date',
       headerName: 'Date',
       width: 120,
+      valueGetter: (value, row) => row.transactionDate || row.date,
       valueFormatter: (value) => {
-        return format(new Date(value), 'MMM d, yyyy');
+        if (!value) return '—';
+        const date = new Date(value);
+        return isNaN(date.getTime()) ? '—' : format(date, 'MMM d, yyyy');
       }
     },
     {
@@ -195,6 +206,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
       width: 130,
       type: 'number',
       valueFormatter: (value: number) => {
+        if (value === undefined || value === null) return '—';
         return `$${value.toLocaleString('en-US', {
           minimumFractionDigits: 2,
           maximumFractionDigits: 2
@@ -341,7 +353,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         <DataGrid
           rows={filteredTransactions}
           columns={columns}
-          getRowId={(row) => row.transactionId}
+          getRowId={(row) => row.cashTransactionId || row.transactionId}
           loading={loading}
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}

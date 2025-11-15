@@ -1,6 +1,8 @@
 import { useLocation, Link as RouterLink } from 'react-router-dom';
 import { Breadcrumbs, Link, Typography, Box } from '@mui/material';
 import { NavigateNext as NavigateNextIcon, Home as HomeIcon } from '@mui/icons-material';
+import { useState, useEffect } from 'react';
+import { getCashAccount } from '../../services/cashAccountsApi';
 
 interface BreadcrumbConfig {
   path: string;
@@ -26,10 +28,54 @@ const breadcrumbConfigs: Record<string, BreadcrumbConfig> = {
  * Examples:
  * - /dashboard → Dashboard
  * - /dashboard/accounts → Dashboard > Accounts
- * - /dashboard/accounts/123 → Dashboard > Accounts > Account Details
+ * - /dashboard/cash-accounts/123 → Dashboard > Account Name
  */
 export function DashboardBreadcrumbs() {
   const location = useLocation();
+  const [accountName, setAccountName] = useState<string | null>(null);
+  
+  // Fetch account name if we're on a cash account detail page
+  useEffect(() => {
+    const fetchAccountName = async () => {
+      const pathSegments = location.pathname.split('/').filter(Boolean);
+      
+      // Check if we're on /dashboard/cash-accounts/:uuid
+      if (pathSegments[0] === 'dashboard' && 
+          pathSegments[1] === 'cash-accounts' && 
+          pathSegments[2]) {
+        try {
+          const account = await getCashAccount(pathSegments[2]);
+          setAccountName(account.nickname || 'Account Details');
+        } catch (err) {
+          console.error('Error fetching account name for breadcrumb:', err);
+          setAccountName('Account Details');
+        }
+      }
+      // Check if we're on /dashboard/accounts/:id (investment accounts)
+      else if (pathSegments[0] === 'dashboard' && 
+               pathSegments[1] === 'accounts' && 
+               pathSegments[2] &&
+               !isNaN(Number(pathSegments[2]))) {
+        try {
+          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api'}/accounts/${pathSegments[2]}`);
+          if (response.ok) {
+            const account = await response.json();
+            setAccountName(account.nickname || account.accountName || 'Account Details');
+          } else {
+            setAccountName('Account Details');
+          }
+        } catch (err) {
+          console.error('Error fetching account name for breadcrumb:', err);
+          setAccountName('Account Details');
+        }
+      }
+      else {
+        setAccountName(null);
+      }
+    };
+
+    fetchAccountName();
+  }, [location.pathname]);
   
   // Build breadcrumb trail from current path
   const buildBreadcrumbs = (): BreadcrumbConfig[] => {
@@ -45,17 +91,37 @@ export function DashboardBreadcrumbs() {
         const secondSegment = pathSegments[1];
         const secondPath = `/dashboard/${secondSegment}`;
         
-        if (breadcrumbConfigs[secondPath]) {
-          breadcrumbs.push(breadcrumbConfigs[secondPath]);
-        }
-        
-        // If there's a third segment (like an ID), add a generic label
-        if (pathSegments.length > 2) {
-          const thirdSegment = pathSegments[2];
+        // Special handling for cash-accounts
+        if (secondSegment === 'cash-accounts' && pathSegments.length > 2) {
+          // Add "Accounts" intermediate breadcrumb
+          breadcrumbs.push(breadcrumbConfigs['/dashboard/accounts']);
+          // Show account name as final breadcrumb
           breadcrumbs.push({
             path: location.pathname,
-            label: isNaN(Number(thirdSegment)) ? thirdSegment : 'Details',
+            label: accountName || 'Loading...',
           });
+        }
+        // Special handling for investment accounts (/dashboard/accounts/:id)
+        else if (secondSegment === 'accounts' && pathSegments.length > 2) {
+          // Add "Accounts" breadcrumb
+          breadcrumbs.push(breadcrumbConfigs['/dashboard/accounts']);
+          // Show account name as final breadcrumb
+          breadcrumbs.push({
+            path: location.pathname,
+            label: accountName || 'Loading...',
+          });
+        }
+        else if (breadcrumbConfigs[secondPath]) {
+          breadcrumbs.push(breadcrumbConfigs[secondPath]);
+          
+          // If there's a third segment (like an ID), add a generic label
+          if (pathSegments.length > 2) {
+            const thirdSegment = pathSegments[2];
+            breadcrumbs.push({
+              path: location.pathname,
+              label: isNaN(Number(thirdSegment)) ? thirdSegment : 'Details',
+            });
+          }
         }
       }
     }

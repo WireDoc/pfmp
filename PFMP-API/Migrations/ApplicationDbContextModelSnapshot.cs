@@ -588,6 +588,81 @@ namespace PFMP_API.Migrations
                     b.ToTable("Alerts");
                 });
 
+            modelBuilder.Entity("PFMP_API.Models.CashTransaction", b =>
+                {
+                    b.Property<int>("CashTransactionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("CashTransactionId"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("CashAccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("CheckNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ExternalTransactionId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal?>("Fee")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsPending")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRecurring")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Merchant")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Tags")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("TransactionDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TransactionType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("CashTransactionId");
+
+                    b.HasIndex("Category");
+
+                    b.HasIndex("TransactionType");
+
+                    b.HasIndex("CashAccountId", "TransactionDate");
+
+                    b.ToTable("CashTransactions");
+                });
+
             modelBuilder.Entity("PFMP_API.Models.FinancialProfile.BenefitCoverage", b =>
                 {
                     b.Property<int>("BenefitCoverageId")
@@ -2701,6 +2776,17 @@ namespace PFMP_API.Migrations
                     b.Navigation("MarketContext");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.CashTransaction", b =>
+                {
+                    b.HasOne("PFMP_API.Models.FinancialProfile.CashAccount", "CashAccount")
+                        .WithMany()
+                        .HasForeignKey("CashAccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CashAccount");
                 });
 
             modelBuilder.Entity("PFMP_API.Models.FinancialProfile.BenefitCoverage", b =>

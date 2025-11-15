@@ -17,6 +17,7 @@ import {
   FileDownload
 } from '@mui/icons-material';
 import { format } from 'date-fns';
+import type { CashAccountResponse } from '../../services/cashAccountsApi';
 
 export interface AccountDetails {
   accountId: number;
@@ -34,10 +35,15 @@ export interface AccountDetails {
 }
 
 interface AccountDetailsCardProps {
-  account: AccountDetails;
+  account: AccountDetails | CashAccountResponse;
   onEdit?: () => void;
   onDelete?: () => void;
   onExport?: () => void;
+}
+
+// Type guard to check if account is CashAccountResponse
+function isCashAccountResponse(account: AccountDetails | CashAccountResponse): account is CashAccountResponse {
+  return 'cashAccountId' in account;
 }
 
 export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
@@ -48,6 +54,20 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
 }) => {
   const [showAccountNumber, setShowAccountNumber] = useState(false);
   const [showRoutingNumber, setShowRoutingNumber] = useState(false);
+
+  // Normalize account data to common format
+  const isCashAccount = isCashAccountResponse(account);
+  const accountName = isCashAccount ? (account.nickname || 'Cash Account') : account.accountName;
+  const currentBalance = isCashAccount ? account.balance : account.currentBalance;
+  const institution = isCashAccount ? account.institution : (account.institution || 'N/A');
+  const accountType = account.accountType;
+  const interestRate = isCashAccount ? account.interestRateApr : account.interestRate;
+  const lastSyncDate = isCashAccount ? account.updatedAt : account.lastSyncDate;
+  const openingDate = isCashAccount ? account.createdAt : account.openingDate;
+  const accountNumber = isCashAccount ? undefined : account.accountNumber;
+  const routingNumber = isCashAccount ? undefined : account.routingNumber;
+  const status = isCashAccount ? 'Active' : account.status;
+  const notes = isCashAccount ? account.purpose : account.notes;
 
   // Mask account number (show last 4 digits)
   const maskAccountNumber = (number: string | undefined) => {
@@ -156,7 +176,7 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
                 Account Name
               </Typography>
               <Typography variant="body1" fontWeight="medium">
-                {account.accountName}
+                {accountName}
               </Typography>
             </Box>
 
@@ -166,7 +186,7 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
                 Institution
               </Typography>
               <Typography variant="body1">
-                {account.institution || 'N/A'}
+                {institution}
               </Typography>
             </Box>
 
@@ -176,20 +196,20 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
                 Account Type
               </Typography>
               <Typography variant="body1">
-                {account.accountType}
+                {accountType}
               </Typography>
             </Box>
 
             {/* Account Number */}
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="caption" color="text.secondary">
-                Account Number
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="body1" fontFamily="monospace">
-                  {showAccountNumber ? account.accountNumber || 'N/A' : maskAccountNumber(account.accountNumber)}
+            {accountNumber && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Account Number
                 </Typography>
-                {account.accountNumber && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body1" fontFamily="monospace">
+                    {showAccountNumber ? accountNumber : maskAccountNumber(accountNumber)}
+                  </Typography>
                   <IconButton
                     size="small"
                     onClick={() => setShowAccountNumber(!showAccountNumber)}
@@ -197,20 +217,20 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
                   >
                     {showAccountNumber ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
                   </IconButton>
-                )}
+                </Box>
               </Box>
-            </Box>
+            )}
 
             {/* Routing Number */}
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="caption" color="text.secondary">
-                Routing Number
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="body1" fontFamily="monospace">
-                  {showRoutingNumber ? account.routingNumber || 'N/A' : maskAccountNumber(account.routingNumber)}
+            {routingNumber && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Routing Number
                 </Typography>
-                {account.routingNumber && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body1" fontFamily="monospace">
+                    {showRoutingNumber ? routingNumber : maskAccountNumber(routingNumber)}
+                  </Typography>
                   <IconButton
                     size="small"
                     onClick={() => setShowRoutingNumber(!showRoutingNumber)}
@@ -218,17 +238,17 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
                   >
                     {showRoutingNumber ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
                   </IconButton>
-                )}
+                </Box>
               </Box>
-            </Box>
+            )}
 
             {/* Opening Date */}
             <Box sx={{ mb: 2 }}>
               <Typography variant="caption" color="text.secondary">
-                Opening Date
+                {isCashAccount ? 'Created Date' : 'Opening Date'}
               </Typography>
               <Typography variant="body1">
-                {formatDate(account.openingDate)}
+                {formatDate(openingDate)}
               </Typography>
             </Box>
           </Grid>
@@ -241,18 +261,18 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
                 Current Balance
               </Typography>
               <Typography variant="h5" color="primary" fontWeight="bold">
-                {formatCurrency(account.currentBalance)}
+                {formatCurrency(currentBalance)}
               </Typography>
             </Box>
 
             {/* Interest Rate / APY */}
-            {account.interestRate !== undefined && account.interestRate !== null && (
+            {interestRate !== undefined && interestRate !== null && (
               <Box sx={{ mb: 2 }}>
                 <Typography variant="caption" color="text.secondary">
                   Interest Rate (APY)
                 </Typography>
                 <Typography variant="body1" color="success.main" fontWeight="medium">
-                  {formatPercent(account.interestRate)}
+                  {formatPercent(interestRate)}
                 </Typography>
               </Box>
             )}
@@ -263,7 +283,7 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
                 Last Updated
               </Typography>
               <Typography variant="body1">
-                {formatRelativeTime(account.lastSyncDate)}
+                {formatRelativeTime(lastSyncDate)}
               </Typography>
             </Box>
 
@@ -274,21 +294,21 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
               </Typography>
               <Box sx={{ mt: 0.5 }}>
                 <Chip
-                  label={account.status}
-                  color={getStatusColor(account.status)}
+                  label={status}
+                  color={getStatusColor(status)}
                   size="small"
                 />
               </Box>
             </Box>
 
             {/* Notes */}
-            {account.notes && (
+            {notes && (
               <Box sx={{ mb: 2 }}>
                 <Typography variant="caption" color="text.secondary">
-                  Notes
+                  {isCashAccount ? 'Purpose' : 'Notes'}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  {account.notes}
+                  {notes}
                 </Typography>
               </Box>
             )}

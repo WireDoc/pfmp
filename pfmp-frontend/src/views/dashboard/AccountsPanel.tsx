@@ -55,20 +55,59 @@ export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefres
   };
 
   const handleViewAccount = (account: AccountSnapshot) => {
+    // Check if this is a UUID-based cash account
+    if (account.isCashAccount) {
+      navigate(`/dashboard/cash-accounts/${account.id}`);
+      return;
+    }
+    
     // Navigate to account detail view for accounts with integer IDs
-    if (typeof account.id === 'number') {
+    if (typeof account.id === 'number' || !isNaN(Number(account.id))) {
       navigate(`/dashboard/accounts/${account.id}`);
     } else {
-      console.warn('Cannot navigate to detail view for legacy account:', account.id);
+      console.warn('Cannot navigate to detail view for account:', account.id);
     }
   };
 
   const handleOpenEditModal = async (account: AccountSnapshot) => {
-    // New accounts with integer IDs - fetch from Accounts API
-    if (typeof account.id === 'number') {
+    // Check if this is a UUID-based cash account
+    if (account.isCashAccount) {
       setLoadingAccount(true);
       try {
-        const fullAccount = await getAccount(account.id);
+        // ID is already the cash account UUID
+        const fullAccount = await getCashAccount(account.id);
+        setEditingAccount(fullAccount);
+        setModalOpen(true);
+      } catch (error) {
+        console.error('Failed to load cash account details:', error);
+        // Fall back to basic data from dashboard if API fails
+        const cashAccountData: CashAccountResponse = {
+          cashAccountId: account.id,
+          userId,
+          institution: account.institution,
+          nickname: account.name,
+          accountType: 'checking',
+          balance: account.balance.amount,
+          interestRateApr: 0,
+          purpose: undefined,
+          isEmergencyFund: false,
+          createdAt: account.lastSync,
+          updatedAt: account.lastSync,
+        };
+        setEditingAccount(cashAccountData);
+        setModalOpen(true);
+      } finally {
+        setLoadingAccount(false);
+      }
+      return;
+    }
+    
+    // Investment/other accounts with integer IDs - fetch from Accounts API
+    const accountIdNum = typeof account.id === 'number' ? account.id : parseInt(account.id, 10);
+    if (!isNaN(accountIdNum)) {
+      setLoadingAccount(true);
+      try {
+        const fullAccount = await getAccount(accountIdNum);
         setEditingNewAccount(fullAccount);
       } catch (error) {
         console.error('Failed to load account details:', error);
@@ -78,42 +117,7 @@ export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefres
       return;
     }
     
-    // Legacy: Handle old-style cash accounts with GUID format
-    if (typeof account.id !== 'string' || !account.id.startsWith('cash_')) {
-      console.warn('Unknown account ID format:', account.id);
-      return;
-    }
-    
-    // Extract Guid from id format: "cash_{guid}"
-    const cashAccountId = account.id.replace('cash_', '');
-    
-    setLoadingAccount(true);
-    try {
-      // Fetch full account details from API to get all fields
-      const fullAccount = await getCashAccount(cashAccountId);
-      setEditingAccount(fullAccount);
-      setModalOpen(true);
-    } catch (error) {
-      console.error('Failed to load account details:', error);
-      // Fall back to basic data from dashboard if API fails
-      const cashAccountData: CashAccountResponse = {
-        cashAccountId,
-        userId,
-        institution: account.institution,
-        nickname: account.name,
-        accountType: 'checking',
-        balance: account.balance.amount,
-        interestRateApr: 0,
-        purpose: undefined,
-        isEmergencyFund: false,
-        createdAt: account.lastSync,
-        updatedAt: account.lastSync,
-      };
-      setEditingAccount(cashAccountData);
-      setModalOpen(true);
-    } finally {
-      setLoadingAccount(false);
-    }
+    console.warn('Unknown account ID format:', account.id);
   };
 
   const handleCloseModal = () => {
@@ -205,10 +209,10 @@ export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefres
                       variant="subtitle1" 
                       fontWeight="medium"
                       sx={{ 
-                        cursor: typeof a.id === 'number' ? 'pointer' : 'default',
-                        '&:hover': typeof a.id === 'number' ? { textDecoration: 'underline', color: 'primary.main' } : {}
+                        cursor: 'pointer',
+                        '&:hover': { textDecoration: 'underline', color: 'primary.main' }
                       }}
-                      onClick={() => typeof a.id === 'number' && handleViewAccount(a)}
+                      onClick={() => handleViewAccount(a)}
                     >
                       {a.name}
                     </Typography>
@@ -218,16 +222,14 @@ export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefres
                   </Box>
                   <Box display="flex" alignItems="center" gap={1}>
                     <SyncStatusBadge status={a.syncStatus} lastSync={a.lastSync} />
-                    {typeof a.id === 'number' && (
-                      <IconButton 
-                        size="small" 
-                        onClick={() => handleViewAccount(a)} 
-                        aria-label="View account details"
-                        title="View details"
-                      >
-                        <VisibilityIcon fontSize="small" />
-                      </IconButton>
-                    )}
+                    <IconButton 
+                      size="small" 
+                      onClick={() => handleViewAccount(a)} 
+                      aria-label="View account details"
+                      title="View details"
+                    >
+                      <VisibilityIcon fontSize="small" />
+                    </IconButton>
                     <IconButton 
                       size="small" 
                       onClick={() => handleOpenEditModal(a)} 

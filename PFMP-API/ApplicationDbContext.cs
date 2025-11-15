@@ -54,6 +54,7 @@ namespace PFMP_API
     public DbSet<FinancialProfileSnapshot> FinancialProfileSnapshots { get; set; }
     // DEPRECATED (Wave 9.2): Still referenced by legacy endpoints, models in Archive folder
     public DbSet<CashAccount> CashAccounts { get; set; }
+    public DbSet<CashTransaction> CashTransactions { get; set; }
     public DbSet<InvestmentAccount> InvestmentAccounts { get; set; }
     public DbSet<PropertyProfile> Properties { get; set; }
     public DbSet<LiabilityAccount> LiabilityAccounts { get; set; }
@@ -309,6 +310,32 @@ namespace PFMP_API
                     .WithMany()
                     .HasForeignKey(e => e.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // CashTransaction Configuration
+            modelBuilder.Entity<CashTransaction>(entity =>
+            {
+                entity.HasKey(e => e.CashTransactionId);
+                entity.HasIndex(e => new { e.CashAccountId, e.TransactionDate });
+                entity.HasIndex(e => e.Category);
+                entity.HasIndex(e => e.TransactionType);
+                
+                entity.HasOne(e => e.CashAccount)
+                    .WithMany()
+                    .HasForeignKey(e => e.CashAccountId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                
+                entity.Property(e => e.TransactionType).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.Amount).HasColumnType("decimal(18,2)").IsRequired();
+                entity.Property(e => e.TransactionDate).IsRequired();
+                entity.Property(e => e.Description).HasMaxLength(500);
+                entity.Property(e => e.Category).HasMaxLength(100);
+                entity.Property(e => e.Merchant).HasMaxLength(200);
+                entity.Property(e => e.CheckNumber).HasMaxLength(20);
+                entity.Property(e => e.Fee).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.Tags).HasMaxLength(500);
+                entity.Property(e => e.ExternalTransactionId).HasMaxLength(100);
+                entity.Property(e => e.CreatedAt).IsRequired();
             });
 
             modelBuilder.Entity<InvestmentAccount>(entity =>

@@ -19,13 +19,16 @@ import {
 } from 'recharts';
 import { format } from 'date-fns';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api';
+
 interface BalanceDataPoint {
   date: string;
   balance: number;
 }
 
 interface BalanceTrendChartProps {
-  accountId: number;
+  accountId?: number;
+  cashAccountId?: string;
 }
 
 type PeriodOption = '7d' | '30d' | '90d' | '1y' | 'all';
@@ -45,7 +48,7 @@ const PERIOD_DAYS: Record<Exclude<PeriodOption, 'all'>, number> = {
   '1y': 365
 };
 
-export const BalanceTrendChart: React.FC<BalanceTrendChartProps> = ({ accountId }) => {
+export const BalanceTrendChart: React.FC<BalanceTrendChartProps> = ({ accountId, cashAccountId }) => {
   const [balanceHistory, setBalanceHistory] = useState<BalanceDataPoint[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,11 +61,15 @@ export const BalanceTrendChart: React.FC<BalanceTrendChartProps> = ({ accountId 
       setError(null);
 
       const params = new URLSearchParams();
-      if (period !== 'all') {
-        params.append('days', PERIOD_DAYS[period].toString());
-      }
+      // For 'all', request 10 years of history
+      const daysToRequest = period === 'all' ? 3650 : PERIOD_DAYS[period];
+      params.append('days', daysToRequest.toString());
 
-      const response = await fetch(`/api/accounts/${accountId}/balance-history?${params.toString()}`);
+      const endpoint = cashAccountId
+        ? `/cash-accounts/${cashAccountId}/transactions/balance-history`
+        : `/accounts/${accountId}/balance-history`;
+
+      const response = await fetch(`${API_BASE_URL}${endpoint}?${params.toString()}`);
       if (!response.ok) {
         throw new Error('Failed to fetch balance history');
       }
@@ -75,7 +82,7 @@ export const BalanceTrendChart: React.FC<BalanceTrendChartProps> = ({ accountId 
     } finally {
       setLoading(false);
     }
-  }, [accountId, period]);
+  }, [accountId, cashAccountId, period]);
 
   useEffect(() => {
     fetchBalanceHistory();

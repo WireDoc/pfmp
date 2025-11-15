@@ -47,10 +47,19 @@ public class DashboardController : ControllerBase
                 return NotFound(new { message = "User not found" });
             }
 
-            // Fetch all accounts from unified Accounts table
+            // Fetch all accounts from unified Accounts table (exclude cash - they use CashAccounts table)
             var accounts = await _context.Accounts
-                .Where(a => a.UserId == effectiveUserId)
+                .Where(a => a.UserId == effectiveUserId &&
+                           a.AccountType != AccountType.Checking &&
+                           a.AccountType != AccountType.Savings &&
+                           a.AccountType != AccountType.MoneyMarket &&
+                           a.AccountType != AccountType.CertificateOfDeposit)
                 .Include(a => a.Holdings)
+                .ToListAsync();
+
+            // Fetch cash accounts from separate CashAccounts table
+            var cashAccounts = await _context.CashAccounts
+                .Where(ca => ca.UserId == effectiveUserId)
                 .ToListAsync();
 
             var tspPositions = await _context.TspLifecyclePositions
@@ -66,7 +75,7 @@ public class DashboardController : ControllerBase
                 .ToListAsync();
 
             // Calculate net worth from new unified Accounts table
-            var cashAccounts = accounts.Where(a => 
+            var oldCashAccountsToDelete = accounts.Where(a => 
                 a.AccountType == AccountType.Checking || 
                 a.AccountType == AccountType.Savings || 
                 a.AccountType == AccountType.MoneyMarket ||
@@ -79,7 +88,7 @@ public class DashboardController : ControllerBase
                 a.AccountType == AccountType.RetirementAccountRoth ||
                 a.AccountType == AccountType.HSA).ToList();
             
-            var totalCash = cashAccounts.Sum(a => a.CurrentBalance);
+            var totalCash = cashAccounts.Sum(a => a.Balance);
             var totalInvestments = investmentAccounts.Sum(a => a.CurrentBalance);
             
             // Calculate TSP with current market prices from DailyTSP API
@@ -139,6 +148,24 @@ public class DashboardController : ControllerBase
                 });
             }
 
+            // Add cash accounts from CashAccounts table with UUID identifiers
+            foreach (var cashAcct in cashAccounts)
+            {
+                accountsList.Add(new
+                {
+                    id = cashAcct.CashAccountId.ToString(),  // UUID as string
+                    name = cashAcct.Nickname ?? $"{cashAcct.AccountType} Account",
+                    institution = cashAcct.Institution ?? "Unknown",
+                    type = "cash",
+                    accountType = cashAcct.AccountType,
+                    balance = new { amount = cashAcct.Balance, currency = "USD" },
+                    holdingsCount = 0,  // Cash accounts don't have holdings
+                    syncStatus = "ok",
+                    lastSync = cashAcct.UpdatedAt,
+                    isCashAccount = true  // Flag to indicate this uses UUID-based routing
+                });
+            }
+
             if (tspPositions.Any())
             {
                 accountsList.Add(new
@@ -171,12 +198,12 @@ public class DashboardController : ControllerBase
             }
 
             var lowYieldAccounts = cashAccounts
-                .Where(a => a.InterestRate.HasValue && a.InterestRate < 0.04m && a.CurrentBalance > 5000)
+                .Where(a => a.InterestRateApr.HasValue && a.InterestRateApr < 0.04m && a.Balance > 5000)
                 .ToList();
 
             if (lowYieldAccounts.Any())
             {
-                var totalLowYield = lowYieldAccounts.Sum(a => a.CurrentBalance);
+                var totalLowYield = lowYieldAccounts.Sum(a => a.Balance);
                 insights.Add(new
                 {
                     id = "insight_yield_opportunity",

@@ -20,7 +20,6 @@ import { AssetAllocationChart } from '../../components/holdings/AssetAllocationC
 import { PriceChartCard } from '../../components/holdings/PriceChartCard';
 import { getAccount, type AccountResponse } from '../../services/accountsApi';
 import type { Holding } from '../../types/holdings';
-import CashAccountDetail from './CashAccountDetail';
 
 // Account type categories for conditional rendering
 type AccountCategory = 'investment' | 'cash' | 'loan' | 'credit' | 'other';
@@ -210,14 +209,12 @@ export function AccountDetailView() {
     );
   }
 
-  // If this is a cash account, use the dedicated CashAccountDetail component
-  if (accountCategory === 'cash') {
-    return <CashAccountDetail />;
-  }
+  // Note: Legacy integer-based cash accounts from old Accounts table are displayed here
+  // New UUID-based cash accounts should use /dashboard/cash-accounts/:cashAccountId route
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Breadcrumbs */}
+      {/* Secondary Breadcrumbs - Back Navigation */}
       <Breadcrumbs sx={{ mb: 2 }}>
         <Link
           component="button"
@@ -228,7 +225,9 @@ export function AccountDetailView() {
           <ArrowBackIcon fontSize="small" />
           Dashboard
         </Link>
-        <Typography color="text.primary">Account Details</Typography>
+        <Typography color="text.primary">
+          {account?.nickname || account?.accountName || 'Account Details'}
+        </Typography>
       </Breadcrumbs>
 
       {/* Account Summary Header */}
@@ -318,6 +317,8 @@ export function AccountDetailView() {
                 This account type will have a dedicated detail view in a future update (Wave 9.3+).
               </Typography>
               <Typography variant="body2" color="text.secondary">
+                {accountCategory === 'cash' && 
+                  'This is a legacy cash account. New cash accounts use our enhanced UUID-based system with advanced transaction tracking. Visit the Accounts page to manage your cash accounts.'}
                 {accountCategory === 'loan' && 
                   'Coming soon: Payment schedule, amortization calculator, principal/interest breakdown, and payoff calculator.'}
                 {accountCategory === 'credit' && 
