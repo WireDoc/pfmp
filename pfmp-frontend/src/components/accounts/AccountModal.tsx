@@ -167,19 +167,7 @@ export function AccountModal({ open, account, onClose, onSave, onDelete }: Props
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        Edit Account
-        {onDelete && account && (
-          <IconButton
-            aria-label="delete"
-            onClick={handleDelete}
-            disabled={deleting || saving}
-            sx={{ position: 'absolute', right: 8, top: 8 }}
-          >
-            <DeleteIcon />
-          </IconButton>
-        )}
-      </DialogTitle>
+      <DialogTitle>Edit Account</DialogTitle>
 
       <DialogContent>
         {saveError && (
@@ -194,9 +182,10 @@ export function AccountModal({ open, account, onClose, onSave, onDelete }: Props
             value={formData.name}
             onChange={(e) => handleChange('name', e.target.value)}
             error={!!errors.name}
-            helperText={errors.name}
+            helperText={errors.name || 'e.g., "Taxable Brokerage", "Roth IRA"'}
             required
             fullWidth
+            disabled={saving}
           />
 
           <TextField
@@ -204,9 +193,10 @@ export function AccountModal({ open, account, onClose, onSave, onDelete }: Props
             value={formData.institution}
             onChange={(e) => handleChange('institution', e.target.value)}
             error={!!errors.institution}
-            helperText={errors.institution}
+            helperText={errors.institution || 'e.g., "Vanguard", "Fidelity", "Charles Schwab"'}
             required
             fullWidth
+            disabled={saving}
           />
 
           <TextField
@@ -218,6 +208,7 @@ export function AccountModal({ open, account, onClose, onSave, onDelete }: Props
             helperText={errors.type}
             required
             fullWidth
+            disabled={saving}
           >
             {accountTypes.map((option) => (
               <MenuItem key={option.value} value={option.value}>
@@ -232,31 +223,47 @@ export function AccountModal({ open, account, onClose, onSave, onDelete }: Props
             value={formData.balance}
             onChange={(e) => handleChange('balance', parseFloat(e.target.value) || 0)}
             error={!!errors.balance}
-            helperText={errors.balance}
+            helperText={errors.balance || 'Current account balance'}
             required
             fullWidth
+            disabled={saving}
             inputProps={{ min: 0, step: 0.01 }}
           />
 
           <TextField
-            label="Account Number (optional)"
+            label="Account Number (Optional)"
             value={formData.accountNumber}
             onChange={(e) => handleChange('accountNumber', e.target.value)}
+            helperText="Last 4 digits only (e.g., 1234)"
             fullWidth
+            disabled={saving}
           />
 
           <TextField
-            label="Purpose (optional)"
+            label="Purpose (Optional)"
             value={formData.purpose}
             onChange={(e) => handleChange('purpose', e.target.value)}
+            helperText='e.g., "Retirement savings", "House down payment", "College fund"'
             fullWidth
+            disabled={saving}
             multiline
             rows={2}
           />
         </Box>
       </DialogContent>
 
-      <DialogActions>
+      <DialogActions sx={{ justifyContent: 'space-between' }}>
+        {onDelete && account && (
+          <IconButton
+            onClick={handleDelete}
+            disabled={saving || deleting}
+            color="error"
+            aria-label="Delete account"
+          >
+            <DeleteIcon />
+          </IconButton>
+        )}
+        <Box sx={{ flex: 1 }} />
         <Button onClick={handleClose} disabled={saving || deleting}>
           Cancel
         </Button>
@@ -265,7 +272,7 @@ export function AccountModal({ open, account, onClose, onSave, onDelete }: Props
           variant="contained"
           disabled={saving || deleting}
         >
-          {saving ? 'Saving...' : 'Save'}
+          {saving ? 'Saving...' : 'Update Account'}
         </Button>
       </DialogActions>
     </Dialog>
