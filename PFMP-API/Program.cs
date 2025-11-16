@@ -96,6 +96,12 @@ namespace PFMP_API
             // CSV Import Service (Wave 8.2)
             builder.Services.AddScoped<CsvImportService>();
 
+            // Analytics Services (Wave 9.3 Option A)
+            builder.Services.AddScoped<PerformanceCalculationService>();
+            builder.Services.AddScoped<TaxInsightsService>();
+            builder.Services.AddScoped<RiskAnalysisService>();
+            builder.Services.AddScoped<BenchmarkDataService>();
+
             // Add Authentication Services
             builder.Services.AddScoped<IPasswordHashService, PasswordHashService>();
             builder.Services.AddHttpClient<IAuthenticationService, AuthenticationService>();
