@@ -89,6 +89,13 @@ export const formatCurrency = (value: number): string => {
 };
 
 /**
+ * Format percentage for display
+ */
+export const formatPercent = (value: number): string => {
+  return `${(value * 100).toFixed(2)}%`;
+};
+
+/**
  * Format date for display
  */
 export const formatDate = (dateString: string, formatString: string = 'MMM d, yyyy'): string => {
