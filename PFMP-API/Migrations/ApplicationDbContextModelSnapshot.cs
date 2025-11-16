@@ -715,6 +715,10 @@ namespace PFMP_API.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("AccountNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<string>("AccountType")
                         .IsRequired()
                         .HasMaxLength(40)
@@ -747,6 +751,10 @@ namespace PFMP_API.Migrations
 
                     b.Property<DateTime?>("RateLastChecked")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RoutingNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");

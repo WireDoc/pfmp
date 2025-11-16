@@ -13,6 +13,8 @@ export interface CashAccountResponse {
   institution: string;
   nickname?: string;
   accountType: string;
+  accountNumber?: string;
+  routingNumber?: string;
   balance: number;
   interestRateApr?: number;
   purpose?: string;
@@ -35,6 +37,8 @@ export interface CreateCashAccountRequest {
 export interface UpdateCashAccountRequest {
   nickname?: string;
   institution?: string;
+  accountNumber?: string;
+  routingNumber?: string;
   balance?: number;
   interestRateApr?: number;
   purpose?: string;

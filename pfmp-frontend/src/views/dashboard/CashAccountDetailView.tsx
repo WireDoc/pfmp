@@ -40,6 +40,42 @@ const CashAccountDetailView: React.FC = () => {
     setCurrentTab(newValue);
   };
 
+  const handleExportTransactions = (transactions: any[]) => {
+    if (!account || transactions.length === 0) return;
+
+    // Generate CSV content
+    const headers = ['Date', 'Description', 'Category', 'Amount', 'Check Number', 'Memo'];
+    const csvRows = [headers.join(',')];
+
+    transactions.forEach((txn) => {
+      const row = [
+        txn.transactionDate ? new Date(txn.transactionDate).toLocaleDateString() : '',
+        `"${(txn.description || '').replace(/"/g, '""')}"`, // Escape quotes
+        txn.category || '',
+        txn.amount || 0,
+        txn.checkNumber || '',
+        `"${(txn.memo || '').replace(/"/g, '""')}"`, // Escape quotes
+      ];
+      csvRows.push(row.join(','));
+    });
+
+    const csvContent = csvRows.join('\n');
+    
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    const accountName = (account.nickname || account.institution || 'Account').replace(/[^a-zA-Z0-9]/g, '_');
+    link.download = `${accountName}_transactions_${timestamp}.csv`;
+    
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -102,7 +138,10 @@ const CashAccountDetailView: React.FC = () => {
         {/* Tab Panels */}
         <Box p={3}>
           {currentTab === 0 && cashAccountId && (
-            <TransactionList cashAccountId={cashAccountId} />
+            <TransactionList 
+              cashAccountId={cashAccountId} 
+              onExport={handleExportTransactions}
+            />
           )}
           {currentTab === 1 && cashAccountId && (
             <BalanceTrendChart cashAccountId={cashAccountId} />

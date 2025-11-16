@@ -39,6 +39,8 @@ public class CashAccountsController : ControllerBase
             Institution = a.Institution,
             Nickname = a.Nickname,
             AccountType = a.AccountType,
+            AccountNumber = a.AccountNumber,
+            RoutingNumber = a.RoutingNumber,
             Balance = a.Balance,
             InterestRateApr = a.InterestRateApr,
             Purpose = a.Purpose,
@@ -72,6 +74,8 @@ public class CashAccountsController : ControllerBase
             Institution = account.Institution,
             Nickname = account.Nickname,
             AccountType = account.AccountType,
+            AccountNumber = account.AccountNumber,
+            RoutingNumber = account.RoutingNumber,
             Balance = account.Balance,
             InterestRateApr = account.InterestRateApr,
             Purpose = account.Purpose,
@@ -145,6 +149,8 @@ public class CashAccountsController : ControllerBase
         if (request.Institution != null) account.Institution = request.Institution;
         if (request.Nickname != null) account.Nickname = request.Nickname;
         if (request.AccountType != null) account.AccountType = request.AccountType;
+        if (request.AccountNumber != null) account.AccountNumber = request.AccountNumber;
+        if (request.RoutingNumber != null) account.RoutingNumber = request.RoutingNumber;
         if (request.Balance.HasValue) account.Balance = request.Balance.Value;
         if (request.InterestRateApr.HasValue) account.InterestRateApr = request.InterestRateApr;
         if (request.Purpose != null) account.Purpose = request.Purpose;
@@ -162,6 +168,8 @@ public class CashAccountsController : ControllerBase
             Institution = account.Institution,
             Nickname = account.Nickname,
             AccountType = account.AccountType,
+            AccountNumber = account.AccountNumber,
+            RoutingNumber = account.RoutingNumber,
             Balance = account.Balance,
             InterestRateApr = account.InterestRateApr,
             Purpose = account.Purpose,
@@ -270,6 +278,8 @@ public class CashAccountResponse
     public string? Institution { get; set; }
     public string Nickname { get; set; } = string.Empty;
     public string AccountType { get; set; } = string.Empty;
+    public string? AccountNumber { get; set; }
+    public string? RoutingNumber { get; set; }
     public decimal Balance { get; set; }
     public decimal? InterestRateApr { get; set; }
     public string? Purpose { get; set; }
@@ -315,6 +325,12 @@ public class UpdateCashAccountRequest
     
     [StringLength(40)]
     public string? AccountType { get; set; }
+    
+    [StringLength(50)]
+    public string? AccountNumber { get; set; }
+    
+    [StringLength(20)]
+    public string? RoutingNumber { get; set; }
     
     public decimal? Balance { get; set; }
     

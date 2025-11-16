@@ -19,6 +19,12 @@ namespace PFMP_API.Models.FinancialProfile
         [MaxLength(150)]
         public string? Institution { get; set; }
 
+        [MaxLength(50)]
+        public string? AccountNumber { get; set; } // Last 4 digits or full account number (encrypted recommended)
+
+        [MaxLength(20)]
+        public string? RoutingNumber { get; set; } // 9-digit bank routing number
+
         [MaxLength(40)]
         public string AccountType { get; set; } = "checking";
 

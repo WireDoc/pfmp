@@ -167,7 +167,20 @@ export function AccountModal({ open, account, onClose, onSave, onDelete }: Props
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Edit Account</DialogTitle>
+      <DialogTitle>
+        Edit Account
+        {onDelete && account && (
+          <IconButton
+            aria-label="delete"
+            onClick={handleDelete}
+            disabled={deleting || saving}
+            color="error"
+            sx={{ position: 'absolute', right: 8, top: 8 }}
+          >
+            <DeleteIcon />
+          </IconButton>
+        )}
+      </DialogTitle>
 
       <DialogContent>
         {saveError && (
@@ -252,18 +265,7 @@ export function AccountModal({ open, account, onClose, onSave, onDelete }: Props
         </Box>
       </DialogContent>
 
-      <DialogActions sx={{ justifyContent: 'space-between' }}>
-        {onDelete && account && (
-          <IconButton
-            onClick={handleDelete}
-            disabled={saving || deleting}
-            color="error"
-            aria-label="Delete account"
-          >
-            <DeleteIcon />
-          </IconButton>
-        )}
-        <Box sx={{ flex: 1 }} />
+      <DialogActions>
         <Button onClick={handleClose} disabled={saving || deleting}>
           Cancel
         </Button>

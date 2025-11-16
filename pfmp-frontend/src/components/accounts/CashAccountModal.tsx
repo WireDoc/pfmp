@@ -45,6 +45,8 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
     institution: account?.institution || '',
     nickname: account?.nickname || '',
     accountType: account?.accountType || 'checking',
+    accountNumber: account?.accountNumber || '',
+    routingNumber: account?.routingNumber || '',
     balance: account?.balance || 0,
     interestRateApr: account?.interestRateApr || 0,
     purpose: account?.purpose || '',
@@ -63,6 +65,8 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
         institution: account.institution,
         nickname: account.nickname || '',
         accountType: account.accountType,
+        accountNumber: account.accountNumber || '',
+        routingNumber: account.routingNumber || '',
         balance: account.balance,
         interestRateApr: account.interestRateApr || 0,
         purpose: account.purpose || '',
@@ -120,6 +124,8 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
         const updateRequest: UpdateCashAccountRequest = {
           nickname: formData.nickname.trim() || undefined,
           institution: formData.institution.trim(),
+          accountNumber: formData.accountNumber.trim() || undefined,
+          routingNumber: formData.routingNumber.trim() || undefined,
           balance: formData.balance,
           interestRateApr: formData.interestRateApr || undefined,
           purpose: formData.purpose.trim() || undefined,
@@ -158,6 +164,8 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
       institution: '',
       nickname: '',
       accountType: 'checking',
+      accountNumber: '',
+      routingNumber: '',
       balance: 0,
       interestRateApr: 0,
       purpose: '',
@@ -196,7 +204,20 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{isEditMode ? 'Edit Cash Account' : 'Add Cash Account'}</DialogTitle>
+      <DialogTitle>
+        {isEditMode ? 'Edit Cash Account' : 'Add Cash Account'}
+        {isEditMode && onDelete && account && (
+          <IconButton
+            onClick={handleDelete}
+            disabled={saving || deleting}
+            color="error"
+            aria-label="Delete account"
+            sx={{ position: 'absolute', right: 8, top: 8 }}
+          >
+            <DeleteIcon />
+          </IconButton>
+        )}
+      </DialogTitle>
       <DialogContent>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
           {saveError && (
@@ -242,6 +263,25 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
               </MenuItem>
             ))}
           </TextField>
+
+          <TextField
+            label="Account Number (Optional)"
+            value={formData.accountNumber}
+            onChange={(e) => handleChange('accountNumber', e.target.value)}
+            helperText="Last 4 digits or full account number"
+            fullWidth
+            disabled={saving}
+          />
+
+          <TextField
+            label="Routing Number (Optional)"
+            value={formData.routingNumber}
+            onChange={(e) => handleChange('routingNumber', e.target.value)}
+            helperText="9-digit bank routing number"
+            fullWidth
+            disabled={saving}
+            inputProps={{ maxLength: 9 }}
+          />
 
           <TextField
             label="Current Balance"
@@ -293,18 +333,7 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
           )}
         </Box>
       </DialogContent>
-      <DialogActions sx={{ justifyContent: 'space-between' }}>
-        {isEditMode && onDelete && (
-          <IconButton
-            onClick={handleDelete}
-            disabled={saving || deleting}
-            color="error"
-            aria-label="Delete account"
-          >
-            <DeleteIcon />
-          </IconButton>
-        )}
-        <Box sx={{ flex: 1 }} />
+      <DialogActions>
         <Button onClick={handleClose} disabled={saving || deleting}>
           Cancel
         </Button>

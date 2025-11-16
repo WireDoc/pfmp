@@ -63,7 +63,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
+  const [transactionTypeFilter, setTransactionTypeFilter] = useState('');
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -96,8 +96,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({
       if (endDate) {
         params.append('endDate', format(endDate, 'yyyy-MM-dd'));
       }
-      if (categoryFilter) {
-        params.append('category', categoryFilter);
+      if (transactionTypeFilter) {
+        params.append('transactionType', transactionTypeFilter);
       }
 
       const endpoint = cashAccountId 
@@ -117,7 +117,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [accountId, cashAccountId, startDate, endDate, categoryFilter]);
+  }, [accountId, cashAccountId, startDate, endDate, transactionTypeFilter]);
 
   // Load transactions on mount and when filters change
   React.useEffect(() => {
@@ -225,12 +225,12 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   // Handle clear filters
   const handleClearFilters = () => {
     setSearchQuery('');
-    setCategoryFilter('');
+    setTransactionTypeFilter('');
     setStartDate(null);
     setEndDate(null);
   };
 
-  const hasActiveFilters = searchQuery || categoryFilter || startDate || endDate;
+  const hasActiveFilters = searchQuery || transactionTypeFilter || startDate || endDate;
 
   return (
     <Box>
@@ -294,13 +294,13 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                 }}
               />
 
-              {/* Category Filter */}
+              {/* Transaction Type Filter */}
               <FormControl size="small" sx={{ minWidth: 150 }}>
-                <InputLabel>Category</InputLabel>
+                <InputLabel>Transaction Type</InputLabel>
                 <Select
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  label="Category"
+                  value={transactionTypeFilter}
+                  onChange={(e) => setTransactionTypeFilter(e.target.value)}
+                  label="Transaction Type"
                 >
                   {TRANSACTION_CATEGORIES.map((cat) => (
                     <MenuItem key={cat.value} value={cat.value}>

@@ -1,8 +1,24 @@
 # Wave 9.3: Account Detail View Redesign
 
-**Date:** 2025-11-11  
-**Status:** Planning  
+**Date:** 2025-11-11 (Updated: 2025-11-15)  
+**Status:** Option C Complete, Option A Ready to Begin  
 **Priority:** High (blocks proper account management UX)
+
+## Status Update (November 15, 2025)
+
+### ✅ Completed
+- **Phase 1: Infrastructure** - Complete (Nov 10-12)
+- **Phase 2: Cash Account Detail Views** - Complete (Nov 10-12)
+- **Option C: Polish Cash Account UX** - Complete (Nov 13-14)
+
+### 👉 Next Up
+- **Option A: Enhanced Investment Metrics** - Ready to begin (2-3 weeks)
+- **Option B: Loan & Credit Card Views** - Planned (3-4 weeks after A)
+
+See `wave-9.3-option-c-complete.md` for Option C completion details.  
+See `wave-9.3-next-steps.md` for implementation roadmap.
+
+---
 
 ## Problem Statement
 

@@ -28,7 +28,7 @@ public class CashTransactionsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<CashTransactionDto>>> GetTransactions(
         Guid cashAccountId,
-        [FromQuery] string? category = null,
+        [FromQuery] string? transactionType = null,
         [FromQuery] string? search = null,
         [FromQuery] DateTime? startDate = null,
         [FromQuery] DateTime? endDate = null,
@@ -37,6 +37,9 @@ public class CashTransactionsController : ControllerBase
     {
         try
         {
+            // Debug logging
+            Console.WriteLine($"GetTransactions called - AccountId: {cashAccountId}, StartDate: {startDate}, EndDate: {endDate}, TransactionType: {transactionType}");
+            
             // Verify account exists and user has access
             var account = await _context.CashAccounts
                 .FirstOrDefaultAsync(a => a.CashAccountId == cashAccountId);
@@ -50,9 +53,9 @@ public class CashTransactionsController : ControllerBase
                 .Where(t => t.CashAccountId == cashAccountId);
 
             // Apply filters
-            if (!string.IsNullOrEmpty(category))
+            if (!string.IsNullOrEmpty(transactionType))
             {
-                query = query.Where(t => t.Category == category);
+                query = query.Where(t => t.TransactionType == transactionType);
             }
 
             if (!string.IsNullOrEmpty(search))
@@ -65,12 +68,16 @@ public class CashTransactionsController : ControllerBase
 
             if (startDate.HasValue)
             {
-                query = query.Where(t => t.TransactionDate >= startDate.Value);
+                // Convert to UTC to satisfy PostgreSQL timestamp with time zone requirement
+                var startDateUtc = DateTime.SpecifyKind(startDate.Value, DateTimeKind.Utc);
+                query = query.Where(t => t.TransactionDate >= startDateUtc);
             }
 
             if (endDate.HasValue)
             {
-                query = query.Where(t => t.TransactionDate <= endDate.Value);
+                // Convert to UTC and set to end of day
+                var endDateUtc = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+                query = query.Where(t => t.TransactionDate <= endDateUtc);
             }
 
             // Order by date descending
@@ -125,8 +132,11 @@ public class CashTransactionsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving transactions for cash account {CashAccountId}", cashAccountId);
-            return StatusCode(500, new { message = "An error occurred while retrieving transactions" });
+            _logger.LogError(ex, "Error retrieving transactions for cash account {CashAccountId}. StartDate: {StartDate}, EndDate: {EndDate}, TransactionType: {TransactionType}", 
+                cashAccountId, startDate, endDate, transactionType);
+            Console.WriteLine($"ERROR in GetTransactions: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            return StatusCode(500, new { message = "An error occurred while retrieving transactions", error = ex.Message });
         }
     }
 

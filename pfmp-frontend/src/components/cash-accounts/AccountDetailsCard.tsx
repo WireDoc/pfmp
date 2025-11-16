@@ -61,13 +61,22 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
   const currentBalance = isCashAccount ? account.balance : account.currentBalance;
   const institution = isCashAccount ? account.institution : (account.institution || 'N/A');
   const accountType = account.accountType;
-  const interestRate = isCashAccount ? account.interestRateApr : account.interestRate;
   const lastSyncDate = isCashAccount ? account.updatedAt : account.lastSyncDate;
   const openingDate = isCashAccount ? account.createdAt : account.openingDate;
-  const accountNumber = isCashAccount ? undefined : account.accountNumber;
-  const routingNumber = isCashAccount ? undefined : account.routingNumber;
+  const accountNumber = isCashAccount ? account.accountNumber : account.accountNumber;
+  const routingNumber = isCashAccount ? account.routingNumber : account.routingNumber;
   const status = isCashAccount ? 'Active' : account.status;
   const notes = isCashAccount ? account.purpose : account.notes;
+
+  // Debug logging
+  console.log('AccountDetailsCard - account data:', {
+    isCashAccount,
+    accountNumber,
+    routingNumber,
+    rawAccountNumber: account.accountNumber,
+    rawRoutingNumber: (account as any).routingNumber,
+    fullAccount: account
+  });
 
   // Mask account number (show last 4 digits)
   const maskAccountNumber = (number: string | undefined) => {
@@ -82,12 +91,6 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
     })}`;
-  };
-
-  // Format percentage
-  const formatPercent = (value: number | undefined) => {
-    if (value === undefined || value === null) return 'N/A';
-    return `${value.toFixed(2)}%`;
   };
 
   // Format date
@@ -200,6 +203,45 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
               </Typography>
             </Box>
 
+            {/* Notes / Purpose */}
+            {notes && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="text.secondary">
+                  {isCashAccount ? 'Purpose' : 'Notes'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  {notes}
+                </Typography>
+              </Box>
+            )}
+
+            {/* Account Status */}
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="caption" color="text.secondary">
+                Status
+              </Typography>
+              <Box sx={{ mt: 0.5 }}>
+                <Chip
+                  label={status}
+                  color={getStatusColor(status)}
+                  size="small"
+                />
+              </Box>
+            </Box>
+          </Grid>
+
+          {/* Right Column */}
+          <Grid size={{ xs: 12, md: 6 }}>
+            {/* Current Balance */}
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="caption" color="text.secondary">
+                Current Balance
+              </Typography>
+              <Typography variant="h5" color="primary" fontWeight="bold">
+                {formatCurrency(currentBalance)}
+              </Typography>
+            </Box>
+
             {/* Account Number */}
             {accountNumber && (
               <Box sx={{ mb: 2 }}>
@@ -248,34 +290,9 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
                 {isCashAccount ? 'Created Date' : 'Opening Date'}
               </Typography>
               <Typography variant="body1">
-                {formatDate(openingDate)}
+                {formatRelativeTime(openingDate)}
               </Typography>
             </Box>
-          </Grid>
-
-          {/* Right Column */}
-          <Grid size={{ xs: 12, md: 6 }}>
-            {/* Current Balance */}
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="caption" color="text.secondary">
-                Current Balance
-              </Typography>
-              <Typography variant="h5" color="primary" fontWeight="bold">
-                {formatCurrency(currentBalance)}
-              </Typography>
-            </Box>
-
-            {/* Interest Rate / APY */}
-            {interestRate !== undefined && interestRate !== null && (
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="caption" color="text.secondary">
-                  Interest Rate (APY)
-                </Typography>
-                <Typography variant="body1" color="success.main" fontWeight="medium">
-                  {formatPercent(interestRate)}
-                </Typography>
-              </Box>
-            )}
 
             {/* Last Synced */}
             <Box sx={{ mb: 2 }}>
@@ -286,32 +303,6 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
                 {formatRelativeTime(lastSyncDate)}
               </Typography>
             </Box>
-
-            {/* Account Status */}
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="caption" color="text.secondary">
-                Status
-              </Typography>
-              <Box sx={{ mt: 0.5 }}>
-                <Chip
-                  label={status}
-                  color={getStatusColor(status)}
-                  size="small"
-                />
-              </Box>
-            </Box>
-
-            {/* Notes */}
-            {notes && (
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="caption" color="text.secondary">
-                  {isCashAccount ? 'Purpose' : 'Notes'}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  {notes}
-                </Typography>
-              </Box>
-            )}
           </Grid>
         </Grid>
       </CardContent>

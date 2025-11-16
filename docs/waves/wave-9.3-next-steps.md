@@ -1,15 +1,55 @@
 # Wave 9.3 Next Steps & Path Forward
 
-**Date:** November 12, 2025  
-**Current Status:** Wave 9.3 Phase 2 Complete, Planning Phase 3+  
-**Decision Point:** Choose implementation path for next 4-8 weeks
+**Date:** November 15, 2025  
+**Current Status:** Wave 9.3 Option C Complete, Ready for Option A  
+**Decision Point:** Begin Option A (Enhanced Investment Metrics)
+
+---
+
+## Executive Summary
+
+**Completed:**
+- ✅ Wave 9.3 Phase 1: Infrastructure (Nov 10-12)
+- ✅ Wave 9.3 Phase 2: Cash Account Detail Views (Nov 10-12)
+- ✅ **Wave 9.3 Option C: Polish Cash Account UX (Nov 13-14)** ← Most Recent
+
+**Implementation Plan:**
+1. **Option C** (5-7 hours) → ✅ **COMPLETE** (Nov 13-14, 2025)
+2. **Option A** (2-3 weeks) → 👉 **NEXT** (Mid-to-late November 2025)
+3. **Option B** (3-4 weeks) → ⏭️ **AFTER A** (Late November - Early December 2025)
+
+**Long-term:**
+- Wave 11: Plaid Bank Linking (January 2026)
+- Wave 12: Brokerage APIs (February 2026)
+- Wave 13: Crypto Exchanges (March 2026)
 
 ---
 
 ## Current State Summary
 
 ### ✅ Completed Work
-**Wave 9.3 Phase 2: Cash Account Detail Views** (Nov 10-12, 2025)
+
+**Wave 9.3 Option C: Polish Cash Account UX** (Nov 13-14, 2025) ✅ **COMPLETE**
+- Frontend: `TransactionList.tsx` with MUI DataGrid (280 lines)
+  * Advanced filtering: search, category, date range
+  * Client-side pagination (10/25/50/100 rows per page)
+  * Sortable columns with visual indicators
+  * CSV export functionality
+- Frontend: `BalanceTrendChart.tsx` with Recharts (220 lines)
+  * Area chart with gradient fill
+  * Period selector: 7d, 30d, 90d, 1y, all time
+  * Summary stats: starting balance, current balance, change %
+- Frontend: `AccountDetailsCard.tsx` (180 lines)
+  * Masked account numbers (****7890)
+  * Masked routing numbers (****4321)
+  * Click-to-reveal functionality with eye icon
+  * Account status chips (Active/Closed/Frozen)
+- Integration: Updated `CashAccountDetailView` to use all new components
+- Dependencies: Added `@mui/x-data-grid`, `recharts`, `@mui/x-date-pickers`
+- Git: Committed and pushed (commit `7ec351d`)
+- Documentation: Created `wave-9.3-option-c-complete.md` (680 lines)
+
+**Wave 9.3 Phase 2: Cash Account Detail Views** (Nov 10-12, 2025) ✅ **COMPLETE**
 - Backend: `AccountTransactionsController` with 3 endpoints (242 lines)
   * GET `/api/accounts/{id}/transactions` - Filtering, pagination, date range
   * GET `/api/accounts/{id}/balance-history` - Daily balance snapshots
@@ -66,22 +106,22 @@
 
 ## Decision: Path Forward
 
-You've chosen: **Option C first, followed by A, then B**
+You've chosen: **Option C → Option A → Option B**
 
-### Path Breakdown
+### ✅ Option C: Polish Cash Account UX (COMPLETE)
+- Completed Nov 13-14, 2025
+- All 4 tasks delivered:
+  1. ✅ TransactionList with MUI DataGrid (filtering, search, pagination, CSV export)
+  2. ✅ BalanceTrendChart with Recharts (30d/90d/1y balance visualization with period selector)
+  3. ✅ Enhanced AccountDetailsCard (masked account/routing numbers with reveal)
+  4. ✅ CSV export functionality (integrated into TransactionList)
+- **Result:** Feature-complete cash account UX comparable to Mint/Personal Capital
+- **Documentation:** `wave-9.3-option-c-complete.md`
 
-**Option C: Polish Cash Account UX (5-7 hours)** 👈 **NEXT**
-- Complete deferred Wave 9.3 Phase 2 enhancements
-- Tasks:
-  1. TransactionList with MUI DataGrid (filtering, search, pagination)
-  2. BalanceTrendChart with Recharts (30d/90d/1y balance visualization)
-  3. Enhanced AccountDetailsCard (masked account numbers, routing numbers, APY)
-  4. CSV export functionality (export transactions to CSV)
-- **Value:** Immediate UX improvement for existing cash account features
-- **Timeline:** 1-2 days of focused work
-
-**Option A: Enhanced Investment Metrics (2-3 weeks)** 👈 **AFTER OPTION C**
+### 👉 Option A: Enhanced Investment Metrics (NEXT - 2-3 weeks)
 - Build advanced investment analytics
+- **Status:** Ready to begin (Option C complete)
+- **Timeline:** 2-3 weeks (mid-to-late November 2025)
 - Tasks:
   1. Performance metrics (TWR, MWR, Sharpe ratio, volatility, beta, max drawdown)
   2. Asset allocation drill-down (detailed breakdown with sector analysis)
@@ -89,20 +129,20 @@ You've chosen: **Option C first, followed by A, then B**
   4. Risk analysis (portfolio risk score, correlation matrix, diversification score)
   5. Benchmark comparison (S&P 500, Russell 2000, sector indices)
 - **Value:** Deep analytics for investment-focused users, sets up AI integration
-- **Timeline:** 2-3 weeks
-- **Recommendation:** Build after Option C to provide complete UX first
+- **Recommended Start Date:** November 15-18, 2025
 
-**Option B: Loan & Credit Card Views (3-4 weeks)** 👈 **AFTER OPTION A**
+### ⏭️ Option B: Loan & Credit Card Views (AFTER OPTION A - 3-4 weeks)
 - Complete account type coverage
+- **Status:** Planned after Option A
+- **Timeline:** 3-4 weeks (late November to early December 2025)
 - Tasks:
   1. Loan account detail views (amortization schedule, payoff calculator, extra payment analysis)
   2. Credit card views (spending breakdown by category, payment reminders, utilization tracking)
   3. Debt payoff strategies (avalanche vs snowball, payoff date calculator)
 - **Value:** Comprehensive account type support
-- **Timeline:** 3-4 weeks
-- **Recommendation:** Build after investment metrics to maintain momentum on high-value features
+- **Recommended Start Date:** December 2025
 
-**Future (January-March 2026): Account Linking (Waves 11-13)**
+### 🔮 Future: Account Linking (Waves 11-13 - January-March 2026)
 - Wave 11: Plaid bank linking (4 weeks)
 - Wave 12: Brokerage APIs (5 weeks)
 - Wave 13: Crypto exchanges (3 weeks)

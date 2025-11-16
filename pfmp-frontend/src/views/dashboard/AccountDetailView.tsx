@@ -28,9 +28,10 @@ type AccountCategory = 'investment' | 'cash' | 'loan' | 'credit' | 'other';
 function getAccountCategory(accountType: string | undefined): AccountCategory {
   if (!accountType) return 'other';
   
-  const investmentTypes = ['taxablebrokerage', 'traditionaliraid', 'rothira', 'ira401k', 
-                           'hsa', 'cryptocurrency', 'education529'];
-  const cashTypes = ['checking', 'savings', 'moneymarket', 'cd'];
+  const investmentTypes = ['brokerage', 'retirementaccount401k', 'retirementaccountira', 
+                           'retirementaccountroth', 'tsp', 'hsa', 
+                           'cryptocurrencyexchange', 'cryptocurrencywallet'];
+  const cashTypes = ['checking', 'savings', 'moneymarket', 'certificateofdeposit'];
   const loanTypes = ['mortgage', 'autoloan', 'studentloan', 'personalloan'];
   const creditTypes = ['creditcard', 'lineofcredit'];
   
@@ -226,7 +227,7 @@ export function AccountDetailView() {
           Dashboard
         </Link>
         <Typography color="text.primary">
-          {account?.nickname || account?.accountName || 'Account Details'}
+          {account?.accountName || 'Account Details'}
         </Typography>
       </Breadcrumbs>
 
