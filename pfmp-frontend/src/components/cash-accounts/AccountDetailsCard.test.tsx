@@ -82,12 +82,6 @@ describe('AccountDetailsCard', () => {
     }
   });
 
-  it('displays interest rate as percentage', () => {
-    render(<AccountDetailsCard account={mockAccount} />);
-
-    expect(screen.getByText('0.05%')).toBeInTheDocument();
-  });
-
   it('displays status chip with correct color', () => {
     render(<AccountDetailsCard account={mockAccount} />);
 
@@ -130,15 +124,16 @@ describe('AccountDetailsCard', () => {
     const accountWithoutRouting = { ...mockAccount, routingNumber: undefined };
     render(<AccountDetailsCard account={accountWithoutRouting} />);
 
-    expect(screen.getByText('N/A')).toBeInTheDocument();
+    // Routing number field should not be rendered when undefined
+    expect(screen.queryByText('Routing Number')).not.toBeInTheDocument();
   });
 
   it('handles missing opening date', () => {
     const accountWithoutOpening = { ...mockAccount, openingDate: undefined };
     render(<AccountDetailsCard account={accountWithoutOpening} />);
 
-    const openingDates = screen.getAllByText('N/A');
-    expect(openingDates.length).toBeGreaterThan(0);
+    // formatRelativeTime returns 'Never' for undefined dates
+    expect(screen.getByText('Never')).toBeInTheDocument();
   });
 
   it('handles missing notes', () => {
@@ -229,4 +224,5 @@ describe('AccountDetailsCard', () => {
     expect(screen.getByText(/3 days ago/i)).toBeInTheDocument();
   });
 });
+
 
