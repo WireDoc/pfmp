@@ -72,6 +72,7 @@ This index lists every active document under `docs/` following the subject-first
 
 ## 🧪 testing
 - `docs/testing/README.md` – Testing index with backend API testing, frontend manual/automated testing, and Vitest quick reference
+- `docs/testing/wave-9.3-option-a-endpoint-tests.md` – Manual endpoint testing results for Wave 9.3 Option A Enhanced Investment Metrics (Nov 2025)
 - `docs/testing/alerts-advice-testing.md`
 - `docs/testing/advice-testing.md`
 - `docs/testing/dashboard-msw-handlers.md`
@@ -102,6 +103,7 @@ This index lists every active document under `docs/` following the subject-first
 - `docs/waves/wave-8.1-implementation-summary.md` – Wave 8.1 Account Detail Modal implementation (Nov 2025)
 - `docs/waves/wave-8.1-recovery-plan.md` – Wave 8.1 Recovery: Dashboard data display fix and Phase 2 plan (Nov 2025)
 - `docs/waves/wave-9.2-complete.md` – Wave 9.2 Market Data Integration: FMP API integration with real-time quotes, historical charts, and price refresh (Nov 2025)
+- `docs/waves/wave-9.3-option-a-complete.md` – Wave 9.3 Option A Enhanced Investment Metrics: Performance analytics, tax insights, risk analysis, portfolio allocation (Nov 2025)
 - `docs/waves/PHASE-2-DATA-AGGREGATION.md` – Phase 2 complete plan: Manual data entry, CSV import, holdings management
 - `docs/waves/ai-advisor-wave-plan.md`
 - `docs/waves/archive/` *(reserved)*
