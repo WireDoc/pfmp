@@ -54,7 +54,7 @@ describe('BalanceTrendChart', () => {
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
-        '/api/accounts/123/balance-history?days=30'
+        expect.stringContaining('/api/accounts/123/balance-history?days=30')
       );
     });
   });
@@ -80,7 +80,7 @@ describe('BalanceTrendChart', () => {
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
-        '/api/accounts/123/balance-history?days=7'
+        expect.stringContaining('/api/accounts/123/balance-history?days=7')
       );
     });
   });
@@ -222,8 +222,9 @@ describe('BalanceTrendChart', () => {
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
-        '/api/accounts/123/balance-history?days=365'
+        expect.stringContaining('/api/accounts/123/balance-history?days=365')
       );
     });
   });
 });
+

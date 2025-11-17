@@ -125,10 +125,10 @@ describe('TransactionList', () => {
     const depositOption = screen.getByRole('option', { name: 'Deposit' });
     await user.click(depositOption);
 
-    // Should fetch with category filter
+    // Should fetch with transactionType filter
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining('category=Deposit')
+        expect.stringContaining('transactionType=Deposit')
       );
     });
   });

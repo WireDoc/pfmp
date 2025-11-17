@@ -54,7 +54,8 @@ describe('DashboardBreadcrumbs', () => {
     renderBreadcrumbs('/dashboard/accounts/123');
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Accounts')).toBeInTheDocument();
-    expect(screen.getByText('Details')).toBeInTheDocument();
+    // Account name is fetched asynchronously, so it shows 'Loading...' initially
+    expect(screen.getByText('Loading...')).toBeInTheDocument();
   });
 
   it('should make non-current breadcrumbs clickable links', () => {
@@ -77,3 +78,4 @@ describe('DashboardBreadcrumbs', () => {
     expect(dashboardLink?.querySelector('svg')).toBeInTheDocument();
   });
 });
+

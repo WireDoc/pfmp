@@ -205,12 +205,8 @@ describe('AccountDetailsCard', () => {
     expect(screen.getByText('$0.00')).toBeInTheDocument();
   });
 
-  it('handles zero interest rate', () => {
-    const noInterestAccount = { ...mockAccount, interestRate: 0 };
-    render(<AccountDetailsCard account={noInterestAccount} />);
-
-    expect(screen.getByText('0.00%')).toBeInTheDocument();
-  });
+  // Interest rate field has been removed from the component
+  // Test removed as field no longer exists
 
   it('formats recent sync time as "just now"', () => {
     const justSyncedAccount = {
@@ -233,3 +229,4 @@ describe('AccountDetailsCard', () => {
     expect(screen.getByText(/3 days ago/i)).toBeInTheDocument();
   });
 });
+
