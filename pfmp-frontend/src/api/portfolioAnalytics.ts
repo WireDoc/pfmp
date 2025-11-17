@@ -40,20 +40,19 @@ export interface PerformanceMetrics {
 }
 
 export interface AllocationItem {
-  name: string;
+  category: string;
   value: number;
-  percentage: number;
-  targetPercentage?: number;
-  deviation?: number;
+  percent: number;
+  targetPercent?: number;
+  drift?: number;
 }
 
 export interface RebalancingRecommendation {
-  action: 'Buy' | 'Sell';
-  security: string;
-  currentValue: number;
-  targetValue: number;
-  difference: number;
+  action: string; // "Buy" or "Sell"
+  holding: string;
   shares?: number;
+  dollarAmount?: number;
+  reason: string;
 }
 
 export interface AllocationBreakdown {
