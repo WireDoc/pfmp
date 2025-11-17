@@ -18,6 +18,10 @@ import { HoldingFormModal } from '../../components/holdings/HoldingFormModal';
 import { AccountSummaryHeader } from '../../components/holdings/AccountSummaryHeader';
 import { AssetAllocationChart } from '../../components/holdings/AssetAllocationChart';
 import { PriceChartCard } from '../../components/holdings/PriceChartCard';
+import { PerformanceTab } from '../../components/analytics/PerformanceTab';
+import { TaxInsightsTab } from '../../components/analytics/TaxInsightsTab';
+import { RiskAnalysisTab } from '../../components/analytics/RiskAnalysisTab';
+import { AllocationTab } from '../../components/analytics/AllocationTab';
 import { getAccount, type AccountResponse } from '../../services/accountsApi';
 import type { Holding } from '../../types/holdings';
 
@@ -244,6 +248,10 @@ export function AccountDetailView() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Tabs value={tabValue} onChange={handleTabChange}>
           {isInvestmentAccount && <Tab label="Holdings" />}
+          {isInvestmentAccount && <Tab label="Performance" />}
+          {isInvestmentAccount && <Tab label="Tax Insights" />}
+          {isInvestmentAccount && <Tab label="Risk Analysis" />}
+          {isInvestmentAccount && <Tab label="Allocation" />}
           <Tab label="Transactions" />
         </Tabs>
         
@@ -301,7 +309,35 @@ export function AccountDetailView() {
         </TabPanel>
       )}
 
-      <TabPanel value={tabValue} index={isInvestmentAccount ? 1 : 0}>
+      {/* Performance Tab */}
+      {isInvestmentAccount && (
+        <TabPanel value={tabValue} index={1}>
+          <PerformanceTab accountId={Number(accountId)} />
+        </TabPanel>
+      )}
+
+      {/* Tax Insights Tab */}
+      {isInvestmentAccount && (
+        <TabPanel value={tabValue} index={2}>
+          <TaxInsightsTab accountId={Number(accountId)} />
+        </TabPanel>
+      )}
+
+      {/* Risk Analysis Tab */}
+      {isInvestmentAccount && (
+        <TabPanel value={tabValue} index={3}>
+          <RiskAnalysisTab accountId={Number(accountId)} />
+        </TabPanel>
+      )}
+
+      {/* Allocation Tab */}
+      {isInvestmentAccount && (
+        <TabPanel value={tabValue} index={4}>
+          <AllocationTab accountId={Number(accountId)} />
+        </TabPanel>
+      )}
+
+      <TabPanel value={tabValue} index={isInvestmentAccount ? 5 : 0}>
         <Paper sx={{ p: 3 }}>
           {isInvestmentAccount ? (
             <Typography variant="body1" color="text.secondary">
