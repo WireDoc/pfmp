@@ -50,6 +50,8 @@ public class PortfolioAnalyticsController : ControllerBase
             _logger.LogInformation("Fetching performance metrics for account {AccountId}, period {Period}", accountId, period);
 
             var (startDate, endDate) = ParsePeriod(period);
+            
+            _logger.LogInformation("Date range: {StartDate} to {EndDate}", startDate, endDate);
 
             // Calculate core metrics
             var twr = await _performanceService.CalculateTWRAsync(accountId, startDate, endDate);
@@ -89,7 +91,9 @@ public class PortfolioAnalyticsController : ControllerBase
             };
 
             // Get historical performance data
+            _logger.LogInformation("Fetching historical performance data...");
             var historicalData = await _performanceService.GetHistoricalPerformanceAsync(accountId, startDate, endDate);
+            _logger.LogInformation("Retrieved {Count} historical data points", historicalData.Count);
             
             // Calculate cumulative returns for charting
             var historicalPerformance = new List<PerformanceDataPoint>();
@@ -224,7 +228,7 @@ public class PortfolioAnalyticsController : ControllerBase
             "1M" => endDate.AddMonths(-1),
             "3M" => endDate.AddMonths(-3),
             "6M" => endDate.AddMonths(-6),
-            "YTD" => new DateTime(endDate.Year, 1, 1),
+            "YTD" => DateTime.SpecifyKind(new DateTime(endDate.Year, 1, 1), DateTimeKind.Utc),
             "1Y" => endDate.AddYears(-1),
             "3Y" => endDate.AddYears(-3),
             "5Y" => endDate.AddYears(-5),
