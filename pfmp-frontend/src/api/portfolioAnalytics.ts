@@ -24,9 +24,8 @@ export interface BenchmarkComparison {
 
 export interface PerformanceDataPoint {
   date: string;
-  value: number;
-  portfolioReturn: number;
-  benchmarkReturn: number;
+  portfolioValue: number;
+  benchmarkValue: number;
 }
 
 export interface PerformanceMetrics {

@@ -5,7 +5,7 @@ import type { paths } from './generated/openapi-types';
 // Basic axios instance (can add auth interceptors later)
 export const http: AxiosInstance = axios.create({
   baseURL: '/api',
-  timeout: 15000,
+  timeout: 30000, // 30 seconds for analytics requests
 });
 
 // Helper types to extract response body type from OpenAPI generated types

@@ -39,11 +39,14 @@ public class PriceHistoryService
 
         // If we have data for the full range, return it
         var expectedDays = (endDate - startDate).Days;
-        if (existingData.Count >= expectedDays * 0.7) // Allow for weekends/holidays
+        if (existingData.Count >= expectedDays * 0.9) // 90% threshold - allows for weekends/holidays
         {
-            _logger.LogInformation("Found {Count} price records for {Symbol} in database", existingData.Count, symbol);
+            _logger.LogInformation("Cache hit: Found {Count} price records for {Symbol} in database", existingData.Count, symbol);
             return existingData;
         }
+        
+        _logger.LogInformation("Cache miss: Only {Count}/{Expected} records for {Symbol}, fetching from API", 
+            existingData.Count, (int)(expectedDays * 0.9), symbol);
 
         // Otherwise fetch from API
         _logger.LogInformation("Fetching price history for {Symbol} from FMP API", symbol);
@@ -68,11 +71,20 @@ public class PriceHistoryService
         DateTime endDate)
     {
         var result = new Dictionary<string, List<PriceHistory>>();
+        var distinctSymbols = symbols.Distinct().ToList();
 
-        foreach (var symbol in symbols.Distinct())
+        // Parallelize API calls for better performance
+        var tasks = distinctSymbols.Select(async symbol =>
         {
             var history = await GetPriceHistoryAsync(symbol, startDate, endDate);
-            result[symbol] = history;
+            return new KeyValuePair<string, List<PriceHistory>>(symbol, history);
+        });
+
+        var results = await Task.WhenAll(tasks);
+        
+        foreach (var kvp in results)
+        {
+            result[kvp.Key] = kvp.Value;
         }
 
         return result;

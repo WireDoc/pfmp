@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PFMP_API.Models.Analytics;
 using PFMP_API.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace PFMP_API.Controllers;
 
@@ -15,6 +16,7 @@ public class PortfolioAnalyticsController : ControllerBase
     private readonly TaxInsightsService _taxService;
     private readonly RiskAnalysisService _riskService;
     private readonly BenchmarkDataService _benchmarkService;
+    private readonly ApplicationDbContext _context;
     private readonly ILogger<PortfolioAnalyticsController> _logger;
 
     public PortfolioAnalyticsController(
@@ -22,12 +24,14 @@ public class PortfolioAnalyticsController : ControllerBase
         TaxInsightsService taxService,
         RiskAnalysisService riskService,
         BenchmarkDataService benchmarkService,
+        ApplicationDbContext context,
         ILogger<PortfolioAnalyticsController> logger)
     {
         _performanceService = performanceService;
         _taxService = taxService;
         _riskService = riskService;
         _benchmarkService = benchmarkService;
+        _context = context;
         _logger = logger;
     }
 
@@ -69,21 +73,43 @@ public class PortfolioAnalyticsController : ControllerBase
                 benchmark.SharpeRatio = _performanceService.CalculateSharpeRatio(benchmark.Return, benchmark.Volatility);
             }
 
-            // TODO: Calculate total return in dollars
+            // Calculate total return in dollars from holdings
+            var holdings = await _context.Holdings
+                .Where(h => h.AccountId == accountId)
+                .ToListAsync();
+
+            decimal currentValue = holdings.Sum(h => h.Quantity * h.CurrentPrice);
+            decimal costBasis = holdings.Sum(h => h.Quantity * h.AverageCostBasis);
+            decimal dollarReturn = currentValue - costBasis;
+
             var totalReturn = new ReturnValue
             {
-                Dollar = 0, // Placeholder - calculate from actual portfolio value
+                Dollar = dollarReturn,
                 Percent = twr
             };
 
             // Get historical performance data
             var historicalData = await _performanceService.GetHistoricalPerformanceAsync(accountId, startDate, endDate);
-            var historicalPerformance = historicalData.Select(d => new PerformanceDataPoint
+            
+            // Calculate cumulative returns for charting
+            var historicalPerformance = new List<PerformanceDataPoint>();
+            if (historicalData.Count > 0)
             {
-                Date = d.Date,
-                PortfolioValue = d.PortfolioValue,
-                BenchmarkValue = 0 // TODO: Add benchmark historical values
-            }).ToList();
+                var initialValue = historicalData.First().PortfolioValue;
+                foreach (var point in historicalData)
+                {
+                    var portfolioReturn = initialValue > 0 
+                        ? ((point.PortfolioValue - initialValue) / initialValue) * 100 
+                        : 0;
+                    
+                    historicalPerformance.Add(new PerformanceDataPoint
+                    {
+                        Date = point.Date,
+                        PortfolioValue = point.PortfolioValue,
+                        BenchmarkValue = portfolioReturn // Store return % for now, benchmark TODO
+                    });
+                }
+            }
 
             var metrics = new PerformanceMetrics
             {

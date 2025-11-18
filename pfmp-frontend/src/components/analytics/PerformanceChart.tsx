@@ -10,7 +10,6 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { formatPercent } from '../../utils/exportHelpers';
 import type { PerformanceDataPoint } from '../../api/portfolioAnalytics';
 import type { Period } from '../../api/portfolioAnalytics';
 
@@ -81,10 +80,11 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
                 tickFormatter={(date) => new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               />
               <YAxis
-                tickFormatter={(value) => formatPercent(value)}
+                label={{ value: 'Portfolio Value ($)', angle: -90, position: 'insideLeft' }}
+                tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
               />
               <Tooltip
-                formatter={(value: number) => formatPercent(value)}
+                formatter={(value: number) => `$${value.toFixed(2)}`}
                 labelFormatter={(date) => new Date(date).toLocaleDateString('en-US', {
                   year: 'numeric',
                   month: 'long',
@@ -94,19 +94,10 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
               <Legend />
               <Line
                 type="monotone"
-                dataKey="portfolioReturn"
-                name="Portfolio"
+                dataKey="portfolioValue"
+                name="Portfolio Value"
                 stroke="#2196f3"
                 strokeWidth={2}
-                dot={false}
-              />
-              <Line
-                type="monotone"
-                dataKey="benchmarkReturn"
-                name="S&P 500"
-                stroke="#9e9e9e"
-                strokeWidth={2}
-                strokeDasharray="5 5"
                 dot={false}
               />
             </LineChart>
