@@ -106,7 +106,7 @@ export const TaxSummaryCard: React.FC<TaxSummaryCardProps> = ({
               Estimated Tax if Sold Today
             </Typography>
             <Typography variant="h6" color="warning.main">
-              {formatCurrency(estimatedTaxLiability)}
+              {formatCurrency(estimatedTaxLiability.totalFederalTax)}
             </Typography>
             <Typography variant="caption" color="text.secondary">
               Based on current federal tax brackets

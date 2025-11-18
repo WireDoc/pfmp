@@ -82,11 +82,18 @@ export interface TaxLossOpportunity {
   replacementSuggestion?: string;
 }
 
+export interface EstimatedTaxLiability {
+  shortTermTax: number;
+  longTermTax: number;
+  totalFederalTax: number;
+  taxRate: number;
+}
+
 export interface TaxInsights {
   totalUnrealizedGain: number;
   shortTermGain: number;
   longTermGain: number;
-  estimatedTaxLiability: number;
+  estimatedTaxLiability: EstimatedTaxLiability;
   holdingDetails: HoldingTaxDetail[];
   harvestingOpportunities: TaxLossOpportunity[];
 }
