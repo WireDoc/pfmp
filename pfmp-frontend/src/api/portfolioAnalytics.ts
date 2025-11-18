@@ -63,23 +63,23 @@ export interface AllocationBreakdown {
 
 export interface HoldingTaxDetail {
   symbol: string;
-  securityName: string;
-  shares: number;
+  name: string;
   costBasis: number;
   currentValue: number;
-  unrealizedGain: number;
-  unrealizedGainPercent: number;
-  holdingPeriodDays: number;
-  isLongTerm: boolean;
-  estimatedTaxIfSold: number;
+  gainLoss: number;
+  percentGain: number;
+  holdingPeriod: string;
+  taxType: string; // "shortTerm" or "longTerm"
+  purchaseDate: string;
 }
 
 export interface TaxLossOpportunity {
   symbol: string;
-  securityName: string;
-  unrealizedLoss: number;
-  potentialTaxSavings: number;
+  loss: number;
+  holdingPeriod: string;
+  taxSavings: number;
   replacementSuggestion?: string;
+  reason: string;
 }
 
 export interface EstimatedTaxLiability {

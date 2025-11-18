@@ -37,7 +37,7 @@ export const HarvestingOpportunities: React.FC<HarvestingOpportunitiesProps> = (
   }
 
   const totalPotentialSavings = opportunities.reduce(
-    (sum, opp) => sum + opp.potentialTaxSavings,
+    (sum, opp) => sum + opp.taxSavings,
     0
   );
 
@@ -111,8 +111,8 @@ export const HarvestingOpportunities: React.FC<HarvestingOpportunitiesProps> = (
           <TableHead>
             <TableRow>
               <TableCell>Symbol</TableCell>
-              <TableCell>Security</TableCell>
-              <TableCell align="right">Unrealized Loss</TableCell>
+              <TableCell>Reason</TableCell>
+              <TableCell align="right">Loss</TableCell>
               <TableCell align="right">Tax Savings</TableCell>
               <TableCell>Replacement Suggestion</TableCell>
             </TableRow>
@@ -127,17 +127,17 @@ export const HarvestingOpportunities: React.FC<HarvestingOpportunitiesProps> = (
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2" noWrap sx={{ maxWidth: 250 }}>
-                    {opportunity.securityName}
+                    {opportunity.reason}
                   </Typography>
                 </TableCell>
                 <TableCell align="right">
                   <Typography variant="body2" color="error.main" fontWeight="medium">
-                    {formatCurrency(opportunity.unrealizedLoss)}
+                    {formatCurrency(opportunity.loss)}
                   </Typography>
                 </TableCell>
                 <TableCell align="right">
                   <Chip
-                    label={formatCurrency(opportunity.potentialTaxSavings)}
+                    label={formatCurrency(opportunity.taxSavings)}
                     color="success"
                     size="small"
                   />

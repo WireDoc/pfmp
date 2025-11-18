@@ -20,14 +20,14 @@ interface TaxLotTableProps {
   loading?: boolean;
 }
 
-type SortField = 'symbol' | 'unrealizedGain' | 'unrealizedGainPercent' | 'holdingPeriodDays' | 'estimatedTaxIfSold';
+type SortField = 'symbol' | 'gainLoss' | 'percentGain' | 'holdingPeriod';
 type SortOrder = 'asc' | 'desc';
 
 export const TaxLotTable: React.FC<TaxLotTableProps> = ({
   holdings,
   loading = false,
 }) => {
-  const [sortField, setSortField] = useState<SortField>('unrealizedGain');
+  const [sortField, setSortField] = useState<SortField>('gainLoss');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
   const handleSort = (field: SortField) => {
@@ -48,21 +48,17 @@ export const TaxLotTable: React.FC<TaxLotTableProps> = ({
         aValue = a.symbol;
         bValue = b.symbol;
         break;
-      case 'unrealizedGain':
-        aValue = a.unrealizedGain;
-        bValue = b.unrealizedGain;
+      case 'gainLoss':
+        aValue = a.gainLoss;
+        bValue = b.gainLoss;
         break;
-      case 'unrealizedGainPercent':
-        aValue = a.unrealizedGainPercent;
-        bValue = b.unrealizedGainPercent;
+      case 'percentGain':
+        aValue = a.percentGain;
+        bValue = b.percentGain;
         break;
-      case 'holdingPeriodDays':
-        aValue = a.holdingPeriodDays;
-        bValue = b.holdingPeriodDays;
-        break;
-      case 'estimatedTaxIfSold':
-        aValue = a.estimatedTaxIfSold;
-        bValue = b.estimatedTaxIfSold;
+      case 'holdingPeriod':
+        aValue = a.holdingPeriod;
+        bValue = b.holdingPeriod;
         break;
       default:
         return 0;
@@ -127,52 +123,42 @@ export const TaxLotTable: React.FC<TaxLotTableProps> = ({
                   Symbol
                 </TableSortLabel>
               </TableCell>
-              <TableCell>Security</TableCell>
-              <TableCell align="right">Shares</TableCell>
+              <TableCell>Name</TableCell>
               <TableCell align="right">Cost Basis</TableCell>
               <TableCell align="right">Current Value</TableCell>
               <TableCell align="right">
                 <TableSortLabel
-                  active={sortField === 'unrealizedGain'}
-                  direction={sortField === 'unrealizedGain' ? sortOrder : 'asc'}
-                  onClick={() => handleSort('unrealizedGain')}
+                  active={sortField === 'gainLoss'}
+                  direction={sortField === 'gainLoss' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('gainLoss')}
                 >
                   Gain/Loss ($)
                 </TableSortLabel>
               </TableCell>
               <TableCell align="right">
                 <TableSortLabel
-                  active={sortField === 'unrealizedGainPercent'}
-                  direction={sortField === 'unrealizedGainPercent' ? sortOrder : 'asc'}
-                  onClick={() => handleSort('unrealizedGainPercent')}
+                  active={sortField === 'percentGain'}
+                  direction={sortField === 'percentGain' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('percentGain')}
                 >
                   Gain/Loss (%)
                 </TableSortLabel>
               </TableCell>
               <TableCell align="center">
                 <TableSortLabel
-                  active={sortField === 'holdingPeriodDays'}
-                  direction={sortField === 'holdingPeriodDays' ? sortOrder : 'asc'}
-                  onClick={() => handleSort('holdingPeriodDays')}
+                  active={sortField === 'holdingPeriod'}
+                  direction={sortField === 'holdingPeriod' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('holdingPeriod')}
                 >
                   Holding Period
-                </TableSortLabel>
-              </TableCell>
-              <TableCell align="right">
-                <TableSortLabel
-                  active={sortField === 'estimatedTaxIfSold'}
-                  direction={sortField === 'estimatedTaxIfSold' ? sortOrder : 'asc'}
-                  onClick={() => handleSort('estimatedTaxIfSold')}
-                >
-                  Est. Tax
                 </TableSortLabel>
               </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {sortedHoldings.map((holding) => {
-              const isGain = holding.unrealizedGain >= 0;
-              const isLongTerm = holding.isLongTerm;
+              const isGain = holding.gainLoss >= 0;
+              const isLongTerm = holding.taxType === 'longTerm';
 
               return (
                 <TableRow key={holding.symbol} hover>
@@ -183,11 +169,8 @@ export const TaxLotTable: React.FC<TaxLotTableProps> = ({
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" noWrap sx={{ maxWidth: 200 }}>
-                      {holding.securityName}
+                      {holding.name}
                     </Typography>
-                  </TableCell>
-                  <TableCell align="right">
-                    {holding.shares.toLocaleString()}
                   </TableCell>
                   <TableCell align="right">
                     {formatCurrency(holding.costBasis)}
@@ -201,7 +184,7 @@ export const TaxLotTable: React.FC<TaxLotTableProps> = ({
                       color={isGain ? 'success.main' : 'error.main'}
                       fontWeight="medium"
                     >
-                      {formatCurrency(holding.unrealizedGain)}
+                      {formatCurrency(holding.gainLoss)}
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
@@ -209,13 +192,13 @@ export const TaxLotTable: React.FC<TaxLotTableProps> = ({
                       variant="body2"
                       color={isGain ? 'success.main' : 'error.main'}
                     >
-                      {holding.unrealizedGainPercent.toFixed(2)}%
+                      {holding.percentGain.toFixed(2)}%
                     </Typography>
                   </TableCell>
                   <TableCell align="center">
                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
                       <Typography variant="body2">
-                        {holding.holdingPeriodDays} days
+                        {holding.holdingPeriod}
                       </Typography>
                       <Chip
                         label={isLongTerm ? 'Long-Term' : 'Short-Term'}
@@ -224,11 +207,6 @@ export const TaxLotTable: React.FC<TaxLotTableProps> = ({
                         variant="outlined"
                       />
                     </Box>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Typography variant="body2" color="warning.main">
-                      {formatCurrency(holding.estimatedTaxIfSold)}
-                    </Typography>
                   </TableCell>
                 </TableRow>
               );
