@@ -75,7 +75,7 @@ export const TaxInsightsTab: React.FC<TaxInsightsTabProps> = ({ accountId }) => 
       {/* Tax Lot Table - Full Width */}
       <Box>
         <TaxLotTable
-          holdings={taxInsights.holdingDetails}
+          holdings={taxInsights.holdings}
           loading={isLoading}
         />
       </Box>

@@ -89,13 +89,17 @@ export interface EstimatedTaxLiability {
   taxRate: number;
 }
 
+export interface UnrealizedGainsSummary {
+  shortTerm: ReturnValue;
+  longTerm: ReturnValue;
+  total: ReturnValue;
+}
+
 export interface TaxInsights {
-  totalUnrealizedGain: number;
-  shortTermGain: number;
-  longTermGain: number;
-  estimatedTaxLiability: EstimatedTaxLiability;
-  holdingDetails: HoldingTaxDetail[];
+  unrealizedGains: UnrealizedGainsSummary;
+  holdings: HoldingTaxDetail[];
   harvestingOpportunities: TaxLossOpportunity[];
+  estimatedTaxLiability: EstimatedTaxLiability;
 }
 
 export interface VolatilityDataPoint {

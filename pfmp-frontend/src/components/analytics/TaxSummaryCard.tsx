@@ -28,12 +28,13 @@ export const TaxSummaryCard: React.FC<TaxSummaryCardProps> = ({
   }
 
   const {
-    totalUnrealizedGain,
-    shortTermGain,
-    longTermGain,
+    unrealizedGains,
     estimatedTaxLiability,
   } = taxInsights;
 
+  const totalUnrealizedGain = unrealizedGains.total.dollar;
+  const shortTermGain = unrealizedGains.shortTerm.dollar;
+  const longTermGain = unrealizedGains.longTerm.dollar;
   const isPositiveGain = totalUnrealizedGain >= 0;
 
   return (
