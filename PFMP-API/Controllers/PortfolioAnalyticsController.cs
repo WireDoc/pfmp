@@ -76,6 +76,15 @@ public class PortfolioAnalyticsController : ControllerBase
                 Percent = twr
             };
 
+            // Get historical performance data
+            var historicalData = await _performanceService.GetHistoricalPerformanceAsync(accountId, startDate, endDate);
+            var historicalPerformance = historicalData.Select(d => new PerformanceDataPoint
+            {
+                Date = d.Date,
+                PortfolioValue = d.PortfolioValue,
+                BenchmarkValue = 0 // TODO: Add benchmark historical values
+            }).ToList();
+
             var metrics = new PerformanceMetrics
             {
                 TotalReturn = totalReturn,
@@ -84,7 +93,7 @@ public class PortfolioAnalyticsController : ControllerBase
                 SharpeRatio = sharpeRatio,
                 Volatility = volatility,
                 Benchmarks = benchmarks,
-                HistoricalPerformance = new List<PerformanceDataPoint>() // TODO: Implement
+                HistoricalPerformance = historicalPerformance
             };
 
             return Ok(metrics);

@@ -101,6 +101,7 @@ namespace PFMP_API
             builder.Services.AddScoped<TaxInsightsService>();
             builder.Services.AddScoped<RiskAnalysisService>();
             builder.Services.AddScoped<BenchmarkDataService>();
+            builder.Services.AddScoped<PriceHistoryService>();
 
             // Add Authentication Services
             builder.Services.AddScoped<IPasswordHashService, PasswordHashService>();

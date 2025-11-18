@@ -249,7 +249,7 @@ public class PerformanceCalculationService
     }
 
     /// <summary>
-    /// Get portfolio value at a specific date
+    /// Get portfolio value at a specific date using historical prices
     /// </summary>
     private async Task<decimal> GetPortfolioValueAsync(int accountId, DateTime date)
     {
@@ -261,12 +261,78 @@ public class PerformanceCalculationService
 
         foreach (var holding in holdings)
         {
-            // Use current price as approximation
-            // In production, fetch historical price for the specific date
-            totalValue += holding.Quantity * holding.CurrentPrice;
+            // Get quantity held at this date by reconstructing transaction history
+            var quantityAtDate = await GetQuantityAtDateAsync(holding.HoldingId, date);
+
+            if (quantityAtDate == 0)
+            {
+                continue;
+            }
+
+            // Fetch historical price for this date
+            var price = await GetPriceAtDateAsync(holding.Symbol, date);
+
+            if (price == 0)
+            {
+                // Fallback to current price if historical not available
+                price = holding.CurrentPrice;
+            }
+
+            totalValue += quantityAtDate * price;
         }
 
         return totalValue;
+    }
+
+    /// <summary>
+    /// Get quantity of a holding at a specific date by summing transactions up to that date
+    /// </summary>
+    private async Task<decimal> GetQuantityAtDateAsync(int holdingId, DateTime date)
+    {
+        var transactions = await _context.Transactions
+            .Where(t => t.HoldingId == holdingId && t.TransactionDate <= date)
+            .ToListAsync();
+
+        decimal quantity = 0;
+
+        foreach (var txn in transactions)
+        {
+            switch (txn.TransactionType.ToLower())
+            {
+                case "buy":
+                case "deposit":
+                    quantity += txn.Quantity ?? 0;
+                    break;
+                case "sell":
+                case "withdrawal":
+                    quantity -= txn.Quantity ?? 0;
+                    break;
+                // Dividends don't affect quantity unless reinvested
+                case "dividend":
+                    if (txn.IsDividendReinvestment)
+                    {
+                        quantity += txn.Quantity ?? 0;
+                    }
+                    break;
+            }
+        }
+
+        return quantity;
+    }
+
+    /// <summary>
+    /// Get historical price for a symbol at or before a specific date
+    /// </summary>
+    private async Task<decimal> GetPriceAtDateAsync(string symbol, DateTime date)
+    {
+        // Find the closest price on or before the requested date
+        var price = await _context.PriceHistory
+            .Where(p => p.Symbol == symbol && p.Date <= date)
+            .OrderByDescending(p => p.Date)
+            .Select(p => p.Close)
+            .FirstOrDefaultAsync();
+
+        return price;
     }
 
     /// <summary>
@@ -283,6 +349,45 @@ public class PerformanceCalculationService
             "withdrawal" => -transaction.Amount,
             _ => 0
         };
+    }
+
+    /// <summary>
+    /// Get historical portfolio values for charting
+    /// </summary>
+    public async Task<List<(DateTime Date, decimal PortfolioValue)>> GetHistoricalPerformanceAsync(
+        int accountId, 
+        DateTime startDate, 
+        DateTime endDate)
+    {
+        var holdings = await _context.Holdings
+            .Where(h => h.AccountId == accountId)
+            .ToListAsync();
+
+        if (!holdings.Any())
+        {
+            return new List<(DateTime, decimal)>();
+        }
+
+        var dataPoints = new List<(DateTime Date, decimal PortfolioValue)>();
+
+        // Generate weekly data points to balance granularity vs performance
+        var currentDate = startDate;
+        while (currentDate <= endDate)
+        {
+            var value = await GetPortfolioValueAsync(accountId, currentDate);
+            dataPoints.Add((currentDate, value));
+
+            currentDate = currentDate.AddDays(7); // Weekly intervals
+        }
+
+        // Always include the end date
+        if (dataPoints.Count == 0 || dataPoints.Last().Date != endDate)
+        {
+            var finalValue = await GetPortfolioValueAsync(accountId, endDate);
+            dataPoints.Add((endDate, finalValue));
+        }
+
+        return dataPoints;
     }
 
     /// <summary>
