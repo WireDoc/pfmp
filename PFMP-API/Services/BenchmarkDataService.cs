@@ -132,7 +132,7 @@ public class BenchmarkDataService
             var priceHistory = fmpResponse.Historical.Select(h => new PriceHistory
             {
                 Symbol = symbol,
-                Date = DateTime.Parse(h.Date),
+                Date = DateTime.SpecifyKind(DateTime.Parse(h.Date), DateTimeKind.Utc),
                 Open = h.Open,
                 High = h.High,
                 Low = h.Low,
