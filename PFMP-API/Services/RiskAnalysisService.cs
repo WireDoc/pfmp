@@ -343,17 +343,17 @@ public class RiskAnalysisService
 
     private async Task<List<decimal>> GetDailyReturnsAsync(int accountId, DateTime startDate, DateTime endDate)
     {
-        // Simplified - would use actual historical data in production
-        var dailyBalances = await GetDailyBalancesAsync(accountId, startDate, endDate);
+        // Use weekly balances with historical portfolio values
+        var weeklyBalances = await GetDailyBalancesAsync(accountId, startDate, endDate);
         var returns = new List<decimal>();
 
-        for (int i = 1; i < dailyBalances.Count; i++)
+        for (int i = 1; i < weeklyBalances.Count; i++)
         {
-            var previousBalance = dailyBalances[i - 1].Balance;
+            var previousBalance = weeklyBalances[i - 1].Balance;
             if (previousBalance != 0)
             {
-                var dailyReturn = (dailyBalances[i].Balance - previousBalance) / previousBalance;
-                returns.Add(dailyReturn);
+                var weeklyReturn = (weeklyBalances[i].Balance - previousBalance) / previousBalance;
+                returns.Add(weeklyReturn);
             }
         }
 
@@ -369,20 +369,23 @@ public class RiskAnalysisService
 
     private async Task<List<(DateTime Date, decimal Balance)>> GetDailyBalancesAsync(int accountId, DateTime startDate, DateTime endDate)
     {
-        // Simplified monthly snapshots for now
+        // Use weekly snapshots with historical portfolio values
         var balances = new List<(DateTime Date, decimal Balance)>();
         var currentDate = startDate;
 
         while (currentDate <= endDate)
         {
-            var holdings = await _context.Holdings
-                .Where(h => h.AccountId == accountId)
-                .ToListAsync();
-
-            var balance = holdings.Sum(h => h.CurrentValue);
+            var balance = await _performanceService.GetPortfolioValueAsync(accountId, currentDate);
             balances.Add((currentDate, balance));
 
-            currentDate = currentDate.AddMonths(1);
+            currentDate = currentDate.AddDays(7); // Weekly intervals
+        }
+
+        // Always include end date
+        if (balances.Count == 0 || balances.Last().Date != endDate)
+        {
+            var finalBalance = await _performanceService.GetPortfolioValueAsync(accountId, endDate);
+            balances.Add((endDate, finalBalance));
         }
 
         return balances;

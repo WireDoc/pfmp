@@ -152,66 +152,62 @@ public class PerformanceCalculationService
     {
         try
         {
-            var dailyReturns = await CalculateDailyReturnsAsync(accountId, startDate, endDate);
+            var transactions = await _context.Transactions
+                .Where(t => t.AccountId == accountId && t.TransactionDate >= startDate && t.TransactionDate <= endDate)
+                .ToListAsync();
 
-            if (dailyReturns.Count < 2)
+            var holdings = await _context.Holdings
+                .Where(h => h.AccountId == accountId)
+                .ToListAsync();
+
+            var weeklyBalances = await ReconstructDailyBalancesAsync(accountId, holdings, transactions, startDate, endDate);
+
+            if (weeklyBalances.Count < 2)
             {
                 return 0;
             }
 
-            var mean = dailyReturns.Average();
-            var sumOfSquaredDifferences = dailyReturns.Sum(r => (decimal)Math.Pow((double)(r - mean), 2));
-            var variance = sumOfSquaredDifferences / (dailyReturns.Count - 1);
+            var returns = new List<decimal>();
+
+            for (int i = 1; i < weeklyBalances.Count; i++)
+            {
+                var previousBalance = weeklyBalances[i - 1].Balance;
+                var currentBalance = weeklyBalances[i].Balance;
+
+                if (previousBalance == 0)
+                {
+                    continue;
+                }
+
+                // Find cash flows between these dates
+                var cashFlows = transactions
+                    .Where(t => t.TransactionDate > weeklyBalances[i - 1].Date && 
+                               t.TransactionDate <= weeklyBalances[i].Date)
+                    .Sum(t => GetCashFlowAmount(t));
+
+                // Period return = (Current - Previous - Cash Flows) / Previous
+                var periodReturn = (currentBalance - previousBalance - cashFlows) / previousBalance;
+                returns.Add(periodReturn);
+            }
+
+            if (returns.Count < 2)
+            {
+                return 0;
+            }
+
+            var mean = returns.Average();
+            var sumOfSquaredDifferences = returns.Sum(r => (decimal)Math.Pow((double)(r - mean), 2));
+            var variance = sumOfSquaredDifferences / (returns.Count - 1);
             var standardDeviation = (decimal)Math.Sqrt((double)variance);
 
-            // Annualize using sqrt(252) trading days
-            return standardDeviation * (decimal)Math.Sqrt(252) * 100;
+            // Annualize weekly returns using sqrt(52) weeks per year
+            return standardDeviation * (decimal)Math.Sqrt(52) * 100;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error calculating volatility for account {AccountId}", accountId);
             throw;
         }
-    }
-
-    /// <summary>
-    /// Calculate daily returns for volatility calculation
-    /// </summary>
-    private async Task<List<decimal>> CalculateDailyReturnsAsync(int accountId, DateTime startDate, DateTime endDate)
-    {
-        var transactions = await _context.Transactions
-            .Where(t => t.AccountId == accountId && t.TransactionDate >= startDate && t.TransactionDate <= endDate)
-            .ToListAsync();
-
-        var holdings = await _context.Holdings
-            .Where(h => h.AccountId == accountId)
-            .ToListAsync();
-
-        var dailyBalances = await ReconstructDailyBalancesAsync(accountId, holdings, transactions, startDate, endDate);
-
-        var returns = new List<decimal>();
-
-        for (int i = 1; i < dailyBalances.Count; i++)
-        {
-            var previousBalance = dailyBalances[i - 1].Balance;
-            var currentBalance = dailyBalances[i].Balance;
-
-            if (previousBalance == 0)
-            {
-                continue;
-            }
-
-            // Find cash flows on this day
-            var cashFlows = transactions
-                .Where(t => t.TransactionDate.Date == dailyBalances[i].Date.Date)
-                .Sum(t => GetCashFlowAmount(t));
-
-            // Daily return = (Current - Previous - Cash Flows) / Previous
-            var dailyReturn = (currentBalance - previousBalance - cashFlows) / previousBalance;
-            returns.Add(dailyReturn);
-        }
-
-        return returns;
     }
 
     /// <summary>
@@ -226,8 +222,7 @@ public class PerformanceCalculationService
     {
         var dailyBalances = new List<(DateTime Date, decimal Balance)>();
 
-        // For now, use monthly snapshots to avoid performance issues
-        // In production, implement more sophisticated daily reconstruction
+        // Use weekly snapshots for better risk metrics while maintaining performance
         var currentDate = startDate;
 
         while (currentDate <= endDate)
@@ -235,11 +230,11 @@ public class PerformanceCalculationService
             var balance = await GetPortfolioValueAsync(accountId, currentDate);
             dailyBalances.Add((currentDate, balance));
 
-            currentDate = currentDate.AddMonths(1);
+            currentDate = currentDate.AddDays(7); // Weekly intervals
         }
 
         // Always include end date
-        if (dailyBalances.Last().Date != endDate)
+        if (dailyBalances.Count == 0 || dailyBalances.Last().Date != endDate)
         {
             var finalBalance = await GetPortfolioValueAsync(accountId, endDate);
             dailyBalances.Add((endDate, finalBalance));
@@ -251,7 +246,7 @@ public class PerformanceCalculationService
     /// <summary>
     /// Get portfolio value at a specific date using historical prices
     /// </summary>
-    private async Task<decimal> GetPortfolioValueAsync(int accountId, DateTime date)
+    public async Task<decimal> GetPortfolioValueAsync(int accountId, DateTime date)
     {
         var holdings = await _context.Holdings
             .Where(h => h.AccountId == accountId)
