@@ -190,7 +190,7 @@ export const AllocationTableView: React.FC<AllocationTableViewProps> = ({
         </Table>
       </TableContainer>
 
-      <Box sx={{ p: 2, bgcolor: 'grey.50' }}>
+      <Box sx={{ p: 2, pb: 2.5, bgcolor: 'grey.50' }}>
         <Typography variant="body2" color="text.secondary">
           <strong>Total Categories:</strong> {sortedData.length} • 
           <strong> Largest Allocation:</strong>{' '}

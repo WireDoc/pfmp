@@ -54,7 +54,7 @@ export const AllocationSunburstChart: React.FC<AllocationSunburstChartProps> = (
 }) => {
   if (loading) {
     return (
-      <Paper sx={{ p: 2, height: 500 }}>
+      <Paper sx={{ p: 2, minHeight: 350 }}>
         <Typography variant="h6" gutterBottom>
           Allocation by {getDimensionLabel(dimension)}
         </Typography>
@@ -65,7 +65,7 @@ export const AllocationSunburstChart: React.FC<AllocationSunburstChartProps> = (
 
   if (!allocations || allocations.length === 0) {
     return (
-      <Paper sx={{ p: 2, height: 500 }}>
+      <Paper sx={{ p: 2, minHeight: 350 }}>
         <Typography variant="h6" gutterBottom>
           Allocation by {getDimensionLabel(dimension)}
         </Typography>
@@ -112,42 +112,48 @@ export const AllocationSunburstChart: React.FC<AllocationSunburstChartProps> = (
     return '';
   };
 
-  return (
-    <Paper sx={{ p: 2, height: 500 }}>
-      <Typography variant="h6" gutterBottom>
-        Allocation by {getDimensionLabel(dimension)}
-      </Typography>
+  // Calculate dynamic height based on number of items (more items = taller legend)
+  // Base height 350px + 25px per item over 5 items
+  const chartHeight = Math.max(350, 300 + (sortedData.length * 25));
 
-      <ResponsiveContainer width="100%" height={400}>
-        <PieChart>
-          <Pie
-            data={sortedData}
-            dataKey="value"
-            nameKey="name"
-            cx="50%"
-            cy="50%"
-            outerRadius={120}
-            label={renderLabel}
-            labelLine={false}
-          >
-            {sortedData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-            ))}
-          </Pie>
-          <Tooltip content={<CustomTooltip />} />
-          <Legend
-            verticalAlign="bottom"
-            height={36}
-            formatter={(value, entry: any) => {
-              const item = sortedData.find((d) => d.name === value);
-              if (item) {
-                return `${value} (${item.percentage.toFixed(1)}%)`;
-              }
-              return value;
-            }}
-          />
-        </PieChart>
-      </ResponsiveContainer>
+  return (
+    <Box>
+      <Paper sx={{ p: 2, pb: 1 }}>
+        <Typography variant="h6" gutterBottom>
+          Allocation by {getDimensionLabel(dimension)}
+        </Typography>
+
+        <ResponsiveContainer width="100%" height={chartHeight}>
+          <PieChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+            <Pie
+              data={sortedData}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="45%"
+              outerRadius={100}
+              label={renderLabel}
+              labelLine={false}
+            >
+              {sortedData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip content={<CustomTooltip />} />
+            <Legend
+              verticalAlign="bottom"
+              wrapperStyle={{ paddingTop: '10px', paddingBottom: '10px' }}
+              formatter={(value, entry: any) => {
+                const item = sortedData.find((d) => d.name === value);
+                if (item) {
+                  return `${value} (${item.percentage.toFixed(1)}%)`;
+                }
+                return value;
+              }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </Paper>
 
       <Box sx={{ mt: 2, p: 1.5, bgcolor: 'info.lighter', borderRadius: 1 }}>
         <Typography variant="caption" color="info.dark">
@@ -159,6 +165,6 @@ export const AllocationSunburstChart: React.FC<AllocationSunburstChartProps> = (
           {' '}representing more than 25-30% of total value.
         </Typography>
       </Box>
-    </Paper>
+    </Box>
   );
 };

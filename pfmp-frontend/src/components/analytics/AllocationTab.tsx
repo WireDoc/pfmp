@@ -115,9 +115,10 @@ export const AllocationTab: React.FC<AllocationTabProps> = ({ accountId }) => {
           flexDirection: { xs: 'column', lg: 'row' },
           gap: 3,
           mb: 3,
+          alignItems: 'stretch',
         }}
       >
-        <Box sx={{ flex: { xs: '1 1 100%', lg: '0 0 40%' } }}>
+        <Box sx={{ flex: { xs: '1 1 100%', lg: '0 0 40%' }, display: 'flex', flexDirection: 'column' }}>
           <AllocationSunburstChart
             allocations={allocationData.allocations}
             dimension={dimension}
