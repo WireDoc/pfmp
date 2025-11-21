@@ -10,9 +10,10 @@ import {
   TableHead,
   TableRow,
 } from '@mui/material';
+import type { CorrelationPair } from '../../api/portfolioAnalytics';
 
 interface CorrelationMatrixProps {
-  correlationMatrix: Record<string, Record<string, number>>;
+  correlationMatrix: CorrelationPair[];
   loading?: boolean;
 }
 
@@ -31,9 +32,7 @@ export const CorrelationMatrix: React.FC<CorrelationMatrixProps> = ({
     );
   }
 
-  const symbols = Object.keys(correlationMatrix);
-
-  if (symbols.length === 0) {
+  if (!correlationMatrix || correlationMatrix.length === 0) {
     return (
       <Paper sx={{ p: 2 }}>
         <Typography variant="h6" gutterBottom>
@@ -45,6 +44,32 @@ export const CorrelationMatrix: React.FC<CorrelationMatrixProps> = ({
       </Paper>
     );
   }
+
+  // Convert array of CorrelationPair to nested dictionary
+  const matrixDict: Record<string, Record<string, number>> = {};
+  const symbolsSet = new Set<string>();
+
+  // Collect all unique symbols
+  correlationMatrix.forEach(pair => {
+    symbolsSet.add(pair.symbol1);
+    symbolsSet.add(pair.symbol2);
+  });
+
+  const symbols = Array.from(symbolsSet).sort();
+
+  // Initialize matrix with zeros and diagonal with 1.0
+  symbols.forEach(symbol1 => {
+    matrixDict[symbol1] = {};
+    symbols.forEach(symbol2 => {
+      matrixDict[symbol1][symbol2] = symbol1 === symbol2 ? 1.0 : 0;
+    });
+  });
+
+  // Fill in correlation values (symmetric matrix)
+  correlationMatrix.forEach(pair => {
+    matrixDict[pair.symbol1][pair.symbol2] = pair.correlation;
+    matrixDict[pair.symbol2][pair.symbol1] = pair.correlation; // Symmetric
+  });
 
   // Helper to get color for correlation value
   const getCorrelationColor = (value: number): string => {
@@ -117,7 +142,7 @@ export const CorrelationMatrix: React.FC<CorrelationMatrixProps> = ({
                   {rowSymbol}
                 </TableCell>
                 {symbols.map((colSymbol) => {
-                  const value = correlationMatrix[rowSymbol]?.[colSymbol] ?? 0;
+                  const value = matrixDict[rowSymbol]?.[colSymbol] ?? 0;
                   const isDiagonal = rowSymbol === colSymbol;
                   
                   return (

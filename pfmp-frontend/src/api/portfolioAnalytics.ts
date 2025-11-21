@@ -111,12 +111,18 @@ export interface DrawdownDataPoint {
   drawdown: number;
 }
 
+export interface CorrelationPair {
+  symbol1: string;
+  symbol2: string;
+  correlation: number;
+}
+
 export interface RiskMetrics {
   volatility: number;
   beta: number;
   maxDrawdown: number;
   maxDrawdownDate?: string;
-  correlationMatrix: Record<string, Record<string, number>>;
+  correlationMatrix: CorrelationPair[];
   volatilityHistory: VolatilityDataPoint[];
   drawdownHistory: DrawdownDataPoint[];
 }
