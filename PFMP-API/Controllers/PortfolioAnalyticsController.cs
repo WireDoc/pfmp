@@ -149,13 +149,95 @@ public class PortfolioAnalyticsController : ControllerBase
         {
             _logger.LogInformation("Fetching allocation for account {AccountId}, dimension {Dimension}", accountId, dimension);
 
-            // TODO: Implement allocation calculation based on dimension
-            // For now, return placeholder data
+            var holdings = await _context.Holdings
+                .Where(h => h.AccountId == accountId)
+                .ToListAsync();
+
+            if (!holdings.Any())
+            {
+                return Ok(new AllocationBreakdown
+                {
+                    Dimension = dimension,
+                    Allocations = new List<AllocationItem>(),
+                    RebalancingRecommendations = new List<RebalancingRecommendation>()
+                });
+            }
+
+            var allocations = new List<AllocationItem>();
+            var totalValue = holdings.Sum(h => h.Quantity * h.CurrentPrice);
+
+            switch (dimension.ToLower())
+            {
+                case "assetclass":
+                    // Group by AssetType
+                    var assetGroups = holdings.GroupBy(h => GetAssetClassName((int)h.AssetType));
+                    foreach (var group in assetGroups)
+                    {
+                        var value = group.Sum(h => h.Quantity * h.CurrentPrice);
+                        allocations.Add(new AllocationItem
+                        {
+                            Category = group.Key,
+                            Value = value,
+                            Percent = totalValue > 0 ? (value / totalValue) * 100 : 0
+                        });
+                    }
+                    break;
+
+                case "sector":
+                    // Group by symbol for now (sector data needs enrichment)
+                    var sectorGroups = holdings.GroupBy(h => 
+                        string.IsNullOrEmpty(h.SectorAllocation) ? GetDefaultSector(h.Symbol) : h.SectorAllocation);
+                    foreach (var group in sectorGroups)
+                    {
+                        var value = group.Sum(h => h.Quantity * h.CurrentPrice);
+                        allocations.Add(new AllocationItem
+                        {
+                            Category = group.Key,
+                            Value = value,
+                            Percent = totalValue > 0 ? (value / totalValue) * 100 : 0
+                        });
+                    }
+                    break;
+
+                case "geography":
+                    // Group by geography
+                    var geoGroups = holdings.GroupBy(h => 
+                        string.IsNullOrEmpty(h.GeographicAllocation) ? GetDefaultGeography(h.Symbol) : h.GeographicAllocation);
+                    foreach (var group in geoGroups)
+                    {
+                        var value = group.Sum(h => h.Quantity * h.CurrentPrice);
+                        allocations.Add(new AllocationItem
+                        {
+                            Category = group.Key,
+                            Value = value,
+                            Percent = totalValue > 0 ? (value / totalValue) * 100 : 0
+                        });
+                    }
+                    break;
+
+                case "marketcap":
+                    // Group by symbol for now (market cap data needs enrichment)
+                    var holdingGroups = holdings.GroupBy(h => h.Symbol);
+                    foreach (var group in holdingGroups)
+                    {
+                        var value = group.Sum(h => h.Quantity * h.CurrentPrice);
+                        allocations.Add(new AllocationItem
+                        {
+                            Category = group.Key,
+                            Value = value,
+                            Percent = totalValue > 0 ? (value / totalValue) * 100 : 0
+                        });
+                    }
+                    break;
+
+                default:
+                    return BadRequest(new { message = "Invalid dimension. Use: assetClass, sector, geography, or marketCap" });
+            }
 
             var allocation = new AllocationBreakdown
             {
                 Dimension = dimension,
-                Allocations = new List<AllocationItem>(),
+                Allocations = allocations.OrderByDescending(a => a.Value).ToList(),
                 RebalancingRecommendations = new List<RebalancingRecommendation>()
             };
 
@@ -166,6 +248,48 @@ public class PortfolioAnalyticsController : ControllerBase
             _logger.LogError(ex, "Error fetching allocation for account {AccountId}", accountId);
             return StatusCode(500, new { message = "An error occurred while calculating allocation", error = ex.Message });
         }
+    }
+
+    private string GetAssetClassName(int assetType)
+    {
+        return assetType switch
+        {
+            1 => "Stock",
+            2 => "Bond",
+            3 => "ETF",
+            4 => "Cryptocurrency",
+            5 => "Mutual Fund",
+            6 => "Real Estate",
+            7 => "Commodity",
+            8 => "Cash",
+            _ => "Other"
+        };
+    }
+
+    private string GetDefaultSector(string symbol)
+    {
+        // Basic sector mapping for common symbols
+        return symbol switch
+        {
+            "VOO" or "VIG" => "Diversified Equity",
+            "VEA" => "International Equity",
+            "MUB" => "Municipal Bonds",
+            "NVDA" => "Technology",
+            "BTC-USD" or "ETH-USD" => "Cryptocurrency",
+            _ => "Other"
+        };
+    }
+
+    private string GetDefaultGeography(string symbol)
+    {
+        return symbol switch
+        {
+            "VOO" or "VIG" or "NVDA" => "United States",
+            "VEA" => "International",
+            "MUB" => "United States",
+            "BTC-USD" or "ETH-USD" => "Global",
+            _ => "Unknown"
+        };
     }
 
     /// <summary>
