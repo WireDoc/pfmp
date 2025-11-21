@@ -10,7 +10,6 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
-import { formatPercent } from '../../utils/exportHelpers';
 import type { DrawdownDataPoint } from '../../api/portfolioAnalytics';
 
 interface DrawdownChartProps {
@@ -77,11 +76,11 @@ export const DrawdownChart: React.FC<DrawdownChartProps> = ({
               })}
             />
             <YAxis
-              tickFormatter={(value) => formatPercent(value)}
+              tickFormatter={(value) => `${value.toFixed(1)}%`}
               domain={[maxDrawdown * 1.1, 0]}
             />
             <Tooltip
-              formatter={(value: number) => formatPercent(value)}
+              formatter={(value: number) => `${value.toFixed(2)}%`}
               labelFormatter={(date) => new Date(date).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
@@ -102,7 +101,7 @@ export const DrawdownChart: React.FC<DrawdownChartProps> = ({
 
       <Box sx={{ p: 2, pt: 0, bgcolor: 'error.lighter', borderRadius: 1 }}>
         <Typography variant="body2" color="error.dark">
-          <strong>Maximum Drawdown: {formatPercent(maxDrawdown)}</strong>
+          <strong>Maximum Drawdown: {maxDrawdown.toFixed(2)}%</strong>
         </Typography>
         <Typography variant="caption" color="text.secondary">
           The drawdown chart shows how far below the peak your portfolio has fallen. 

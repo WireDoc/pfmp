@@ -10,7 +10,6 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import { formatPercent } from '../../utils/exportHelpers';
 import type { VolatilityDataPoint } from '../../api/portfolioAnalytics';
 
 interface VolatilityChartProps {
@@ -69,10 +68,10 @@ export const VolatilityChart: React.FC<VolatilityChartProps> = ({
               })}
             />
             <YAxis
-              tickFormatter={(value) => formatPercent(value)}
+              tickFormatter={(value) => `${value.toFixed(1)}%`}
             />
             <Tooltip
-              formatter={(value: number) => formatPercent(value)}
+              formatter={(value: number) => `${value.toFixed(2)}%`}
               labelFormatter={(date) => new Date(date).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
