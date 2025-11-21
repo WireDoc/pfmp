@@ -214,18 +214,68 @@ public class RiskAnalysisService
     {
         try
         {
-            // Get price history for both symbols
-            var prices1 = await GetPriceHistoryAsync(symbol1, startDate, endDate);
-            var prices2 = await GetPriceHistoryAsync(symbol2, startDate, endDate);
+            _logger.LogInformation("Starting correlation calculation: {Symbol1} vs {Symbol2}", symbol1, symbol2);
 
-            if (prices1.Count < 2 || prices2.Count < 2 || prices1.Count != prices2.Count)
+            // Get price history for both symbols with dates
+            var priceData1 = await _context.PriceHistory
+                .Where(p => p.Symbol == symbol1 && p.Date >= startDate && p.Date <= endDate)
+                .OrderBy(p => p.Date)
+                .Select(p => new { p.Date, p.Close })
+                .ToListAsync();
+
+            var priceData2 = await _context.PriceHistory
+                .Where(p => p.Symbol == symbol2 && p.Date >= startDate && p.Date <= endDate)
+                .OrderBy(p => p.Date)
+                .Select(p => new { p.Date, p.Close })
+                .ToListAsync();
+
+            _logger.LogInformation("Correlation {Symbol1} vs {Symbol2}: Found {Count1} and {Count2} price points",
+                symbol1, symbol2, priceData1.Count, priceData2.Count);
+
+            if (priceData1.Count < 2 || priceData2.Count < 2)
             {
+                _logger.LogWarning("Insufficient price data for correlation: {Symbol1}={Count1}, {Symbol2}={Count2}",
+                    symbol1, priceData1.Count, symbol2, priceData2.Count);
                 return 0;
             }
 
-            // Calculate returns
-            var returns1 = CalculateReturns(prices1);
-            var returns2 = CalculateReturns(prices2);
+            // Align prices by date - only use dates that exist for both symbols
+            // Handle duplicate dates by grouping and taking first price
+            // Convert to UTC date to avoid DateTime.Kind issues with PostgreSQL
+            var priceDict1 = priceData1
+                .GroupBy(p => DateTime.SpecifyKind(p.Date.Date, DateTimeKind.Utc))
+                .ToDictionary(g => g.Key, g => g.First().Close);
+            
+            var priceDict2 = priceData2
+                .GroupBy(p => DateTime.SpecifyKind(p.Date.Date, DateTimeKind.Utc))
+                .ToDictionary(g => g.Key, g => g.First().Close);
+
+            var commonDates = priceDict1.Keys.Intersect(priceDict2.Keys).OrderBy(d => d).ToList();
+
+            _logger.LogInformation("Correlation {Symbol1} vs {Symbol2}: {CommonCount} common dates",
+                symbol1, symbol2, commonDates.Count);
+
+            if (commonDates.Count < 2)
+            {
+                _logger.LogWarning("Insufficient common dates for correlation: {Count}", commonDates.Count);
+                return 0;
+            }
+
+            var alignedPrices1 = commonDates.Select(d => priceDict1[d]).ToList();
+            var alignedPrices2 = commonDates.Select(d => priceDict2[d]).ToList();
+
+            // Calculate returns from aligned prices
+            var returns1 = CalculateReturns(alignedPrices1);
+            var returns2 = CalculateReturns(alignedPrices2);
+
+            _logger.LogInformation("Correlation {Symbol1} vs {Symbol2}: {ReturnCount} return periods",
+                symbol1, symbol2, returns1.Count);
+
+            if (returns1.Count < 2 || returns2.Count < 2)
+            {
+                _logger.LogWarning("Insufficient returns for correlation: {Count}", returns1.Count);
+                return 0;
+            }
 
             // Calculate correlation coefficient
             var mean1 = returns1.Average();
@@ -248,12 +298,21 @@ public class RiskAnalysisService
             var stdDev1 = (decimal)Math.Sqrt((double)variance1);
             var stdDev2 = (decimal)Math.Sqrt((double)variance2);
 
+            _logger.LogInformation("Correlation {Symbol1} vs {Symbol2}: stdDev1={StdDev1}, stdDev2={StdDev2}, cov={Cov}",
+                symbol1, symbol2, stdDev1, stdDev2, covariance);
+
             if (stdDev1 == 0 || stdDev2 == 0)
             {
+                _logger.LogWarning("Zero standard deviation: stdDev1={StdDev1}, stdDev2={StdDev2}",
+                    stdDev1, stdDev2);
                 return 0;
             }
 
-            return covariance / (stdDev1 * stdDev2);
+            var correlation = covariance / (stdDev1 * stdDev2);
+            _logger.LogInformation("Correlation {Symbol1} vs {Symbol2}: {Correlation}",
+                symbol1, symbol2, correlation);
+
+            return correlation;
         }
         catch (Exception ex)
         {

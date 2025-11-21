@@ -1,6 +1,5 @@
 import React from 'react';
 import { Card, CardContent, Typography, Box, Stack, Divider, Chip } from '@mui/material';
-import { formatPercent } from '../../utils/exportHelpers';
 import type { RiskMetrics } from '../../api/portfolioAnalytics';
 
 interface RiskMetricsCardProps {
@@ -32,11 +31,11 @@ export const RiskMetricsCard: React.FC<RiskMetricsCardProps> = ({
     maxDrawdownDate,
   } = riskMetrics;
 
-  // Risk level classification
+  // Risk level classification (volatility is already in percentage form)
   const getVolatilityLevel = (vol: number) => {
-    if (vol < 0.10) return { label: 'Low', color: 'success' as const };
-    if (vol < 0.20) return { label: 'Moderate', color: 'info' as const };
-    if (vol < 0.30) return { label: 'High', color: 'warning' as const };
+    if (vol < 10) return { label: 'Low', color: 'success' as const };
+    if (vol < 20) return { label: 'Moderate', color: 'info' as const };
+    if (vol < 30) return { label: 'High', color: 'warning' as const };
     return { label: 'Very High', color: 'error' as const };
   };
 
@@ -64,7 +63,7 @@ export const RiskMetricsCard: React.FC<RiskMetricsCardProps> = ({
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
               <Typography variant="h5">
-                {formatPercent(volatility)}
+                {volatility.toFixed(2)}%
               </Typography>
               <Chip
                 label={volatilityLevel.label}
@@ -111,7 +110,7 @@ export const RiskMetricsCard: React.FC<RiskMetricsCardProps> = ({
               Maximum Drawdown
             </Typography>
             <Typography variant="h5" color="error.main" sx={{ mt: 0.5 }}>
-              {formatPercent(maxDrawdown)}
+              {maxDrawdown.toFixed(2)}%
             </Typography>
             <Typography variant="caption" color="text.secondary">
               Largest peak-to-trough decline
