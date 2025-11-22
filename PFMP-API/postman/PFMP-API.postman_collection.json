@@ -169,13 +169,40 @@
     },
     {
       "name": "Holdings",
+      "description": "Holdings are automatically synchronized with Transactions. When you create/update/delete transactions with symbols, the corresponding holdings are automatically created or updated with correct quantities and weighted average cost basis. Use INITIAL_BALANCE transactions to onboard existing portfolios.",
       "item": [
         {
           "name": "List Holdings by Account",
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/holdings?accountId={{accountId}}"
-          }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is array\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});",
+                  "",
+                  "if (pm.response.json().length > 0) {",
+                  "    var firstHolding = pm.response.json()[0];",
+                  "    pm.collectionVariables.set('holdingId', firstHolding.holdingId);",
+                  "    console.log('Holdings found:', pm.response.json().length);",
+                  "    console.log('First holding:', firstHolding.symbol, '-', firstHolding.quantity, 'shares @', firstHolding.averageCostBasis);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
         },
         {
           "name": "Get Holding",
@@ -266,13 +293,34 @@
     },
     {
       "name": "Transactions",
+      "description": "Investment transactions automatically create and update Holdings. Use INITIAL_BALANCE to onboard existing portfolios. BUY/SELL transactions update quantities and weighted average cost basis using FIFO. Supports 26+ transaction types including stocks, ETFs, crypto, TSP funds, dividends, splits, and more.",
       "item": [
         {
           "name": "List Transactions (by Account)",
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/transactions?accountId={{accountId}}"
-          }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "if (pm.response.json().length > 0) {",
+                  "    var firstTxn = pm.response.json()[0];",
+                  "    pm.collectionVariables.set('transactionId', firstTxn.transactionId);",
+                  "    console.log('Transactions found:', pm.response.json().length);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
         },
         {
           "name": "List Transactions (by Holding)",
@@ -337,6 +385,82 @@
             },
             "url": "{{baseUrl}}/api/transactions"
           }
+        },
+        {
+          "name": "Create Transaction (INITIAL_BALANCE)",
+          "request": {
+            "method": "POST",
+            "header": [{"key":"Content-Type","value":"application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": {{accountId}},\n  \"transactionType\": \"INITIAL_BALANCE\",\n  \"symbol\": \"VOO\",\n  \"name\": \"Vanguard S&P 500 ETF\",\n  \"quantity\": 80,\n  \"price\": 390.00,\n  \"amount\": -31200.00,\n  \"fee\": 0,\n  \"transactionDate\": \"2023-01-01T00:00:00Z\",\n  \"settlementDate\": \"2023-01-01T00:00:00Z\",\n  \"isTaxable\": true,\n  \"costBasis\": 31200.00,\n  \"source\": 0,\n  \"description\": \"Initial portfolio onboarding - existing position\"\n}"
+            },
+            "url": "{{baseUrl}}/api/transactions"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// INITIAL_BALANCE transactions automatically:",
+                  "// 1. Create a new Holding if symbol doesn't exist",
+                  "// 2. Set quantity and average cost basis",
+                  "// 3. Establish purchase date and tax status",
+                  "// 4. Infer asset type from symbol (ends with -USD = crypto, starts with TSP = TSP fund, else stock/ETF)",
+                  "",
+                  "pm.test(\"Status code is 200 or 201\", function () {",
+                  "    pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has transactionId\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.transactionId).to.exist;",
+                  "    pm.collectionVariables.set('transactionId', jsonData.transactionId);",
+                  "});",
+                  "",
+                  "pm.test(\"Holding auto-created or linked\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.holdingId).to.exist;",
+                  "    pm.collectionVariables.set('holdingId', jsonData.holdingId);",
+                  "    console.log('Transaction linked to HoldingId:', jsonData.holdingId);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Transaction (SELL)",
+          "request": {
+            "method": "POST",
+            "header": [{"key":"Content-Type","value":"application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": {{accountId}},\n  \"holdingId\": {{holdingId}},\n  \"transactionType\": \"SELL\",\n  \"symbol\": \"AAPL\",\n  \"quantity\": 50,\n  \"price\": 180.00,\n  \"amount\": 9000.00,\n  \"fee\": 9.95,\n  \"transactionDate\": \"2024-06-15T14:30:00Z\",\n  \"settlementDate\": \"2024-06-17T00:00:00Z\",\n  \"isTaxable\": true,\n  \"realizedGain\": 1490.05,\n  \"source\": 0,\n  \"description\": \"Partial position sale\"\n}"
+            },
+            "url": "{{baseUrl}}/api/transactions"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// SELL transactions automatically:",
+                  "// 1. Reduce holding quantity",
+                  "// 2. Recalculate average cost basis using FIFO",
+                  "// 3. Calculate realized gains",
+                  "",
+                  "pm.test(\"Status code is 200 or 201\", function () {",
+                  "    pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
         },
         {
           "name": "Update Transaction",
@@ -638,6 +762,8 @@
     { "key": "taskId", "value": "1" },
     { "key": "accountId", "value": "1" },
     { "key": "cashAccountId", "value": "00000000-0000-0000-0000-000000000000" },
+    { "key": "holdingId", "value": "1" },
+    { "key": "transactionId", "value": "1" },
     { "key": "alertId", "value": "1" },
     { "key": "goalId", "value": "1" },
     { "key": "incomeSourceId", "value": "1" },
