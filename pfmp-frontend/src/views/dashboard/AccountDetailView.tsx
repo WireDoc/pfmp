@@ -22,6 +22,7 @@ import { PerformanceTab } from '../../components/analytics/PerformanceTab';
 import { TaxInsightsTab } from '../../components/analytics/TaxInsightsTab';
 import { RiskAnalysisTab } from '../../components/analytics/RiskAnalysisTab';
 import { AllocationTab } from '../../components/analytics/AllocationTab';
+import { InvestmentTransactionList } from '../../components/investment-accounts/InvestmentTransactionList';
 import { getAccount, type AccountResponse } from '../../services/accountsApi';
 import type { Holding } from '../../types/holdings';
 
@@ -338,12 +339,10 @@ export function AccountDetailView() {
       )}
 
       <TabPanel value={tabValue} index={isInvestmentAccount ? 5 : 0}>
-        <Paper sx={{ p: 3 }}>
-          {isInvestmentAccount ? (
-            <Typography variant="body1" color="text.secondary">
-              Transaction history coming soon...
-            </Typography>
-          ) : (
+        {isInvestmentAccount ? (
+          <InvestmentTransactionList accountId={Number(accountId)} />
+        ) : (
+          <Paper sx={{ p: 3 }}>
             <Box>
               <Typography variant="h6" gutterBottom>
                 {accountCategory === 'loan' ? 'Loan Account View' : 
@@ -364,8 +363,8 @@ export function AccountDetailView() {
                   'Transaction history and account-specific features coming soon.'}
               </Typography>
             </Box>
-          )}
-        </Paper>
+          </Paper>
+        )}
       </TabPanel>
 
       {/* Add/Edit Modal */}
