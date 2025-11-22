@@ -71,7 +71,8 @@ export const InvestmentTransactionForm: React.FC<InvestmentTransactionFormProps>
   // Initialize form with transaction data if editing
   useEffect(() => {
     if (transaction) {
-      setTransactionType(transaction.transactionType);
+      // Normalize transaction type to uppercase for consistency
+      setTransactionType((transaction.transactionType?.toUpperCase() || 'BUY') as TransactionType);
       setSymbol(transaction.symbol || '');
       setTransactionDate(new Date(transaction.transactionDate));
       setSettlementDate(new Date(transaction.settlementDate));

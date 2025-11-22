@@ -185,7 +185,9 @@ export const InvestmentTransactionList: React.FC<InvestmentTransactionListProps>
       field: 'transactionType',
       headerName: 'Type',
       width: 180,
-      renderCell: (params) => <TransactionTypeChip type={params.value} />,
+      renderCell: (params) => (
+        <TransactionTypeChip type={(params.value?.toUpperCase() || 'OTHER') as TransactionType} />
+      ),
     },
     {
       field: 'symbol',

@@ -36,9 +36,11 @@ const ICON_MAP: Record<string, React.ReactElement> = {
 };
 
 export const TransactionTypeChip: React.FC<TransactionTypeChipProps> = ({ type, size = 'small' }) => {
-  const color = getTransactionTypeColor(type);
-  const iconName = getTransactionTypeIcon(type);
-  const label = formatTransactionType(type);
+  // Normalize to uppercase for consistency (handles 'Buy' vs 'BUY' in database)
+  const normalizedType = (type?.toUpperCase() || 'OTHER') as TransactionType;
+  const color = getTransactionTypeColor(normalizedType);
+  const iconName = getTransactionTypeIcon(normalizedType);
+  const label = formatTransactionType(normalizedType);
   const icon = ICON_MAP[iconName] || ICON_MAP.Receipt;
 
   return (
