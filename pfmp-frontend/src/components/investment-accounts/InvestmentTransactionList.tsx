@@ -7,7 +7,6 @@ import {
   MenuItem,
   Button,
   Alert,
-  CircularProgress,
   Toolbar,
   IconButton,
   Tooltip,
@@ -15,15 +14,15 @@ import {
 import { DataGrid, type GridColDef, type GridPaginationModel, type GridSortModel } from '@mui/x-data-grid';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { Search, FileDownload, FilterListOff } from '@mui/icons-material';
-import { format, parse } from 'date-fns';
+import { Search, FileDownload, FilterListOff, Add } from '@mui/icons-material';
+import { format } from 'date-fns';
 import { TransactionTypeChip } from './TransactionTypeChip';
+import { InvestmentTransactionForm } from './InvestmentTransactionForm';
 import {
   fetchInvestmentTransactions,
   type FetchTransactionsParams,
 } from '../../services/investmentTransactionsApi';
 import type { InvestmentTransaction, TransactionType } from '../../types/investmentTransactions';
-import { INVESTMENT_TRANSACTION_TYPES, CRYPTO_TRANSACTION_TYPES } from '../../types/investmentTransactions';
 
 interface InvestmentTransactionListProps {
   accountId: number;
@@ -39,6 +38,10 @@ export const InvestmentTransactionList: React.FC<InvestmentTransactionListProps>
   const [transactions, setTransactions] = useState<InvestmentTransaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Form state
+  const [formOpen, setFormOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<InvestmentTransaction | null>(null);
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -253,8 +256,43 @@ export const InvestmentTransactionList: React.FC<InvestmentTransactionListProps>
   const handleRowClick = (params: any) => {
     if (onEditTransaction) {
       onEditTransaction(params.row);
+    } else {
+      // Open form for editing
+      setSelectedTransaction(params.row);
+      setFormOpen(true);
     }
   };
+
+  // Handle add transaction
+  const handleAddTransaction = () => {
+    setSelectedTransaction(null);
+    setFormOpen(true);
+  };
+
+  // Handle form close
+  const handleFormClose = () => {
+    setFormOpen(false);
+    setSelectedTransaction(null);
+  };
+
+  // Handle form success (refresh data)
+  const handleFormSuccess = () => {
+    fetchData();
+  };
+
+  // Get unique holdings from transactions for form
+  const holdings = React.useMemo(() => {
+    const symbolMap = new Map<string, number>();
+    transactions.forEach((t) => {
+      if (t.symbol && !symbolMap.has(t.symbol)) {
+        symbolMap.set(t.symbol, t.holdingId || 0);
+      }
+    });
+    return Array.from(symbolMap.entries()).map(([symbol, holdingId]) => ({
+      symbol,
+      holdingId,
+    }));
+  }, [transactions]);
 
   // Available transaction types for filter
   const transactionTypeOptions: { value: TransactionType | ''; label: string }[] = [
@@ -364,6 +402,19 @@ export const InvestmentTransactionList: React.FC<InvestmentTransactionListProps>
             </IconButton>
           </Tooltip>
 
+          {/* Add Transaction */}
+          <Tooltip title="Add Transaction">
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<Add />}
+              onClick={handleAddTransaction}
+              sx={{ ml: 1 }}
+            >
+              Add
+            </Button>
+          </Tooltip>
+
           <Box sx={{ flexGrow: 1 }} />
 
           {/* Transaction count */}
@@ -401,6 +452,16 @@ export const InvestmentTransactionList: React.FC<InvestmentTransactionListProps>
             }}
           />
         </Box>
+
+        {/* Transaction Form Modal */}
+        <InvestmentTransactionForm
+          open={formOpen}
+          accountId={accountId}
+          transaction={selectedTransaction}
+          holdings={holdings}
+          onClose={handleFormClose}
+          onSuccess={handleFormSuccess}
+        />
       </Paper>
     </LocalizationProvider>
   );
