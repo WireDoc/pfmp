@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
+using PFMP_API.Services;
 using System.ComponentModel.DataAnnotations;
 
 namespace PFMP_API.Controllers;
@@ -11,11 +12,16 @@ public class TransactionsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<TransactionsController> _logger;
+    private readonly HoldingsSyncService _holdingsSync;
 
-    public TransactionsController(ApplicationDbContext context, ILogger<TransactionsController> logger)
+    public TransactionsController(
+        ApplicationDbContext context, 
+        ILogger<TransactionsController> logger,
+        HoldingsSyncService holdingsSync)
     {
         _context = context;
         _logger = logger;
+        _holdingsSync = holdingsSync;
     }
 
     /// <summary>
@@ -88,10 +94,23 @@ public class TransactionsController : ControllerBase
             return BadRequest("Account not found");
         }
 
-        // Verify holding exists if provided
-        if (request.HoldingId.HasValue)
+        // For investment transactions, get or create holding automatically
+        Holding? holding = null;
+        if (!string.IsNullOrEmpty(request.Symbol))
         {
-            var holding = await _context.Holdings.FindAsync(request.HoldingId.Value);
+            // Auto-create holding if needed
+            holding = await _holdingsSync.GetOrCreateHoldingAsync(
+                request.AccountId, 
+                request.Symbol,
+                request.Symbol, // Use symbol as name initially
+                null); // Will infer asset type
+
+            request.HoldingId = holding.HoldingId;
+        }
+        else if (request.HoldingId.HasValue)
+        {
+            // Verify holding exists if provided
+            holding = await _context.Holdings.FindAsync(request.HoldingId.Value);
             if (holding == null)
             {
                 return BadRequest("Holding not found");
@@ -131,6 +150,12 @@ public class TransactionsController : ControllerBase
 
         _logger.LogInformation("Created transaction {TransactionId} ({Type}) for account {AccountId}", 
             transaction.TransactionId, transaction.TransactionType, transaction.AccountId);
+
+        // Update holding quantities and cost basis
+        if (holding != null)
+        {
+            await _holdingsSync.UpdateHoldingFromTransactionsAsync(holding.HoldingId);
+        }
 
         // Reload to get navigation properties
         transaction = await _context.Transactions
@@ -181,6 +206,12 @@ public class TransactionsController : ControllerBase
         _logger.LogInformation("Updated transaction {TransactionId} ({Type}) for account {AccountId}", 
             transaction.TransactionId, transaction.TransactionType, transaction.AccountId);
 
+        // Update holding quantities if this affects a holding
+        if (transaction.HoldingId.HasValue)
+        {
+            await _holdingsSync.UpdateHoldingFromTransactionsAsync(transaction.HoldingId.Value);
+        }
+
         // Reload to get navigation properties
         transaction = await _context.Transactions
             .Include(t => t.Account)
@@ -202,11 +233,19 @@ public class TransactionsController : ControllerBase
             return NotFound();
         }
 
+        var holdingId = transaction.HoldingId;
+
         _context.Transactions.Remove(transaction);
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("Deleted transaction {TransactionId} ({Type}) for account {AccountId}", 
             transaction.TransactionId, transaction.TransactionType, transaction.AccountId);
+
+        // Update holding quantities after deleting transaction
+        if (holdingId.HasValue)
+        {
+            await _holdingsSync.UpdateHoldingFromTransactionsAsync(holdingId.Value);
+        }
 
         return NoContent();
     }

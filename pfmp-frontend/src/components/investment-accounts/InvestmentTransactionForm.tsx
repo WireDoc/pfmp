@@ -114,7 +114,7 @@ export const InvestmentTransactionForm: React.FC<InvestmentTransactionFormProps>
     const prc = parseFloat(price) || 0;
     const f = parseFloat(fee) || 0;
 
-    if (transactionType === 'BUY') {
+    if (transactionType === 'BUY' || transactionType === 'INITIAL_BALANCE') {
       return -1 * (qty * prc + f); // Negative for cash outflow
     } else if (transactionType === 'SELL') {
       return qty * prc - f; // Positive for cash inflow
@@ -135,8 +135,8 @@ export const InvestmentTransactionForm: React.FC<InvestmentTransactionFormProps>
       return 'Settlement date must be on or after transaction date';
     }
 
-    // Quantity and price required for buy/sell/dividend reinvest
-    if (['BUY', 'SELL', 'DIVIDEND_REINVEST'].includes(transactionType)) {
+    // Quantity and price required for buy/sell/initial balance/dividend reinvest
+    if (['BUY', 'SELL', 'INITIAL_BALANCE', 'DIVIDEND_REINVEST'].includes(transactionType)) {
       if (!quantity || parseFloat(quantity) <= 0) {
         return 'Quantity must be greater than 0';
       }
@@ -254,12 +254,13 @@ export const InvestmentTransactionForm: React.FC<InvestmentTransactionFormProps>
     { value: 'INTEREST', label: 'Interest' },
     { value: 'SPLIT', label: 'Stock Split' },
     { value: 'SPINOFF', label: 'Spinoff' },
+    { value: 'INITIAL_BALANCE', label: 'Initial Balance (Onboarding)' },
     { value: 'CRYPTO_STAKING', label: 'Staking Reward' },
     { value: 'CRYPTO_SWAP', label: 'Crypto Swap' },
   ];
 
   // Show quantity/price fields for these types
-  const showQuantityPrice = ['BUY', 'SELL', 'DIVIDEND_REINVEST', 'CRYPTO_SWAP'].includes(transactionType);
+  const showQuantityPrice = ['BUY', 'SELL', 'INITIAL_BALANCE', 'DIVIDEND_REINVEST', 'CRYPTO_SWAP'].includes(transactionType);
   const showQuantityOnly = transactionType === 'DIVIDEND';
   const calculatedAmount = calculateAmount();
 

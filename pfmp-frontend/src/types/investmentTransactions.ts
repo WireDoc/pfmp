@@ -50,6 +50,7 @@ export type TransactionType =
   | 'INTEREST'
   | 'SPLIT'
   | 'SPINOFF'
+  | 'INITIAL_BALANCE' // For onboarding existing holdings
   // Cash Transactions
   | 'DEPOSIT'
   | 'WITHDRAWAL'
@@ -141,6 +142,7 @@ export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
   INTEREST: 'Interest',
   SPLIT: 'Stock Split',
   SPINOFF: 'Spinoff',
+  INITIAL_BALANCE: 'Initial Balance',
   DEPOSIT: 'Deposit',
   WITHDRAWAL: 'Withdrawal',
   TRANSFER: 'Transfer',
@@ -166,6 +168,7 @@ export const INVESTMENT_TRANSACTION_TYPES: TransactionType[] = [
   'INTEREST',
   'SPLIT',
   'SPINOFF',
+  'INITIAL_BALANCE',
 ];
 
 // Crypto-specific transaction types

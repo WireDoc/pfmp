@@ -98,6 +98,9 @@ namespace PFMP_API
 
             // Analytics Services (Wave 9.3 Option A)
             builder.Services.AddScoped<PerformanceCalculationService>();
+
+            // Holdings Sync Service (Wave 9.3 Holdings/Transactions synchronization)
+            builder.Services.AddScoped<HoldingsSyncService>();
             builder.Services.AddScoped<TaxInsightsService>();
             builder.Services.AddScoped<RiskAnalysisService>();
             builder.Services.AddScoped<BenchmarkDataService>();

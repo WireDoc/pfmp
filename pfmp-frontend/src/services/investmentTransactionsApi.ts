@@ -99,6 +99,7 @@ export function formatTransactionType(type: TransactionType): string {
     INTEREST: 'Interest',
     SPLIT: 'Stock Split',
     SPINOFF: 'Spinoff',
+    INITIAL_BALANCE: 'Initial Balance',
     DEPOSIT: 'Deposit',
     WITHDRAWAL: 'Withdrawal',
     TRANSFER: 'Transfer',
@@ -122,6 +123,7 @@ export function formatTransactionType(type: TransactionType): string {
 export function isIncreasingTransaction(type: TransactionType): boolean {
   return [
     'BUY',
+    'INITIAL_BALANCE',
     'DIVIDEND_REINVEST',
     'SPLIT',
     'CRYPTO_STAKING',
@@ -172,6 +174,7 @@ export function getTransactionTypeColor(
 export function getTransactionTypeIcon(type: TransactionType): string {
   switch (type) {
     case 'BUY':
+    case 'INITIAL_BALANCE':
     case 'DEPOSIT':
       return 'TrendingUp';
     case 'SELL':

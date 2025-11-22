@@ -121,6 +121,7 @@ namespace PFMP_API.Models
         public const string Interest = "INTEREST";
         public const string Split = "SPLIT";
         public const string Spinoff = "SPINOFF";
+        public const string InitialBalance = "INITIAL_BALANCE"; // For onboarding existing holdings
 
         // Cash Transactions
         public const string Deposit = "DEPOSIT";
