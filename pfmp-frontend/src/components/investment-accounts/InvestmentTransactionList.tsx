@@ -14,12 +14,13 @@ import {
 import { DataGrid, type GridColDef, type GridPaginationModel, type GridSortModel } from '@mui/x-data-grid';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { Search, FileDownload, FilterListOff, Add } from '@mui/icons-material';
+import { Search, FileDownload, FilterListOff, Add, Edit, Delete } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { TransactionTypeChip } from './TransactionTypeChip';
 import { InvestmentTransactionForm } from './InvestmentTransactionForm';
 import {
   fetchInvestmentTransactions,
+  deleteTransaction,
   type FetchTransactionsParams,
 } from '../../services/investmentTransactionsApi';
 import type { InvestmentTransaction, TransactionType } from '../../types/investmentTransactions';
@@ -250,23 +251,68 @@ export const InvestmentTransactionList: React.FC<InvestmentTransactionListProps>
       flex: 1,
       valueGetter: (value) => value || '-',
     },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 120,
+      sortable: false,
+      renderCell: (params) => (
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <Tooltip title="Edit Transaction">
+            <IconButton
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEditTransaction(params.row);
+              }}
+            >
+              <Edit fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Delete Transaction">
+            <IconButton
+              size="small"
+              color="error"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteTransaction(params.row);
+              }}
+            >
+              <Delete fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      ),
+    },
   ];
-
-  // Row click handler
-  const handleRowClick = (params: any) => {
-    if (onEditTransaction) {
-      onEditTransaction(params.row);
-    } else {
-      // Open form for editing
-      setSelectedTransaction(params.row);
-      setFormOpen(true);
-    }
-  };
 
   // Handle add transaction
   const handleAddTransaction = () => {
     setSelectedTransaction(null);
     setFormOpen(true);
+  };
+
+  // Handle edit transaction
+  const handleEditTransaction = (transaction: InvestmentTransaction) => {
+    if (onEditTransaction) {
+      onEditTransaction(transaction);
+    } else {
+      setSelectedTransaction(transaction);
+      setFormOpen(true);
+    }
+  };
+
+  // Handle delete transaction
+  const handleDeleteTransaction = async (transaction: InvestmentTransaction) => {
+    if (window.confirm(`Delete transaction: ${transaction.transactionType} ${transaction.symbol}?`)) {
+      try {
+        await deleteTransaction(transaction.transactionId);
+        fetchData();
+      } catch (err) {
+        console.error('Error deleting transaction:', err);
+        setError(err instanceof Error ? err.message : 'Failed to delete transaction');
+      }
+    }
   };
 
   // Handle form close
@@ -435,7 +481,6 @@ export const InvestmentTransactionList: React.FC<InvestmentTransactionListProps>
             onSortModelChange={setSortModel}
             pageSizeOptions={[25, 50, 100]}
             loading={loading}
-            onRowClick={handleRowClick}
             disableRowSelectionOnClick
             sx={{
               '& .amount-positive': {
@@ -445,9 +490,6 @@ export const InvestmentTransactionList: React.FC<InvestmentTransactionListProps>
               '& .amount-negative': {
                 color: 'error.main',
                 fontWeight: 500,
-              },
-              '& .MuiDataGrid-row:hover': {
-                cursor: 'pointer',
               },
             }}
           />

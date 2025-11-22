@@ -14,6 +14,7 @@ import {
   FormControlLabel,
   Checkbox,
   Stack,
+  Autocomplete,
 } from '@mui/material';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -74,12 +75,12 @@ export const InvestmentTransactionForm: React.FC<InvestmentTransactionFormProps>
       setSymbol(transaction.symbol || '');
       setTransactionDate(new Date(transaction.transactionDate));
       setSettlementDate(new Date(transaction.settlementDate));
-      setQuantity(transaction.quantity?.toString() || '');
-      setPrice(transaction.price?.toString() || '');
-      setFee(transaction.fee?.toString() || '');
+      setQuantity(transaction.quantity != null ? transaction.quantity.toString() : '');
+      setPrice(transaction.price != null ? transaction.price.toString() : '');
+      setFee(transaction.fee != null ? transaction.fee.toString() : '');
       setNotes(transaction.notes || '');
-      setIsDividendReinvestment(transaction.isDividendReinvestment);
-      setIsQualifiedDividend(transaction.isQualifiedDividend);
+      setIsDividendReinvestment(transaction.isDividendReinvestment || false);
+      setIsQualifiedDividend(transaction.isQualifiedDividend || false);
     } else {
       // Reset form for new transaction
       setTransactionType('BUY');
@@ -292,21 +293,22 @@ export const InvestmentTransactionForm: React.FC<InvestmentTransactionFormProps>
                 ))}
               </TextField>
 
-              <TextField
-                select
-                label="Symbol"
+              <Autocomplete
+                freeSolo
+                options={holdings.map((h) => h.symbol)}
                 value={symbol}
-                onChange={(e) => setSymbol(e.target.value)}
-                fullWidth
-                required
+                onChange={(event, newValue) => setSymbol(newValue || '')}
+                onInputChange={(event, newValue) => setSymbol(newValue)}
                 disabled={loading}
-              >
-                {holdings.map((holding) => (
-                  <MenuItem key={holding.holdingId} value={holding.symbol}>
-                    {holding.symbol}
-                  </MenuItem>
-                ))}
-              </TextField>
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Symbol"
+                    required
+                    helperText="Enter any stock, crypto, or fund symbol"
+                  />
+                )}
+              />
             </Box>
 
             {/* Transaction Date and Settlement Date */}
