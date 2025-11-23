@@ -23,6 +23,8 @@ import { TaxInsightsTab } from '../../components/analytics/TaxInsightsTab';
 import { RiskAnalysisTab } from '../../components/analytics/RiskAnalysisTab';
 import { AllocationTab } from '../../components/analytics/AllocationTab';
 import { InvestmentTransactionList } from '../../components/investment-accounts/InvestmentTransactionList';
+import { SkeletonAccountView } from '../../components/accounts/SkeletonAccountView';
+import { AccountSetupWizard } from '../../components/accounts/AccountSetupWizard';
 import { getAccount, type AccountResponse } from '../../services/accountsApi';
 import type { Holding } from '../../types/holdings';
 
@@ -84,12 +86,14 @@ export function AccountDetailView() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingHolding, setEditingHolding] = useState<Holding | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
   
   const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api';
   
   // Determine account category for conditional rendering
   const accountCategory = getAccountCategory(account?.accountType);
   const isInvestmentAccount = accountCategory === 'investment';
+  const isSkeletonAccount = account?.state === 'SKELETON';
 
   const fetchHoldings = useCallback(async () => {
     if (!accountId) return;
@@ -245,31 +249,44 @@ export function AccountDetailView() {
         refreshing={refreshing}
       />
 
-      {/* Action Bar */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Tabs value={tabValue} onChange={handleTabChange}>
-          {isInvestmentAccount && <Tab label="Holdings" />}
-          {isInvestmentAccount && <Tab label="Performance" />}
-          {isInvestmentAccount && <Tab label="Tax Insights" />}
-          {isInvestmentAccount && <Tab label="Risk Analysis" />}
-          {isInvestmentAccount && <Tab label="Allocation" />}
-          <Tab label="Transactions" />
-        </Tabs>
-        
-        {tabValue === 0 && isInvestmentAccount && (
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleAddHolding}
-          >
-            Add Holding
-          </Button>
-        )}
-      </Box>
+      {/* SKELETON Account View - No Tabs */}
+      {isInvestmentAccount && isSkeletonAccount && account && (
+        <SkeletonAccountView
+          account={account}
+          onBalanceUpdated={(updatedAccount) => {
+            setAccount(updatedAccount);
+          }}
+          onSetupClick={() => setWizardOpen(true)}
+        />
+      )}
 
-      {/* Tab Panels */}
-      {isInvestmentAccount && (
-        <TabPanel value={tabValue} index={0}>
+      {/* DETAILED Account View - Tabs */}
+      {isInvestmentAccount && !isSkeletonAccount && account && (
+        <>
+          {/* Action Bar */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Tabs value={tabValue} onChange={handleTabChange}>
+              <Tab label="Holdings" />
+              <Tab label="Performance" />
+              <Tab label="Tax Insights" />
+              <Tab label="Risk Analysis" />
+              <Tab label="Allocation" />
+              <Tab label="Transactions" />
+            </Tabs>
+            
+            {tabValue === 0 && (
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleAddHolding}
+              >
+                Add Holding
+              </Button>
+            )}
+          </Box>
+
+          {/* Tab Panels */}
+          <TabPanel value={tabValue} index={0}>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
               <CircularProgress />
@@ -308,73 +325,81 @@ export function AccountDetailView() {
             </Box>
           )}
         </TabPanel>
-      )}
 
-      {/* Performance Tab */}
-      {isInvestmentAccount && (
+        {/* Performance Tab */}
         <TabPanel value={tabValue} index={1}>
           <PerformanceTab accountId={Number(accountId)} />
         </TabPanel>
-      )}
 
-      {/* Tax Insights Tab */}
-      {isInvestmentAccount && (
+        {/* Tax Insights Tab */}
         <TabPanel value={tabValue} index={2}>
           <TaxInsightsTab accountId={Number(accountId)} />
         </TabPanel>
-      )}
 
-      {/* Risk Analysis Tab */}
-      {isInvestmentAccount && (
+        {/* Risk Analysis Tab */}
         <TabPanel value={tabValue} index={3}>
           <RiskAnalysisTab accountId={Number(accountId)} />
         </TabPanel>
-      )}
 
-      {/* Allocation Tab */}
-      {isInvestmentAccount && (
+        {/* Allocation Tab */}
         <TabPanel value={tabValue} index={4}>
           <AllocationTab accountId={Number(accountId)} />
         </TabPanel>
-      )}
 
-      <TabPanel value={tabValue} index={isInvestmentAccount ? 5 : 0}>
-        {isInvestmentAccount ? (
+        {/* Transactions Tab */}
+        <TabPanel value={tabValue} index={5}>
           <InvestmentTransactionList accountId={Number(accountId)} />
-        ) : (
-          <Paper sx={{ p: 3 }}>
-            <Box>
-              <Typography variant="h6" gutterBottom>
-                {accountCategory === 'loan' ? 'Loan Account View' : 
-                 accountCategory === 'credit' ? 'Credit Card View' : 
-                 'Account View'}
-              </Typography>
-              <Typography variant="body1" color="text.secondary" paragraph>
-                This account type will have a dedicated detail view in a future update (Wave 9.3+).
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {accountCategory === 'cash' && 
-                  'This is a legacy cash account. New cash accounts use our enhanced UUID-based system with advanced transaction tracking. Visit the Accounts page to manage your cash accounts.'}
-                {accountCategory === 'loan' && 
-                  'Coming soon: Payment schedule, amortization calculator, principal/interest breakdown, and payoff calculator.'}
-                {accountCategory === 'credit' && 
-                  'Coming soon: Transaction history, spending breakdown by category, payment tracking, and credit utilization.'}
-                {accountCategory === 'other' && 
-                  'Transaction history and account-specific features coming soon.'}
-              </Typography>
-            </Box>
-          </Paper>
-        )}
-      </TabPanel>
+        </TabPanel>
 
-      {/* Add/Edit Modal */}
-      {isInvestmentAccount && (
+        {/* Add/Edit Modal */}
         <HoldingFormModal
           open={modalOpen}
           holding={editingHolding}
           accountId={Number(accountId)}
           onClose={handleModalClose}
           onSave={handleModalSave}
+        />
+        </>
+      )}
+
+      {/* Non-Investment Account View */}
+      {!isInvestmentAccount && (
+        <Paper sx={{ p: 3 }}>
+          <Box>
+            <Typography variant="h6" gutterBottom>
+              {accountCategory === 'loan' ? 'Loan Account View' : 
+               accountCategory === 'credit' ? 'Credit Card View' : 
+               'Account View'}
+            </Typography>
+            <Typography variant="body1" color="text.secondary" paragraph>
+              This account type will have a dedicated detail view in a future update (Wave 9.3+).
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {accountCategory === 'cash' && 
+                'This is a legacy cash account. New cash accounts use our enhanced UUID-based system with advanced transaction tracking. Visit the Accounts page to manage your cash accounts.'}
+              {accountCategory === 'loan' && 
+                'Coming soon: Payment schedule, amortization calculator, principal/interest breakdown, and payoff calculator.'}
+              {accountCategory === 'credit' && 
+                'Coming soon: Transaction history, spending breakdown by category, payment tracking, and credit utilization.'}
+              {accountCategory === 'other' && 
+                'Transaction history and account-specific features coming soon.'}
+            </Typography>
+          </Box>
+        </Paper>
+      )}
+
+      {/* Account Setup Wizard */}
+      {isInvestmentAccount && isSkeletonAccount && (
+        <AccountSetupWizard
+          open={wizardOpen}
+          account={account}
+          onClose={() => setWizardOpen(false)}
+          onComplete={(updatedAccount) => {
+            setAccount(updatedAccount);
+            setWizardOpen(false);
+            // Refresh holdings after transition
+            fetchHoldings();
+          }}
         />
       )}
     </Box>

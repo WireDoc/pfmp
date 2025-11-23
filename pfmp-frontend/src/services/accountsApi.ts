@@ -15,6 +15,7 @@ export interface AccountResponse {
   interestRate?: number;
   maturityDate?: string;
   isEmergencyFund: boolean;
+  state: string; // "SKELETON" or "DETAILED"
   createdAt: string;
   updatedAt: string;
   lastBalanceUpdate?: string;
@@ -58,6 +59,46 @@ export async function deleteAccount(accountId: number): Promise<void> {
 export async function listUserAccounts(userId: number): Promise<AccountResponse[]> {
   const response = await axios.get<AccountResponse[]>(
     `${API_BASE}/accounts/user/${userId}`
+  );
+  return response.data;
+}
+
+// SKELETON account operations
+export interface UpdateBalanceRequest {
+  newBalance: number;
+}
+
+export interface InitialHoldingRequest {
+  symbol: string;
+  name?: string;
+  assetType: number;
+  quantity: number;
+  price: number;
+}
+
+export interface TransitionToDetailedRequest {
+  holdings: InitialHoldingRequest[];
+  acquisitionDate: string;
+}
+
+export async function updateAccountBalance(
+  accountId: number,
+  newBalance: number
+): Promise<AccountResponse> {
+  const response = await axios.patch<AccountResponse>(
+    `${API_BASE}/accounts/${accountId}/balance`,
+    { newBalance }
+  );
+  return response.data;
+}
+
+export async function transitionToDetailed(
+  accountId: number,
+  request: TransitionToDetailedRequest
+): Promise<AccountResponse> {
+  const response = await axios.post<AccountResponse>(
+    `${API_BASE}/accounts/${accountId}/transition-to-detailed`,
+    request
   );
   return response.data;
 }

@@ -43,6 +43,7 @@ export interface Account {
   hasAPIIntegration: boolean;
   isEmergencyFund: boolean;
   tspAllocation?: TSPAllocation;
+  state: string; // "SKELETON" or "DETAILED"
   createdAt: string;
   updatedAt: string;
 }
