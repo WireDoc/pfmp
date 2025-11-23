@@ -374,6 +374,11 @@ namespace PFMP_API.Migrations
                     b.Property<DateTime?>("RateLastChecked")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<decimal?>("TSPEmployerMatch")
                         .HasColumnType("decimal(18,2)");
 

@@ -48,6 +48,15 @@ namespace PFMP_API.Models
         public DateTime? LastAPISync { get; set; }
         public string? APIConnectionStatus { get; set; }
 
+        // Account State (Skeleton vs Detailed)
+        [Required]
+        [MaxLength(20)]
+        public string State { get; set; } = "DETAILED";
+
+        // Helper methods for state
+        public bool IsSkeleton() => State == "SKELETON";
+        public bool IsDetailed() => State == "DETAILED";
+
         // TSP Specific Fields
         [Column(TypeName = "decimal(18,2)")]
         public decimal? TSPMonthlyContribution { get; set; }

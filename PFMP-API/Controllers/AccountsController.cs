@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
 using PFMP_API.Models.DTOs;
+using PFMP_API.DTOs;
 
 namespace PFMP_API.Controllers
 {
@@ -149,6 +150,7 @@ namespace PFMP_API.Controllers
                     CurrentBalance = createRequest.Balance,
                     AccountNumber = createRequest.AccountNumber,
                     Purpose = createRequest.Purpose,
+                    State = "SKELETON",  // NEW: Start as SKELETON
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
@@ -156,6 +158,41 @@ namespace PFMP_API.Controllers
                 };
 
                 _context.Accounts.Add(account);
+                await _context.SaveChangesAsync();
+
+                // Create $CASH holding for SKELETON account
+                var cashHolding = new Holding
+                {
+                    AccountId = account.AccountId,
+                    Symbol = "$CASH",
+                    Name = "Cash",
+                    AssetType = AssetType.Cash,
+                    Quantity = createRequest.Balance,
+                    AverageCostBasis = 1.00m,
+                    CurrentPrice = 1.00m,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.Holdings.Add(cashHolding);
+                await _context.SaveChangesAsync();
+
+                // Create INITIAL_BALANCE transaction for $CASH
+                var transaction = new Transaction
+                {
+                    AccountId = account.AccountId,
+                    HoldingId = cashHolding.HoldingId,
+                    TransactionType = "INITIAL_BALANCE",
+                    Symbol = "$CASH",
+                    Quantity = createRequest.Balance,
+                    Price = 1.00m,
+                    Amount = createRequest.Balance,
+                    TransactionDate = DateTime.UtcNow,
+                    SettlementDate = DateTime.UtcNow,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Transactions.Add(transaction);
                 await _context.SaveChangesAsync();
 
                 return CreatedAtAction("GetAccount", new { id = account.AccountId }, account);
@@ -187,6 +224,167 @@ namespace PFMP_API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting account {AccountId}", id);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        // PATCH: api/Accounts/5/balance
+        [HttpPatch("{id}/balance")]
+        public async Task<IActionResult> UpdateBalance(int id, [FromBody] UpdateBalanceRequest request)
+        {
+            try
+            {
+                var account = await _context.Accounts
+                    .Include(a => a.Holdings)
+                    .FirstOrDefaultAsync(a => a.AccountId == id);
+
+                if (account == null)
+                {
+                    return NotFound($"Account with ID {id} not found");
+                }
+
+                if (!account.IsSkeleton())
+                {
+                    return BadRequest("Cannot update balance on a DETAILED account. Balance is calculated from holdings.");
+                }
+
+                // Find the $CASH holding
+                var cashHolding = account.Holdings?.FirstOrDefault(h => h.Symbol == "$CASH");
+                if (cashHolding == null)
+                {
+                    return StatusCode(500, "SKELETON account missing $CASH holding");
+                }
+
+                // Update account balance
+                var oldBalance = account.CurrentBalance;
+                account.CurrentBalance = request.NewBalance;
+                account.UpdatedAt = DateTime.UtcNow;
+                account.LastBalanceUpdate = DateTime.UtcNow;
+
+                // Update $CASH holding quantity
+                cashHolding.Quantity = request.NewBalance;
+                cashHolding.UpdatedAt = DateTime.UtcNow;
+
+                // Create transaction for balance adjustment
+                var adjustmentAmount = request.NewBalance - oldBalance;
+                if (adjustmentAmount != 0)
+                {
+                    var transaction = new Transaction
+                    {
+                        AccountId = account.AccountId,
+                        HoldingId = cashHolding.HoldingId,
+                        TransactionType = adjustmentAmount > 0 ? "DEPOSIT" : "WITHDRAWAL",
+                        Symbol = "$CASH",
+                        Quantity = Math.Abs(adjustmentAmount),
+                        Price = 1.00m,
+                        Amount = adjustmentAmount,
+                        TransactionDate = DateTime.UtcNow,
+                        SettlementDate = DateTime.UtcNow,
+                        Description = "Balance adjustment",
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    _context.Transactions.Add(transaction);
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(account);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating balance for account {AccountId}", id);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        // POST: api/Accounts/5/transition-to-detailed
+        [HttpPost("{id}/transition-to-detailed")]
+        public async Task<IActionResult> TransitionToDetailed(int id, [FromBody] TransitionToDetailedRequest request)
+        {
+            try
+            {
+                var account = await _context.Accounts
+                    .Include(a => a.Holdings)
+                    .FirstOrDefaultAsync(a => a.AccountId == id);
+
+                if (account == null)
+                {
+                    return NotFound($"Account with ID {id} not found");
+                }
+
+                if (!account.IsSkeleton())
+                {
+                    return BadRequest("Account is already DETAILED");
+                }
+
+                // Validate holdings total matches account balance
+                var holdingsTotal = request.Holdings.Sum(h => h.Quantity * h.Price);
+                if (Math.Abs(holdingsTotal - account.CurrentBalance) > 0.01m)
+                {
+                    return BadRequest($"Holdings total ({holdingsTotal:C}) must match account balance ({account.CurrentBalance:C})");
+                }
+
+                // Remove $CASH holding and its transactions
+                var cashHolding = account.Holdings?.FirstOrDefault(h => h.Symbol == "$CASH");
+                if (cashHolding != null)
+                {
+                    var cashTransactions = await _context.Transactions
+                        .Where(t => t.HoldingId == cashHolding.HoldingId)
+                        .ToListAsync();
+                    _context.Transactions.RemoveRange(cashTransactions);
+                    _context.Holdings.Remove(cashHolding);
+                }
+
+                // Create new holdings
+                foreach (var holdingRequest in request.Holdings)
+                {
+                    var holding = new Holding
+                    {
+                        AccountId = account.AccountId,
+                        Symbol = holdingRequest.Symbol,
+                        Name = holdingRequest.Name ?? holdingRequest.Symbol,
+                        AssetType = holdingRequest.AssetType,
+                        Quantity = holdingRequest.Quantity,
+                        AverageCostBasis = holdingRequest.Price,
+                        CurrentPrice = holdingRequest.Price,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+
+                    _context.Holdings.Add(holding);
+                    await _context.SaveChangesAsync(); // Save to get HoldingId
+
+                    // Create BUY transaction for each holding
+                    var transaction = new Transaction
+                    {
+                        AccountId = account.AccountId,
+                        HoldingId = holding.HoldingId,
+                        TransactionType = "BUY",
+                        Symbol = holding.Symbol,
+                        Quantity = holding.Quantity,
+                        Price = holdingRequest.Price,
+                        Amount = holding.Quantity * holdingRequest.Price,
+                        TransactionDate = request.AcquisitionDate,
+                        SettlementDate = request.AcquisitionDate,
+                        Description = "Initial holding from setup wizard",
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    _context.Transactions.Add(transaction);
+                }
+
+                // Transition account to DETAILED state
+                account.State = "DETAILED";
+                account.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                return Ok(account);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error transitioning account {AccountId} to DETAILED", id);
                 return StatusCode(500, "Internal server error");
             }
         }
