@@ -339,6 +339,9 @@ namespace PFMP_API.Controllers
                 // Create new holdings
                 foreach (var holdingRequest in request.Holdings)
                 {
+                    // Use per-holding date if provided, otherwise fall back to request-level date
+                    var acquisitionDate = holdingRequest.PurchaseDate ?? request.AcquisitionDate;
+
                     var holding = new Holding
                     {
                         AccountId = account.AccountId,
@@ -348,6 +351,7 @@ namespace PFMP_API.Controllers
                         Quantity = holdingRequest.Quantity,
                         AverageCostBasis = holdingRequest.Price,
                         CurrentPrice = holdingRequest.Price,
+                        PurchaseDate = acquisitionDate,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
                     };
@@ -365,8 +369,8 @@ namespace PFMP_API.Controllers
                         Quantity = holding.Quantity,
                         Price = holdingRequest.Price,
                         Amount = holding.Quantity * holdingRequest.Price,
-                        TransactionDate = request.AcquisitionDate,
-                        SettlementDate = request.AcquisitionDate,
+                        TransactionDate = acquisitionDate,
+                        SettlementDate = acquisitionDate,
                         Description = "Initial holding from setup wizard",
                         CreatedAt = DateTime.UtcNow
                     };

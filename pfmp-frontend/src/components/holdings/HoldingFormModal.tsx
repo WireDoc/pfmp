@@ -10,9 +10,12 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import Grid from '@mui/material/Grid';
 import type { Holding, CreateHoldingRequest, UpdateHoldingRequest } from '../../types/holdings';
-import { AssetTypeEnum, AssetTypeLabels } from '../../types/holdings';
+import { AssetTypeEnum, AssetTypeLabels, AssetTypeNameToValue } from '../../types/holdings';
 
 interface HoldingFormModalProps {
   open: boolean;
@@ -33,6 +36,7 @@ interface FormData {
   beta: string;
   sectorAllocation: string;
   notes: string;
+  purchaseDate: Date | null;
 }
 
 const initialFormData: FormData = {
@@ -46,6 +50,7 @@ const initialFormData: FormData = {
   beta: '',
   sectorAllocation: '',
   notes: '',
+  purchaseDate: null,
 };
 
 export function HoldingFormModal({ open, onClose, onSave, holding, accountId }: HoldingFormModalProps) {
@@ -56,10 +61,20 @@ export function HoldingFormModal({ open, onClose, onSave, holding, accountId }: 
   // Populate form when editing
   useEffect(() => {
     if (holding) {
+      // Backend returns assetType as enum name string (e.g., "Cryptocurrency", "Stock")
+      // Convert to numeric value for the form
+      let assetTypeNum: number;
+      if (typeof holding.assetType === 'string') {
+        // Try reverse lookup first (enum name), fallback to parsing as number
+        assetTypeNum = AssetTypeNameToValue[holding.assetType] ?? parseInt(holding.assetType, 10);
+      } else {
+        assetTypeNum = holding.assetType;
+      }
+      
       setFormData({
         symbol: holding.symbol,
         name: holding.name || '',
-        assetType: parseInt(holding.assetType) || AssetTypeEnum.Stock,
+        assetType: !isNaN(assetTypeNum) ? assetTypeNum : AssetTypeEnum.Stock,
         quantity: holding.quantity.toString(),
         averageCostBasis: holding.averageCostBasis.toString(),
         currentPrice: holding.currentPrice.toString(),
@@ -67,6 +82,7 @@ export function HoldingFormModal({ open, onClose, onSave, holding, accountId }: 
         beta: holding.beta?.toString() || '',
         sectorAllocation: holding.sectorAllocation || '',
         notes: holding.notes || '',
+        purchaseDate: holding.purchaseDate ? new Date(holding.purchaseDate) : null,
       });
     } else {
       setFormData(initialFormData);
@@ -128,6 +144,7 @@ export function HoldingFormModal({ open, onClose, onSave, holding, accountId }: 
             beta: formData.beta ? parseFloat(formData.beta) : undefined,
             sectorAllocation: formData.sectorAllocation || undefined,
             notes: formData.notes || undefined,
+            purchaseDate: formData.purchaseDate ? formData.purchaseDate.toISOString() : undefined,
           }
         : {
             accountId,
@@ -141,6 +158,7 @@ export function HoldingFormModal({ open, onClose, onSave, holding, accountId }: 
             beta: formData.beta ? parseFloat(formData.beta) : undefined,
             sectorAllocation: formData.sectorAllocation || undefined,
             notes: formData.notes || undefined,
+            purchaseDate: formData.purchaseDate ? formData.purchaseDate.toISOString() : undefined,
           };
 
       const response = await fetch(url, {
@@ -173,21 +191,22 @@ export function HoldingFormModal({ open, onClose, onSave, holding, accountId }: 
     .sort((a, b) => a.label.localeCompare(b.label));
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>{holding ? 'Edit Holding' : 'Add Holding'}</DialogTitle>
-      <DialogContent>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-        <Grid container spacing={2} sx={{ mt: 1 }}>
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <TextField
-              label="Symbol"
-              value={formData.symbol}
-              onChange={handleChange('symbol')}
-              fullWidth
+    <LocalizationProvider dateAdapter={AdapterDateFns}>
+      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+        <DialogTitle>{holding ? 'Edit Holding' : 'Add Holding'}</DialogTitle>
+        <DialogContent>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                label="Symbol"
+                value={formData.symbol}
+                onChange={handleChange('symbol')}
+                fullWidth
               required
               disabled={loading}
               placeholder="e.g., AAPL"
@@ -259,6 +278,20 @@ export function HoldingFormModal({ open, onClose, onSave, holding, accountId }: 
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
+            <DatePicker
+              label="Acquisition Date"
+              value={formData.purchaseDate}
+              onChange={(newValue) => setFormData(prev => ({ ...prev, purchaseDate: newValue }))}
+              disabled={loading}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  helperText: 'Date this holding was purchased',
+                },
+              }}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <TextField
               label="Annual Dividend Yield (%)"
               type="number"
@@ -318,7 +351,8 @@ export function HoldingFormModal({ open, onClose, onSave, holding, accountId }: 
         >
           {holding ? 'Update' : 'Add'}
         </Button>
-      </DialogActions>
-    </Dialog>
+        </DialogActions>
+      </Dialog>
+    </LocalizationProvider>
   );
 }

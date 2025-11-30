@@ -31,7 +31,17 @@
    - API: http://localhost:5052
    - Frontend: http://localhost:3000
    - Package management: use **npm** for all frontend scripts; pnpm and yarn are not supported in this repo.
-4. Close the spawned windows to stop services. Restart the API window after any controller, DTO, or EF model change.
+   - **Note**: The script has built-in timing—the terminal isn't ready until servers finish starting. No `sleep` commands needed before subsequent commands.
+4. To restart servers (stop if running, then start fresh):
+   ```powershell
+   .\restart-dev-servers.bat
+   ```
+   - Use this after any controller, DTO, or EF model change, or when a clean restart is needed.
+   - Also has built-in timing—wait for completion before running further commands.
+5. To stop servers only (without restarting):
+   ```powershell
+   .\stop-dev-servers.bat
+   ```
 
 ## 3. Manual service control & probes
 
@@ -55,15 +65,15 @@ Invoke-WebRequest -Uri "http://localhost:3000"
 
 - Before any manual QA run, (re)launch services with:
    ```powershell
-   cd C:\pfmp; .\start-dev-servers.bat
+   cd C:\pfmp; .\restart-dev-servers.bat
    ```
-- When a clean restart is needed mid-session, run `stop-dev-servers.bat` first, then relaunch:
+   This stops any running servers and starts fresh. The script has built-in timing—no sleep commands needed.
+- Follow the scenarios documented in `docs/testing/` (wave-specific smoke scripts, onboarding flows, alerts/tasks exercises) and record gaps in the relevant guide.
+- After finishing functional testing—or before switching contexts—shut everything down with:
    ```powershell
    cd C:\pfmp; .\stop-dev-servers.bat
-   cd C:\pfmp; .\start-dev-servers.bat
    ```
-- Follow the scenarios documented in `docs/testing/` (wave-specific smoke scripts, onboarding flows, alerts/tasks exercises) and record gaps in the relevant guide.
-- After finishing functional testing—or before switching contexts—shut everything down with `stop-dev-servers.bat` to avoid orphan ports and stale caches.
+   to avoid orphan ports and stale caches.
 
 ## 5. Handy command patterns
 
@@ -71,8 +81,11 @@ Invoke-WebRequest -Uri "http://localhost:3000"
 # Build + lint sanity check (npm is the standard package runner—do not substitute pnpm)
 cd C:\pfmp; dotnet build PFMP-API/PFMP-API.csproj; npm run lint --prefix pfmp-frontend
 
-# Restart helper (after edits)
-cd C:\pfmp; .\start-dev-servers.bat
+# Restart servers (stops if running, then starts—has built-in timing)
+cd C:\pfmp; .\restart-dev-servers.bat
+
+# Stop servers only
+cd C:\pfmp; .\stop-dev-servers.bat
 
 # Git snapshot
 cd C:\pfmp; git status; git log --oneline -5
@@ -80,7 +93,7 @@ cd C:\pfmp; git status; git log --oneline -5
 # Quick PostgreSQL query (remote dev DB)
 psql "postgresql://pfmp_user:MediaPword.1@192.168.1.108:5433/pfmp_dev" --% -c "SELECT COUNT(*) FROM \"Users\";"
 
-# Kill stray dev processes (use cautiously)
+# Kill stray dev processes (use cautiously—prefer stop-dev-servers.bat)
 Stop-Process -Name "dotnet" -Force -ErrorAction SilentlyContinue
 Stop-Process -Name "node"  -Force -ErrorAction SilentlyContinue
 ```
@@ -112,37 +125,6 @@ Log monitoring: keep the API and frontend PowerShell windows visible, and use th
   - Test accounts & bypass steps: `docs/auth/getting-started.md`
 
 Stay disciplined: follow these instructions for rapid onboarding, keep the documentation tree coherent, and surface any gaps in `docs/meta/documentation-strategy.md` so the audit trail remains accurate.
-
-## 8. MCP PostgreSQL integration (AI database access)
-
-The PFMP project includes a custom Model Context Protocol (MCP) server that exposes PostgreSQL database operations to AI assistants. This enables natural-language database queries without manual SQL.
-
-**When to use MCP tools**:
-- **Database schema inspection**: When asked about table structures, columns, constraints, or foreign key relationships
-- **Data exploration**: When asked to query specific records, count rows, or examine database contents
-- **User data operations**: When asked to clone user data, analyze user-specific records, or inspect test data
-- **Database debugging**: When troubleshooting data issues, checking record counts, or validating migrations
-
-**Available MCP tools** (prefix requests with "Using MCP Postgres"):
-1. `list_tables` – List all database tables with row counts and UserId detection
-2. `get_table_schema` – Get detailed schema for a specific table (columns, types, constraints, FKs)
-3. `execute_query` – Execute SQL queries with parameter binding (read or write mode)
-4. `clone_user_data` – Clone all user data from one user to another (handles FKs automatically)
-5. `get_foreign_keys` – Get FK relationships for a table or all tables
-
-**Examples**:
-- "Using MCP Postgres, list all tables"
-- "Using MCP Postgres, show me the schema for the Accounts table"
-- "Using MCP Postgres, how many users are in the database?"
-- "Using MCP Postgres, clone all data from user 1 to user 15"
-
-**Setup & troubleshooting**: See `docs/dev/mcp-integration.md` for bridge configuration, server management, and debugging steps.
-
-**Direct testing** (without AI assistant):
-```powershell
-cd C:\pfmp\mcp-bridge
-node .\test-client.mjs
-```
 
 ## 8. MCP PostgreSQL integration (AI database access)
 

@@ -10,9 +10,11 @@ import { SyncStatusBadge } from '../../components/status/SyncStatusBadge';
 import { EmptyState } from '../../components/empty-states/EmptyState';
 import { CashAccountModal } from '../../components/accounts/CashAccountModal';
 import { AccountModal } from '../../components/accounts/AccountModal';
+import { AddAccountModal, type NewAccountData } from '../../components/accounts/AddAccountModal';
 import { CsvImportModal } from '../../components/accounts/CsvImportModal';
 import { createCashAccount, updateCashAccount, getCashAccount, deleteCashAccount, type CreateCashAccountRequest, type UpdateCashAccountRequest, type CashAccountResponse } from '../../services/cashAccountsApi';
 import { getAccount, updateAccount, deleteAccount, type AccountResponse, type UpdateAccountRequest } from '../../services/accountsApi';
+import axios from 'axios';
 import type { DashboardData } from '../../services/dashboard';
 import type { AccountSnapshot } from '../../services/dashboard/types';
 
@@ -26,6 +28,7 @@ interface Props {
 export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefresh }) => {
   const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(false);
+  const [addAccountModalOpen, setAddAccountModalOpen] = useState(false);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<CashAccountResponse | null>(null);
   const [editingNewAccount, setEditingNewAccount] = useState<AccountResponse | null>(null);
@@ -35,8 +38,21 @@ export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefres
   const allAccounts = data?.accounts || [];
 
   const handleOpenAddModal = () => {
-    setEditingAccount(null);
-    setModalOpen(true);
+    setAddAccountModalOpen(true);
+  };
+
+  const handleCreateAccount = async (accountData: NewAccountData) => {
+    try {
+      const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api';
+      await axios.post(`${apiBase}/accounts`, accountData);
+      setAddAccountModalOpen(false);
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (error) {
+      console.error('Failed to create account:', error);
+      throw error;
+    }
   };
 
   const handleOpenCsvImport = () => {
@@ -285,6 +301,13 @@ export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefres
         onClose={handleCloseNewAccountModal}
         onSave={handleSaveNewAccount}
         onDelete={handleDeleteNewAccount}
+      />
+      
+      <AddAccountModal
+        open={addAccountModalOpen}
+        userId={userId}
+        onClose={() => setAddAccountModalOpen(false)}
+        onSave={handleCreateAccount}
       />
       
       <CsvImportModal

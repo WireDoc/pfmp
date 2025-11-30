@@ -104,14 +104,6 @@ export const AllocationSunburstChart: React.FC<AllocationSunburstChartProps> = (
     return null;
   };
 
-  // Custom label for pie slices (only show if > 5%)
-  const renderLabel = (entry: any) => {
-    if (entry.percentage > 5) {
-      return `${entry.name} (${entry.percentage.toFixed(1)}%)`;
-    }
-    return '';
-  };
-
   // Calculate dynamic height based on number of items (more items = taller legend)
   // Base height 350px + 25px per item over 5 items
   const chartHeight = Math.max(350, 300 + (sortedData.length * 25));
@@ -132,8 +124,6 @@ export const AllocationSunburstChart: React.FC<AllocationSunburstChartProps> = (
               cx="50%"
               cy="45%"
               outerRadius={100}
-              label={renderLabel}
-              labelLine={false}
             >
               {sortedData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

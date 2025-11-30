@@ -262,7 +262,9 @@ public class HoldingsController : ControllerBase
         }
 
         // Update fields
+        if (request.Symbol != null) holding.Symbol = request.Symbol;
         if (request.Name != null) holding.Name = request.Name;
+        if (request.AssetType.HasValue) holding.AssetType = (AssetType)request.AssetType.Value;
         if (request.Quantity.HasValue) holding.Quantity = request.Quantity.Value;
         if (request.AverageCostBasis.HasValue) holding.AverageCostBasis = request.AverageCostBasis.Value;
         if (request.CurrentPrice.HasValue)
@@ -507,8 +509,13 @@ public class CreateHoldingRequest
 
 public class UpdateHoldingRequest
 {
+    [StringLength(50)]
+    public string? Symbol { get; set; }
+    
     [StringLength(200)]
     public string? Name { get; set; }
+    
+    public int? AssetType { get; set; }
     
     [Range(0, double.MaxValue)]
     public decimal? Quantity { get; set; }

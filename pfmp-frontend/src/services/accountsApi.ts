@@ -74,6 +74,8 @@ export interface InitialHoldingRequest {
   assetType: number;
   quantity: number;
   price: number;
+  fee?: number;
+  purchaseDate?: string;
 }
 
 export interface TransitionToDetailedRequest {

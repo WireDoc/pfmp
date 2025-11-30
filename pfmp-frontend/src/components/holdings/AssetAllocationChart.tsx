@@ -1,6 +1,7 @@
 import { Box, Typography } from '@mui/material';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import type { Holding } from '../../types/holdings';
+import { AssetTypeLabels, AssetTypeNameToValue } from '../../types/holdings';
 
 interface AssetAllocationChartProps {
   holdings: Holding[];
@@ -24,9 +25,19 @@ export function AssetAllocationChart({ holdings }: AssetAllocationChartProps) {
   const allocationMap = new Map<string, number>();
   
   holdings.forEach(holding => {
-    const assetType = holding.assetType;
+    // Backend returns enum name as string (e.g., "Cryptocurrency", "Stock")
+    let assetTypeLabel: string;
+    if (typeof holding.assetType === 'string' && AssetTypeNameToValue[holding.assetType] !== undefined) {
+      // It's an enum name - convert to number then get label
+      const assetTypeNum = AssetTypeNameToValue[holding.assetType];
+      assetTypeLabel = AssetTypeLabels[assetTypeNum] || holding.assetType;
+    } else {
+      // Fallback: try parsing as number
+      const assetTypeNum = typeof holding.assetType === 'string' ? parseInt(holding.assetType, 10) : holding.assetType;
+      assetTypeLabel = AssetTypeLabels[assetTypeNum] || `Type ${holding.assetType}`;
+    }
     const currentValue = holding.currentValue;
-    allocationMap.set(assetType, (allocationMap.get(assetType) || 0) + currentValue);
+    allocationMap.set(assetTypeLabel, (allocationMap.get(assetTypeLabel) || 0) + currentValue);
   });
 
   // Convert to array and calculate percentages
@@ -90,7 +101,7 @@ export function AssetAllocationChart({ holdings }: AssetAllocationChartProps) {
             fill="#8884d8"
             dataKey="value"
             nameKey="name"
-            label
+            label={(entry: any) => `${entry.name}: ${formatCurrency(entry.value)}`}
           >
             {data.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

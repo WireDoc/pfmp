@@ -36,17 +36,43 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { transitionToDetailed, type InitialHoldingRequest, type AccountResponse } from '../../services/accountsApi';
 
+// Asset types matching backend AssetType enum (Models/Holding.cs)
 const ASSET_TYPES = [
+  // Equities
   { value: 0, label: 'Stock' },
   { value: 1, label: 'ETF' },
-  { value: 2, label: 'Bond' },
-  { value: 3, label: 'Mutual Fund' },
-  { value: 4, label: 'Option' },
-  { value: 5, label: 'Future' },
-  { value: 6, label: 'Commodity' },
-  { value: 7, label: 'Index' },
+  { value: 2, label: 'Mutual Fund' },
+  { value: 3, label: 'Index' },
+  // Fixed Income
+  { value: 4, label: 'Bond' },
+  { value: 5, label: 'Treasury Bill' },
+  { value: 6, label: 'Corporate Bond' },
+  { value: 7, label: 'Municipal Bond' },
+  // Cash Equivalents
   { value: 8, label: 'Cash' },
-  { value: 19, label: 'Cryptocurrency' },
+  { value: 9, label: 'Money Market' },
+  { value: 10, label: 'Certificate of Deposit' },
+  // Cryptocurrency
+  { value: 11, label: 'Cryptocurrency' },
+  { value: 12, label: 'Crypto Staking' },
+  { value: 13, label: 'DeFi Token' },
+  { value: 14, label: 'NFT' },
+  // Alternatives
+  { value: 15, label: 'Real Estate' },
+  { value: 16, label: 'REIT' },
+  { value: 17, label: 'Commodity' },
+  { value: 18, label: 'Precious Metal' },
+  // TSP Funds
+  { value: 19, label: 'TSP G Fund' },
+  { value: 20, label: 'TSP F Fund' },
+  { value: 21, label: 'TSP C Fund' },
+  { value: 22, label: 'TSP S Fund' },
+  { value: 23, label: 'TSP I Fund' },
+  { value: 24, label: 'TSP Lifecycle Fund' },
+  // Other
+  { value: 25, label: 'Option' },
+  { value: 26, label: 'Futures' },
+  { value: 27, label: 'Other' },
 ];
 
 interface AccountSetupWizardProps {
@@ -63,6 +89,9 @@ interface HoldingRow {
   assetType: number;
   quantity: string;
   price: string;
+  total: string;
+  fee: string;
+  acquisitionDate: Date | null;
 }
 
 const steps = ['Introduction', 'Add Holdings', 'Review & Complete'];
@@ -70,9 +99,8 @@ const steps = ['Introduction', 'Add Holdings', 'Review & Complete'];
 export function AccountSetupWizard({ open, account, onClose, onComplete }: AccountSetupWizardProps) {
   const [activeStep, setActiveStep] = useState(0);
   const [holdings, setHoldings] = useState<HoldingRow[]>([
-    { id: '1', symbol: '', name: '', assetType: 1, quantity: '', price: '' },
+    { id: '1', symbol: '', name: '', assetType: 1, quantity: '', price: '', total: '', fee: '', acquisitionDate: new Date() },
   ]);
-  const [acquisitionDate, setAcquisitionDate] = useState<Date | null>(new Date());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -97,7 +125,7 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
   const handleAddHolding = () => {
     setHoldings([
       ...holdings,
-      { id: Date.now().toString(), symbol: '', name: '', assetType: 1, quantity: '', price: '' },
+      { id: Date.now().toString(), symbol: '', name: '', assetType: 1, quantity: '', price: '', total: '', fee: '', acquisitionDate: new Date() },
     ]);
   };
 
@@ -109,8 +137,36 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
     setHoldings(holdings.filter((h) => h.id !== id));
   };
 
-  const handleHoldingChange = (id: string, field: keyof HoldingRow, value: string | number) => {
-    setHoldings(holdings.map((h) => (h.id === id ? { ...h, [field]: value } : h)));
+  const handleHoldingChange = (id: string, field: keyof HoldingRow, value: string | number | Date | null) => {
+    setHoldings(holdings.map((h) => {
+      if (h.id !== id) return h;
+      
+      const updated = { ...h, [field]: value };
+      
+      // Tri-directional auto-calculation for quantity/price/total
+      if (field === 'quantity' || field === 'price' || field === 'total') {
+        const qty = parseFloat(updated.quantity) || 0;
+        const price = parseFloat(updated.price) || 0;
+        const total = parseFloat(updated.total) || 0;
+        
+        if (field === 'quantity' && qty > 0 && price > 0) {
+          // Quantity changed: recalc total
+          updated.total = (qty * price).toFixed(2);
+        } else if (field === 'price' && price > 0 && qty > 0) {
+          // Price changed: recalc total
+          updated.total = (qty * price).toFixed(2);
+        } else if (field === 'total' && total > 0) {
+          // Total changed: recalc quantity (if price exists) or price (if quantity exists)
+          if (price > 0) {
+            updated.quantity = (total / price).toFixed(8);
+          } else if (qty > 0) {
+            updated.price = (total / qty).toFixed(2);
+          }
+        }
+      }
+      
+      return updated;
+    }));
     setError(null);
   };
 
@@ -133,6 +189,9 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
       }
       if (!holding.price || parseFloat(holding.price) <= 0) {
         return { isValid: false, error: 'All holdings must have a valid price' };
+      }
+      if (!holding.acquisitionDate) {
+        return { isValid: false, error: 'All holdings must have an acquisition date' };
       }
     }
 
@@ -157,11 +216,6 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
       return;
     }
 
-    if (!acquisitionDate) {
-      setError('Please select an acquisition date');
-      return;
-    }
-
     try {
       setSubmitting(true);
       setError(null);
@@ -172,11 +226,18 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
         assetType: h.assetType,
         quantity: parseFloat(h.quantity),
         price: parseFloat(h.price),
+        ...(h.fee && parseFloat(h.fee) > 0 ? { fee: parseFloat(h.fee) } : {}),
+        ...(h.acquisitionDate ? { purchaseDate: h.acquisitionDate.toISOString() } : {}),
       }));
+
+      // Use the earliest acquisition date for the account transition
+      const earliestDate = holdings.reduce((earliest, h) => {
+        return !earliest || (h.acquisitionDate && h.acquisitionDate < earliest) ? h.acquisitionDate : earliest;
+      }, null as Date | null);
 
       const updatedAccount = await transitionToDetailed(account.accountId, {
         holdings: request,
-        acquisitionDate: acquisitionDate.toISOString(),
+        acquisitionDate: (earliestDate || new Date()).toISOString(),
       });
 
       onComplete(updatedAccount);
@@ -263,18 +324,19 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Symbol</TableCell>
-                    <TableCell>Name (Optional)</TableCell>
-                    <TableCell>Asset Type</TableCell>
+                    <TableCell sx={{ minWidth: 120 }}>Symbol</TableCell>
+                    <TableCell sx={{ minWidth: 180 }}>Name (Optional)</TableCell>
+                    <TableCell sx={{ minWidth: 150 }}>Asset Type</TableCell>
                     <TableCell>Quantity</TableCell>
                     <TableCell>Price</TableCell>
-                    <TableCell>Value</TableCell>
+                    <TableCell>Total</TableCell>
+                    <TableCell>Fee</TableCell>
+                    <TableCell sx={{ minWidth: 150 }}>Acq. Date</TableCell>
                     <TableCell width={50}></TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {holdings.map((holding) => {
-                    const value = (parseFloat(holding.quantity) || 0) * (parseFloat(holding.price) || 0);
                     return (
                       <TableRow key={holding.id}>
                         <TableCell>
@@ -284,6 +346,7 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
                             size="small"
                             placeholder="VTI"
                             required
+                            fullWidth
                           />
                         </TableCell>
                         <TableCell>
@@ -292,6 +355,7 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
                             onChange={(e) => handleHoldingChange(holding.id, 'name', e.target.value)}
                             size="small"
                             placeholder="Optional"
+                            fullWidth
                           />
                         </TableCell>
                         <TableCell>
@@ -300,7 +364,7 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
                             value={holding.assetType}
                             onChange={(e) => handleHoldingChange(holding.id, 'assetType', parseInt(e.target.value))}
                             size="small"
-                            sx={{ minWidth: 120 }}
+                            sx={{ minWidth: 150 }}
                           >
                             {ASSET_TYPES.map((type) => (
                               <MenuItem key={type.value} value={type.value}>
@@ -334,7 +398,40 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
                           />
                         </TableCell>
                         <TableCell>
-                          ${value.toFixed(2)}
+                          <TextField
+                            value={holding.total}
+                            onChange={(e) => handleHoldingChange(holding.id, 'total', e.target.value)}
+                            type="number"
+                            size="small"
+                            placeholder="0.00"
+                            inputProps={{ min: 0, step: 'any' }}
+                            sx={{ width: 110 }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            value={holding.fee}
+                            onChange={(e) => handleHoldingChange(holding.id, 'fee', e.target.value)}
+                            type="number"
+                            size="small"
+                            placeholder="0.00"
+                            inputProps={{ min: 0, step: 'any' }}
+                            sx={{ width: 90 }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <LocalizationProvider dateAdapter={AdapterDateFns}>
+                            <DatePicker
+                              value={holding.acquisitionDate}
+                              onChange={(newValue) => handleHoldingChange(holding.id, 'acquisitionDate', newValue)}
+                              slotProps={{ 
+                                textField: { 
+                                  size: 'small',
+                                  required: true
+                                } 
+                              }}
+                            />
+                          </LocalizationProvider>
                         </TableCell>
                         <TableCell>
                           <IconButton
@@ -370,20 +467,6 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
                 </Typography>
               )}
             </Paper>
-
-            <Box sx={{ mt: 3 }}>
-              <LocalizationProvider dateAdapter={AdapterDateFns}>
-                <DatePicker
-                  label="Acquisition Date"
-                  value={acquisitionDate}
-                  onChange={(newValue) => setAcquisitionDate(newValue)}
-                  slotProps={{ textField: { fullWidth: true } }}
-                />
-              </LocalizationProvider>
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                When did you acquire these holdings? This will be used for initial transaction records.
-              </Typography>
-            </Box>
           </Box>
         );
         }
@@ -413,6 +496,7 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
                     <TableCell align="right">Quantity</TableCell>
                     <TableCell align="right">Price</TableCell>
                     <TableCell align="right">Value</TableCell>
+                    <TableCell>Acq. Date</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -427,29 +511,23 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
                         <TableCell align="right">{parseFloat(holding.quantity).toFixed(4)}</TableCell>
                         <TableCell align="right">${parseFloat(holding.price).toFixed(2)}</TableCell>
                         <TableCell align="right">${value.toFixed(2)}</TableCell>
+                        <TableCell>
+                          {holding.acquisitionDate?.toLocaleDateString('en-US', { 
+                            year: 'numeric', 
+                            month: 'short', 
+                            day: 'numeric' 
+                          })}
+                        </TableCell>
                       </TableRow>
                     );
                   })}
                   <TableRow>
-                    <TableCell colSpan={5} align="right"><strong>Total</strong></TableCell>
+                    <TableCell colSpan={6} align="right"><strong>Total</strong></TableCell>
                     <TableCell align="right"><strong>${reviewTotal.toFixed(2)}</strong></TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
             </TableContainer>
-
-            <Paper sx={{ p: 2, mb: 2 }}>
-              <Typography variant="subtitle2" gutterBottom>
-                Acquisition Date
-              </Typography>
-              <Typography variant="body2">
-                {acquisitionDate?.toLocaleDateString('en-US', { 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
-                })}
-              </Typography>
-            </Paper>
 
             <Alert severity="warning">
               <Typography variant="body2" gutterBottom>
@@ -478,7 +556,7 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
   };
 
   return (
-    <Dialog open={open} onClose={handleCancel} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={handleCancel} maxWidth="lg" fullWidth>
       <DialogTitle>
         Account Setup Wizard
         <Typography variant="body2" color="text.secondary">

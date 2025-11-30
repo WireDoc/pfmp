@@ -196,7 +196,7 @@ export function PriceChartCard({ holdingId, symbol }: PriceChartCardProps) {
                 interval="preserveStartEnd"
               />
               <YAxis 
-                tickFormatter={(value) => `$${value}`}
+                tickFormatter={(value) => `$${Number(value).toFixed(2)}`}
                 tick={{ fontSize: 12 }}
                 domain={['dataMin - 5', 'dataMax + 5']}
               />

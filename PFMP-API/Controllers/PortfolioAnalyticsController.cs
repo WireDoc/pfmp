@@ -252,16 +252,30 @@ public class PortfolioAnalyticsController : ControllerBase
 
     private string GetAssetClassName(int assetType)
     {
+        // Maps AssetType enum to broader asset class categories for allocation analysis
         return assetType switch
         {
-            1 => "Stock",
-            2 => "Bond",
-            3 => "ETF",
-            4 => "Cryptocurrency",
-            5 => "Mutual Fund",
-            6 => "Real Estate",
-            7 => "Commodity",
-            8 => "Cash",
+            // Equities (Stock, ETF, MutualFund, Index)
+            0 or 1 or 2 or 3 => "Stocks",
+            
+            // Fixed Income (Bond, TreasuryBill, CorporateBond, MunicipalBond)
+            4 or 5 or 6 or 7 => "Bonds",
+            
+            // Cash Equivalents (Cash, MoneyMarket, CertificateOfDeposit)
+            8 or 9 or 10 => "Cash",
+            
+            // Cryptocurrency (Cryptocurrency, CryptoStaking, DeFiToken, NFT)
+            11 or 12 or 13 or 14 => "Cryptocurrency",
+            
+            // Alternatives (RealEstate, REIT, Commodity, PreciousMetal)
+            15 or 16 or 17 or 18 => "Alternatives",
+            
+            // TSP Funds (TSPGFund, TSPFFund, TSPCFund, TSPSFund, TSPIFund, TSPLifecycleFund)
+            19 or 20 or 21 or 22 or 23 or 24 => "TSP Funds",
+            
+            // Derivatives (Option, Futures)
+            25 or 26 => "Derivatives",
+            
             _ => "Other"
         };
     }
@@ -269,25 +283,71 @@ public class PortfolioAnalyticsController : ControllerBase
     private string GetDefaultSector(string symbol)
     {
         // Basic sector mapping for common symbols
-        return symbol switch
+        return symbol.ToUpper() switch
         {
-            "VOO" or "VIG" => "Diversified Equity",
-            "VEA" => "International Equity",
-            "MUB" => "Municipal Bonds",
-            "NVDA" => "Technology",
-            "BTC-USD" or "ETH-USD" => "Cryptocurrency",
+            // Diversified Equity / Index Funds
+            "VOO" or "VIG" or "SPY" or "IVV" or "VTI" or "QQQ" or "DIA" or "IWM" or "VUG" or "VTV" => "Diversified Equity",
+            
+            // International Equity
+            "VEA" or "VXUS" or "EFA" or "EEM" or "VWO" or "IEFA" => "International Equity",
+            
+            // Municipal Bonds
+            "MUB" or "VTEB" or "TFI" => "Municipal Bonds",
+            
+            // Technology
+            "NVDA" or "AAPL" or "MSFT" or "GOOGL" or "GOOG" or "META" or "AMZN" or "TSLA" or "AMD" or "INTC" or "CRM" or "ADBE" or "NFLX" => "Technology",
+            
+            // Cryptocurrency
+            "BTC-USD" or "ETH-USD" or "BTC" or "ETH" or "SOL-USD" or "DOGE-USD" => "Cryptocurrency",
+            
+            // Precious Metals / Mining
+            "GLD" or "SLV" or "IAU" or "GC=F" or "SI=F" or "AG" or "GOLD" or "NEM" or "PAAS" or "TMC" => "Precious Metals",
+            
+            // Energy
+            "XOM" or "CVX" or "COP" or "OXY" or "SLB" or "XLE" or "VDE" => "Energy",
+            
+            // Healthcare
+            "JNJ" or "UNH" or "PFE" or "MRK" or "ABBV" or "LLY" or "XLV" or "VHT" => "Healthcare",
+            
+            // Financials
+            "JPM" or "BAC" or "WFC" or "GS" or "MS" or "BRK.A" or "BRK.B" or "XLF" or "VFH" => "Financials",
+            
+            // Consumer
+            "WMT" or "PG" or "KO" or "PEP" or "MCD" or "NKE" or "SBUX" or "HD" or "TGT" or "COST" => "Consumer",
+            
+            // Real Estate
+            "VNQ" or "SCHH" or "IYR" or "O" or "AMT" or "PLD" or "EQIX" => "Real Estate",
+            
+            // Bonds / Fixed Income
+            "BND" or "AGG" or "TLT" or "LQD" or "HYG" or "VCIT" or "VGIT" => "Fixed Income",
+            
             _ => "Other"
         };
     }
 
     private string GetDefaultGeography(string symbol)
     {
-        return symbol switch
+        return symbol.ToUpper() switch
         {
-            "VOO" or "VIG" or "NVDA" => "United States",
-            "VEA" => "International",
-            "MUB" => "United States",
-            "BTC-USD" or "ETH-USD" => "Global",
+            // US Markets
+            "VOO" or "VIG" or "NVDA" or "SPY" or "IVV" or "VTI" or "QQQ" or "DIA" or "IWM" or 
+            "AAPL" or "MSFT" or "GOOGL" or "GOOG" or "META" or "AMZN" or "TSLA" or "AMD" or "INTC" or
+            "JNJ" or "UNH" or "PFE" or "MRK" or "JPM" or "BAC" or "WFC" or "GS" or
+            "WMT" or "PG" or "KO" or "PEP" or "MCD" or "NKE" or "HD" or "XOM" or "CVX" or
+            "VNQ" or "BND" or "AGG" or "TLT" or "MUB" or "GLD" or "SLV" or "IAU" => "United States",
+            
+            // International Developed
+            "VEA" or "EFA" or "IEFA" => "International Developed",
+            
+            // Emerging Markets
+            "VWO" or "EEM" or "IEMG" => "Emerging Markets",
+            
+            // Global / Multi-region
+            "VXUS" or "BTC-USD" or "ETH-USD" or "BTC" or "ETH" or "GC=F" or "SI=F" => "Global",
+            
+            // Canada (common mining stocks)
+            "AG" or "PAAS" or "TMC" => "Canada",
+            
             _ => "Unknown"
         };
     }

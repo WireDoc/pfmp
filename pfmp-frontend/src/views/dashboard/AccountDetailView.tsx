@@ -117,9 +117,10 @@ export function AccountDetailView() {
       const holdingsData = await holdingsResponse.json();
       setHoldings(holdingsData);
       
-      // Set first holding as selected by default if available
+      // Set first non-$CASH holding as selected by default if available
       if (holdingsData.length > 0 && !selectedHolding) {
-        setSelectedHolding(holdingsData[0]);
+        const nonCashHoldings = holdingsData.filter((h: Holding) => h.symbol !== '$CASH');
+        setSelectedHolding(nonCashHoldings.length > 0 ? nonCashHoldings[0] : holdingsData[0]);
       }
     } catch (err) {
       console.error('Error fetching account data:', err);
@@ -295,25 +296,36 @@ export function AccountDetailView() {
             <Alert severity="error">{error}</Alert>
           ) : (
             <Box>
-              {holdings.length > 0 && selectedHolding && (
-                <>
-                  <Box sx={{ mb: 4 }}>
-                    <Paper sx={{ p: 3 }}>
-                      <Typography variant="h6" gutterBottom>
-                        Asset Allocation
-                      </Typography>
-                      <AssetAllocationChart holdings={holdings} />
-                    </Paper>
-                  </Box>
-                  
-                  <Box sx={{ mb: 4 }}>
-                    <PriceChartCard 
-                      holdingId={selectedHolding.holdingId} 
-                      symbol={selectedHolding.symbol}
-                    />
-                  </Box>
-                </>
+              {holdings.length > 0 && (
+                <Box sx={{ mb: 4 }}>
+                  <Paper sx={{ p: 3 }}>
+                    <Typography variant="h6" gutterBottom>
+                      Asset Allocation
+                    </Typography>
+                    <AssetAllocationChart holdings={holdings} />
+                  </Paper>
+                </Box>
               )}
+              
+              {holdings.length > 0 && selectedHolding ? (
+                <Box sx={{ mb: 4 }}>
+                  <PriceChartCard 
+                    holdingId={selectedHolding.holdingId} 
+                    symbol={selectedHolding.symbol}
+                  />
+                </Box>
+              ) : holdings.length > 0 ? (
+                <Box sx={{ mb: 4 }}>
+                  <Paper sx={{ p: 3 }}>
+                    <Typography variant="h6" gutterBottom>
+                      Price History
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Select an asset from the table below to view its price history.
+                    </Typography>
+                  </Paper>
+                </Box>
+              ) : null}
               
               <HoldingsTable
                 holdings={holdings}
@@ -394,11 +406,26 @@ export function AccountDetailView() {
           open={wizardOpen}
           account={account}
           onClose={() => setWizardOpen(false)}
-          onComplete={(updatedAccount) => {
+          onComplete={async (updatedAccount) => {
             setAccount(updatedAccount);
             setWizardOpen(false);
-            // Refresh holdings after transition
-            fetchHoldings();
+            // Refresh holdings after transition and get fresh data
+            try {
+              const holdingsResponse = await fetch(`${apiBase}/holdings?accountId=${accountId}`);
+              if (holdingsResponse.ok) {
+                const freshHoldings = await holdingsResponse.json();
+                setHoldings(freshHoldings);
+                // Select first non-$CASH holding to avoid 404 on price lookup
+                const nonCashHoldings = freshHoldings.filter((h: Holding) => h.symbol !== '$CASH');
+                if (nonCashHoldings.length > 0) {
+                  setSelectedHolding(nonCashHoldings[0]);
+                } else {
+                  setSelectedHolding(null);
+                }
+              }
+            } catch (err) {
+              console.error('Error refreshing holdings after wizard:', err);
+            }
           }}
         />
       )}

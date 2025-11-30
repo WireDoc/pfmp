@@ -3,6 +3,7 @@ import type { GridColDef, GridRowParams } from '@mui/x-data-grid';
 import { Box, Chip, Typography } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import type { Holding } from '../../types/holdings';
+import { AssetTypeLabels, AssetTypeNameToValue } from '../../types/holdings';
 
 interface HoldingsTableProps {
   holdings: Holding[];
@@ -59,9 +60,19 @@ export function HoldingsTable({ holdings, selectedHoldingId, onSelect, onEdit, o
       field: 'assetType',
       headerName: 'Type',
       width: 130,
-      renderCell: (params) => (
-        <Chip label={params.value} size="small" variant="outlined" />
-      ),
+      renderCell: (params) => {
+        // Backend returns enum name as string (e.g., "Cryptocurrency", "Stock")
+        if (typeof params.value === 'string' && AssetTypeNameToValue[params.value] !== undefined) {
+          // It's an enum name - use numeric lookup for label
+          const assetTypeNum = AssetTypeNameToValue[params.value];
+          const label = AssetTypeLabels[assetTypeNum] || params.value;
+          return <Chip label={label} size="small" variant="outlined" />;
+        }
+        // Fallback: try parsing as number
+        const assetTypeNum = typeof params.value === 'string' ? parseInt(params.value, 10) : params.value;
+        const label = AssetTypeLabels[assetTypeNum] || params.value;
+        return <Chip label={label} size="small" variant="outlined" />;
+      },
     },
     {
       field: 'quantity',

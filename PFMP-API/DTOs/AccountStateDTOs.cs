@@ -20,5 +20,7 @@ namespace PFMP_API.DTOs
         public AssetType AssetType { get; set; }
         public decimal Quantity { get; set; }
         public decimal Price { get; set; }
+        public decimal? Fee { get; set; }
+        public DateTime? PurchaseDate { get; set; }
     }
 }

@@ -173,3 +173,7 @@ db-backups/
 
 # Temp debug files
 temp-debug.txt
+
+# Console output paste files
+PFMP-API Console Output.txt
+localhost.log
