@@ -72,7 +72,6 @@ This index lists every active document under `docs/` following the subject-first
 
 ## 🧪 testing
 - `docs/testing/README.md` – Testing index with backend API testing, frontend manual/automated testing, and Vitest quick reference
-- `docs/testing/wave-9.3-option-a-endpoint-tests.md` – Manual endpoint testing results for Wave 9.3 Option A Enhanced Investment Metrics (Nov 2025)
 - `docs/testing/alerts-advice-testing.md`
 - `docs/testing/advice-testing.md`
 - `docs/testing/dashboard-msw-handlers.md`
@@ -81,7 +80,8 @@ This index lists every active document under `docs/` following the subject-first
 - `docs/testing/onboarding-testing.md`
 - `docs/testing/tasks-testing.md`
 - `docs/testing/visual-regression-plan.md`
-- `docs/testing/archive/` *(reserved)*
+- `docs/testing/archive/` – Archived test results:
+  - `wave-9.3-option-a-endpoint-tests.md` – Manual endpoint testing results (Nov 2025)
 
 ## 🧾 scripts
 - `docs/scripts/dev-scripts.md` – Catalog of automation scripts and usage
@@ -103,10 +103,18 @@ This index lists every active document under `docs/` following the subject-first
 - `docs/waves/wave-8.1-implementation-summary.md` – Wave 8.1 Account Detail Modal implementation (Nov 2025)
 - `docs/waves/wave-8.1-recovery-plan.md` – Wave 8.1 Recovery: Dashboard data display fix and Phase 2 plan (Nov 2025)
 - `docs/waves/wave-9.2-complete.md` – Wave 9.2 Market Data Integration: FMP API integration with real-time quotes, historical charts, and price refresh (Nov 2025)
-- `docs/waves/wave-9.3-option-a-complete.md` – Wave 9.3 Option A Enhanced Investment Metrics: Performance analytics, tax insights, risk analysis, portfolio allocation (Nov 2025)
+- `docs/waves/wave-9.3-option-a-all-parts-complete.md` – Wave 9.3 Option A Complete: Enhanced Investment Metrics with transaction management and SKELETON/DETAILED state system (Nov 2025)
 - `docs/waves/PHASE-2-DATA-AGGREGATION.md` – Phase 2 complete plan: Manual data entry, CSV import, holdings management
 - `docs/waves/ai-advisor-wave-plan.md`
-- `docs/waves/archive/` *(reserved)*
+- `docs/waves/archive/` – Consolidated Wave 9.3 Option A planning documents:
+  - `wave-9.3-option-a-plan.md` – Original implementation plan
+  - `wave-9.3-option-a-complete.md` – Part 1 completion (analytics tabs)
+  - `wave-9.3-option-a-part2-investment-transactions.md` – Part 2 planning
+  - `wave-9.3-option-a-part2-complete.md` – Part 2 completion (transactions)
+  - `wave-9.3-option-a-part2-phase3-transaction-form.md` – Transaction form details
+  - `wave-9.3-option-a-part2-phase3-ux-fixes.md` – UX refinements
+  - `wave-9.3-option-a-part3-skeleton-accounts.md` – Part 3 planning
+  - `wave-9.3-option-a-part3-phase1-complete.md` – Part 3 backend completion
 
 ## 📈 runbooks (legacy)
 - `docs/runbooks/ENABLE-DASHBOARD-REAL-DATA.md` – Legacy runbook awaiting migration to `ops/runbooks/archive/`
