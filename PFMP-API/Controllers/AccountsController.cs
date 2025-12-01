@@ -378,9 +378,11 @@ namespace PFMP_API.Controllers
                     _context.Transactions.Add(transaction);
                 }
 
-                // Transition account to DETAILED state
+                // Transition account to DETAILED state and sync balance
                 account.State = "DETAILED";
+                account.CurrentBalance = holdingsTotal;  // Sync balance with holdings total
                 account.UpdatedAt = DateTime.UtcNow;
+                account.LastBalanceUpdate = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
 
@@ -389,6 +391,60 @@ namespace PFMP_API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error transitioning account {AccountId} to DETAILED", id);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        // POST: api/Accounts/5/recalculate-balance
+        /// <summary>
+        /// Recalculates and updates the CurrentBalance for a DETAILED account based on holdings market values.
+        /// </summary>
+        [HttpPost("{id}/recalculate-balance")]
+        public async Task<IActionResult> RecalculateBalance(int id)
+        {
+            try
+            {
+                var account = await _context.Accounts
+                    .Include(a => a.Holdings)
+                    .FirstOrDefaultAsync(a => a.AccountId == id);
+
+                if (account == null)
+                {
+                    return NotFound($"Account with ID {id} not found");
+                }
+
+                if (account.IsSkeleton())
+                {
+                    return BadRequest("Cannot recalculate balance for a SKELETON account. Use the balance update endpoint instead.");
+                }
+
+                // Calculate total market value from holdings
+                var holdingsTotal = account.Holdings?.Sum(h => h.Quantity * h.CurrentPrice) ?? 0m;
+
+                // Update account balance
+                var previousBalance = account.CurrentBalance;
+                account.CurrentBalance = holdingsTotal;
+                account.UpdatedAt = DateTime.UtcNow;
+                account.LastBalanceUpdate = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation(
+                    "Recalculated balance for account {AccountId}: {PreviousBalance} -> {NewBalance}",
+                    id, previousBalance, holdingsTotal);
+
+                return Ok(new
+                {
+                    accountId = id,
+                    previousBalance = previousBalance,
+                    newBalance = holdingsTotal,
+                    holdingsCount = account.Holdings?.Count ?? 0,
+                    lastBalanceUpdate = account.LastBalanceUpdate
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error recalculating balance for account {AccountId}", id);
                 return StatusCode(500, "Internal server error");
             }
         }
