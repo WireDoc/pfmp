@@ -2,6 +2,7 @@
 
 > **Date**: November 30, 2025  
 > **Status**: ✅ Complete  
+> **Final Balance**: Account 95 updated from $10,000 → **$36,164.00**  
 > **Prerequisite for**: Wave 9.3 Option B (Loan & Credit Card Views)
 
 ## Problem Statement
@@ -109,32 +110,39 @@ live market values. The `RefreshPrices` endpoint was enhanced to:
 3. Recalculate and update account `CurrentBalance` for DETAILED accounts
 4. Return previous and new balance in response
 
-### Test Results
+### FMP Symbol Mapping Fix
+
+FMP API returns different symbols for commodities/futures:
+- `GC=F` (Gold Futures) → `GCUSD`
+- `SI=F` (Silver Futures) → `SIUSD`
+- `CL=F` (Crude Oil) → `CLUSD`
+- `NG=F` (Natural Gas) → `NGUSD`
+
+Added reverse mapping dictionary so quotes are correctly matched to holdings.
+Also added historical price fallback for any symbols that don't have real-time quotes.
+
+### Final Test Results
 
 ```
 POST /api/holdings/refresh-prices?accountId=95
 {
   "accountId": 95,
-  "updatedCount": 3,
-  "failedCount": 1,
-  "message": "Successfully updated 3 of 4 holdings",
-  "errors": ["No quote found for GC=F"],
-  "newAccountBalance": 34817.1175935206,
+  "updatedCount": 4,
+  "failedCount": 0,
+  "message": "Successfully updated 4 of 4 holdings",
+  "errors": null,
+  "newAccountBalance": 36164.00,
   "previousAccountBalance": 10000.00
 }
 ```
 
-**Updated Prices:**
+**Updated Prices (with live FMP data):**
 | Symbol | Old Price | New Price | Change |
 |--------|-----------|-----------|--------|
 | AG | $6.11 | $15.22 | +149% |
 | IVV | $605.07 | $686.88 | +14% |
 | TMC | $0.85 | $6.96 | +719% |
-| GC=F | $2,951.30 | (unchanged) | N/A (futures) |
-
-> **Note**: `GC=F` (Gold Futures) is not supported by FMP. The original price was set during 
-> the wizard and remains stale. Consider using a different symbol like `GLD` (Gold ETF) for 
-> gold exposure.
+| GC=F | $2,951.30 | $4,273.10 | +45% |
 
 ## Files Changed
 
@@ -159,11 +167,20 @@ Without this fix, the dashboard/portfolio views would show inconsistent totals.
 
 1. ✅ `TransitionToDetailed` syncs `CurrentBalance` with holdings total
 2. ✅ New `POST /api/Accounts/{id}/recalculate-balance` endpoint
-3. ✅ Account 95 corrected: **$10,000 → $34,817.12** (with live FMP prices)
+3. ✅ Account 95 corrected: **$10,000 → $36,164.00** (with live FMP prices)
 4. ✅ `RefreshPrices` endpoint now updates account balance
-5. ✅ Postman collection updated
-6. ✅ Documentation map updated
-7. ✅ Changes committed to main:
-   - Commit 955e401: Add recalculate-balance endpoint
-   - Commit 340b13b: Initial balance sync fix
-   - Commit 0c4964a: RefreshPrices live price integration
+5. ✅ FMP symbol mapping for commodities (GC=F → GCUSD, etc.)
+6. ✅ Historical price fallback for unsupported symbols
+7. ✅ Postman collection updated
+8. ✅ Documentation map updated
+9. ✅ All changes committed and pushed to main
+
+### Commits
+
+| Commit | Description |
+|--------|-------------|
+| 955e401 | Add recalculate-balance endpoint |
+| 340b13b | Initial balance sync fix |
+| 0c4964a | RefreshPrices live price integration |
+| d21f9fc | Historical price fallback for commodities |
+| 9329f0b | FMP symbol mapping for futures (GC=F → GCUSD) |
