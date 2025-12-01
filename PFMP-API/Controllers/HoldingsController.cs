@@ -350,10 +350,18 @@ public class HoldingsController : ControllerBase
 
         // Get unique symbols
         var symbols = holdings.Select(h => h.Symbol.ToUpper()).Distinct().ToList();
+        _logger.LogInformation("Refreshing prices for symbols: {Symbols}", string.Join(", ", symbols));
         
         // Fetch quotes from FMP
         var quotes = await _marketDataService.GetQuotesAsync(symbols);
-        var quoteDict = quotes.ToDictionary(q => q.Symbol, q => q);
+        _logger.LogInformation("Received {QuoteCount} quotes from market data service", quotes.Count);
+        
+        if (quotes.Any())
+        {
+            _logger.LogInformation("Quote symbols: {QuoteSymbols}", string.Join(", ", quotes.Select(q => q.Symbol)));
+        }
+        
+        var quoteDict = quotes.ToDictionary(q => q.Symbol.ToUpper(), q => q, StringComparer.OrdinalIgnoreCase);
 
         int updatedCount = 0;
         int failedCount = 0;
@@ -380,13 +388,31 @@ public class HoldingsController : ControllerBase
 
         await _context.SaveChangesAsync();
 
+        // Update account's CurrentBalance for DETAILED accounts
+        decimal? previousBalance = null;
+        decimal? newBalance = null;
+        var account = await _context.Accounts.FindAsync(accountId);
+        if (account != null && account.IsDetailed())
+        {
+            previousBalance = account.CurrentBalance;
+            newBalance = holdings.Sum(h => h.Quantity * h.CurrentPrice);
+            account.CurrentBalance = newBalance.Value;
+            account.LastBalanceUpdate = DateTime.UtcNow;
+            account.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Updated account {AccountId} balance: {PreviousBalance} -> {NewBalance}", 
+                accountId, previousBalance, newBalance);
+        }
+
         return Ok(new RefreshPricesResponse
         {
             AccountId = accountId,
             UpdatedCount = updatedCount,
             FailedCount = failedCount,
             Message = $"Successfully updated {updatedCount} of {holdings.Count} holdings",
-            Errors = errors.Any() ? errors : null
+            Errors = errors.Any() ? errors : null,
+            PreviousAccountBalance = previousBalance,
+            NewAccountBalance = newBalance
         });
     }
 
@@ -547,6 +573,8 @@ public class RefreshPricesResponse
     public int FailedCount { get; set; }
     public string Message { get; set; } = string.Empty;
     public List<string>? Errors { get; set; }
+    public decimal? NewAccountBalance { get; set; }
+    public decimal? PreviousAccountBalance { get; set; }
 }
 
 public class PriceHistoryResponse
