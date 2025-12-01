@@ -361,7 +361,31 @@ public class HoldingsController : ControllerBase
             _logger.LogInformation("Quote symbols: {QuoteSymbols}", string.Join(", ", quotes.Select(q => q.Symbol)));
         }
         
-        var quoteDict = quotes.ToDictionary(q => q.Symbol.ToUpper(), q => q, StringComparer.OrdinalIgnoreCase);
+        // Build dictionary with both original symbol and FMP-returned symbol
+        // FMP sometimes returns different symbols (e.g., GC=F -> GCUSD)
+        var quoteDict = new Dictionary<string, FmpQuote>(StringComparer.OrdinalIgnoreCase);
+        
+        // Known symbol mappings (FMP returns different symbols for some commodities)
+        var symbolMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "GCUSD", "GC=F" },      // Gold futures
+            { "SIUSD", "SI=F" },      // Silver futures  
+            { "CLUSD", "CL=F" },      // Crude oil futures
+            { "NGUSD", "NG=F" },      // Natural gas futures
+        };
+        
+        foreach (var quote in quotes)
+        {
+            var upperSymbol = quote.Symbol.ToUpper();
+            quoteDict[upperSymbol] = quote;
+            
+            // Also add mapping for original request symbol if different
+            if (symbolMappings.TryGetValue(upperSymbol, out var originalSymbol))
+            {
+                quoteDict[originalSymbol] = quote;
+                _logger.LogDebug("Mapped FMP symbol {FmpSymbol} to original {OriginalSymbol}", upperSymbol, originalSymbol);
+            }
+        }
 
         int updatedCount = 0;
         int failedCount = 0;
