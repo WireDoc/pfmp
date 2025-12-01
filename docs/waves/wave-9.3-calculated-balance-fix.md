@@ -91,18 +91,57 @@ WHERE "AccountId" = 95;
 
 ## Testing Checklist
 
-- [ ] TransitionToDetailed now syncs CurrentBalance
-- [ ] Recalculate endpoint works for DETAILED accounts
-- [ ] Recalculate returns error for SKELETON accounts
-- [ ] Account 95 fixed in database
-- [ ] Frontend displays correct total (already working via holdings calculation)
-- [ ] Postman collection updated and tested
+- [x] TransitionToDetailed now syncs CurrentBalance
+- [x] Recalculate endpoint works for DETAILED accounts
+- [x] Recalculate returns error for SKELETON accounts
+- [x] Account 95 fixed in database ✅ **$10,000 → $34,817.12**
+- [x] RefreshPrices endpoint updates account balance with live FMP prices
+- [x] Frontend displays correct total (already working via holdings calculation)
+- [x] Postman collection updated and tested
+
+## Live Price Integration (December 1, 2025)
+
+After initial fix, it was discovered that holdings still had **stale wizard prices** rather than 
+live market values. The `RefreshPrices` endpoint was enhanced to:
+
+1. Fetch live quotes from FMP (Financial Modeling Prep)
+2. Update all holdings with current market prices
+3. Recalculate and update account `CurrentBalance` for DETAILED accounts
+4. Return previous and new balance in response
+
+### Test Results
+
+```
+POST /api/holdings/refresh-prices?accountId=95
+{
+  "accountId": 95,
+  "updatedCount": 3,
+  "failedCount": 1,
+  "message": "Successfully updated 3 of 4 holdings",
+  "errors": ["No quote found for GC=F"],
+  "newAccountBalance": 34817.1175935206,
+  "previousAccountBalance": 10000.00
+}
+```
+
+**Updated Prices:**
+| Symbol | Old Price | New Price | Change |
+|--------|-----------|-----------|--------|
+| AG | $6.11 | $15.22 | +149% |
+| IVV | $605.07 | $686.88 | +14% |
+| TMC | $0.85 | $6.96 | +719% |
+| GC=F | $2,951.30 | (unchanged) | N/A (futures) |
+
+> **Note**: `GC=F` (Gold Futures) is not supported by FMP. The original price was set during 
+> the wizard and remains stale. Consider using a different symbol like `GLD` (Gold ETF) for 
+> gold exposure.
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
 | `PFMP-API/Controllers/AccountsController.cs` | Add recalculate endpoint, fix TransitionToDetailed |
+| `PFMP-API/Controllers/HoldingsController.cs` | RefreshPrices now updates account balance |
 | `PFMP-API/postman/PFMP-API.postman_collection.json` | Add recalculate endpoint |
 | `docs/waves/wave-9.3-calculated-balance-fix.md` | This document |
 | `docs/documentation-map.md` | Add reference |
@@ -120,7 +159,11 @@ Without this fix, the dashboard/portfolio views would show inconsistent totals.
 
 1. ✅ `TransitionToDetailed` syncs `CurrentBalance` with holdings total
 2. ✅ New `POST /api/Accounts/{id}/recalculate-balance` endpoint
-3. ✅ Account 95 corrected in database (was already matching - holdings sum to ~$10,000)
-4. ✅ Postman collection updated
-5. ✅ Documentation map updated
-6. ✅ Changes committed to main (commit 955e401)
+3. ✅ Account 95 corrected: **$10,000 → $34,817.12** (with live FMP prices)
+4. ✅ `RefreshPrices` endpoint now updates account balance
+5. ✅ Postman collection updated
+6. ✅ Documentation map updated
+7. ✅ Changes committed to main:
+   - Commit 955e401: Add recalculate-balance endpoint
+   - Commit 340b13b: Initial balance sync fix
+   - Commit 0c4964a: RefreshPrices live price integration
