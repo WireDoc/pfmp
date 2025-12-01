@@ -104,6 +104,7 @@ This index lists every active document under `docs/` following the subject-first
 - `docs/waves/wave-8.1-recovery-plan.md` – Wave 8.1 Recovery: Dashboard data display fix and Phase 2 plan (Nov 2025)
 - `docs/waves/wave-9.2-complete.md` – Wave 9.2 Market Data Integration: FMP API integration with real-time quotes, historical charts, and price refresh (Nov 2025)
 - `docs/waves/wave-9.3-option-a-all-parts-complete.md` – Wave 9.3 Option A Complete: Enhanced Investment Metrics with transaction management and SKELETON/DETAILED state system (Nov 2025)
+- `docs/waves/wave-9.3-option-b-plan.md` – Wave 9.3 Option B: Loan & Credit Card Views implementation plan (Dec 2025)
 - `docs/waves/PHASE-2-DATA-AGGREGATION.md` – Phase 2 complete plan: Manual data entry, CSV import, holdings management
 - `docs/waves/ai-advisor-wave-plan.md`
 - `docs/waves/archive/` – Consolidated Wave 9.3 Option A planning documents:
