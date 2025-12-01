@@ -1,7 +1,7 @@
 # Wave 9.3 Fix: Calculated Balance for DETAILED Accounts
 
 > **Date**: November 30, 2025  
-> **Status**: In Progress  
+> **Status**: ✅ Complete  
 > **Prerequisite for**: Wave 9.3 Option B (Loan & Credit Card Views)
 
 ## Problem Statement
@@ -123,4 +123,4 @@ Without this fix, the dashboard/portfolio views would show inconsistent totals.
 3. ✅ Account 95 corrected in database (was already matching - holdings sum to ~$10,000)
 4. ✅ Postman collection updated
 5. ✅ Documentation map updated
-6. 🔲 Changes committed to main
+6. ✅ Changes committed to main (commit 955e401)
