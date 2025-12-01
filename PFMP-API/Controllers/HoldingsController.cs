@@ -371,18 +371,36 @@ public class HoldingsController : ControllerBase
         {
             if (quoteDict.TryGetValue(holding.Symbol.ToUpper(), out var quote))
             {
-                // Update price
+                // Update price from real-time quote
                 holding.CurrentPrice = quote.Price;
                 holding.LastPriceUpdate = DateTime.UtcNow;
 
                 updatedCount++;
-                _logger.LogInformation("Updated price for {Symbol}: ${Price}", holding.Symbol, quote.Price);
+                _logger.LogInformation("Updated price for {Symbol}: ${Price} (real-time)", holding.Symbol, quote.Price);
             }
             else
             {
-                failedCount++;
-                errors.Add($"No quote found for {holding.Symbol}");
-                _logger.LogWarning("Failed to get quote for {Symbol}", holding.Symbol);
+                // Fallback: try to get price from historical data (for commodities/futures like GC=F)
+                var historicalPrices = await _marketDataService.GetHistoricalPricesAsync(
+                    holding.Symbol.ToUpper(), 
+                    DateTime.UtcNow.AddDays(-7), 
+                    DateTime.UtcNow);
+                
+                var latestPrice = historicalPrices.OrderByDescending(p => p.Date).FirstOrDefault();
+                if (latestPrice != null)
+                {
+                    holding.CurrentPrice = latestPrice.Close;
+                    holding.LastPriceUpdate = DateTime.UtcNow;
+                    updatedCount++;
+                    _logger.LogInformation("Updated price for {Symbol}: ${Price} (from historical close on {Date})", 
+                        holding.Symbol, latestPrice.Close, latestPrice.Date.ToString("yyyy-MM-dd"));
+                }
+                else
+                {
+                    failedCount++;
+                    errors.Add($"No quote found for {holding.Symbol}");
+                    _logger.LogWarning("Failed to get quote for {Symbol}", holding.Symbol);
+                }
             }
         }
 
