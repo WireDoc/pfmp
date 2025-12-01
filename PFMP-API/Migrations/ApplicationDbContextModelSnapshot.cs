@@ -1123,6 +1123,9 @@ namespace PFMP_API.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<decimal?>("CreditLimit")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal>("CurrentBalance")
                         .HasColumnType("decimal(18,2)");
 
@@ -1141,10 +1144,28 @@ namespace PFMP_API.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
 
+                    b.Property<DateTime?>("LoanStartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("LoanTermMonths")
+                        .HasColumnType("integer");
+
                     b.Property<decimal?>("MinimumPayment")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<decimal?>("OriginalLoanAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("PaymentDueDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime?>("PayoffTargetDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("StatementBalance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("StatementDate")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("UpdatedAt")

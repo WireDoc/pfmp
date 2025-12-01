@@ -32,6 +32,44 @@ namespace PFMP_API.Models.FinancialProfile
 
         public bool IsPriorityToEliminate { get; set; }
 
+        // Loan-specific fields for amortization
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? OriginalLoanAmount { get; set; }
+
+        public int? LoanTermMonths { get; set; }
+
+        public DateTime? LoanStartDate { get; set; }
+
+        // Credit card-specific fields
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? CreditLimit { get; set; }
+
+        public DateTime? PaymentDueDate { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? StatementBalance { get; set; }
+
+        public DateTime? StatementDate { get; set; }
+
+        // Convenience properties
+        public bool IsLoan => LiabilityType switch
+        {
+            "mortgage" => true,
+            "auto_loan" => true,
+            "personal_loan" => true,
+            "student_loan" => true,
+            _ => false
+        };
+
+        public bool IsCreditCard => LiabilityType == "credit_card";
+
+        // Calculated properties
+        public decimal? CreditUtilization => CreditLimit > 0 ? CurrentBalance / CreditLimit * 100 : null;
+
+        public int? MonthsRemaining => LoanTermMonths.HasValue && LoanStartDate.HasValue
+            ? Math.Max(0, LoanTermMonths.Value - (int)Math.Floor((DateTime.UtcNow - LoanStartDate.Value).TotalDays / 30.44))
+            : null;
+
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

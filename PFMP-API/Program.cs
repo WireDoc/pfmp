@@ -106,6 +106,11 @@ namespace PFMP_API
             builder.Services.AddScoped<BenchmarkDataService>();
             builder.Services.AddScoped<PriceHistoryService>();
 
+            // Loan Analytics Services (Wave 9.3 Option B)
+            builder.Services.AddScoped<AmortizationService>();
+            builder.Services.AddScoped<CreditUtilizationService>();
+            builder.Services.AddScoped<DebtPayoffService>();
+
             // Add Authentication Services
             builder.Services.AddScoped<IPasswordHashService, PasswordHashService>();
             builder.Services.AddHttpClient<IAuthenticationService, AuthenticationService>();
