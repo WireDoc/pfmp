@@ -11,12 +11,16 @@ PFMP is an AI-assisted financial planning platform for government employees and 
 - **Authentication**: Azure Entra ID with local bypass mode for development
 - **AI Architecture**: Dual-model pipeline planned (Azure OpenAI + Anthropic) with consensus scoring - See Phase 3 in roadmap
 - **Current Highlights**: 
+  - **Wave 9.3 Option B Complete** - Loan & credit card views with debt payoff strategies (Dec 2025)
+  - Loan detail views: Amortization schedules, payoff calculators, progress tracking
+  - Credit card views: Utilization gauges with color zones, payment status
+  - Debt Payoff Dashboard: Avalanche vs Snowball strategy comparison
   - **Wave 9.3 Option A Complete** - Enhanced investment metrics with 4 analytics tabs (Performance, Tax Insights, Risk Analysis, Allocation)
   - Performance analytics: TWR/MWR, Sharpe ratio, volatility, benchmark comparison vs SPY/QQQ/IWM/VTI
   - Tax insights: Unrealized gains/losses, short/long-term classification, tax-loss harvesting opportunities
   - Risk analysis: Portfolio beta, max drawdown, correlation matrix, 30-day rolling volatility
   - Allocation breakdown: By asset class/sector/geography/market cap with rebalancing recommendations
-  - **Wave 9.3 Phase 2 Complete** - Cash account detail views with transaction tracking
+  - **Wave 9.3 Cash Accounts** - Cash account detail views with transaction tracking
   - **Wave 9.2 Complete** - Market data integration with FMP API for real-time quotes and historical charts
   - **Wave 5 MVP Complete** - Production dashboard enabled with real backend data
   - Rebuilt onboarding flow with 15 financial profile sections (all fully functional with autosave)
@@ -118,10 +122,11 @@ See `docs/api/postman.md` for details.
 
 ## Status & roadmap
 
-- Active version: **v0.9.3-alpha** (Wave 9.3 Option A Complete - November 17, 2025)
-- **Milestone**: Enhanced investment analytics with 4 tabs (Performance, Tax Insights, Risk Analysis, Allocation) - 5,100+ lines of code
-- **Achievement**: Investment account holders now have institutional-grade portfolio analysis tools integrated into account detail views
-- **Next Phase**: Wave 9.3 Options B/D or Wave 10 - Advanced portfolio features and enhanced visualizations
+- Active version: **v0.9.4-alpha** (Wave 9.3 Option B Complete - December 2, 2025)
+- **Milestone**: Loan & credit card views with debt payoff strategies - 3,500+ lines of code
+- **Achievement**: Complete account type coverage with specialized views for investments, loans, credit cards, and cash accounts
+- **Recent**: Wave 9.3 Option A delivered institutional-grade investment analytics (5,100+ lines)
+- **Next Phase**: Wave 9.3 Option D (Advanced Visualizations) or Wave 10 (Background Jobs)
 - Roadmap Phase 2 (Data Aggregation) in progress; Phase 3 (AI Advisory) on deck
 - Track progress, migration notes, and future waves in `docs/waves/`
 

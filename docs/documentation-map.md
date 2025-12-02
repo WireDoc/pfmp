@@ -105,10 +105,10 @@ This index lists every active document under `docs/` following the subject-first
 - `docs/waves/wave-9.2-complete.md` – Wave 9.2 Market Data Integration: FMP API integration with real-time quotes, historical charts, and price refresh (Nov 2025)
 - `docs/waves/wave-9.3-option-a-all-parts-complete.md` – Wave 9.3 Option A Complete: Enhanced Investment Metrics with transaction management and SKELETON/DETAILED state system (Nov 2025)
 - `docs/waves/wave-9.3-calculated-balance-fix.md` – Wave 9.3 Fix: Calculated balance for DETAILED accounts, recalculate endpoint (Nov 2025)
-- `docs/waves/wave-9.3-option-b-plan.md` – Wave 9.3 Option B: Loan & Credit Card Views implementation plan (Dec 2025)
+- `docs/waves/wave-9.3-option-b-complete.md` – Wave 9.3 Option B Complete: Loan & Credit Card Views with debt payoff strategies (Dec 2025)
 - `docs/waves/PHASE-2-DATA-AGGREGATION.md` – Phase 2 complete plan: Manual data entry, CSV import, holdings management
 - `docs/waves/ai-advisor-wave-plan.md`
-- `docs/waves/archive/` – Consolidated Wave 9.3 Option A planning documents:
+- `docs/waves/archive/` – Consolidated Wave 9.3 planning documents:
   - `wave-9.3-option-a-plan.md` – Original implementation plan
   - `wave-9.3-option-a-complete.md` – Part 1 completion (analytics tabs)
   - `wave-9.3-option-a-part2-investment-transactions.md` – Part 2 planning
@@ -117,6 +117,7 @@ This index lists every active document under `docs/` following the subject-first
   - `wave-9.3-option-a-part2-phase3-ux-fixes.md` – UX refinements
   - `wave-9.3-option-a-part3-skeleton-accounts.md` – Part 3 planning
   - `wave-9.3-option-a-part3-phase1-complete.md` – Part 3 backend completion
+  - `wave-9.3-option-b-plan.md` – Option B original implementation plan
 
 ## 📈 runbooks (legacy)
 - `docs/runbooks/ENABLE-DASHBOARD-REAL-DATA.md` – Legacy runbook awaiting migration to `ops/runbooks/archive/`
