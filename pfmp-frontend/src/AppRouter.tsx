@@ -20,6 +20,7 @@ const AccountDetailView = lazy(() => import('./views/dashboard/AccountDetailView
 const CashAccountDetailView = lazy(() => import('./views/dashboard/CashAccountDetailView'));
 const LoanAccountDetailView = lazy(() => import('./views/dashboard/LoanAccountDetailView'));
 const CreditCardDetailView = lazy(() => import('./views/dashboard/CreditCardDetailView'));
+const DebtPayoffDashboard = lazy(() => import('./views/dashboard/DebtPayoffDashboard'));
 const InsightsView = lazy(() => import('./views/dashboard/InsightsView').then(m => ({ default: m.InsightsView })));
 const TasksView = lazy(() => import('./views/dashboard/TasksView').then(m => ({ default: m.TasksView })));
 const ProfileView = lazy(() => import('./views/dashboard/ProfileView').then(m => ({ default: m.ProfileView })));
@@ -121,6 +122,10 @@ export function AppRouter(props: AppRouterProps) {
         {
           path: 'credit-cards/:liabilityId',
           element: <Suspense fallback={<PageSpinner />}><CreditCardDetailView /></Suspense>,
+        },
+        {
+          path: 'debt-payoff',
+          element: <Suspense fallback={<PageSpinner />}><DebtPayoffDashboard /></Suspense>,
         },
         {
           path: 'insights',

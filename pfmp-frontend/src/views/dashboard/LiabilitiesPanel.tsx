@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { Box, Card, CardContent, Typography, Stack, IconButton, Tooltip } from '@mui/material';
+import { Box, Card, CardContent, Typography, Stack, IconButton, Tooltip, Button } from '@mui/material';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import HomeIcon from '@mui/icons-material/Home';
@@ -167,6 +168,20 @@ export default function LiabilitiesPanel({ liabilities = [], loading = false }: 
               <Typography variant="body2" fontWeight={600}>
                 ${totalMinimumPayment.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/mo
               </Typography>
+            </Box>
+          )}
+          
+          {liabilities.length > 1 && (
+            <Box mt={2}>
+              <Button
+                variant="outlined"
+                fullWidth
+                startIcon={<TrendingDownIcon />}
+                onClick={() => navigate('/dashboard/debt-payoff')}
+                sx={{ textTransform: 'none' }}
+              >
+                Compare Payoff Strategies
+              </Button>
             </Box>
           )}
         </Box>
