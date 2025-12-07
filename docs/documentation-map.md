@@ -80,6 +80,8 @@ This index lists every active document under `docs/` following the subject-first
 ### Active Wave Plans
 - `docs/waves/wave-10-plan.md` – **Wave 10: Background Jobs & Automation** (Q1 2026)
 - `docs/waves/wave-11-account-linking-strategy.md` – Wave 11: Plaid Integration (Jan 2026)
+- Wave 12: Advanced Analytics – Documented in `docs/history/roadmap.md`
+- Wave 13: AI Enhancement & Vetting – Documented in `docs/history/roadmap.md` (before Chatbot)
 
 ### Wave Completion Summaries
 - `docs/waves/wave-9.3-complete-summary.md` – **Wave 9.3 Complete** (Dec 2025) - All 4 options

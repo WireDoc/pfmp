@@ -218,6 +218,73 @@ Your analysis will be reviewed by a backup AI system for validation.",
             return await _dualAI.GetConsensusRecommendationAsync(prompt);
         }
 
+        // ===== Preview/Dry-Run =====
+
+        public async Task<AIPromptPreview> PreviewAnalysisPromptAsync(int userId, string analysisType)
+        {
+            _logger.LogInformation("Generating prompt preview for user {UserId}, type {AnalysisType}", userId, analysisType);
+
+            var cacheableContext = await BuildCacheableContextAsync(userId);
+            string analysisContext;
+            string systemPrompt;
+
+            switch (analysisType.ToLower())
+            {
+                case "cash":
+                case "cashoptimization":
+                    analysisContext = await BuildCashContextAsync(userId);
+                    systemPrompt = "Cash optimization analysis system prompt";
+                    break;
+                case "portfolio":
+                case "rebalancing":
+                    analysisContext = await BuildPortfolioContextAsync(userId);
+                    systemPrompt = "Portfolio rebalancing analysis system prompt";
+                    break;
+                case "tsp":
+                    analysisContext = await BuildTSPContextAsync(userId);
+                    systemPrompt = "TSP allocation analysis system prompt";
+                    break;
+                case "risk":
+                    analysisContext = await BuildRiskContextAsync(userId);
+                    systemPrompt = "Risk alignment analysis system prompt";
+                    break;
+                default:
+                    throw new ArgumentException($"Unknown analysis type: {analysisType}. Valid types: cash, portfolio, tsp, risk");
+            }
+
+            var fullPrompt = $"{systemPrompt}\n\n{cacheableContext}\n\n=== {analysisType.ToUpper()} ANALYSIS ===\n\n{analysisContext}";
+
+            // Rough token estimate (1 token ≈ 4 characters)
+            var estimatedTokens = fullPrompt.Length / 4;
+
+            // Gather metadata about what data was included
+            var user = await _context.Users.FindAsync(userId);
+            var cashAccounts = await _context.CashAccounts.Where(c => c.UserId == userId).CountAsync();
+            var investments = await _context.InvestmentAccounts.Where(i => i.UserId == userId).CountAsync();
+            var accounts = await _context.Accounts.Where(a => a.UserId == userId).CountAsync();
+
+            return new AIPromptPreview
+            {
+                UserId = userId,
+                AnalysisType = analysisType,
+                SystemPrompt = systemPrompt,
+                CacheableContext = cacheableContext,
+                AnalysisContext = analysisContext,
+                FullPrompt = fullPrompt,
+                EstimatedTokens = estimatedTokens,
+                ContextMetadata = new Dictionary<string, object>
+                {
+                    ["userName"] = $"{user?.FirstName} {user?.LastName}".Trim(),
+                    ["cashAccountsIncluded"] = cashAccounts,
+                    ["investmentAccountsIncluded"] = investments,
+                    ["totalAccountsIncluded"] = accounts,
+                    ["hasRiskTolerance"] = user?.RiskTolerance != null,
+                    ["hasRetirementGoal"] = user?.RetirementGoalAmount != null,
+                    ["hasEmergencyFundTarget"] = user?.EmergencyFundTarget > 0
+                }
+            };
+        }
+
         // ===== Alert-to-Advice Conversion =====
 
         public async Task<Advice> GenerateAdviceFromAlertAsync(int alertId, int userId)

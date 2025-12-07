@@ -14,6 +14,8 @@ _Last updated: 2025-12-07_
 | Wave 10: Background Jobs | 🔄 Next | Q1 2026 |
 | Wave 11: Plaid Integration | 📋 Planned | January 2026 |
 | Wave 12: Advanced Analytics | 📋 Planned | Q1 2026 |
+| Wave 13: AI Enhancement & Vetting | 📋 Planned | Q1-Q2 2026 |
+| TSP Detail Page | 📋 Planned | With Wave 10 or 11 |
 
 **Current Version**: v0.9.5-alpha (December 7, 2025)
 
@@ -129,6 +131,42 @@ See `docs/waves/wave-11-account-linking-strategy.md`
 - Spending insights and trends
 - Enhanced D3.js visualizations
 
+### Wave 13: AI Enhancement & Vetting 📋
+**Target**: Q1-Q2 2026 (Before Chatbot)
+**Priority**: Required before Chatbot
+
+The Wave 7 AI advisory system focused on cash optimization. Before building the chatbot, the AI context needs expansion and vetting.
+
+**Context Improvements Needed:**
+| Analysis Type | Current Status | Required Changes |
+|--------------|----------------|------------------|
+| Cash Optimization | ✅ Good | Minor refinements |
+| Portfolio Rebalancing | ⚠️ Minimal | Add holdings, allocations, asset classes |
+| TSP | ⚠️ Minimal | Add actual fund positions, contribution rates |
+| Risk | ⚠️ Minimal | Add portfolio composition, volatility metrics |
+
+**Developer Tools (Already Implemented):**
+- `GET /api/ai/preview/{userId}/{analysisType}` - Dry-run preview
+- Shows exact prompts before sending to AI
+- Helps refine context quality
+
+**Post-Processing Recommendations:**
+- Two-Pass Summarization (verbose → action items)
+- Structured JSON output for concrete recommendations
+- Enhanced `ExtractActionItems()` rule-based extraction
+
+**Model Updates:**
+- Upgrade to Gemini 3 Pro when available
+- Simple config change: `appsettings.json` → `"Model": "gemini-3.0-pro"`
+
+**Success Criteria:**
+- All analysis types return meaningful, accurate recommendations
+- AI correctly interprets user's complete financial picture
+- Recommendations are concrete with $ amounts and timelines
+- Ready for chatbot memory integration
+
+See archived AI context documentation for implementation details.
+
 ---
 
 ## Major Features Roadmap
@@ -142,6 +180,7 @@ The left sidebar currently has placeholder pages. Full implementation includes:
 |------|--------|-------------|
 | Dashboard | ✅ Functional | Net worth, accounts, insights, tasks |
 | Accounts | 🔄 Partial | Detail views exist, list page needs work |
+| **TSP** | 📋 **Needed** | **Detail page with fund editing** |
 | Insights | 📋 Placeholder | AI recommendations hub |
 | Tasks | 📋 Placeholder | Task management with status tracking |
 | Profile | 📋 Placeholder | Edit onboarding sections |
@@ -153,11 +192,54 @@ The left sidebar currently has placeholder pages. Full implementation includes:
 - Enhanced data display: sparkline charts, sync status badges
 - WCAG 2.1 AA accessibility compliance
 
+### TSP Detail Page & Editing 📋
+**Target**: Q1 2026 (With Wave 10 or 11)
+**Priority**: Medium-High
+
+Currently the dashboard shows TSP total only. Needs a full detail page similar to investment accounts.
+
+**Backend (Already Exists):**
+- `GET /api/financial-profile/{userId}/tsp/summary-lite` - Positions with prices
+- `POST /api/financial-profile/{userId}/tsp` - Upsert positions
+- `DailyTspService` - Fetches current and historical TSP fund prices
+
+**Frontend Needed:**
+| Component | Description |
+|-----------|-------------|
+| `TspDetailPage` | Full-page view at `/dashboard/tsp` |
+| Holdings Table | All funds (G, F, C, S, I, L2030-L2075) with units, price, value, mix% |
+| Edit Holdings Dialog | Update units/contribution% for each fund |
+| Allocation Pie Chart | Visual breakdown by fund type |
+| Historical Chart | Fund price history using DailyTspService |
+| Contribution Summary | Current contribution rate, employer match |
+
+**Features:**
+- View all fund positions with current prices
+- Edit units after onboarding (manual update until TSP API exists)
+- Edit contribution allocation percentages
+- Price refresh button (calls DailyTspService)
+- Historical performance visualization
+- Link to tsp.gov for official actions
+
+**Not In Scope:**
+- TSP.gov doesn't have a public API, so no automatic sync
+- No transaction history (contributions, withdrawals)
+- No interfund transfer execution (manual only)
+
+**API Endpoints (May Need):**
+```
+GET  /api/financial-profile/{userId}/tsp/positions      # Detailed positions
+PUT  /api/financial-profile/{userId}/tsp/positions/{id} # Update single position
+POST /api/financial-profile/{userId}/tsp/refresh        # Refresh prices
+GET  /api/market/tsp/history?fund=L2050&days=30        # Fund price history
+```
+
 ### AI Chatbot with Memory 📋
 **Priority**: High (Core differentiator)
 **Target**: Q2 2026
+**Prerequisite**: Wave 13 (AI Enhancement & Vetting) must be complete
 
-The dual AI pipeline (Wave 7) laid groundwork. Chatbot extends this:
+The dual AI pipeline (Wave 7) laid groundwork. Wave 13 expands context coverage. Chatbot extends this:
 
 **Database Schema**
 - `AIConversation` - Conversation sessions with user context
@@ -234,7 +316,7 @@ The wave system provides tactical implementation milestones. These align with hi
 | **Phase 1** | Onboarding MVP | Waves 0-5 | ✅ Complete |
 | **Phase 1.5** | Navigation Polish | Wave 6 + Accounts Page | 📋 Needed |
 | **Phase 2** | Data Aggregation | Waves 8-9, 11 | 🔄 In Progress |
-| **Phase 3** | AI Advisory | Wave 7 + Chatbot + Memory | ✅ Core done, Chatbot planned |
+| **Phase 3** | AI Advisory | Wave 7 + Wave 13 + Chatbot | ✅ Core done, Vetting & Chatbot planned |
 | **Phase 4** | Daily Experience | Wave 10 + Notifications | 📋 Wave 10 next |
 | **Phase 5** | Production Hardening | Auth, Security, Compliance | 📋 H2 2026 |
 
@@ -248,7 +330,7 @@ The wave system provides tactical implementation milestones. These align with hi
 | Database | PostgreSQL | ✅ Active |
 | Frontend | React 19 + TypeScript + Vite | ✅ Active |
 | UI Framework | MUI v6 | ✅ Active |
-| AI Primary | Gemini 2.5 Pro | ✅ Active |
+| AI Primary | Gemini 2.5 Pro (→ 3 Pro when available) | ✅ Active |
 | AI Backup | Claude Opus 4 | ✅ Active |
 | Market Data | FMP API | ✅ Active |
 | Job Scheduler | Hangfire | 📋 Wave 10 |
@@ -268,6 +350,7 @@ The wave system provides tactical implementation milestones. These align with hi
 | Q1 2026 | Wave 10 Background Jobs |
 | January 2026 | Wave 11 Plaid Integration |
 | Q1 2026 | Wave 12 Advanced Analytics |
+| Q1-Q2 2026 | Wave 13 AI Enhancement & Vetting |
 
 ---
 

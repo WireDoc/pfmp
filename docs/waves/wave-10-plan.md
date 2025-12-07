@@ -388,3 +388,59 @@ HANGFIRE_DASHBOARD_PASSWORD=<secure>
 - **Staleness alerts disabled** until production deployment
 - **Account filtering** prevents test/dev data pollution
 - **Idempotent snapshots** - safe to run multiple times per day
+
+---
+
+## Postman Collection Update
+
+After completing Wave 10, update the Postman collection with all new endpoints:
+
+### New Endpoints to Document
+```
+# Scheduler Admin API
+GET  /api/admin/scheduler/jobs
+GET  /api/admin/scheduler/jobs/{id}
+POST /api/admin/scheduler/jobs/{id}/run
+PUT  /api/admin/scheduler/jobs/{id}
+GET  /api/admin/scheduler/queue
+GET  /api/admin/scheduler/queue/{id}
+
+# Manual Refresh
+POST /api/accounts/{id}/refresh
+POST /api/accounts/refresh-all
+
+# Net Worth Timeline
+GET /api/dashboard/net-worth/timeline?period=1Y
+```
+
+### Collection Update Checklist
+- [ ] Add "Scheduler" folder to Postman collection
+- [ ] Add "Net Worth Timeline" request
+- [ ] Add "Manual Refresh" requests
+- [ ] Update environment variables if needed
+- [ ] Test all new endpoints in Postman
+- [ ] Export updated collection to `PFMP-API/postman/`
+
+---
+
+## Related: AI Improvements
+
+AI context improvements (expanding portfolio/TSP/risk analysis) are tracked in **Wave 13: AI Enhancement & Vetting**. See `docs/history/roadmap.md` for details.
+
+**Already Implemented:**
+- `GET /api/ai/preview/{userId}/{analysisType}` - Dry-run preview endpoint for debugging AI prompts
+
+---
+
+## Related: TSP Detail Page
+
+A TSP detail page with fund editing capability is planned. Can be bundled with Wave 10 if time permits, otherwise deferred to Wave 11.
+
+**See `docs/history/roadmap.md` → "TSP Detail Page & Editing" for full requirements.**
+
+**Quick Summary:**
+- Full-page TSP view at `/dashboard/tsp`
+- Holdings table with all funds (G, F, C, S, I, L-funds)
+- Edit units and contribution allocations post-onboarding
+- Price refresh using DailyTspService
+- Historical fund price charts

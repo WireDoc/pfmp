@@ -22,6 +22,13 @@ namespace PFMP_API.Services.AI
         Task<ConsensusResult> AnalyzeTSPAllocationAsync(int userId);
         Task<ConsensusResult> AnalyzeRiskAlignmentAsync(int userId);
 
+        // ===== Preview/Dry-Run (Development) =====
+        /// <summary>
+        /// Returns the prompt that would be sent to AI without actually calling the API.
+        /// Useful for debugging and refining context before incurring API costs.
+        /// </summary>
+        Task<AIPromptPreview> PreviewAnalysisPromptAsync(int userId, string analysisType);
+
         // ===== Alert-to-Advice Conversion =====
         /// <summary>
         /// User clicked "Get AI Recommendation" on an alert
@@ -87,5 +94,21 @@ namespace PFMP_API.Services.AI
         public decimal Cost { get; set; }
         public bool CanConvertToAdvice { get; set; }
         public string? ConvertReason { get; set; }
+    }
+
+    /// <summary>
+    /// Preview of what would be sent to AI (dry-run mode)
+    /// </summary>
+    public class AIPromptPreview
+    {
+        public int UserId { get; set; }
+        public string AnalysisType { get; set; } = string.Empty;
+        public string SystemPrompt { get; set; } = string.Empty;
+        public string CacheableContext { get; set; } = string.Empty;
+        public string AnalysisContext { get; set; } = string.Empty;
+        public string FullPrompt { get; set; } = string.Empty;
+        public int EstimatedTokens { get; set; }
+        public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
+        public Dictionary<string, object> ContextMetadata { get; set; } = new();
     }
 }

@@ -140,6 +140,36 @@ namespace PFMP_API.Controllers
             }
         }
 
+        // ===== Preview/Dry-Run (Development) =====
+
+        /// <summary>
+        /// GET /api/ai/preview/{userId}/{analysisType}
+        /// Returns the prompt that would be sent to AI without calling the API.
+        /// Valid analysisType values: cash, portfolio, tsp, risk
+        /// Useful for debugging and refining context before incurring API costs.
+        /// </summary>
+        [HttpGet("preview/{userId}/{analysisType}")]
+        public async Task<ActionResult<AIPromptPreview>> PreviewPrompt(int userId, string analysisType)
+        {
+            if (!IsAuthorizedUser(userId))
+                return Forbid();
+
+            try
+            {
+                var preview = await _aiIntelligence.PreviewAnalysisPromptAsync(userId, analysisType);
+                return Ok(preview);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating preview for user {UserId}, type {AnalysisType}", userId, analysisType);
+                return StatusCode(500, new { error = "Failed to generate preview", details = ex.Message });
+            }
+        }
+
         // ===== Alert-to-Advice =====
 
         /// <summary>
