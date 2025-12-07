@@ -1,7 +1,7 @@
 # Wave 10: Background Jobs & Automation
 
 > **Status**: 📋 Planning  
-> **Target**: Q1 2025  
+> **Target**: Q1 2026  
 > **Priority**: High  
 > **Prerequisites**: Wave 9.3 Complete ✅
 

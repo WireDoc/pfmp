@@ -132,7 +132,7 @@ See `docs/api/postman.md` for details.
 
 | Wave | Focus | Target |
 |------|-------|--------|
-| **10** | Background Jobs & Automation | Q1 2025 |
+| **10** | Background Jobs & Automation | Q1 2026 |
 | | • Daily price refresh jobs (Hangfire) | |
 | | • Net Worth Timeline with historical snapshots | |
 | | • Manual refresh buttons | |

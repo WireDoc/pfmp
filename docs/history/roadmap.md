@@ -1,249 +1,295 @@
 # PFMP Product Roadmap (2025–2026)
 
-_Last updated: 2025-10-12_
+_Last updated: 2025-12-07_
 
-## Current Baseline (Wave 5 completion context)
-- **Backend**: Mature .NET 9 API with PostgreSQL, TSP models, task/alert/advice lifecycles, AI analysis endpoints, market data integration, developer bypass auth, seeded demo users, comprehensive dashboard summary endpoint.
-- **Frontend**: React 19 application with complete onboarding flow (15 sections), production dashboard with real data, routing with guard components, feature flags, MSW-driven testing harness (88/88 tests passing).
-- **Completed Milestones**:
-  - ✅ Wave 0-3: Routing, onboarding scaffold, data persistence
-  - ✅ Wave 4: Intelligence dashboard structure and static routing
-  - ✅ Wave 5: Dashboard MVP with real backend data, review status persistence, long-term obligations data loading
-- **Current Status**: **v0.9.0-alpha** (October 26, 2025) - Dashboard with real data enabled, transitioning to navigation shell and polish phase
+## Current Status Summary
 
-The roadmap below transitions the stack from today's functional MVP into a production-ready personal financial management platform.
+| Milestone | Status | Completion Date |
+|-----------|--------|-----------------|
+| Wave 0-5: Onboarding MVP | ✅ Complete | October 2025 |
+| Wave 6: Navigation Shell | ⏸️ Deferred | — |
+| Wave 7: AI Advisory System | ✅ Complete | October 2025 |
+| Wave 8: Account Detail Views | ✅ Complete | November 2025 |
+| Wave 9: Market Data & Analytics | ✅ Complete | December 2025 |
+| Wave 10: Background Jobs | 🔄 Next | Q1 2026 |
+| Wave 11: Plaid Integration | 📋 Planned | January 2026 |
+| Wave 12: Advanced Analytics | 📋 Planned | Q1 2026 |
 
----
-
-## Phase 1 – Onboarding MVP (Oct–Nov 2025)
-**Goal:** Capture real user profiles and financial inputs through the UI so the backend's existing capabilities can operate on live data.
-
-**Status:** ✅ **SUBSTANTIALLY COMPLETE** (Wave 5 MVP - October 26, 2025)
-
-### Completed Deliverables ✅
-- ✅ Rebuilt onboarding wizard with 15 data entry sections: Welcome & Household, Risk & Goals, Income, Equity & Private Holdings, Liabilities, Investments, Cash Accounts, Real Estate & Mortgages, Expenses & Budget, Long-Term Obligations, Tax Withholding, Insurance & Benefits, TSP Positions, Review & Finalize
-- ✅ All sections persist state via backend APIs with auto-save functionality
-- ✅ Enhanced UX: Cash accounts with type dropdowns, simplified W-4-based tax section, state selection
-- ✅ Validation errors and progress tracker fully functional
-- ✅ Dev User Switcher with 4 seeded personas plus ability to reset test data
-- ✅ Dashboard with real backend data showing personalized snapshot (name, net worth, accounts, insights, tasks)
-- ✅ Review status persistence survives page refreshes
-- ✅ All 88 tests passing with comprehensive coverage
-
-### Remaining Items (Minor)
-- Form validation schema refinement (field-level validation messages)
-- Advanced profile editing workflow (edit completed sections from dashboard)
-
-### Dependencies Met
-- ✅ Backend endpoints for all profile sections operational
-- ✅ UI components built using MUI Grid v2
-- ✅ PascalCase API mapping for all sections
-
-### Success Criteria Achieved ✅
-- ✅ New user can complete onboarding entirely through UI
-- ✅ Database reflects entered values; refresh retains state
-- ✅ Dashboard shows personalized snapshot with real financial data
-- ✅ Complete users can access dashboard; incomplete users redirected to onboarding
+**Current Version**: v0.9.5-alpha (December 7, 2025)
 
 ---
 
+## Completed Waves
+
+### Waves 0-5: Onboarding & Dashboard MVP ✅
+**Completed**: October 2025
+
+- 15-section onboarding wizard with autosave
+- Production dashboard with real backend data
+- Net worth aggregation, accounts summary, insights, tasks
+- Dev user system with 4 seeded personas
+- TSP summary with lifecycle funds (L2030–L2075)
+- 88/88 tests passing
+
+### Wave 6: Navigation Shell ⏸️
+**Status**: Deferred (not blocking)
+
+Originally planned for persistent sidebar navigation. Dashboard currently functional with direct routes. Will revisit when needed.
+
+### Wave 7: AI Advisory System ✅
+**Completed**: October 2025
+
+- **Wave 7.3**: Dual AI pipeline (Gemini 2.5 Pro + Claude Opus 4)
+- **Wave 7.4**: Enhanced AI context with account purpose fields and fact-checking
+- Alert → Advice → Task workflow with provenance
+- Context caching for cost optimization
+
+### Wave 8: Account Detail Views ✅
+**Completed**: November 2025
+
+- **Wave 8.1**: Account detail modal with holdings breakdown
+- Investment account views with price history charts
+- Holdings management UI
+
+### Wave 9: Market Data & Analytics ✅
+**Completed**: December 2025
+
+#### Wave 9.2: Market Data Integration
+- FMP API integration for real-time stock quotes
+- Historical price charts (1D, 1W, 1M, 3M, 1Y, 5Y)
+- Price refresh infrastructure
+
+#### Wave 9.3: Enhanced Views (~8,000+ lines)
+
+| Option | Deliverable | Lines |
+|--------|-------------|-------|
+| **A** | Investment Analytics Tabs | ~5,100 |
+| | • Performance: TWR, MWR, Sharpe, volatility | |
+| | • Tax: Unrealized gains/losses, tax-lot analysis | |
+| | • Risk: Beta, max drawdown, correlation matrix | |
+| | • Allocation: Asset class, sector, geography, market cap | |
+| **B** | Loan & Credit Card Views | ~3,500 |
+| | • Debt payoff dashboard with Avalanche vs Snowball | |
+| | • Auto loan & mortgage management | |
+| | • Payoff timeline charts | |
+| **C** | Cash Account UX Polish | ~400 |
+| | • Transaction tracking | |
+| | • Interest summary | |
+| **D** | D3.js Visualizations | ~700 |
+| | • Sunburst allocation chart (toggle) | |
+| | • Correlation heatmap (toggle) | |
+| | • Net Worth Timeline component (awaiting backend) | |
+
 ---
 
-## Phase 1.5 – Navigation & Dashboard Polish (Nov–Dec 2025)
-**Goal:** Transform dashboard from single-page view into navigable application with professional UX.
+## In Progress
 
-**Status:** 🚧 **PLANNED** (Wave 6)
+### Wave 10: Background Jobs & Automation 🔄
+**Target**: Q1 2026
 
-### Key Deliverables
-- Persistent left sidebar navigation with sections: Dashboard, Accounts, Insights, Tasks, Profile, Settings
-- Mobile-responsive navigation (hamburger menu below 900px)
-- Enhanced data display: sparkline charts, sync status badges, last-updated timestamps
-- Data refresh flows: auto-polling, manual refresh, optimistic task updates
-- Comprehensive error handling: retry logic, offline detection, stale data warnings
-- Performance baseline: page load <1.5s, API response <500ms, Lighthouse score >90
+**Infrastructure**
+- Hangfire integration with PostgreSQL storage
+- Dashboard-style job management UI (Sonarr-inspired)
+
+**Core Jobs**
+| Job | Schedule | Description |
+|-----|----------|-------------|
+| PriceRefreshJob | Hourly (market hours) | Update stock prices via FMP API |
+| PerformanceSnapshotJob | 4:30 PM EST daily | Capture net worth for timeline |
+| StalenessAlertJob | Daily | Flag stale account data |
+| TSPPriceRefreshJob | Daily | Update TSP fund prices |
+
+**Features**
+- Account-level `IsBackgroundRefreshEnabled` flag
+- Manual refresh buttons ("Refresh Prices" on account views)
+- Net Worth Timeline using snapshot data
+- Scheduler Admin UI with MUI design
+
+See `docs/waves/wave-10-plan.md` for detailed implementation plan.
+
+---
+
+## Planned Waves
+
+### Wave 11: Plaid Bank Account Linking 📋
+**Target**: January 2026
+
+- Plaid Link integration (12,000+ financial institutions)
+- Automatic account balance synchronization
+- Transaction import with category mapping
+- Secure token management
+
+See `docs/waves/wave-11-account-linking-strategy.md`
+
+### Wave 12: Advanced Analytics 📋
+**Target**: Q1 2026 (Post-Plaid)
+
+- Sankey Diagram for cash flow visualization (requires transaction data)
+- Budget vs Actual analysis
+- Spending insights and trends
+- Enhanced D3.js visualizations
+
+---
+
+## Major Features Roadmap
+
+### Navigation Shell & Accounts Page 📋
+**Dependency**: Wave 6 (deferred but needed)
+
+The left sidebar currently has placeholder pages. Full implementation includes:
+
+| Page | Status | Description |
+|------|--------|-------------|
+| Dashboard | ✅ Functional | Net worth, accounts, insights, tasks |
+| Accounts | 🔄 Partial | Detail views exist, list page needs work |
+| Insights | 📋 Placeholder | AI recommendations hub |
+| Tasks | 📋 Placeholder | Task management with status tracking |
+| Profile | 📋 Placeholder | Edit onboarding sections |
+| Settings | 📋 Placeholder | Preferences, notifications, auth |
+
+**Deliverables when implemented:**
+- Persistent left sidebar navigation (900px+ screens)
+- Mobile-responsive hamburger menu
+- Enhanced data display: sparkline charts, sync status badges
 - WCAG 2.1 AA accessibility compliance
-- Visual regression testing infrastructure with Playwright
 
-### Dependencies
-- Phase 1 complete (onboarding + dashboard MVP) ✅
-- Design system components documented
-- Performance monitoring tooling configured
+### AI Chatbot with Memory 📋
+**Priority**: High (Core differentiator)
+**Target**: Q2 2026
 
-### Success Criteria
-- Dashboard navigable via persistent sidebar on all devices
-- All interactive elements keyboard-accessible
-- Visual regression suite covering 20+ dashboard states
-- Performance metrics within target thresholds
-- 5+ test users validate navigation UX without confusion
+The dual AI pipeline (Wave 7) laid groundwork. Chatbot extends this:
 
-See `docs/waves/WAVE-6-NAVIGATION-AND-POLISH.md` for detailed implementation plan.
+**Database Schema**
+- `AIConversation` - Conversation sessions with user context
+- `AIMessage` - Individual messages with role, content, timestamps
+- `AIActionMemory` - Record user decisions to prevent contradictions
+- `AIUserMemory` - Learn user preferences over time
 
----
+**Backend**
+- `AIChatService` - Multi-turn conversations with full financial profile injection
+- Context injection: profile + memory + recent actions in every chat
+- Rate limiting: 20 messages/day free tier
 
-## Phase 2 – Data Aggregation & Account Connectivity (Dec 2025–Jan 2026)
-**Goal:** Populate the dashboard with actual account, portfolio, and cash data for each user.
+**Frontend**
+- MUI ChatBox component with real-time streaming
+- Conversation export (PDF/email)
+- "Convert to Advice" button - promote chat recommendations to Advice records
 
-**Status:** 📋 **PLANNED**
+**Memory Features**
+- Track conversation context across sessions
+- "Why did you recommend this?" explanation system
+- Memory pruning: action memory expires 90 days, preferences persist
 
-### Key Deliverables
-- Bank/brokerage connection strategy: begin with manual CSV/API key ingestion, prepare abstraction layer for future Plaid/Yodlee integration.
-- Implement secure storage for account credentials/secrets (Azure Key Vault or local secrets store for dev).
-- Extend backend ingestion jobs to hydrate holdings, balances, transactions, and valuations across all asset classes (equities, cash, real estate, collectibles, insurance policies).
-- Normalize manual-only asset entry flows (e.g., VA benefits, rentals, metals) so every overview pillar in the vision has a home in the data model.
-- Ensure alert/task scaffolding records ingestion provenance to fuel later automation.
-- Dashboard overview cards show live balances, asset allocation, and cash APR recommendations with drift warnings when yields lag.
-- Daily data refresh job (background service) hitting market data + user portfolios.
+### Market Context Awareness 📋
+**Target**: Q2 2026
 
-### Dependencies
-- Phase 1 complete (users captured TSP and goals).
-- Market data service already in place; extend to support user holdings mapping.
+**Components**
+- `MarketContext` table - Store news, sentiment, economic indicators
+- News aggregation service - RSS/API feeds from financial sources
+- Daily market digest - AI-powered summarization
+- Context injection into AI prompts for time-sensitive advice
+- "What's happening in markets?" dashboard widget
 
-### Success Criteria
-- For seeded demo users, dashboard displays accurate net worth, account totals, and multi-asset holdings (cash, securities, real estate, insurance) sourced from database.
-- Background refresh updates data at least daily; manual “Refresh now” button forces sync and recalculates valuations.
-- Security review of stored credentials (even if limited to API keys in dev) documented with follow-up actions.
+### Daily Experience & Notifications 📋
+**Target**: Q2-Q3 2026 (Phase 4)
 
----
+**Deliverables**
+- Daily summary module (market movement, net worth delta, tasks, alerts)
+- Email or in-app notification system
+- Calendar/Timeline view of goal milestones
+- Performance trend charts (30+ days historical)
+- Export/report feature (PDF/CSV) for advisor meetings
 
-## Phase 3 – Intelligence & Advice Engine Activation (Feb–Mar 2026) 🎯 **CRITICAL FEATURE**
-**Goal:** Deliver actionable recommendations leveraging the dual AI pipeline and new analytics.
+**Dependencies**
+- Wave 10 historical snapshots for trend data
+- Notification infrastructure (Hangfire jobs)
 
-**Status:** 📋 **PLANNED** - This is the core differentiator of PFMP
+### Production Hardening 📋
+**Target**: H2 2026 (Phase 5)
 
-### Key Deliverables
+**Security & Auth**
+- Re-enable Azure Entra ID with full token flow, MFA-ready
+- Role-based access (user vs admin)
+- Audit logging for all financial actions
 
-#### Core AI Features (PRIORITY 1)
-- ✅ **Dual AI pipeline operational** (Gemini 2.5 Pro + Claude Opus 4) - **COMPLETED EARLY** (Wave 7.3)
-- ✅ **Comprehensive analysis** (cash optimization, TSP allocation, portfolio rebalancing, risk alignment) - **OPERATIONAL** (Wave 7.4)
-- ✅ **Alert → Advice → Task workflow** with full provenance tracking - **IMPLEMENTED** (Wave 7.3)
-- ✅ **Context caching** for cost optimization (90% reduction on chatbot conversations) - **READY**
-- Implement prompt engineering refinement for retirement planning and tax optimization.
-- Build enhanced consensus mechanism with confidence thresholds and safety gates.
-- Log all AI interactions for audit trail and continuous improvement.
+**Infrastructure**
+- Secrets management (Azure Key Vault)
+- Encryption at rest for sensitive fields
+- SLA/perf targets with load testing
+- Error budget and monitoring dashboards
 
-#### Chatbot with Memory (PRIORITY 2) ⭐ **NEW**
-- **AIConversation and AIMessage tables** - Conversation history storage with user context
-- **AIChatService** - Multi-turn conversations with full financial profile injection
-- **Context injection** - Full financial profile + memory + recent actions in every chat
-- **Frontend chat interface** - MUI ChatBox component with real-time streaming responses
-- **Rate limiting** - 20 messages/day free tier, throttling for cost control
-- **Conversation export** - PDF/email transcript of advice sessions
-- **"Convert to Advice" button** - Promote actionable chat recommendations to formal Advice records
-- **Memory system** - Track conversation context across sessions
-
-#### Market Context Awareness (PRIORITY 3) ⭐ **NEW**
-- **MarketContext table design** - Store market news, sentiment, and economic indicators
-- **News aggregation service** - RSS/API feeds from financial news sources
-- **Daily market digest generation** - AI-powered summarization of relevant market events
-- **Context injection into AI prompts** - Provide market context for time-sensitive advice
-- **"What's happening in markets?" dashboard widget** - User-facing market summary
-
-#### Financial Intelligence Features (PRIORITY 4)
-- Wire frontend to advice/alert/task APIs for real data; enable accept/dismiss/complete flows with provenance surfaced to users.
-- Stand up the dual-model AI pipeline (Azure OpenAI + Anthropic) with consensus scoring and policy gates for financial recommendations.
-- Deliver retirement Monte Carlo projections and passive-income timeline visualizations backed by live data.
-- Implement rule/AI blending: prioritize high-impact alerts, recommend reallocations (e.g., high-yield savings, CD ladder, stock watchlist) and map accepted items to scheduled automations.
-- Launch tax-loss harvesting scans, surplus cash yield optimization, and rebalancing drift rules feeding the task system.
-- Introduce goal tracking dashboard: progress toward retirement targets, emergency fund, TSP contributions.
-- Add “What changed since yesterday” summary powered by stored historical snapshots.
-- Expand telemetry to log advice acceptance, task completion, and portfolio changes (server + client).
-
-#### Advanced Memory (PRIORITY 5)
-- **AIActionMemory tracking** - Record user decisions to prevent contradictory future advice
-- **AIUserMemory** - Learn user preferences over time ("user prefers conservative advice", "always ask before selling")
-- **Memory pruning** - Expire action memory after 90 days, preference memory persists longer
-- **"Why did you recommend this?" explanation system** - Surface AI reasoning and data sources used
-
-### Dependencies
-- Phase 2 data ingestion complete (need real holdings for meaningful advice).
-- **Azure OpenAI and Anthropic API access configured.**
-- AI endpoints already support recommendations; may require prompt refinement using live data.
-
-### Success Criteria
-- ✅ **Dual AI pipeline operational** with both models providing consensus-based recommendations - **COMPLETED**
-- Users see at least three actionable insights spanning cash yield, rebalancing, and tax opportunities after onboarding.
-- Accepting advice creates tasks, schedules automation (when enabled), and updates dashboard state without manual API calls.
-- Retirement simulations surface probability ranges and next-step guidance; QA checklist covers Monte Carlo outputs, cash optimization, tax-loss harvesting, and TSP mix recommendations.
-- **AI recommendation accuracy tracked and logged for continuous improvement.**
-- **Chatbot supports multi-turn conversations** with full financial context and memory persistence across sessions.
-- **Market context influences AI recommendations** - users see timely advice that responds to current economic conditions.
-- **Memory system prevents contradictory advice** - AI recalls user's past decisions and stated preferences.
-
-### Implementation Notes
-See `docs/waves/ai-advisor-wave-plan.md` for detailed dual AI pipeline architecture and implementation strategy.
+**Compliance**
+- Data retention policies
+- Backup/restore rehearsals
+- Privacy policy documentation
 
 ---
 
-## Phase 4 – Daily Experience & Notifications (Apr–May 2026)
-**Goal:** Provide recurring value via summaries, digests, and proactive nudges.
+## Phase Alignment
 
-### Key Deliverables
-- Daily summary module on dashboard (market movement, net worth delta, upcoming tasks, new alerts).
-- Email or in-app notification system (start with queued notifications stored in DB; send via SMTP or in-app feed).
-- Calendar/Timeline view of goal milestones and task deadlines.
-- Performance trend charts (net worth, allocations, contributions) using stored historical data.
-- Export/report feature (PDF or CSV) for advisor meetings.
+The wave system provides tactical implementation milestones. These align with higher-level product phases:
 
-### Dependencies
-- Historical data capture from Phase 2/3.
-- Notification infrastructure (e.g., Hangfire/Quartz jobs) configured in backend.
-
-### Success Criteria
-- Daily digest generated automatically for demo users (even if delivered in-app only).
-- Trend charts reflect at least 30 days of data.
-- Notification preference settings persisted per user.
+| Phase | Focus | Wave/Feature Coverage | Status |
+|-------|-------|----------------------|--------|
+| **Phase 1** | Onboarding MVP | Waves 0-5 | ✅ Complete |
+| **Phase 1.5** | Navigation Polish | Wave 6 + Accounts Page | 📋 Needed |
+| **Phase 2** | Data Aggregation | Waves 8-9, 11 | 🔄 In Progress |
+| **Phase 3** | AI Advisory | Wave 7 + Chatbot + Memory | ✅ Core done, Chatbot planned |
+| **Phase 4** | Daily Experience | Wave 10 + Notifications | 📋 Wave 10 next |
+| **Phase 5** | Production Hardening | Auth, Security, Compliance | 📋 H2 2026 |
 
 ---
 
-## Phase 5 – Production Hardening & Auth Reinforcement (Jun–Aug 2026)
-**Goal:** Transition from demo to secure, multi-user production readiness.
+## Technology Stack
 
-### Key Deliverables
-- Re-enable Azure Entra ID (or alternative auth) with full token flow, MFA-ready.
-- Role-based access (user vs admin) and audit logging.
-- Secrets management (Key Vault), encryption at rest for sensitive fields.
-- SLA/perf targets: load testing, error budget, monitoring dashboards.
-- Compliance checklist: data retention, backup/restore rehearsals, privacy policy.
-
-### Dependencies
-- Prior phases delivering the core product experience.
-- Infrastructure planning (Azure App Service, containerization, VPN to database, etc.).
-
-### Success Criteria
-- Auth bypass disabled in all environments; CI/CD deploys with secure config.
-- Observability stack alerts on anomalies; RPO/RTO documented.
-- Ready for limited beta with real users.
+| Layer | Technology | Status |
+|-------|------------|--------|
+| Backend | .NET 9 Web API | ✅ Active |
+| Database | PostgreSQL | ✅ Active |
+| Frontend | React 19 + TypeScript + Vite | ✅ Active |
+| UI Framework | MUI v6 | ✅ Active |
+| AI Primary | Gemini 2.5 Pro | ✅ Active |
+| AI Backup | Claude Opus 4 | ✅ Active |
+| Market Data | FMP API | ✅ Active |
+| Job Scheduler | Hangfire | 📋 Wave 10 |
+| Bank Linking | Plaid | 📋 Wave 11 |
+| Auth | Azure Entra ID | ⏸️ Bypass mode (dev) |
 
 ---
 
-## Future Enhancements
+## Key Dates
 
-### Phase 4-5 Candidates
-- **Mobile App with Push Notifications:** Native iOS/Android apps with real-time alerts for portfolio changes, task reminders, and market events. Push notifications for time-sensitive advice and goal milestone achievements.
-- **Voice & Assistant Interfaces:** Alexa/Google Assistant/Siri prototypes for portfolio snapshots, account balance queries, and voice-activated task acceptance. "Alexa, what's my net worth?" and "Hey Google, accept my cash optimization advice."
-
-### Long-term Vision
-- **Advisor/Family Mode:** Multi-tenant support, shared dashboards, and advisor collaboration tooling derived from the vision's white-label aspirations.
-- **Monetization Experiments:** Premium tiers for faster data refresh, advanced analytics, or advisory APIs.
-- **Automation Escalation:** Self-service toggles for auto-executing rebalances or cash sweeps once compliance requirements are met.
-
-These items stay intentionally unscoped until the core roadmap milestones are green, but they keep the broader PFMP vision in sight.
-
----
-
-## Cross-Cutting Initiatives
-- **UX/UI Design:** Invest in design system once Phase 1 forms are stable; consider Storybook revival in Phase 2.
-- **QA Automation:** Expand Vitest MSW coverage alongside each phase; add Playwright smoke tests for onboarding and dashboard flows.
-- **Data Science Sandbox:** Spin up notebooks to prototype advanced analytics (Monte Carlo retirement modeling, dual-model consensus scoring, risk tracking) feeding into future phases.
-- **Documentation:** Keep `docs/testing`, wave plans, and runbooks updated per phase; maintain CHANGELOG.
+| Date | Milestone |
+|------|-----------|
+| October 2025 | Wave 5 MVP Complete |
+| October 2025 | Wave 7 AI Advisory Complete |
+| November 2025 | Wave 8-9.2 Complete |
+| December 7, 2025 | Wave 9.3 Complete (v0.9.5-alpha) |
+| Q1 2026 | Wave 10 Background Jobs |
+| January 2026 | Wave 11 Plaid Integration |
+| Q1 2026 | Wave 12 Advanced Analytics |
 
 ---
 
-## Immediate Next Steps (Q4 2025)
-1. Finalize Phase 1 scope in `docs/waves/WAVE-5-DASHBOARD-MVP.md` (align tasks with above deliverables and incorporate live dashboard metrics).
-2. Build onboarding forms tied to real endpoints; replace “continue” buttons with actual inputs and submissions.
-3. Seed richer demo datasets (accounts, holdings, goals) so dashboard value appears once forms submit.
-4. Draft SignalR rollout plan for Wave 4 follow-up leveraging existing polling abstraction.
-5. Demo walkthrough: Create new user → complete onboarding → view personalized dashboard snapshot.
+## Future Considerations (Post-v1.0)
 
-This roadmap evolves the curiosity build into a production-grade personal financial management platform over the next 12 months while delivering user value at each phase.
+These items remain intentionally unscoped until Phase 5 production hardening is complete:
+
+- **Mobile App**: iOS/Android with push notifications
+- **Voice Interfaces**: Alexa/Google Assistant portfolio queries
+- **Advisor Mode**: Multi-tenant support, shared dashboards, white-label
+- **Auto-Execution**: Self-service rebalancing and cash sweeps (compliance gated)
+- **Monetization**: Premium tiers, faster refresh, advanced analytics
+
+---
+
+## Cross-Cutting Concerns
+
+- **Testing**: 88+ tests passing, Vitest + MSW integration
+- **Documentation**: Subject-organized `docs/` with documentation map
+- **MCP Integration**: AI database access via PostgreSQL MCP server
+- **Performance**: Target <1.5s page load, <500ms API response
+
+---
+
+_This roadmap is updated at the completion of each wave. See `docs/waves/` for detailed wave plans and completion summaries._

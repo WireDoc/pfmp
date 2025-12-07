@@ -1,12 +1,15 @@
 # PFMP Documentation Map
 
-This index lists every active document under `docs/` following the subject-first taxonomy. Paths are relative to the repository root (`C:\pfmp`). Archive folders capture retired or historical material and are noted accordingly.
+_Last updated: 2025-12-07_
+
+This index lists every active document under `docs/` following the subject-first taxonomy. Paths are relative to the repository root (`C:\pfmp`). Archive folders capture retired or historical material.
+
+---
 
 ## 📁 api
 - `docs/api/reference.md` – REST endpoints and payloads
 - `docs/api/dashboard-contract.md` – Dashboard data contract and wiring
 - `docs/api/postman.md` – How to import and use the Postman collection and environment
-- `docs/api/archive/` *(empty placeholder for future deprecated specs)*
 
 ## 🔐 auth
 - `docs/auth/overview.md` – Authentication architecture summary
@@ -17,21 +20,25 @@ This index lists every active document under `docs/` following the subject-first
 - `docs/auth/azure-manual-config.md` – Configuration reference values
 - `docs/auth/personal-account-setup.md` – Personal Microsoft account invitation flow
 - `docs/auth/fix-redirect-uri.md` – Troubleshooting redirect URI mismatches
-- `docs/auth/archive/` *(empty placeholder for retired auth guides)*
 
 ## 🗄️ data
 - `docs/data/database-tools-setup.md` – Local tooling and connection tips
-- `docs/data/import-formats/cash-accounts.md` – CSV import format specification for cash accounts (checking, savings, money market)
-- `docs/data/runbooks/database-backup.md` – Backup runbook (PostgreSQL + Synology workflow)
-- `docs/data/archive/` *(reserved)*
+- `docs/data/import-formats/cash-accounts.md` – CSV import format specification
+- `docs/data/runbooks/database-backup.md` – Backup runbook (PostgreSQL + Synology)
 
 ## 🛠️ dev
-- `docs/dev/build.md` – Full-stack build instructions and automation notes
+- `docs/dev/build.md` – Full-stack build instructions
 - `docs/dev/library-version-guidelines.md` – Supported library versions and upgrade policy
 - `docs/dev/storybook-setup.md` – Storybook scaffold and usage notes
-- `docs/dev/mcp-integration.md` – MCP PostgreSQL server setup, tools, and usage guide
-- `docs/dev/mcp-server-project-spec.md` – Original MCP server specification and architecture
-- `docs/dev/archive/` *(reserved)*
+- `docs/dev/mcp-integration.md` – MCP PostgreSQL server setup and tools
+- `docs/dev/mcp-server-project-spec.md` – Original MCP server specification
+- `docs/dev/accessibility-guide.md` – Accessibility standards
+- `docs/dev/ai-analysis-implementation-status.md` – AI analysis status
+- `docs/dev/ai-architecture-qa-response.md` – AI architecture Q&A
+- `docs/dev/ai-model-recommendation.md` – AI model selection rationale
+- `docs/dev/ai-model-switching.md` – How to switch AI models
+- `docs/dev/roadmap-updates-nov-1-2025.md` – November 2025 roadmap updates
+- `docs/dev/signalr-rollout-plan.md` – SignalR real-time updates plan
 
 ## 📘 guides
 - `docs/guides/QUICK-START.md` – Environment preparation and first run
@@ -39,103 +46,92 @@ This index lists every active document under `docs/` following the subject-first
 - `docs/guides/FRONTEND-BACKEND-GUIDE.md` – Architecture overview by layer
 - `docs/guides/DATA-&-DB.md` – Database workflows, migrations, and psql usage
 - `docs/guides/TROUBLESHOOTING-&-REFERENCE.md` – Common fixes and command glossary
-- `docs/guides/archive/` *(reserved)*
 
 ## 🕰️ history
+- `docs/history/roadmap.md` – **Product roadmap** with wave status (keep current!)
 - `docs/history/changelog.md` – Release history and notable changes
-- `docs/history/roadmap.md` – Upcoming waves and milestones
-- `docs/history/archive/` *(reserved)*
 
 ## 🧭 meta
-- `docs/meta/documentation-strategy.md` – Documentation goals and backlog
-- `docs/meta/audit/docs-audit-2025-10-08.md` – Latest audit log of documentation moves
-- `docs/meta/pfmp-overview.txt` – Legacy project overview text (captured for reference)
-- `docs/meta/archive/` *(reserved)*
+- `docs/meta/documentation-strategy.md` – **Documentation maintenance guide** (read this!)
+- `docs/meta/audit/docs-audit-2025-10-08.md` – Audit log of documentation moves
+- `docs/meta/pfmp-overview.txt` – Legacy project overview text
 
 ## 📝 notes
-- `docs/notes/AI-TESTING-GUIDE.md`
-- `docs/notes/AI-TESTING-RESULTS.md`
-- `docs/notes/archive/` *(reserved)*
-
-### notes archive
-- `docs/archive/notes/PHASE3_COMPLETION_NOTES.md`
-- `docs/archive/notes/PHASE4_COMPLETION_NOTES.md`
-- `docs/archive/notes/PHASE5_AUTHENTICATION_COMPLETION_NOTES.md`
-- `docs/archive/notes/PHASE5_COMPLETION_NOTES.md`
-- `docs/archive/notes/PHASE5_SUMMARY.md`
-- `docs/archive/notes/pfmp-log-2025.md`
-- `docs/archive/README.md`
-
-## ⚙️ ops
-- `docs/ops/runbooks/` *(empty placeholder for operational runbooks; data-specific items live under `docs/data/runbooks/`)*
-- `docs/ops/runbooks/archive/` *(reserved)*
+- `docs/notes/AI-TESTING-GUIDE.md` – AI testing procedures
+- `docs/notes/AI-TESTING-RESULTS.md` – AI testing results
 
 ## 🧪 testing
-- `docs/testing/README.md` – Testing index with backend API testing, frontend manual/automated testing, and Vitest quick reference
-- `docs/testing/alerts-advice-testing.md`
-- `docs/testing/advice-testing.md`
-- `docs/testing/dashboard-msw-handlers.md`
-- `docs/testing/dashboard-wave4-manual-checks.md`
-- `docs/testing/onboarding-persistence.md`
-- `docs/testing/onboarding-testing.md`
-- `docs/testing/tasks-testing.md`
-- `docs/testing/visual-regression-plan.md`
-- `docs/testing/archive/` – Archived test results:
-  - `wave-9.3-option-a-endpoint-tests.md` – Manual endpoint testing results (Nov 2025)
+- `docs/testing/README.md` – Testing index with backend/frontend guides
+- `docs/testing/alerts-advice-testing.md` – Alert/advice flow testing
+- `docs/testing/advice-testing.md` – Advice generation testing
+- `docs/testing/dashboard-msw-handlers.md` – MSW mock handlers
+- `docs/testing/dashboard-wave4-manual-checks.md` – Wave 4 manual test checklist
+- `docs/testing/onboarding-persistence.md` – Onboarding QA checklist
+- `docs/testing/onboarding-testing.md` – Onboarding test procedures
+- `docs/testing/tasks-testing.md` – Task management testing
+- `docs/testing/visual-regression-plan.md` – Visual regression strategy
+- `docs/testing/archive/wave-9.3-option-a-endpoint-tests.md` – Wave 9.3 endpoint tests
 
 ## 🧾 scripts
-- `docs/scripts/dev-scripts.md` – Catalog of automation scripts and usage
-- `docs/scripts/archive/` *(reserved)*
+- `docs/scripts/dev-scripts.md` – Catalog of automation scripts
 
 ## 🌊 waves
-- `docs/waves/REBUILD-WAVE-PLAN.md`
-- `docs/waves/MIGRATION_STATUS.md`
-- `docs/waves/SESSION_COMPLETE.md`
-- `docs/waves/WAVE-0-COMPLETION.md`
-- `docs/waves/WAVE-2-KICKOFF.md`
-- `docs/waves/WAVE-3-PERSISTENCE-DESIGN.md`
-- `docs/waves/WAVE-4-DASHBOARD-PLAN.md`
-- `docs/waves/WAVE-5-DASHBOARD-MVP.md`
-- `docs/waves/WAVE-5-ONBOARDING-FORMS-IMPLEMENTATION.md`
-- `docs/waves/WAVE-5-REAL-ESTATE-ENRICHMENT.md`
-- `docs/waves/WAVE-6-CASH-ACCOUNTS-ENRICHMENT.md`
-- `docs/waves/WAVE-6-NAVIGATION-AND-POLISH.md` – Navigation shell structure and dashboard polish plan
-- `docs/waves/wave-8.1-implementation-summary.md` – Wave 8.1 Account Detail Modal implementation (Nov 2025)
-- `docs/waves/wave-9.2-complete.md` – Wave 9.2 Market Data Integration: FMP API integration with real-time quotes, historical charts, and price refresh (Nov 2025)
-- `docs/waves/wave-9.3-complete-summary.md` – **Wave 9.3 Complete Summary**: All 4 options delivered (~8,000+ lines) (Dec 2025)
-- `docs/waves/wave-9.3-option-a-all-parts-complete.md` – Wave 9.3 Option A: Enhanced Investment Metrics with transaction management and SKELETON/DETAILED state system
-- `docs/waves/wave-9.3-option-b-complete.md` – Wave 9.3 Option B: Loan & Credit Card Views with debt payoff strategies
-- `docs/waves/wave-9.3-option-c-complete.md` – Wave 9.3 Option C: Cash Account UX Polish
-- `docs/waves/wave-9.3-option-d-complete.md` – Wave 9.3 Option D: D3.js Visualizations (sunburst, heatmap, timeline components)
-- `docs/waves/wave-10-plan.md` – **Wave 10 Plan**: Background Jobs & Automation with Net Worth Timeline (Dec 2025)
-- `docs/waves/wave-11-account-linking-strategy.md` – Wave 11: Plaid Bank Account Linking (January 2026)
-- `docs/waves/PHASE-2-DATA-AGGREGATION.md` – Phase 2 complete plan: Manual data entry, CSV import, holdings management
-- `docs/waves/ai-advisor-wave-plan.md`
-- `docs/waves/archive/` – Archived Wave 9.x planning and intermediate documents:
-  - `wave-9.2-fix-plan.md` – Fix plan for Wave 9.2 issues
-  - `wave-9.2-issues-analysis.md` – Analysis of Wave 9.2 issues
-  - `wave-9.3-calculated-balance-fix.md` – Calculated balance fix
-  - `wave-9.3-next-steps.md` – Next steps planning doc
-  - `wave-9.3-option-a-plan.md` – Original implementation plan
-  - `wave-9.3-option-a-complete.md` – Part 1 completion (analytics tabs)
-  - `wave-9.3-option-a-part2-investment-transactions.md` – Part 2 planning
-  - `wave-9.3-option-a-part2-complete.md` – Part 2 completion (transactions)
-  - `wave-9.3-option-a-part2-phase3-transaction-form.md` – Transaction form details
-  - `wave-9.3-option-a-part2-phase3-ux-fixes.md` – UX refinements
-  - `wave-9.3-option-a-part3-skeleton-accounts.md` – Part 3 planning
-  - `wave-9.3-option-a-part3-phase1-complete.md` – Part 3 backend completion
-  - `wave-9.3-option-b-plan.md` – Option B original implementation plan
-  - `wave-9.3-option-d-plan.md` – Option D original implementation plan
 
-## 📈 runbooks (legacy)
-- `docs/runbooks/ENABLE-DASHBOARD-REAL-DATA.md` – Legacy runbook awaiting migration to `ops/runbooks/archive/`
+### Active Wave Plans
+- `docs/waves/wave-10-plan.md` – **Wave 10: Background Jobs & Automation** (Q1 2026)
+- `docs/waves/wave-11-account-linking-strategy.md` – Wave 11: Plaid Integration (Jan 2026)
 
-## 🗃️ root archives
-- `docs/archive/README.md` – Archive index
+### Wave Completion Summaries
+- `docs/waves/wave-9.3-complete-summary.md` – **Wave 9.3 Complete** (Dec 2025) - All 4 options
+- `docs/waves/wave-9.3-option-a-all-parts-complete.md` – Option A: Investment Metrics
+- `docs/waves/wave-9.3-option-b-complete.md` – Option B: Loan & Credit Card Views
+- `docs/waves/wave-9.3-option-c-complete.md` – Option C: Cash Account UX
+- `docs/waves/wave-9.3-option-d-complete.md` – Option D: D3 Visualizations
+- `docs/waves/wave-9.2-complete.md` – Wave 9.2: Market Data Integration
+- `docs/waves/wave-8.1-implementation-summary.md` – Wave 8.1: Account Detail Modal
+
+### Reference Documents
+- `docs/waves/REBUILD-WAVE-PLAN.md` – Original wave rebuild plan
+- `docs/waves/MIGRATION_STATUS.md` – Migration tracking
+- `docs/waves/SESSION_COMPLETE.md` – Session completion tracking
+- `docs/waves/WAVE-0-COMPLETION.md` through `WAVE-6-*.md` – Early wave docs
+- `docs/waves/PHASE-2-DATA-AGGREGATION.md` – Phase 2 complete plan
+- `docs/waves/ai-advisor-wave-plan.md` – AI advisor architecture
+
+### Archived Wave Documents
+Located in `docs/waves/archive/`:
+- wave-9.2-fix-plan.md, wave-9.2-issues-analysis.md
+- wave-9.3-*-plan.md (all option planning docs)
+- wave-9.3-*-complete.md (intermediate completion docs)
+- wave-9.3-calculated-balance-fix.md, wave-9.3-next-steps.md
 
 ---
 
-### How to update this map
-1. Add/edit documents inside the appropriate subject folder (create an `archive/` subfolder when deprecating content).
-2. Append the new entry to the relevant section above with a short description.
-3. Note the change in `docs/meta/documentation-strategy.md` and the audit log if it affects structure.
+## 🗃️ archive
+
+### `docs/archive/dev/`
+- wave7_4_enhanced_ai_context.md – Wave 7.4 AI context implementation
+- wave7_4_frontend_changes.md – Wave 7.4 frontend form updates
+
+### `docs/archive/notes/`
+- PHASE3_COMPLETION_NOTES.md, PHASE4_COMPLETION_NOTES.md
+- PHASE5_AUTHENTICATION_COMPLETION_NOTES.md
+- PHASE5_COMPLETION_NOTES.md, PHASE5_SUMMARY.md
+- pfmp-log-2025.md – Early build log (Sept-Oct 2025)
+- README.md – Archive index
+
+### `docs/archive/runbooks/`
+- ENABLE-DASHBOARD-REAL-DATA.md – Wave 4 dashboard feature flags (outdated)
+
+---
+
+## How to Update This Map
+
+1. **When adding a new document**: Add an entry to the appropriate section above
+2. **When archiving a document**: Move entry to the Archive section, update file path
+3. **When completing a wave**: 
+   - Add completion summary to "Wave Completion Summaries"
+   - Move planning docs to "Archived Wave Documents"
+4. **Always update the "Last updated" date** at the top
+
+See `docs/meta/documentation-strategy.md` for the complete maintenance workflow.
