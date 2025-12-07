@@ -155,14 +155,62 @@ public class LoanAnalyticsController : ControllerBase
     /// </summary>
     /// <param name="userId">The user ID</param>
     /// <param name="extraMonthlyPayment">Optional extra monthly payment to apply</param>
+    /// <param name="includeAutoLoans">Whether to include auto loans (default: true)</param>
+    /// <param name="includeMortgages">Whether to include property mortgages (default: false)</param>
     [HttpGet("users/{userId}/payoff-strategies")]
     public async Task<ActionResult<DebtPayoffStrategiesResponse>> GetPayoffStrategies(
         int userId, 
-        [FromQuery] decimal extraMonthlyPayment = 0)
+        [FromQuery] decimal extraMonthlyPayment = 0,
+        [FromQuery] bool includeAutoLoans = true,
+        [FromQuery] bool includeMortgages = false)
     {
-        var debts = await _context.LiabilityAccounts
-            .Where(l => l.UserId == userId && l.CurrentBalance > 0)
-            .ToListAsync();
+        var query = _context.LiabilityAccounts
+            .Where(l => l.UserId == userId && l.CurrentBalance > 0);
+
+        // Build list of excluded types
+        var excludedTypes = new List<string>();
+        if (!includeAutoLoans)
+        {
+            excludedTypes.Add("auto_loan");
+        }
+        // Always exclude mortgage from liabilities - we'll get them from Properties table if needed
+        excludedTypes.Add("mortgage");
+
+        if (excludedTypes.Any())
+        {
+            query = query.Where(l => !excludedTypes.Contains(l.LiabilityType));
+        }
+
+        var debts = await query.ToListAsync();
+
+        // Include property mortgages if requested
+        if (includeMortgages)
+        {
+            var propertyMortgages = await _context.Properties
+                .Where(p => p.UserId == userId && p.MortgageBalance != null && p.MortgageBalance > 0)
+                .ToListAsync();
+
+            foreach (var property in propertyMortgages)
+            {
+                // Create a synthetic LiabilityAccount for each property mortgage
+                var mortgageLiability = new Models.FinancialProfile.LiabilityAccount
+                {
+                    // Use a synthetic ID based on property (negative to avoid collision)
+                    LiabilityAccountId = -Math.Abs(property.PropertyId.GetHashCode()),
+                    UserId = userId,
+                    LiabilityType = "mortgage",
+                    Lender = property.PropertyName,
+                    CurrentBalance = property.MortgageBalance ?? 0,
+                    MinimumPayment = property.MonthlyMortgagePayment,
+                    // Estimate typical mortgage rate if not stored
+                    InterestRateApr = 6.5m, // TODO: Add MortgageInterestRate to Properties table
+                    IsPriorityToEliminate = false,
+                    CreatedAt = property.CreatedAt,
+                    UpdatedAt = property.UpdatedAt
+                };
+                debts.Add(mortgageLiability);
+            }
+        }
 
         if (!debts.Any())
         {

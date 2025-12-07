@@ -230,12 +230,13 @@ public class DashboardController : ControllerBase
             var liabilitiesList = liabilities.Select(l => new
             {
                 id = l.LiabilityAccountId,
-                name = l.LiabilityType,
+                name = l.Lender ?? l.LiabilityType,
                 type = l.LiabilityType ?? "Other",
                 currentBalance = new { amount = l.CurrentBalance, currency = "USD" },
                 minimumPayment = new { amount = l.MinimumPayment ?? 0, currency = "USD" },
                 interestRate = l.InterestRateApr,
-                lastUpdated = l.UpdatedAt
+                lastUpdated = l.UpdatedAt,
+                propertyId = (Guid?)null  // Not a property mortgage
             }).ToList();
 
             // Add mortgages from properties as liabilities if they have balances
@@ -251,7 +252,8 @@ public class DashboardController : ControllerBase
                     currentBalance = new { amount = property.MortgageBalance!.Value, currency = "USD" },
                     minimumPayment = new { amount = property.MonthlyMortgagePayment ?? 0, currency = "USD" },
                     interestRate = (decimal?)null,
-                    lastUpdated = property.UpdatedAt
+                    lastUpdated = property.UpdatedAt,
+                    propertyId = (Guid?)property.PropertyId  // Link to the property
                 });
             }
 

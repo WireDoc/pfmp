@@ -1,9 +1,16 @@
 # Wave 9.3 Option B: Loan & Credit Card Views - Complete
 
-> **Date Completed**: December 2, 2025  
+> **Date Completed**: December 2, 2025 (updated December 6, 2025)  
 > **Status**: ✅ Complete  
 > **Commits**: `f8d01cc` (backend), `8d09ce7` (frontend views), `bafd4ab` (debt payoff dashboard)  
 > **Lines of Code**: ~3,500 lines
+>
+> **Updates (Dec 6, 2025):**
+> - Fixed DebtPayoffService snowball calculation bug
+> - Added `firstDebtPayoffMonth` tracking to strategies
+> - Fixed PayoffCalculator frontend type mismatch
+> - Added debt type filter checkboxes (Include Auto Loans, Include Home Loans)
+> - Property mortgages now pulled from Properties table when filter enabled
 
 ## Summary
 
@@ -39,7 +46,12 @@ Wave 9.3 Option B delivered comprehensive views for loan accounts (mortgages, au
 | GET | `/api/loan-analytics/credit-cards` | Get all credit card accounts for current user |
 | GET | `/api/loan-analytics/credit-cards/{id}` | Get credit card details |
 | GET | `/api/loan-analytics/credit-cards/{id}/utilization` | Utilization analysis |
-| GET | `/api/loan-analytics/debt-payoff-strategies` | Compare Avalanche/Snowball/Minimum |
+| GET | `/api/loan-analytics/users/{userId}/payoff-strategies` | Compare Avalanche/Snowball/Minimum |
+
+**Query Parameters for Payoff Strategies:**
+- `extraMonthlyPayment` (decimal): Extra payment amount for calculations
+- `includeAutoLoans` (bool, default: true): Include auto loans in analysis
+- `includeMortgages` (bool, default: false): Include property mortgages from Properties table
 
 ### 2. Database Changes
 
@@ -99,6 +111,10 @@ public DateTime? StatementDate { get; set; }
 - Expandable debt list showing payoff order for each strategy
 - Visual comparison of total interest and payoff timeline
 - Accessible via "Compare Payoff Strategies" button in LiabilitiesPanel
+- **Debt Type Filters** (Dec 6, 2025):
+  - "Include Auto Loans" checkbox (default: on)
+  - "Include Home Loans" checkbox - pulls mortgages from Properties table (default: off)
+  - Filters applied via query parameters to backend API
 
 ## Test Data (User 7)
 

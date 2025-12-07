@@ -279,45 +279,67 @@ export function useAggregateCreditUtilization(userId: number | null): UseCreditU
 // useDebtPayoffStrategies Hook
 // ============================================================================
 
+export interface DebtFilterOptions {
+  includeAutoLoans: boolean;
+  includeMortgages: boolean;
+}
+
 interface UseDebtPayoffStrategiesResult {
   strategies: DebtPayoffStrategiesResponse | null;
   loading: boolean;
   error: string | null;
-  refetch: (extraPayment?: number) => Promise<void>;
+  refetch: (extraPayment?: number, filters?: DebtFilterOptions) => Promise<void>;
 }
 
 export function useDebtPayoffStrategies(
   userId: number | null,
-  initialExtraPayment: number = 0
+  initialExtraPayment: number = 0,
+  initialFilters: DebtFilterOptions = { includeAutoLoans: true, includeMortgages: false }
 ): UseDebtPayoffStrategiesResult {
   const [strategies, setStrategies] = useState<DebtPayoffStrategiesResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [extraPayment, setExtraPayment] = useState(initialExtraPayment);
+  const [filters, setFilters] = useState(initialFilters);
 
-  const refetch = useCallback(async (newExtraPayment?: number) => {
+  const refetch = useCallback(async (newExtraPayment?: number, newFilters?: DebtFilterOptions) => {
     if (!userId) return;
     
     const paymentToUse = newExtraPayment !== undefined ? newExtraPayment : extraPayment;
+    const filtersToUse = newFilters !== undefined ? newFilters : filters;
+    
     if (newExtraPayment !== undefined) {
       setExtraPayment(newExtraPayment);
+    }
+    if (newFilters !== undefined) {
+      setFilters(newFilters);
     }
     
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchDebtPayoffStrategies(userId, paymentToUse);
+      const data = await fetchDebtPayoffStrategies(
+        userId, 
+        paymentToUse, 
+        filtersToUse.includeAutoLoans, 
+        filtersToUse.includeMortgages
+      );
       setStrategies(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch payoff strategies');
     } finally {
       setLoading(false);
     }
-  }, [userId, extraPayment]);
+  }, [userId, extraPayment, filters]);
 
   useEffect(() => {
     if (userId) {
-      fetchDebtPayoffStrategies(userId, initialExtraPayment)
+      fetchDebtPayoffStrategies(
+        userId, 
+        initialExtraPayment, 
+        initialFilters.includeAutoLoans, 
+        initialFilters.includeMortgages
+      )
         .then(setStrategies)
         .catch(err => setError(err instanceof Error ? err.message : 'Failed to fetch strategies'));
     }

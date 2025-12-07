@@ -145,6 +145,7 @@ public class PayoffStrategy
     public decimal TotalInterest { get; set; }
     public decimal TotalCost { get; set; }
     public int MonthsToPayoff { get; set; }
+    public int FirstDebtPayoffMonth { get; set; } // Month when first debt is paid off
     public List<int> PayoffOrder { get; set; } = new(); // LiabilityAccountIds in order
 }
 

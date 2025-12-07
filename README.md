@@ -14,7 +14,8 @@ PFMP is an AI-assisted financial planning platform for government employees and 
   - **Wave 9.3 Option B Complete** - Loan & credit card views with debt payoff strategies (Dec 2025)
   - Loan detail views: Amortization schedules, payoff calculators, progress tracking
   - Credit card views: Utilization gauges with color zones, payment status
-  - Debt Payoff Dashboard: Avalanche vs Snowball strategy comparison
+  - Debt Payoff Dashboard: Avalanche vs Snowball strategy comparison with debt type filters
+  - Filter options: Include/exclude auto loans and property mortgages from payoff strategies
   - **Wave 9.3 Option A Complete** - Enhanced investment metrics with 4 analytics tabs (Performance, Tax Insights, Risk Analysis, Allocation)
   - Performance analytics: TWR/MWR, Sharpe ratio, volatility, benchmark comparison vs SPY/QQQ/IWM/VTI
   - Tax insights: Unrealized gains/losses, short/long-term classification, tax-loss harvesting opportunities

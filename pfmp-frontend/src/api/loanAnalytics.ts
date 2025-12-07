@@ -57,15 +57,26 @@ export interface PayoffCalculatorRequest {
   extraMonthlyPayment: number;
 }
 
+export interface PayoffPlan {
+  payoffDate: string;
+  totalInterest: number;
+  totalCost: number;
+  monthsRemaining: number;
+  monthlyPayment: number;
+}
+
+export interface PayoffSavings {
+  monthsSaved: number;
+  yearsSaved: number;
+  interestSaved: number;
+  totalSaved: number;
+}
+
 export interface PayoffCalculatorResponse {
   liabilityAccountId: number;
-  currentPayoffDate: string;
-  newPayoffDate: string;
-  monthsSaved: number;
-  interestSaved: number;
-  totalInterestWithExtra: number;
-  totalInterestWithoutExtra: number;
-  extraMonthlyPayment: number;
+  currentPlan: PayoffPlan;
+  acceleratedPlan: PayoffPlan;
+  savings: PayoffSavings;
 }
 
 export interface CreditCardResponse {
@@ -114,6 +125,7 @@ export interface PayoffStrategy {
   totalInterest: number;
   totalCost: number;
   monthsToPayoff: number;
+  firstDebtPayoffMonth: number;
   payoffOrder: number[];
 }
 
@@ -217,11 +229,13 @@ export const fetchAggregateCreditUtilization = async (
  */
 export const fetchDebtPayoffStrategies = async (
   userId: number,
-  extraMonthlyPayment: number = 0
+  extraMonthlyPayment: number = 0,
+  includeAutoLoans: boolean = true,
+  includeMortgages: boolean = false
 ): Promise<DebtPayoffStrategiesResponse> => {
   const response = await http.get<DebtPayoffStrategiesResponse>(
     `/loan-analytics/users/${userId}/payoff-strategies`,
-    { params: { extraMonthlyPayment } }
+    { params: { extraMonthlyPayment, includeAutoLoans, includeMortgages } }
   );
   return response.data;
 };

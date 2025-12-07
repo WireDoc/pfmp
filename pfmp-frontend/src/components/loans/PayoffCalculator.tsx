@@ -69,8 +69,8 @@ export function PayoffCalculator({ loanId, currentLoan }: PayoffCalculatorProps)
         <Typography variant="subtitle2" gutterBottom>
           Extra Monthly Payment
         </Typography>
-        <Grid container spacing={2} alignItems="center">
-          <Grid size={{ xs: 12, sm: 8 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          <Box sx={{ flex: 1, pr: 4 }}>
             <Slider
               value={extraPayment}
               onChange={handleSliderChange}
@@ -85,20 +85,18 @@ export function PayoffCalculator({ loanId, currentLoan }: PayoffCalculatorProps)
               valueLabelDisplay="auto"
               valueLabelFormat={(value) => formatCurrency(value)}
             />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <TextField
-              value={extraPayment}
-              onChange={handleInputChange}
-              type="number"
-              size="small"
-              fullWidth
-              InputProps={{
-                startAdornment: <Typography sx={{ mr: 0.5 }}>$</Typography>,
-              }}
-            />
-          </Grid>
-        </Grid>
+          </Box>
+          <TextField
+            value={extraPayment}
+            onChange={handleInputChange}
+            type="number"
+            size="small"
+            sx={{ width: 100, flexShrink: 0 }}
+            InputProps={{
+              startAdornment: <Typography sx={{ mr: 0.5 }}>$</Typography>,
+            }}
+          />
+        </Box>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
           New monthly payment: {formatCurrency(currentLoan.monthlyPayment + extraPayment)}
         </Typography>
@@ -124,9 +122,11 @@ export function PayoffCalculator({ loanId, currentLoan }: PayoffCalculatorProps)
             <ResultCard
               icon={<SavingsIcon />}
               title="Interest Saved"
-              value={formatCurrency(result.interestSaved)}
+              value={formatCurrency(result.savings.interestSaved)}
               color="success.main"
-              subtitle={`${((result.interestSaved / result.totalInterestWithoutExtra) * 100).toFixed(1)}% less interest`}
+              subtitle={result.currentPlan.totalInterest > 0 
+                ? `${((result.savings.interestSaved / result.currentPlan.totalInterest) * 100).toFixed(1)}% less interest`
+                : 'vs. minimum payments'}
             />
           </Grid>
 
@@ -135,9 +135,9 @@ export function PayoffCalculator({ loanId, currentLoan }: PayoffCalculatorProps)
             <ResultCard
               icon={<CalendarIcon />}
               title="Time Saved"
-              value={`${result.monthsSaved} months`}
+              value={`${result.savings.monthsSaved} months`}
               color="primary.main"
-              subtitle={`${(result.monthsSaved / 12).toFixed(1)} years earlier payoff`}
+              subtitle={`${result.savings.yearsSaved} years earlier payoff`}
             />
           </Grid>
 
@@ -146,9 +146,9 @@ export function PayoffCalculator({ loanId, currentLoan }: PayoffCalculatorProps)
             <ResultCard
               icon={<TrendingDownIcon />}
               title="New Payoff Date"
-              value={formatDate(result.newPayoffDate)}
+              value={formatDate(result.acceleratedPlan.payoffDate)}
               color="info.main"
-              subtitle={`Originally: ${formatDate(result.currentPayoffDate)}`}
+              subtitle={`Originally: ${formatDate(result.currentPlan.payoffDate)}`}
             />
           </Grid>
         </Grid>
@@ -178,18 +178,18 @@ export function PayoffCalculator({ loanId, currentLoan }: PayoffCalculatorProps)
             
             <Typography variant="body2">Payoff Date</Typography>
             <Typography variant="body2" textAlign="center">
-              {formatDate(result.currentPayoffDate)}
+              {formatDate(result.currentPlan.payoffDate)}
             </Typography>
             <Typography variant="body2" textAlign="center" color="success.main" fontWeight={600}>
-              {formatDate(result.newPayoffDate)}
+              {formatDate(result.acceleratedPlan.payoffDate)}
             </Typography>
             
             <Typography variant="body2">Total Interest</Typography>
             <Typography variant="body2" textAlign="center">
-              {formatCurrency(result.totalInterestWithoutExtra)}
+              {formatCurrency(result.currentPlan.totalInterest)}
             </Typography>
             <Typography variant="body2" textAlign="center" color="success.main" fontWeight={600}>
-              {formatCurrency(result.totalInterestWithExtra)}
+              {formatCurrency(result.acceleratedPlan.totalInterest)}
             </Typography>
           </Box>
         </Box>

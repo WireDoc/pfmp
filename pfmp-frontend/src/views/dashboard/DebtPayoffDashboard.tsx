@@ -27,6 +27,8 @@ import {
   TableRow,
   ToggleButton,
   ToggleButtonGroup,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -37,24 +39,41 @@ import {
   Savings as SavingsIcon,
 } from '@mui/icons-material';
 import { useDebtPayoffStrategies } from '../../hooks/useLoanAnalytics';
-import { useAuth } from '../../contexts/AuthContext';
+import { useDevUserId } from '../../dev/devUserState';
 
 export default function DebtPayoffDashboard() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const userId = user?.userId ?? null;
+  const userId = useDevUserId();
   
   const [extraPayment, setExtraPayment] = useState(200);
   const [selectedStrategy, setSelectedStrategy] = useState<'avalanche' | 'snowball'>('avalanche');
+  const [includeAutoLoans, setIncludeAutoLoans] = useState(true);
+  const [includeMortgages, setIncludeMortgages] = useState(false);
   
-  const { strategies, loading, error, refetch } = useDebtPayoffStrategies(userId, extraPayment);
+  const { strategies, loading, error, refetch } = useDebtPayoffStrategies(
+    userId, 
+    extraPayment,
+    { includeAutoLoans, includeMortgages }
+  );
 
   const handleExtraPaymentChange = (_event: Event, newValue: number | number[]) => {
     setExtraPayment(newValue as number);
   };
 
   const handleExtraPaymentCommit = () => {
-    refetch(extraPayment);
+    refetch(extraPayment, { includeAutoLoans, includeMortgages });
+  };
+
+  const handleIncludeAutoLoansChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = event.target.checked;
+    setIncludeAutoLoans(newValue);
+    refetch(extraPayment, { includeAutoLoans: newValue, includeMortgages });
+  };
+
+  const handleIncludeMortgagesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = event.target.checked;
+    setIncludeMortgages(newValue);
+    refetch(extraPayment, { includeAutoLoans, includeMortgages: newValue });
   };
 
   const handleStrategyChange = (
@@ -69,7 +88,7 @@ export default function DebtPayoffDashboard() {
   if (!userId) {
     return (
       <Box sx={{ p: 3 }}>
-        <Alert severity="warning">Please log in to view debt payoff strategies</Alert>
+        <Alert severity="warning">No user selected. Please select a dev user from the user switcher.</Alert>
       </Box>
     );
   }
@@ -148,8 +167,8 @@ export default function DebtPayoffDashboard() {
           <Typography variant="subtitle2" gutterBottom>
             Extra Monthly Payment: {formatCurrency(extraPayment)}
           </Typography>
-          <Grid container spacing={2} alignItems="center">
-            <Grid size={{ xs: 12, sm: 8 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            <Box sx={{ flex: 1, pr: 4 }}>
               <Slider
                 value={extraPayment}
                 onChange={handleExtraPaymentChange}
@@ -167,29 +186,51 @@ export default function DebtPayoffDashboard() {
                 valueLabelDisplay="auto"
                 valueLabelFormat={(value) => formatCurrency(value)}
               />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 4 }}>
-              <TextField
-                value={extraPayment}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value, 10);
-                  if (!isNaN(value) && value >= 0) {
-                    setExtraPayment(value);
-                  }
-                }}
-                onBlur={handleExtraPaymentCommit}
-                type="number"
-                size="small"
-                fullWidth
-                InputProps={{
-                  startAdornment: <Typography sx={{ mr: 0.5 }}>$</Typography>,
-                }}
-              />
-            </Grid>
-          </Grid>
+            </Box>
+            <TextField
+              value={extraPayment}
+              onChange={(e) => {
+                const value = parseInt(e.target.value, 10);
+                if (!isNaN(value) && value >= 0) {
+                  setExtraPayment(value);
+                }
+              }}
+              onBlur={handleExtraPaymentCommit}
+              type="number"
+              size="small"
+              sx={{ width: 100, flexShrink: 0 }}
+              InputProps={{
+                startAdornment: <Typography sx={{ mr: 0.5 }}>$</Typography>,
+              }}
+            />
+          </Box>
           <Typography variant="caption" color="text.secondary">
             Total monthly payment: {formatCurrency(strategies.totalMinimumPayment + extraPayment)}
           </Typography>
+        </Box>
+
+        {/* Debt Type Filters */}
+        <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={includeAutoLoans}
+                onChange={handleIncludeAutoLoansChange}
+                size="small"
+              />
+            }
+            label="Include Auto Loans"
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={includeMortgages}
+                onChange={handleIncludeMortgagesChange}
+                size="small"
+              />
+            }
+            label="Include Home Loans"
+          />
         </Box>
 
         {/* Summary Cards */}
@@ -532,14 +573,10 @@ function getOrderedDebts(strategies: Strategies, strategy: 'avalanche' | 'snowba
 }
 
 function getFirstPayoffDiff(strategies: Strategies): number {
-  // This is a simplified calculation - in reality would need simulation data
-  // For now, return a reasonable estimate based on balance differences
-  const avalancheFirst = strategies.debts.find(d => d.liabilityAccountId === strategies.avalanche.payoffOrder[0]);
-  const snowballFirst = strategies.debts.find(d => d.liabilityAccountId === strategies.snowball.payoffOrder[0]);
+  // Use actual first debt payoff month from simulation
+  const avalancheFirst = strategies.avalanche.firstDebtPayoffMonth;
+  const snowballFirst = strategies.snowball.firstDebtPayoffMonth;
   
-  if (!avalancheFirst || !snowballFirst) return 0;
-  
-  // Estimate: smaller balance pays off faster
-  const diff = Math.round((avalancheFirst.balance - snowballFirst.balance) / snowballFirst.minimumPayment);
-  return Math.max(0, diff);
+  // Snowball typically pays off first debt faster (lower balance first)
+  return Math.max(0, avalancheFirst - snowballFirst);
 }

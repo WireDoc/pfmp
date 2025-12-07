@@ -98,6 +98,9 @@ export default function LiabilitiesPanel({ liabilities = [], loading = false }: 
         <Stack spacing={2}>
           {liabilities.map((liability) => {
             const { Icon, route, color } = getLiabilityInfo(liability.type);
+            // Property mortgages (id >= 100000 or has propertyId) can't be clicked yet
+            const isPropertyMortgage = liability.id >= 100000 || !!liability.propertyId;
+            const isClickable = !isPropertyMortgage;
             
             return (
               <Card 
@@ -105,14 +108,14 @@ export default function LiabilitiesPanel({ liabilities = [], loading = false }: 
                 variant="outlined" 
                 sx={{ 
                   bgcolor: 'background.default',
-                  cursor: 'pointer',
+                  cursor: isClickable ? 'pointer' : 'default',
                   transition: 'all 0.2s',
-                  '&:hover': {
+                  '&:hover': isClickable ? {
                     bgcolor: 'action.hover',
                     transform: 'translateX(4px)',
-                  }
+                  } : {}
                 }}
-                onClick={() => navigate(`/dashboard/${route}/${liability.id}`)}
+                onClick={() => isClickable && navigate(`/dashboard/${route}/${liability.id}`)}
               >
                 <CardContent sx={{ py: 1.5 }}>
                   <Box display="flex" alignItems="center" gap={1.5}>
@@ -135,11 +138,13 @@ export default function LiabilitiesPanel({ liabilities = [], loading = false }: 
                         </Typography>
                       )}
                     </Box>
-                    <Tooltip title="View details">
-                      <IconButton size="small">
-                        <ChevronRightIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
+                    {isClickable && (
+                      <Tooltip title="View details">
+                        <IconButton size="small">
+                          <ChevronRightIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
                   </Box>
 
                   {liability.minimumPayment && liability.minimumPayment.amount > 0 && (

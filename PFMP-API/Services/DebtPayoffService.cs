@@ -111,13 +111,17 @@ public class DebtPayoffService
         var totalInterest = 0m;
         var months = 0;
         var maxMonths = 600; // 50 years cap
+        var firstDebtPayoffMonth = 0;
 
         var activeDebts = new HashSet<int>(orderedDebts.Select(d => d.LiabilityAccountId));
+        
+        // Track snowball effect: freed up payments roll into extra
+        var snowballExtra = extraPayment;
 
         while (activeDebts.Any() && months < maxMonths)
         {
             months++;
-            var availableExtra = extraPayment;
+            var extraToApply = snowballExtra;
 
             foreach (var debt in orderedDebts.Where(d => activeDebts.Contains(d.LiabilityAccountId)))
             {
@@ -126,35 +130,44 @@ public class DebtPayoffService
                 var monthlyRate = rates[id];
                 var minimum = minimums[id];
 
-                // Calculate interest
+                // Calculate interest for this month
                 var interest = balance * monthlyRate;
                 totalInterest += interest;
 
-                // Determine payment
+                // Add interest to balance
+                balance += interest;
+
+                // Determine payment amount
                 var payment = minimum;
                 
-                // For first active debt in order, apply extra payment
+                // For first active debt in order, apply all extra payment
                 if (debt == orderedDebts.First(d => activeDebts.Contains(d.LiabilityAccountId)))
                 {
-                    payment += availableExtra;
-                    availableExtra = 0;
+                    payment += extraToApply;
+                    extraToApply = 0;
                 }
 
-                // Apply payment
-                var principal = Math.Min(payment - interest, balance);
-                if (principal < 0) principal = 0; // Payment doesn't cover interest
+                // Cap payment at remaining balance
+                payment = Math.Min(payment, balance);
+
+                // Apply payment to balance
+                balance -= payment;
                 
-                balance = balance + interest - payment;
-                
-                if (balance <= 0)
+                if (balance <= 0.01m) // Account for floating point
                 {
                     // Debt paid off!
                     balance = 0;
                     activeDebts.Remove(id);
                     payoffOrder.Add(id);
                     
-                    // Freed up minimum gets added to extra for next debt
-                    extraPayment += minimum;
+                    // Track first debt payoff
+                    if (firstDebtPayoffMonth == 0)
+                    {
+                        firstDebtPayoffMonth = months;
+                    }
+                    
+                    // Snowball effect: freed up minimum payment adds to extra for future months
+                    snowballExtra += minimum;
                 }
 
                 balances[id] = balance;
@@ -174,6 +187,7 @@ public class DebtPayoffService
             TotalInterest = Math.Round(totalInterest, 2),
             TotalCost = Math.Round(totalPaid, 2),
             MonthsToPayoff = months,
+            FirstDebtPayoffMonth = firstDebtPayoffMonth,
             PayoffOrder = payoffOrder
         };
     }

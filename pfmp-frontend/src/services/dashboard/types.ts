@@ -125,6 +125,7 @@ export interface LiabilitySnapshot {
   minimumPayment: CurrencyAmount;
   interestRate: number | null;
   lastUpdated: string | null;
+  propertyId?: string | null;  // If set, this is a property mortgage (not a standalone liability)
 }
 
 export interface DashboardData {

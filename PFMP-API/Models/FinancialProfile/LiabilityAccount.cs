@@ -52,16 +52,22 @@ namespace PFMP_API.Models.FinancialProfile
         public DateTime? StatementDate { get; set; }
 
         // Convenience properties
-        public bool IsLoan => LiabilityType switch
+        public bool IsLoan => NormalizedType switch
         {
             "mortgage" => true,
             "auto_loan" => true,
+            "autoloan" => true,
             "personal_loan" => true,
+            "personalloan" => true,
             "student_loan" => true,
+            "studentloan" => true,
             _ => false
         };
 
-        public bool IsCreditCard => LiabilityType == "credit_card";
+        public bool IsCreditCard => NormalizedType == "credit_card" || NormalizedType == "creditcard";
+
+        // Normalize type for consistent comparison (handles hyphen vs underscore, camelCase, etc.)
+        private string NormalizedType => LiabilityType?.ToLowerInvariant().Replace("-", "_") ?? "";
 
         // Calculated properties
         public decimal? CreditUtilization => CreditLimit > 0 ? CurrentBalance / CreditLimit * 100 : null;
