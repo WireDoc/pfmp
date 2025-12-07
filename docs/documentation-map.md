@@ -99,16 +99,23 @@ This index lists every active document under `docs/` following the subject-first
 - `docs/waves/WAVE-5-ONBOARDING-FORMS-IMPLEMENTATION.md`
 - `docs/waves/WAVE-5-REAL-ESTATE-ENRICHMENT.md`
 - `docs/waves/WAVE-6-CASH-ACCOUNTS-ENRICHMENT.md`
-- `docs/waves/WAVE-6-NAVIGATION-AND-POLISH.md` – Navigation shell structure and dashboard polish plan (NEW - Oct 2025)
+- `docs/waves/WAVE-6-NAVIGATION-AND-POLISH.md` – Navigation shell structure and dashboard polish plan
 - `docs/waves/wave-8.1-implementation-summary.md` – Wave 8.1 Account Detail Modal implementation (Nov 2025)
-- `docs/waves/wave-8.1-recovery-plan.md` – Wave 8.1 Recovery: Dashboard data display fix and Phase 2 plan (Nov 2025)
 - `docs/waves/wave-9.2-complete.md` – Wave 9.2 Market Data Integration: FMP API integration with real-time quotes, historical charts, and price refresh (Nov 2025)
-- `docs/waves/wave-9.3-option-a-all-parts-complete.md` – Wave 9.3 Option A Complete: Enhanced Investment Metrics with transaction management and SKELETON/DETAILED state system (Nov 2025)
-- `docs/waves/wave-9.3-calculated-balance-fix.md` – Wave 9.3 Fix: Calculated balance for DETAILED accounts, recalculate endpoint (Nov 2025)
-- `docs/waves/wave-9.3-option-b-complete.md` – Wave 9.3 Option B Complete: Loan & Credit Card Views with debt payoff strategies (Dec 2025)
+- `docs/waves/wave-9.3-complete-summary.md` – **Wave 9.3 Complete Summary**: All 4 options delivered (~8,000+ lines) (Dec 2025)
+- `docs/waves/wave-9.3-option-a-all-parts-complete.md` – Wave 9.3 Option A: Enhanced Investment Metrics with transaction management and SKELETON/DETAILED state system
+- `docs/waves/wave-9.3-option-b-complete.md` – Wave 9.3 Option B: Loan & Credit Card Views with debt payoff strategies
+- `docs/waves/wave-9.3-option-c-complete.md` – Wave 9.3 Option C: Cash Account UX Polish
+- `docs/waves/wave-9.3-option-d-complete.md` – Wave 9.3 Option D: D3.js Visualizations (sunburst, heatmap, timeline components)
+- `docs/waves/wave-10-plan.md` – **Wave 10 Plan**: Background Jobs & Automation with Net Worth Timeline (Dec 2025)
+- `docs/waves/wave-11-account-linking-strategy.md` – Wave 11: Plaid Bank Account Linking (January 2026)
 - `docs/waves/PHASE-2-DATA-AGGREGATION.md` – Phase 2 complete plan: Manual data entry, CSV import, holdings management
 - `docs/waves/ai-advisor-wave-plan.md`
-- `docs/waves/archive/` – Consolidated Wave 9.3 planning documents:
+- `docs/waves/archive/` – Archived Wave 9.x planning and intermediate documents:
+  - `wave-9.2-fix-plan.md` – Fix plan for Wave 9.2 issues
+  - `wave-9.2-issues-analysis.md` – Analysis of Wave 9.2 issues
+  - `wave-9.3-calculated-balance-fix.md` – Calculated balance fix
+  - `wave-9.3-next-steps.md` – Next steps planning doc
   - `wave-9.3-option-a-plan.md` – Original implementation plan
   - `wave-9.3-option-a-complete.md` – Part 1 completion (analytics tabs)
   - `wave-9.3-option-a-part2-investment-transactions.md` – Part 2 planning
@@ -118,6 +125,7 @@ This index lists every active document under `docs/` following the subject-first
   - `wave-9.3-option-a-part3-skeleton-accounts.md` – Part 3 planning
   - `wave-9.3-option-a-part3-phase1-complete.md` – Part 3 backend completion
   - `wave-9.3-option-b-plan.md` – Option B original implementation plan
+  - `wave-9.3-option-d-plan.md` – Option D original implementation plan
 
 ## 📈 runbooks (legacy)
 - `docs/runbooks/ENABLE-DASHBOARD-REAL-DATA.md` – Legacy runbook awaiting migration to `ops/runbooks/archive/`

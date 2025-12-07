@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Alert, CircularProgress } from '@mui/material';
+import { Box, Typography, Alert, CircularProgress, FormControlLabel, Switch } from '@mui/material';
 import { RiskMetricsCard } from './RiskMetricsCard';
 import { VolatilityChart } from './VolatilityChart';
 import { DrawdownChart } from './DrawdownChart';
 import { CorrelationMatrix } from './CorrelationMatrix';
+import { CorrelationHeatmap } from '../visualizations';
 import { fetchRiskMetrics } from '../../api/portfolioAnalytics';
 import type { RiskMetrics, Period } from '../../api/portfolioAnalytics';
 
@@ -19,6 +20,7 @@ export const RiskAnalysisTab: React.FC<RiskAnalysisTabProps> = ({
   const [riskMetrics, setRiskMetrics] = useState<RiskMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [useHeatmapView, setUseHeatmapView] = useState(false);
 
   useEffect(() => {
     const loadRiskMetrics = async () => {
@@ -91,26 +93,39 @@ export const RiskAnalysisTab: React.FC<RiskAnalysisTabProps> = ({
         </Box>
       </Box>
 
-      {/* Bottom Row: Drawdown Chart + Correlation Matrix */}
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', lg: 'row' },
-          gap: 3,
-        }}
-      >
-        <Box sx={{ flex: { xs: '1 1 100%', lg: '1 1 50%' } }}>
-          <DrawdownChart
-            data={riskMetrics.drawdownHistory}
-            loading={false}
+      {/* Middle Row: Drawdown Chart (full width) */}
+      <Box sx={{ mb: 3 }}>
+        <DrawdownChart
+          data={riskMetrics.drawdownHistory}
+          loading={false}
+        />
+      </Box>
+
+      {/* Bottom Row: Correlation Matrix/Heatmap (full width) */}
+      <Box>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={useHeatmapView}
+                onChange={(e) => setUseHeatmapView(e.target.checked)}
+                size="small"
+              />
+            }
+            label="Heatmap View"
           />
         </Box>
-        <Box sx={{ flex: { xs: '1 1 100%', lg: '1 1 50%' } }}>
+        {useHeatmapView ? (
+          <CorrelationHeatmap
+            correlationMatrix={riskMetrics.correlationMatrix}
+            loading={false}
+          />
+        ) : (
           <CorrelationMatrix
             correlationMatrix={riskMetrics.correlationMatrix}
             loading={false}
           />
-        </Box>
+        )}
       </Box>
 
       {/* Educational Content */}

@@ -11,17 +11,16 @@ PFMP is an AI-assisted financial planning platform for government employees and 
 - **Authentication**: Azure Entra ID with local bypass mode for development
 - **AI Architecture**: Dual-model pipeline planned (Azure OpenAI + Anthropic) with consensus scoring - See Phase 3 in roadmap
 - **Current Highlights**: 
-  - **Wave 9.3 Option B Complete** - Loan & credit card views with debt payoff strategies (Dec 2025)
-  - Loan detail views: Amortization schedules, payoff calculators, progress tracking
-  - Credit card views: Utilization gauges with color zones, payment status
-  - Debt Payoff Dashboard: Avalanche vs Snowball strategy comparison with debt type filters
-  - Filter options: Include/exclude auto loans and property mortgages from payoff strategies
-  - **Wave 9.3 Option A Complete** - Enhanced investment metrics with 4 analytics tabs (Performance, Tax Insights, Risk Analysis, Allocation)
+  - **Wave 9.3 Complete** - All four options delivered (December 2025)
+  - **Option D**: D3.js visualizations (sunburst charts, correlation heatmaps) as toggle options
+  - **Option B**: Loan & credit card views with debt payoff strategies (Avalanche vs Snowball)
+  - **Option A**: Enhanced investment metrics with 4 analytics tabs (Performance, Tax, Risk, Allocation)
+  - **Option C**: Polish Cash Account UX with transaction tracking
+  - Debt Payoff Dashboard: Strategy comparison with auto loan and mortgage filters
   - Performance analytics: TWR/MWR, Sharpe ratio, volatility, benchmark comparison vs SPY/QQQ/IWM/VTI
-  - Tax insights: Unrealized gains/losses, short/long-term classification, tax-loss harvesting opportunities
+  - Tax insights: Unrealized gains/losses, short/long-term classification, tax-loss harvesting
   - Risk analysis: Portfolio beta, max drawdown, correlation matrix, 30-day rolling volatility
   - Allocation breakdown: By asset class/sector/geography/market cap with rebalancing recommendations
-  - **Wave 9.3 Cash Accounts** - Cash account detail views with transaction tracking
   - **Wave 9.2 Complete** - Market data integration with FMP API for real-time quotes and historical charts
   - **Wave 5 MVP Complete** - Production dashboard enabled with real backend data
   - Rebuilt onboarding flow with 15 financial profile sections (all fully functional with autosave)
@@ -123,13 +122,30 @@ See `docs/api/postman.md` for details.
 
 ## Status & roadmap
 
-- Active version: **v0.9.4-alpha** (Wave 9.3 Option B Complete - December 2, 2025)
-- **Milestone**: Loan & credit card views with debt payoff strategies - 3,500+ lines of code
-- **Achievement**: Complete account type coverage with specialized views for investments, loans, credit cards, and cash accounts
-- **Recent**: Wave 9.3 Option A delivered institutional-grade investment analytics (5,100+ lines)
-- **Next Phase**: Wave 9.3 Option D (Advanced Visualizations) or Wave 10 (Background Jobs)
+- Active version: **v0.9.5-alpha** (Wave 9.3 Complete - December 7, 2025)
+- **Milestone**: Wave 9.3 fully complete with all 4 options delivered (~8,000+ lines)
+- **Achievement**: D3.js visualizations, debt payoff strategies, investment analytics, cash account UX
+- **Next Phase**: Wave 10 (Background Jobs & Net Worth Timeline)
 - Roadmap Phase 2 (Data Aggregation) in progress; Phase 3 (AI Advisory) on deck
-- Track progress, migration notes, and future waves in `docs/waves/`
+
+### Upcoming Waves
+
+| Wave | Focus | Target |
+|------|-------|--------|
+| **10** | Background Jobs & Automation | Q1 2025 |
+| | • Daily price refresh jobs (Hangfire) | |
+| | • Net Worth Timeline with historical snapshots | |
+| | • Manual refresh buttons | |
+| **11** | Plaid Bank Account Linking | January 2026 |
+| | • 12,000+ bank integrations | |
+| | • Automatic balance sync | |
+| | • Transaction import with categories | |
+| **12** | Advanced Analytics | Post-Plaid |
+| | • Sankey Diagram (cash flow visualization) | |
+| | • Budget vs Actual analysis | |
+| | • Spending insights | |
+
+Track progress, migration notes, and future waves in `docs/waves/`
 
 ## Testing resources
 

@@ -6,6 +6,8 @@ import {
   CircularProgress,
   ToggleButtonGroup,
   ToggleButton,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import PieChartIcon from '@mui/icons-material/PieChart';
 import BusinessIcon from '@mui/icons-material/Business';
@@ -14,6 +16,7 @@ import ShowChartIcon from '@mui/icons-material/ShowChart';
 import { AllocationSunburstChart } from './AllocationSunburstChart';
 import { AllocationTableView } from './AllocationTableView';
 import { RebalancingRecommendations } from './RebalancingRecommendations';
+import { SunburstChart } from '../visualizations';
 import { fetchAllocationBreakdown } from '../../api/portfolioAnalytics';
 import type { AllocationBreakdown, AllocationDimension } from '../../api/portfolioAnalytics';
 
@@ -26,6 +29,7 @@ export const AllocationTab: React.FC<AllocationTabProps> = ({ accountId }) => {
   const [allocationData, setAllocationData] = useState<AllocationBreakdown | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [useAdvancedChart, setUseAdvancedChart] = useState(false);
 
   useEffect(() => {
     const loadAllocationData = async () => {
@@ -77,10 +81,23 @@ export const AllocationTab: React.FC<AllocationTabProps> = ({ accountId }) => {
 
   return (
     <Box sx={{ width: '100%' }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5">
-          Portfolio Allocation
-        </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="h5">
+            Portfolio Allocation
+          </Typography>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={useAdvancedChart}
+                onChange={(e) => setUseAdvancedChart(e.target.checked)}
+                size="small"
+              />
+            }
+            label="Interactive Chart"
+            sx={{ ml: 2 }}
+          />
+        </Box>
 
         <ToggleButtonGroup
           value={dimension}
@@ -119,11 +136,19 @@ export const AllocationTab: React.FC<AllocationTabProps> = ({ accountId }) => {
         }}
       >
         <Box sx={{ flex: { xs: '1 1 100%', lg: '0 0 40%' }, display: 'flex', flexDirection: 'column' }}>
-          <AllocationSunburstChart
-            allocations={allocationData.allocations}
-            dimension={dimension}
-            loading={false}
-          />
+          {useAdvancedChart ? (
+            <SunburstChart
+              allocations={allocationData.allocations}
+              dimension={dimension}
+              loading={false}
+            />
+          ) : (
+            <AllocationSunburstChart
+              allocations={allocationData.allocations}
+              dimension={dimension}
+              loading={false}
+            />
+          )}
         </Box>
         <Box sx={{ flex: { xs: '1 1 100%', lg: '1 1 60%' } }}>
           <AllocationTableView
