@@ -53,6 +53,19 @@ namespace PFMP_API.Models
         [MaxLength(20)]
         public string State { get; set; } = "DETAILED";
 
+        // Background Jobs (Wave 10)
+        /// <summary>
+        /// When true, this account is included in scheduled background refresh jobs.
+        /// Set to false to exclude from automated price updates.
+        /// </summary>
+        public bool IsBackgroundRefreshEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Lifecycle state for the account.
+        /// </summary>
+        [MaxLength(20)]
+        public string LifecycleState { get; set; } = "Active";
+
         // Helper methods for state
         public bool IsSkeleton() => State == "SKELETON";
         public bool IsDetailed() => State == "DETAILED";

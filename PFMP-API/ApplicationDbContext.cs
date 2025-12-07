@@ -69,6 +69,9 @@ namespace PFMP_API
     public DbSet<TspLifecyclePosition> TspLifecyclePositions { get; set; }
     public DbSet<TspPositionSnapshot> TspPositionSnapshots { get; set; }
 
+    // Background Jobs & Analytics (Wave 10)
+    public DbSet<NetWorthSnapshot> NetWorthSnapshots { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -531,6 +534,25 @@ namespace PFMP_API
                 entity.Property(e => e.FundsAllocated).HasColumnType("decimal(18,2)");
                 entity.Property(e => e.Notes).HasMaxLength(400);
                 entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Net Worth Snapshots (Wave 10)
+            modelBuilder.Entity<NetWorthSnapshot>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.UserId, e.SnapshotDate }).IsUnique();
+                entity.HasIndex(e => e.SnapshotDate);
+                entity.Property(e => e.TotalNetWorth).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.InvestmentsTotal).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.CashTotal).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.RealEstateEquity).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.RetirementTotal).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.LiabilitiesTotal).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.CreatedAt).IsRequired();
+                entity.HasOne(e => e.User)
                     .WithMany()
                     .HasForeignKey(e => e.UserId)
                     .OnDelete(DeleteBehavior.Cascade);

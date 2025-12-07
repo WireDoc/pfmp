@@ -51,6 +51,21 @@ For manual API exploration without the frontend wiring:
 
 `{{baseUrl}}` defaults to `http://localhost:5052`; change it in the environment if the API runs elsewhere.
 
+### Background Jobs (Hangfire)
+The API uses Hangfire for scheduled background tasks (Wave 10). Jobs are stored in PostgreSQL and run within the ASP.NET Core process.
+
+- **Dashboard**: `http://localhost:5052/hangfire` (development only)
+- **Storage**: PostgreSQL `hangfire` schema (auto-created on startup)
+- **Queues**: `default`, `price-refresh`, `snapshots`
+
+**Scheduled Jobs**:
+| Job | Schedule | Purpose |
+|-----|----------|----------|
+| PriceRefreshJob | Daily 11 PM ET | Update holding prices from FMP API |
+| NetWorthSnapshotJob | Daily 11:30 PM ET | Capture daily net worth for timeline |
+
+**Note**: Jobs only run when the API is running. In development, this means jobs execute when your laptop is on with the API started. Production uses Azure App Service "Always On" for 24/7 execution.
+
 ### Health & Readiness
 - Liveness: `GET /health` – lightweight JSON (no DB calls).
 - Readiness: `GET /health/ready` – includes database connectivity + migration application counts. Returns 200 with `status=READY` or 503 with `status=DEGRADED` if unreachable or exception encountered.

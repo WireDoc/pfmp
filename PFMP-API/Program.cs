@@ -8,6 +8,8 @@ using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.OpenApi.Models;
 using PFMP_API.Services.FinancialProfile;
+using Hangfire;
+using Hangfire.PostgreSql;
 
 namespace PFMP_API
 {
@@ -110,6 +112,24 @@ namespace PFMP_API
             builder.Services.AddScoped<AmortizationService>();
             builder.Services.AddScoped<CreditUtilizationService>();
             builder.Services.AddScoped<DebtPayoffService>();
+
+            // Background Jobs - Hangfire (Wave 10)
+            var hangfireConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+            builder.Services.AddHangfire(config => config
+                .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                .UseSimpleAssemblyNameTypeSerializer()
+                .UseRecommendedSerializerSettings()
+                .UsePostgreSqlStorage(options => 
+                    options.UseNpgsqlConnection(hangfireConnectionString)));
+            builder.Services.AddHangfireServer(options =>
+            {
+                options.WorkerCount = Environment.ProcessorCount * 2;
+                options.Queues = new[] { "default", "price-refresh", "snapshots" };
+            });
+
+            // Background Job Classes (Wave 10)
+            builder.Services.AddScoped<PFMP_API.Jobs.PriceRefreshJob>();
+            builder.Services.AddScoped<PFMP_API.Jobs.NetWorthSnapshotJob>();
 
             // Add Authentication Services
             builder.Services.AddScoped<IPasswordHashService, PasswordHashService>();
@@ -222,6 +242,34 @@ namespace PFMP_API
 
             app.UseAuthentication();
             app.UseAuthorization();
+
+            // Hangfire Dashboard (Wave 10) - only in development for now
+            if (app.Environment.IsDevelopment())
+            {
+                app.UseHangfireDashboard("/hangfire", new DashboardOptions
+                {
+                    DashboardTitle = "PFMP Background Jobs",
+                    DisplayStorageConnectionString = false
+                });
+            }
+
+            // Register recurring background jobs (Wave 10)
+            // These run when the API is running; in dev that's when your laptop is on
+            var easternTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+            
+            // Daily price refresh at 11 PM ET (after market close)
+            RecurringJob.AddOrUpdate<PFMP_API.Jobs.PriceRefreshJob>(
+                "daily-price-refresh",
+                job => job.RefreshAllHoldingPricesAsync(CancellationToken.None),
+                "0 23 * * *", // 11 PM daily
+                new RecurringJobOptions { TimeZone = easternTimeZone });
+
+            // Daily net worth snapshot at 11:30 PM ET (after price refresh)
+            RecurringJob.AddOrUpdate<PFMP_API.Jobs.NetWorthSnapshotJob>(
+                "daily-networth-snapshot",
+                job => job.CaptureAllUserSnapshotsAsync(CancellationToken.None),
+                "30 23 * * *", // 11:30 PM daily
+                new RecurringJobOptions { TimeZone = easternTimeZone });
 
             app.MapControllers();
 
