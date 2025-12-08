@@ -25,11 +25,8 @@ namespace PFMP_API.Services
         /// <returns>Current market indices data</returns>
         Task<MarketIndices> GetMarketIndicesAsync();
 
-        /// <summary>
-        /// Get TSP fund prices (G, F, C, S, I, and lifecycle funds)
-        /// </summary>
-        /// <returns>Current TSP fund prices</returns>
-        Task<Dictionary<string, MarketPrice>> GetTSPFundPricesAsync();
+        // Note: TSP fund prices are now provided by TSPService using DailyTSP.com API
+        // Use TSPService.GetTSPPricesAsDictionaryAsync() for TSP fund prices
 
         /// <summary>
         /// Get economic indicators (VIX, 10-year Treasury yield, etc.)

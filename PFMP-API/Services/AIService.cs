@@ -17,13 +17,15 @@ namespace PFMP_API.Services
         private readonly ChatClient? _chatClient;
         private readonly IConfiguration _configuration;
         private readonly IMarketDataService _marketDataService;
+        private readonly TSPService _tspService;
 
-        public AIService(ApplicationDbContext context, ILogger<AIService> logger, IConfiguration configuration, IMarketDataService marketDataService)
+        public AIService(ApplicationDbContext context, ILogger<AIService> logger, IConfiguration configuration, IMarketDataService marketDataService, TSPService tspService)
         {
             _context = context;
             _logger = logger;
             _configuration = configuration;
             _marketDataService = marketDataService;
+            _tspService = tspService;
 
             // Initialize Azure OpenAI client
             var endpoint = _configuration["AzureOpenAI:Endpoint"];
@@ -189,20 +191,20 @@ namespace PFMP_API.Services
                 var marketIndices = await _marketDataService.GetMarketIndicesAsync();
                 var economicIndicators = await _marketDataService.GetEconomicIndicatorsAsync();
                 
-                // Get TSP fund prices if user has TSP accounts
-                Dictionary<string, MarketPrice>? tspFunds = null;
+                // Get TSP fund prices from DailyTSP if user has TSP accounts
+                Dictionary<string, decimal>? tspPrices = null;
                 var hasTSPAccounts = accounts.Any(a => a.AccountType == AccountType.TSP);
                 if (hasTSPAccounts)
                 {
-                    tspFunds = await _marketDataService.GetTSPFundPricesAsync();
+                    tspPrices = await _tspService.GetTSPPricesAsDictionaryAsync();
                 }
 
                 if (_chatClient == null)
                 {
-                    return GenerateFallbackAnalysisWithMarketData(accounts, marketIndices, economicIndicators, tspFunds);
+                    return GenerateFallbackAnalysisWithMarketData(accounts, marketIndices, economicIndicators, tspPrices);
                 }
 
-                var prompt = BuildMarketAwarePortfolioPrompt(user, accounts, null, marketIndices, economicIndicators, tspFunds);
+                var prompt = BuildMarketAwarePortfolioPrompt(user, accounts, null, marketIndices, economicIndicators, tspPrices);
                 
                 var messages = new List<ChatMessage>
                 {
@@ -300,27 +302,9 @@ namespace PFMP_API.Services
                 }
 
                 // TSP-specific alerts for government employees
-                var hasTSPAccounts = accounts.Any(a => a.AccountType == AccountType.TSP);
-                if (hasTSPAccounts && (user.EmploymentType?.Contains("Federal") == true || user.EmploymentType?.Contains("Military") == true))
-                {
-                    var tspFunds = await _marketDataService.GetTSPFundPricesAsync();
-                    var cFundPerformance = tspFunds.GetValueOrDefault("C_FUND")?.ChangePercent ?? 0;
-                    
-                    if (Math.Abs(cFundPerformance) > 3.0m)
-                    {
-                        var direction = cFundPerformance > 0 ? "up" : "down";
-                        alerts.Add(new Alert
-                        {
-                            UserId = userId,
-                            Category = AlertCategory.Portfolio,
-                            Title = $"TSP C Fund Significant Movement",
-                            Message = $"TSP C Fund is {direction} {Math.Abs(cFundPerformance):F1}% today. Review your TSP allocation and contribution strategy.",
-                            Severity = AlertSeverity.Medium,
-                            IsRead = false,
-                            CreatedAt = DateTime.UtcNow
-                        });
-                    }
-                }
+                // Note: DailyTSP provides daily closing prices only, not intraday change data,
+                // so we cannot generate alerts based on daily price movements.
+                // TSP allocation review alerts could be added based on stored prices vs historical data.
 
                 // Age-based alerts
                 if (user.DateOfBirth.HasValue)
@@ -651,7 +635,7 @@ namespace PFMP_API.Services
                    $"- Recommendation: Regular portfolio review recommended to ensure optimal allocation.";
         }
 
-        private string GenerateFallbackAnalysisWithMarketData(List<Account> accounts, MarketIndices marketIndices, EconomicIndicators economicIndicators, Dictionary<string, MarketPrice>? tspFunds)
+        private string GenerateFallbackAnalysisWithMarketData(List<Account> accounts, MarketIndices marketIndices, EconomicIndicators economicIndicators, Dictionary<string, decimal>? tspPrices)
         {
             var totalBalance = accounts.Sum(a => a.CurrentBalance);
             var accountCount = accounts.Count;
@@ -672,12 +656,12 @@ namespace PFMP_API.Services
             analysis += $"- Fed Funds Rate: {economicIndicators.FedFundsRate}\n";
             analysis += $"- Gold Price: ${economicIndicators.GoldPrice:F2}\n\n";
             
-            if (tspFunds?.Any() == true)
+            if (tspPrices?.Any() == true)
             {
-                analysis += $"TSP Fund Performance:\n";
-                foreach (var fund in tspFunds.Take(5)) // Show top 5 funds
+                analysis += $"Current TSP Fund Prices (from DailyTSP):\n";
+                foreach (var fund in tspPrices.Take(5)) // Show top 5 funds
                 {
-                    analysis += $"- {fund.Value.CompanyName}: {fund.Value.Price:F2} ({fund.Value.ChangePercent:+0.00;-0.00}%)\n";
+                    analysis += $"- {fund.Key}: ${fund.Value:F4}\n";
                 }
                 analysis += "\n";
             }
@@ -699,7 +683,7 @@ namespace PFMP_API.Services
             return analysis;
         }
 
-        private string BuildMarketAwarePortfolioPrompt(User? user, List<Account> accounts, List<Goal>? goals, MarketIndices marketIndices, EconomicIndicators economicIndicators, Dictionary<string, MarketPrice>? tspFunds)
+        private string BuildMarketAwarePortfolioPrompt(User? user, List<Account> accounts, List<Goal>? goals, MarketIndices marketIndices, EconomicIndicators economicIndicators, Dictionary<string, decimal>? tspPrices)
         {
             var prompt = BuildPortfolioAnalysisPrompt(user, accounts, goals);
             
@@ -722,12 +706,12 @@ namespace PFMP_API.Services
             prompt += $"- Gold: ${economicIndicators.GoldPrice:F2}\n";
             prompt += $"- Bitcoin: ${economicIndicators.BitcoinPrice:F2}\n\n";
             
-            if (tspFunds?.Any() == true)
+            if (tspPrices?.Any() == true)
             {
-                prompt += $"Current TSP Fund Prices:\n";
-                foreach (var fund in tspFunds)
+                prompt += $"Current TSP Fund Prices (from DailyTSP):\n";
+                foreach (var fund in tspPrices)
                 {
-                    prompt += $"- {fund.Key} ({fund.Value.CompanyName}): {fund.Value.Price:F2} ({fund.Value.ChangePercent:+0.00;-0.00}%)\n";
+                    prompt += $"- {fund.Key}: ${fund.Value:F4}\n";
                 }
                 prompt += "\n";
             }
@@ -739,7 +723,7 @@ namespace PFMP_API.Services
             prompt += "2. Economic indicators analysis and positioning recommendations\n";
             prompt += "3. Volatility assessment (VIX) and appropriate risk adjustments\n";
             prompt += "4. Sector rotation opportunities based on current market trends\n";
-            prompt += "5. TSP fund recommendations if applicable, considering current performance\n";
+            prompt += "5. TSP fund recommendations if applicable, considering current prices\n";
             prompt += "6. Interest rate environment impact on bond vs equity allocation\n";
             prompt += "7. Specific action items with timeline (immediate, 30-day, quarterly)\n";
             prompt += "8. Market timing considerations vs dollar-cost averaging strategies\n";

@@ -27,44 +27,19 @@ namespace PFMP_API.Services.FinancialProfile
 
         private readonly ApplicationDbContext _db;
         private readonly ILogger<FinancialProfileService> _logger;
-        private readonly IMarketDataService _market;
+        private readonly TSPService _tspService;
 
-        public FinancialProfileService(ApplicationDbContext db, ILogger<FinancialProfileService> logger, IMarketDataService market)
+        public FinancialProfileService(ApplicationDbContext db, ILogger<FinancialProfileService> logger, TSPService tspService)
         {
             _db = db;
             _logger = logger;
-            _market = market;
+            _tspService = tspService;
         }
 
-        // Normalize UI/DB fund codes to MarketDataService price keys
+        // Normalize UI/DB fund codes to TSPService dictionary keys (G, F, C, S, I, LIncome, L2030, etc.)
         private static string NormalizeTspPriceKey(string code)
         {
-            if (string.IsNullOrWhiteSpace(code)) return string.Empty;
-            var c = code.Trim().ToUpperInvariant();
-            // Base funds
-            switch (c)
-            {
-                case "G": return "G_FUND";
-                case "F": return "F_FUND";
-                case "C": return "C_FUND";
-                case "S": return "S_FUND";
-                case "I": return "I_FUND";
-            }
-
-            // Lifecycle variants we may store as L2030, L_2030, LINCOME, L_INCOME
-            if (c == "LINCOME" || c == "L-INCOME") return "L_INCOME";
-            if (c.StartsWith("L") && c.Length >= 2)
-            {
-                // Already normalized like L_2030
-                if (c.StartsWith("L_")) return c;
-                // Convert L2030 -> L_2030
-                if (char.IsDigit(c[1]))
-                {
-                    return "L_" + c.Substring(1);
-                }
-            }
-
-            return c;
+            return TSPService.NormalizeFundCode(code);
         }
 
         // Compute the TSP snapshot "as-of" day (prior close). We approximate close as 22:00 UTC and skip weekends.
@@ -1275,9 +1250,13 @@ namespace PFMP_API.Services.FinancialProfile
                 .Where(p => p.UserId == userId)
                 .ToListAsync(ct);
 
-            // Fetch market prices for all codes we care about
-            var codes = positions.Select(l => l.FundCode).Distinct().ToList();
-            var prices = await _market.GetTSPFundPricesAsync();
+            // Fetch market prices from DailyTSP API (authoritative source)
+            var prices = await _tspService.GetTSPPricesAsDictionaryAsync();
+            if (prices == null)
+            {
+                _logger.LogWarning("Failed to fetch TSP prices from DailyTSP API for user {UserId}", userId);
+                prices = new Dictionary<string, decimal>();
+            }
 
             // Build items
             var items = new List<TspSummaryItem>();
@@ -1288,12 +1267,12 @@ namespace PFMP_API.Services.FinancialProfile
             foreach (var lf in positions)
             {
                 var priceKey = NormalizeTspPriceKey(lf.FundCode);
-                if (!prices.TryGetValue(priceKey, out var p)) continue;
-                var mv = Math.Round(lf.Units * p.Price, 2);
+                if (!prices.TryGetValue(priceKey, out var price)) continue;
+                var mv = Math.Round(lf.Units * price, 2);
                 items.Add(new TspSummaryItem
                 {
                     FundCode = lf.FundCode,
-                    Price = p.Price,
+                    Price = price,
                     Units = lf.Units,
                     MarketValue = mv,
                     AllocationPercent = lf.ContributionPercent,
@@ -1301,7 +1280,7 @@ namespace PFMP_API.Services.FinancialProfile
                 totalMarket += mv;
 
                 // Update denormalized values on the entity for fast reads
-                lf.CurrentPrice = p.Price;
+                lf.CurrentPrice = price;
                 lf.CurrentMarketValue = mv;
                 lf.LastPricedAsOfUtc = asOf;
             }
@@ -1339,13 +1318,13 @@ namespace PFMP_API.Services.FinancialProfile
                 {
                     if (pct <= 0) continue;
                     var priceKey = NormalizeTspPriceKey(code);
-                    if (!prices.TryGetValue(priceKey, out var p)) continue;
+                    if (!prices.TryGetValue(priceKey, out var price)) continue;
                     var mv = Math.Round((tsp.CurrentBalance * (pct / 100m)), 2);
-                    var units = p.Price > 0 ? Math.Round(mv / p.Price, 6) : 0m;
+                    var units = price > 0 ? Math.Round(mv / price, 6) : 0m;
                     items.Add(new TspSummaryItem
                     {
                         FundCode = code,
-                        Price = p.Price,
+                        Price = price,
                         Units = units,
                         MarketValue = mv,
                         AllocationPercent = pct

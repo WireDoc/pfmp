@@ -8,6 +8,8 @@ const OnboardingLazy = lazyWithPreload(() => import('../views/OnboardingPage'));
 const DashboardLazy = lazyWithPreload(() => import('../views/Dashboard'));
 const LoginLazy = lazyWithPreload(() => import('../views/LoginPlaceholder'));
 const NotFoundLazy = lazyWithPreload(() => import('../views/NotFoundPage'));
+const NetWorthTimelineLazy = lazyWithPreload(() => import('../views/dashboard/NetWorthTimelineView'));
+const SchedulerAdminLazy = lazyWithPreload(() => import('../views/admin/SchedulerAdminView'));
 
 export interface StaticRouteDef {
   id: string;
@@ -21,6 +23,8 @@ export const staticChildRoutes: StaticRouteDef[] = [
   { id: 'root-alias', path: '', Component: DashboardLegacyLazy },
   { id: 'onboarding', path: 'onboarding', Component: OnboardingLazy },
   { id: 'dashboard-wave4', path: 'dashboard', Component: DashboardLazy },
+  { id: 'net-worth-timeline', path: 'dashboard/net-worth', Component: NetWorthTimelineLazy },
+  { id: 'scheduler-admin', path: 'admin/scheduler', Component: SchedulerAdminLazy },
   { id: 'login', path: 'login', Component: LoginLazy },
 ];
 

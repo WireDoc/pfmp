@@ -41,15 +41,18 @@ namespace PFMP_API.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly IMarketDataService _marketDataService;
+        private readonly TSPService _tspService;
         private readonly ILogger<PortfolioValuationService> _logger;
 
         public PortfolioValuationService(
             ApplicationDbContext context,
             IMarketDataService marketDataService,
+            TSPService tspService,
             ILogger<PortfolioValuationService> logger)
         {
             _context = context;
             _marketDataService = marketDataService;
+            _tspService = tspService;
             _logger = logger;
         }
 
@@ -211,32 +214,36 @@ namespace PFMP_API.Services
                 // Get current prices
                 var currentPrices = await _marketDataService.GetStockPricesAsync(symbols);
 
-                // Update TSP funds if any TSP accounts exist
+                // Get TSP fund prices from DailyTSP if any TSP accounts exist
                 var tspHoldings = holdings.Where(h => h.Account.AccountType == AccountType.TSP).ToList();
-                Dictionary<string, MarketPrice>? tspPrices = null;
+                Dictionary<string, decimal>? tspPrices = null;
                 if (tspHoldings.Any())
                 {
-                    tspPrices = await _marketDataService.GetTSPFundPricesAsync();
+                    tspPrices = await _tspService.GetTSPPricesAsDictionaryAsync();
                 }
 
                 // Update holding prices
                 foreach (var holding in holdings)
                 {
-                    MarketPrice? price = null;
+                    decimal? price = null;
 
                     // Check if it's a TSP fund first
-                    if (holding.Account.AccountType == AccountType.TSP && tspPrices?.ContainsKey(holding.Symbol) == true)
+                    if (holding.Account.AccountType == AccountType.TSP && tspPrices != null)
                     {
-                        price = tspPrices[holding.Symbol];
+                        var normalizedCode = TSPService.NormalizeFundCode(holding.Symbol);
+                        if (tspPrices.TryGetValue(normalizedCode, out var tspPrice))
+                        {
+                            price = tspPrice;
+                        }
                     }
-                    else if (currentPrices.ContainsKey(holding.Symbol))
+                    else if (currentPrices.TryGetValue(holding.Symbol, out var marketPrice))
                     {
-                        price = currentPrices[holding.Symbol];
+                        price = marketPrice.Price;
                     }
 
-                    if (price != null)
+                    if (price.HasValue)
                     {
-                        holding.CurrentPrice = price.Price;
+                        holding.CurrentPrice = price.Value;
                         holding.LastPriceUpdate = DateTime.UtcNow;
                     }
                     else

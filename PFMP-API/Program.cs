@@ -130,6 +130,7 @@ namespace PFMP_API
             // Background Job Classes (Wave 10)
             builder.Services.AddScoped<PFMP_API.Jobs.PriceRefreshJob>();
             builder.Services.AddScoped<PFMP_API.Jobs.NetWorthSnapshotJob>();
+            builder.Services.AddScoped<PFMP_API.Jobs.TspPriceRefreshJob>();
 
             // Add Authentication Services
             builder.Services.AddScoped<IPasswordHashService, PasswordHashService>();
@@ -269,6 +270,13 @@ namespace PFMP_API
                 "daily-networth-snapshot",
                 job => job.CaptureAllUserSnapshotsAsync(CancellationToken.None),
                 "30 23 * * *", // 11:30 PM daily
+                new RecurringJobOptions { TimeZone = easternTimeZone });
+
+            // Daily TSP price refresh at 10 PM ET (before general price refresh)
+            RecurringJob.AddOrUpdate<PFMP_API.Jobs.TspPriceRefreshJob>(
+                "daily-tsp-refresh",
+                job => job.RefreshTspPricesAsync(CancellationToken.None),
+                "0 22 * * *", // 10 PM daily
                 new RecurringJobOptions { TimeZone = easternTimeZone });
 
             app.MapControllers();

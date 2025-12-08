@@ -66,5 +66,64 @@ namespace PFMP_API.Services
                 return null;
             }
         }
+
+        /// <summary>
+        /// Get TSP fund prices as a dictionary keyed by fund code.
+        /// Keys are normalized: G, F, C, S, I, LIncome, L2025-L2075
+        /// </summary>
+        /// <returns>Dictionary of fund code to price, or null if API call fails</returns>
+        public async Task<Dictionary<string, decimal>?> GetTSPPricesAsDictionaryAsync()
+        {
+            var tspData = await GetTSPDataAsync();
+            if (tspData == null) return null;
+            return ConvertToPriceDictionary(tspData);
+        }
+
+        /// <summary>
+        /// Convert TSPModel to a dictionary of fund code to price.
+        /// </summary>
+        public static Dictionary<string, decimal> ConvertToPriceDictionary(TSPModel tspData)
+        {
+            return new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["G"] = (decimal)tspData.GFund,
+                ["F"] = (decimal)tspData.FFund,
+                ["C"] = (decimal)tspData.CFund,
+                ["S"] = (decimal)tspData.SFund,
+                ["I"] = (decimal)tspData.IFund,
+                ["LIncome"] = (decimal)tspData.LIncome,
+                ["L2025"] = (decimal)tspData.L2025,
+                ["L2030"] = (decimal)tspData.L2030,
+                ["L2035"] = (decimal)tspData.L2035,
+                ["L2040"] = (decimal)tspData.L2040,
+                ["L2045"] = (decimal)tspData.L2045,
+                ["L2050"] = (decimal)tspData.L2050,
+                ["L2055"] = (decimal)tspData.L2055,
+                ["L2060"] = (decimal)tspData.L2060,
+                ["L2065"] = (decimal)tspData.L2065,
+                ["L2070"] = (decimal)tspData.L2070,
+                ["L2075"] = (decimal)tspData.L2075
+            };
+        }
+
+        /// <summary>
+        /// Normalize fund code variations to standard keys used in the price dictionary
+        /// </summary>
+        public static string NormalizeFundCode(string code)
+        {
+            if (string.IsNullOrWhiteSpace(code)) return string.Empty;
+            var c = code.Trim().ToUpperInvariant().Replace(" ", "").Replace("-", "");
+            return c switch
+            {
+                "GFUND" => "G",
+                "FFUND" => "F",
+                "CFUND" => "C",
+                "SFUND" => "S",
+                "IFUND" => "I",
+                "LINCOME" => "LIncome",
+                _ when c.StartsWith("L") && c.Length > 1 => c, // L2050, etc.
+                _ => c
+            };
+        }
     }
 }

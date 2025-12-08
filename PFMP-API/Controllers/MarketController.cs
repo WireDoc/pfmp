@@ -193,15 +193,29 @@ namespace PFMP_API.Controllers
             try
             {
                 var marketIndicesTask = _marketDataService.GetMarketIndicesAsync();
-                var tspFundsTask = _marketDataService.GetTSPFundPricesAsync();
+                var tspPricesTask = _tspService.GetTSPPricesAsDictionaryAsync();
                 var economicIndicatorsTask = _marketDataService.GetEconomicIndicatorsAsync();
 
-                await Task.WhenAll(marketIndicesTask, tspFundsTask, economicIndicatorsTask);
+                await Task.WhenAll(marketIndicesTask, tspPricesTask, economicIndicatorsTask);
+
+                // Convert TSP prices (decimal) to MarketPrice format for API response
+                var tspPrices = await tspPricesTask ?? new Dictionary<string, decimal>();
+                var tspFunds = tspPrices.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => new MarketPrice
+                    {
+                        Symbol = kvp.Key,
+                        Price = kvp.Value,
+                        CompanyName = GetTspFundName(kvp.Key),
+                        ChangePercent = 0, // DailyTSP only provides close prices
+                        LastUpdated = DateTime.UtcNow
+                    }
+                );
 
                 var overview = new MarketOverview
                 {
                     Indices = await marketIndicesTask,
-                    TSPFunds = await tspFundsTask,
+                    TSPFunds = tspFunds,
                     EconomicIndicators = await economicIndicatorsTask,
                     LastUpdated = DateTime.UtcNow
                 };
@@ -213,6 +227,31 @@ namespace PFMP_API.Controllers
                 _logger.LogError(ex, "Error getting market overview");
                 return StatusCode(500, "Internal server error while retrieving market overview");
             }
+        }
+
+        private static string GetTspFundName(string code)
+        {
+            return code.ToUpperInvariant() switch
+            {
+                "G" => "G Fund (Government Securities)",
+                "F" => "F Fund (Fixed Income)",
+                "C" => "C Fund (Common Stock)",
+                "S" => "S Fund (Small Cap Stock)",
+                "I" => "I Fund (International Stock)",
+                "LINCOME" => "L Income Fund",
+                "L2025" => "L 2025 Fund",
+                "L2030" => "L 2030 Fund",
+                "L2035" => "L 2035 Fund",
+                "L2040" => "L 2040 Fund",
+                "L2045" => "L 2045 Fund",
+                "L2050" => "L 2050 Fund",
+                "L2055" => "L 2055 Fund",
+                "L2060" => "L 2060 Fund",
+                "L2065" => "L 2065 Fund",
+                "L2070" => "L 2070 Fund",
+                "L2075" => "L 2075 Fund",
+                _ => $"TSP {code} Fund"
+            };
         }
 
         /// <summary>

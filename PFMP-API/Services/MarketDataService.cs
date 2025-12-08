@@ -5,6 +5,7 @@ namespace PFMP_API.Services
     /// <summary>
     /// Market data service implementation using Financial Modeling Prep API
     /// Provides real-time and delayed stock prices, market indices, and economic data
+    /// Note: TSP fund prices are now provided by TSPService using DailyTSP.com API
     /// </summary>
     public class MarketDataService : IMarketDataService
     {
@@ -15,45 +16,6 @@ namespace PFMP_API.Services
         private readonly bool _isConfigured;
 
         private const string BASE_URL = "https://financialmodelingprep.com/api/v3";
-        
-        // TSP Fund mapping to available symbols (proxies)
-        private readonly Dictionary<string, string> _tspFundMapping = new()
-        {
-            { "G_FUND", "VGIT" },   // Treasury proxy for G Fund
-            { "F_FUND", "VBTLX" },  // Total Bond Market proxy for F Fund
-            { "C_FUND", "VITSX" },  // S&P 500 proxy for C Fund
-            { "S_FUND", "VSMAX" },  // Small Cap proxy for S Fund
-            { "I_FUND", "VTIAX" },  // International proxy for I Fund
-            { "L_INCOME", "VTINX" },
-            { "L_2030", "VTHRX" },
-            { "L_2035", "VTTHX" },
-            { "L_2040", "VFORX" },
-            { "L_2045", "VTIVX" },
-            { "L_2050", "VFIFX" },
-            { "L_2055", "VFFVX" },
-            { "L_2060", "VTTSX" },
-            { "L_2065", "VLXVX" },
-            { "L_2070", "VSVNX" },
-            { "L_2075", "VSZRX" }
-        };
-
-        private static string NormalizeTspMappingKey(string code)
-        {
-            if (string.IsNullOrWhiteSpace(code)) return string.Empty;
-            var c = code.Trim().ToUpperInvariant();
-            return c switch
-            {
-                "G" => "G_FUND",
-                "F" => "F_FUND",
-                "C" => "C_FUND",
-                "S" => "S_FUND",
-                "I" => "I_FUND",
-                "LINCOME" or "L-INCOME" => "L_INCOME",
-                _ when c.StartsWith("L_") => c,
-                _ when c.StartsWith("L") && char.IsDigit(c[1]) => "L_" + c[1..],
-                _ => c
-            };
-        }
 
         public MarketDataService(HttpClient httpClient, ILogger<MarketDataService> logger, IConfiguration configuration)
         {
@@ -261,70 +223,8 @@ namespace PFMP_API.Services
             }
         }
 
-        public async Task<Dictionary<string, MarketPrice>> GetTSPFundPricesAsync()
-        {
-            try
-            {
-                _logger.LogInformation("Getting TSP fund prices using proxy symbols");
-                
-                var proxySymbols = _tspFundMapping.Values.ToList();
-                var proxyPrices = await GetStockPricesAsync(proxySymbols);
-                
-                var tspPrices = new Dictionary<string, MarketPrice>();
-                
-                foreach (var mapping in _tspFundMapping)
-                {
-                    var tspFund = mapping.Key;
-                    var proxySymbol = mapping.Value;
-                    
-                    if (proxyPrices.TryGetValue(proxySymbol, out var proxyPrice))
-                    {
-                        // Create TSP fund price based on proxy
-                        tspPrices[tspFund] = new MarketPrice
-                        {
-                            Symbol = tspFund,
-                            Price = proxyPrice.Price,
-                            Change = proxyPrice.Change,
-                            ChangePercent = proxyPrice.ChangePercent,
-                            Volume = proxyPrice.Volume,
-                            DayHigh = proxyPrice.DayHigh,
-                            DayLow = proxyPrice.DayLow,
-                            Open = proxyPrice.Open,
-                            PreviousClose = proxyPrice.PreviousClose,
-                            LastUpdated = DateTime.UtcNow,
-                            Exchange = "TSP",
-                            CompanyName = GetTSPFundName(tspFund)
-                        };
-                    }
-                    else
-                    {
-                        // Fallback TSP fund price
-                        tspPrices[tspFund] = GenerateFallbackTSPPrice(tspFund);
-                    }
-                }
-
-                return tspPrices;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting TSP fund prices");
-                
-                // Return fallback TSP prices
-                var fallbackPrices = new Dictionary<string, MarketPrice>();
-                foreach (var fund in _tspFundMapping.Keys)
-                {
-                    fallbackPrices[fund] = GenerateFallbackTSPPrice(fund);
-                }
-                return fallbackPrices;
-            }
-        }
-
-        // Exposed for internal callers that may pass UI codes; not part of IMarketDataService contract
-        internal MarketPrice? TryGetTspPriceByAnyCode(Dictionary<string, MarketPrice> prices, string code)
-        {
-            var key = NormalizeTspMappingKey(code);
-            return prices.TryGetValue(key, out var v) ? v : null;
-        }
+        // Note: TSP fund prices are now provided by TSPService using DailyTSP.com API
+        // GetTSPFundPricesAsync has been removed - use TSPService.GetTSPPricesAsDictionaryAsync() instead
 
         public async Task<EconomicIndicators> GetEconomicIndicatorsAsync()
         {
@@ -451,63 +351,7 @@ namespace PFMP_API.Services
             };
         }
 
-        private MarketPrice GenerateFallbackTSPPrice(string tspFund)
-        {
-            var basePrice = tspFund switch
-            {
-                "G_FUND" => 15.25m,
-                "F_FUND" => 12.80m,
-                "C_FUND" => 68.45m,
-                "S_FUND" => 42.15m,
-                "I_FUND" => 35.90m,
-                "L_INCOME" => 14.75m,
-                "L_2030" => 25.40m,
-                "L_2040" => 32.85m,
-                "L_2050" => 38.20m,
-                "L_2060" => 42.10m,
-                "L_2070" => 45.95m,
-                _ => 25.00m
-            };
-
-            var random = new Random(tspFund.GetHashCode());
-            var changePercent = (decimal)(random.NextDouble() * 2 - 1); // -1% to +1%
-            var change = basePrice * (changePercent / 100);
-
-            return new MarketPrice
-            {
-                Symbol = tspFund,
-                Price = Math.Round(basePrice + change, 2),
-                Change = Math.Round(change, 2),
-                ChangePercent = Math.Round(changePercent, 2),
-                Volume = 0, // TSP funds don't have traditional volume
-                DayHigh = Math.Round(basePrice * 1.01m, 2),
-                DayLow = Math.Round(basePrice * 0.99m, 2),
-                Open = Math.Round(basePrice, 2),
-                PreviousClose = Math.Round(basePrice, 2),
-                LastUpdated = DateTime.UtcNow,
-                Exchange = "TSP",
-                CompanyName = GetTSPFundName(tspFund)
-            };
-        }
-
-        private string GetTSPFundName(string tspFund)
-        {
-            return tspFund switch
-            {
-                "G_FUND" => "Government Securities Investment Fund",
-                "F_FUND" => "Fixed Income Index Investment Fund",
-                "C_FUND" => "Common Stock Index Investment Fund",
-                "S_FUND" => "Small Capitalization Stock Index Investment Fund",
-                "I_FUND" => "International Stock Index Investment Fund",
-                "L_INCOME" => "Lifecycle Income Fund",
-                "L_2030" => "Lifecycle 2030 Fund",
-                "L_2040" => "Lifecycle 2040 Fund",
-                "L_2050" => "Lifecycle 2050 Fund",
-                "L_2060" => "Lifecycle 2060 Fund",
-                "L_2070" => "Lifecycle 2070 Fund",
-                _ => $"TSP {tspFund} Fund"
-            };
-        }
+        // GenerateFallbackTSPPrice and GetTSPFundName removed - TSP prices now from TSPService
 
         private string GetMarketStatus()
         {

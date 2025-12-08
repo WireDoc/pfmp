@@ -112,7 +112,12 @@ public static class DevelopmentDataSeeder
 
     private static async Task SeedFinancialProfileSampleAsync(ApplicationDbContext db, int userId)
     {
-    var profileService = new FinancialProfileService(db, NullLogger<FinancialProfileService>.Instance, new MarketDataService(new HttpClient(), NullLogger<MarketDataService>.Instance, new ConfigurationBuilder().Build()));
+        // Create minimal dependencies for FinancialProfileService
+        // Use a simple HttpClientFactory implementation for seeding (TSP service not actually used in seeder ops)
+        var config = new ConfigurationBuilder().Build();
+        var httpClientFactory = new SimpleHttpClientFactory();
+        var tspService = new TSPService(httpClientFactory, NullLogger<TSPService>.Instance, config);
+        var profileService = new FinancialProfileService(db, NullLogger<FinancialProfileService>.Instance, tspService);
 
         await profileService.UpsertHouseholdAsync(userId, new HouseholdProfileInput
         {
@@ -548,6 +553,23 @@ public static class DevelopmentDataSeeder
                 db.Tasks.AddRange(tasks);
                 await db.SaveChangesAsync();
             }
+        }
+    }
+
+    /// <summary>
+    /// Simple IHttpClientFactory implementation for development seeding only.
+    /// Creates new HttpClient instances on demand.
+    /// </summary>
+    internal class SimpleHttpClientFactory : IHttpClientFactory
+    {
+        public HttpClient CreateClient(string name)
+        {
+            var client = new HttpClient();
+            if (name == "TSPClient")
+            {
+                client.BaseAddress = new Uri("https://api.dailytsp.com/");
+            }
+            return client;
         }
     }
 }

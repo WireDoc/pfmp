@@ -24,7 +24,6 @@ import LiabilitiesPanel from './dashboard/LiabilitiesPanel';
 import TspPanel from './dashboard/TspPanel';
 import { useAuth } from '../contexts/auth/useAuth';
 import { getDashboardService, TASK_PRIORITY_TO_ENUM, DEFAULT_TASK_PRIORITY_ENUM } from '../services/dashboard';
-import { ensureTspSnapshotFresh } from '../services/financialProfileApi';
 import type {
   AdviceItem,
   AlertCard,
@@ -123,15 +122,7 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     // Performance: Mark component mount
     performanceMark('dashboard-mount');
-
-    // Ensure daily TSP snapshot is captured for analytics. Backend is idempotent per user+day.
-    // TODO(ops): Replace this on-load trigger with a server-side scheduled job (e.g., Hangfire/Quartz) and remove this effect.
-    const uid = user?.localAccountId ? Number(user.localAccountId) : undefined;
-    if (uid && Number.isFinite(uid)) {
-      void ensureTspSnapshotFresh(uid);
-    }
-  // run only on first mount when user is known
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // TSP snapshot now handled by scheduled background job (TspPriceRefreshJob)
   }, []);
 
   useEffect(() => {
@@ -745,7 +736,7 @@ export const Dashboard: React.FC = () => {
         <Grid size={12}>
           <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography variant="h6" gutterBottom>Overview</Typography>
-            {loading ? <Skeleton variant="rectangular" height={60} /> : <OverviewPanel data={displayData} loading={loading} />}
+            {loading ? <Skeleton variant="rectangular" height={60} /> : <OverviewPanel data={displayData} loading={loading} userId={devUserId ?? Number(import.meta.env.VITE_PFMP_DASHBOARD_USER_ID || '1')} />}
           </Paper>
         </Grid>
         <Grid size={12}>

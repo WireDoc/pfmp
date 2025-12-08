@@ -1,12 +1,25 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Box, Typography } from '@mui/material';
+import { Link } from 'react-router-dom';
 import { NetWorthSparkline } from '../../components/charts/NetWorthSparkline';
+import netWorthService, { type SparklineResponse } from '../../services/netWorthService';
 import type { DashboardData } from '../../services/dashboard';
 
-interface Props { data: DashboardData | null; loading: boolean; }
+interface Props { data: DashboardData | null; loading: boolean; userId?: number; }
 
-export const OverviewPanel: React.FC<Props> = ({ data, loading }) => {
+export const OverviewPanel: React.FC<Props> = ({ data, loading, userId }) => {
   const obligations = data?.longTermObligations;
+  const [sparklineData, setSparklineData] = useState<SparklineResponse | null>(null);
+  
+  // Fetch real sparkline data from API
+  useEffect(() => {
+    if (userId) {
+      netWorthService.getSparkline(userId)
+        .then(setSparklineData)
+        .catch(err => console.error('Failed to fetch sparkline:', err));
+    }
+  }, [userId]);
+
   const formatDueDate = (value: string | null) => {
     if (!value) return 'Not scheduled';
     const date = new Date(value);
@@ -15,8 +28,14 @@ export const OverviewPanel: React.FC<Props> = ({ data, loading }) => {
   };
 
   // TODO: Replace with real historical data from backend once available
-  // Generate mock 30-day trend based on current net worth and 30d change
-  const sparklineData = useMemo(() => {
+  // Use real sparkline data from API if available, otherwise generate mock data
+  const sparklineValues = useMemo(() => {
+    // Use real data from API if available
+    if (sparklineData?.hasEnoughData && sparklineData.points.length > 0) {
+      return sparklineData.points.map(p => p.value);
+    }
+    
+    // Fallback to mock data for backwards compatibility
     if (!data) return [];
     
     const currentValue = data.netWorth.netWorth.amount;
@@ -36,10 +55,10 @@ export const OverviewPanel: React.FC<Props> = ({ data, loading }) => {
     }
     
     return points;
-  }, [data]);
+  }, [data, sparklineData]);
 
   // Only show sparkline in non-test environment or when explicitly enabled
-  const showSparkline = sparklineData.length > 0 && typeof window !== 'undefined' && !import.meta.env.VITEST;
+  const showSparkline = sparklineValues.length > 0 && typeof window !== 'undefined' && !import.meta.env.VITEST;
 
   return (
     <Box display="flex" gap={4} flexWrap="wrap" data-testid="overview-panel">
@@ -51,11 +70,13 @@ export const OverviewPanel: React.FC<Props> = ({ data, loading }) => {
             <Box display="flex" alignItems="center" gap={2}>
               <Typography variant="h5">${data.netWorth.netWorth.amount.toLocaleString()}</Typography>
               {showSparkline && (
-                <NetWorthSparkline 
-                  values={sparklineData} 
-                  height={40}
-                  width={200}
-                />
+                <Link to="/dashboard/net-worth" style={{ textDecoration: 'none' }}>
+                  <NetWorthSparkline 
+                    values={sparklineValues} 
+                    height={40}
+                    width={200}
+                  />
+                </Link>
               )}
             </Box>
           </Box>

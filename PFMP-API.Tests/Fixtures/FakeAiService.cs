@@ -150,4 +150,19 @@ public class FakeAIIntelligenceService : IAIIntelligenceService
     {
         return Task.FromResult(result.AgreementScore > 0.7m); // Generate advice if good agreement
     }
+
+    public Task<AIPromptPreview> PreviewAnalysisPromptAsync(int userId, string analysisType)
+    {
+        return Task.FromResult(new AIPromptPreview
+        {
+            UserId = userId,
+            AnalysisType = analysisType,
+            SystemPrompt = "Test system prompt",
+            CacheableContext = "Test cacheable context",
+            AnalysisContext = "Test analysis context",
+            FullPrompt = "Test full prompt",
+            EstimatedTokens = 500,
+            GeneratedAt = DateTime.UtcNow
+        });
+    }
 }
