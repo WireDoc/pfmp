@@ -41,6 +41,20 @@
       ]
     },
     {
+      "name": "Scheduler Admin",
+      "description": "Hangfire scheduled job management endpoints (Wave 10)",
+      "item": [
+        { "name": "Get Recurring Jobs", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/scheduler/jobs" } },
+        { "name": "Get Queue Stats", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/scheduler/queues" } },
+        { "name": "Get Job History", "request": { "method": "GET", "url": "{{baseUrl}}/api/admin/scheduler/history?limit=20" } },
+        { "name": "Trigger Job by ID", "request": { "method": "POST", "url": "{{baseUrl}}/api/admin/scheduler/jobs/daily-tsp-refresh/trigger" } },
+        { "name": "Trigger Price Refresh", "request": { "method": "POST", "url": "{{baseUrl}}/api/admin/scheduler/trigger/price-refresh" } },
+        { "name": "Trigger Net Worth Snapshot", "request": { "method": "POST", "url": "{{baseUrl}}/api/admin/scheduler/trigger/networth-snapshot" } },
+        { "name": "Trigger TSP Refresh", "request": { "method": "POST", "url": "{{baseUrl}}/api/admin/scheduler/trigger/tsp-refresh" } },
+        { "name": "Update Job Schedule", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"cronExpression\": \"0 22 * * *\"\n}" }, "url": "{{baseUrl}}/api/admin/scheduler/jobs/daily-tsp-refresh/schedule" } }
+      ]
+    },
+    {
       "name": "Dev Users",
       "item": [
         { "name": "List Dev Users", "request": { "method": "GET", "url": "{{baseUrl}}/api/dev/users" } },

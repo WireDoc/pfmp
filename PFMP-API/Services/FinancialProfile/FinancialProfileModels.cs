@@ -288,4 +288,63 @@ namespace PFMP_API.Services.FinancialProfile
         public decimal TotalMarketValue { get; set; }
         public DateTime? CapturedAtUtc { get; set; }
     }
+
+    /// <summary>
+    /// Comprehensive TSP detail view response for the TSP Detail Page.
+    /// Includes user positions AND all current fund prices (from stored data only - no API calls).
+    /// </summary>
+    public class TspDetailResponse
+    {
+        /// <summary>User's TSP positions with stored prices</summary>
+        public List<TspSummaryLiteItem> Positions { get; set; } = new();
+        
+        /// <summary>All TSP fund prices from TSPFundPrices table (updated by TspPriceRefreshJob)</summary>
+        public TspFundPricesSnapshot AllFundPrices { get; set; } = new();
+        
+        /// <summary>TSP profile info (contribution rates, total balance)</summary>
+        public TspProfileInfo? Profile { get; set; }
+        
+        /// <summary>Total calculated market value from positions</summary>
+        public decimal TotalMarketValue { get; set; }
+        
+        /// <summary>When prices were last updated by background job</summary>
+        public DateTime? PricesAsOfUtc { get; set; }
+    }
+
+    /// <summary>
+    /// Snapshot of all TSP fund prices from TSPFundPrices table
+    /// </summary>
+    public class TspFundPricesSnapshot
+    {
+        public DateTime PriceDate { get; set; }
+        public decimal GFundPrice { get; set; }
+        public decimal FFundPrice { get; set; }
+        public decimal CFundPrice { get; set; }
+        public decimal SFundPrice { get; set; }
+        public decimal IFundPrice { get; set; }
+        public decimal? LIncomeFundPrice { get; set; }
+        public decimal? L2030FundPrice { get; set; }
+        public decimal? L2035FundPrice { get; set; }
+        public decimal? L2040FundPrice { get; set; }
+        public decimal? L2045FundPrice { get; set; }
+        public decimal? L2050FundPrice { get; set; }
+        public decimal? L2055FundPrice { get; set; }
+        public decimal? L2060FundPrice { get; set; }
+        public decimal? L2065FundPrice { get; set; }
+        public decimal? L2070FundPrice { get; set; }
+        public decimal? L2075FundPrice { get; set; }
+        public string? DataSource { get; set; }
+    }
+
+    /// <summary>
+    /// TSP profile summary info for detail page
+    /// </summary>
+    public class TspProfileInfo
+    {
+        public decimal? ContributionRatePercent { get; set; }
+        public decimal? EmployerMatchPercent { get; set; }
+        public decimal? TotalBalance { get; set; }
+        public decimal? TargetBalance { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+    }
 }

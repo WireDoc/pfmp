@@ -148,6 +148,32 @@ export async function getJobHistory(limit = 20): Promise<JobHistoryResponse> {
   return response.json();
 }
 
+export interface UpdateScheduleResponse {
+  success: boolean;
+  jobId: string;
+  newCronExpression?: string;
+  message: string;
+  updatedAt: string;
+}
+
+/**
+ * Update the schedule (cron expression) for a recurring job
+ */
+export async function updateJobSchedule(jobId: string, cronExpression: string): Promise<UpdateScheduleResponse> {
+  const response = await fetch(`${API_BASE}/api/admin/scheduler/jobs/${encodeURIComponent(jobId)}/schedule`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ cronExpression }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: response.statusText }));
+    throw new Error(errorData.message || `Failed to update schedule: ${response.statusText}`);
+  }
+  return response.json();
+}
+
 const schedulerService = {
   getRecurringJobs,
   getQueueStats,
@@ -155,6 +181,7 @@ const schedulerService = {
   triggerPriceRefresh,
   triggerNetWorthSnapshot,
   getJobHistory,
+  updateJobSchedule,
 };
 
 export default schedulerService;

@@ -387,6 +387,81 @@ export async function fetchTspSummaryLite(userId: number): Promise<TspSummaryLit
   };
 }
 
+// TSP Detail - comprehensive view with all fund prices (stored data only - no API calls)
+export interface TspFundPricesSnapshot {
+  priceDate: string;
+  gFundPrice: number;
+  fFundPrice: number;
+  cFundPrice: number;
+  sFundPrice: number;
+  iFundPrice: number;
+  lIncomeFundPrice: number | null;
+  l2030FundPrice: number | null;
+  l2035FundPrice: number | null;
+  l2040FundPrice: number | null;
+  l2045FundPrice: number | null;
+  l2050FundPrice: number | null;
+  l2055FundPrice: number | null;
+  l2060FundPrice: number | null;
+  l2065FundPrice: number | null;
+  l2070FundPrice: number | null;
+  l2075FundPrice: number | null;
+  dataSource: string | null;
+}
+
+export interface TspProfileInfo {
+  contributionRatePercent: number | null;
+  employerMatchPercent: number | null;
+  totalBalance: number | null;
+  targetBalance: number | null;
+  updatedAt: string | null;
+}
+
+export interface TspDetailResponse {
+  positions: TspSummaryLiteItem[];
+  allFundPrices: TspFundPricesSnapshot;
+  profile: TspProfileInfo | null;
+  totalMarketValue: number;
+  pricesAsOfUtc: string | null;
+}
+
+export async function fetchTspDetail(userId: number): Promise<TspDetailResponse> {
+  const resp = await apiClient.get(`/api/financial-profile/${userId}/tsp/detail`);
+  const dto = resp.data as TspDetailResponse;
+  return {
+    positions: (dto.positions ?? []).map((i) => ({
+      fundCode: String(i.fundCode ?? ''),
+      currentPrice: i.currentPrice ?? null,
+      units: Number(i.units ?? 0),
+      currentMarketValue: i.currentMarketValue ?? null,
+      currentMixPercent: i.currentMixPercent ?? null,
+    })),
+    allFundPrices: dto.allFundPrices ?? {
+      priceDate: '',
+      gFundPrice: 0,
+      fFundPrice: 0,
+      cFundPrice: 0,
+      sFundPrice: 0,
+      iFundPrice: 0,
+      lIncomeFundPrice: null,
+      l2030FundPrice: null,
+      l2035FundPrice: null,
+      l2040FundPrice: null,
+      l2045FundPrice: null,
+      l2050FundPrice: null,
+      l2055FundPrice: null,
+      l2060FundPrice: null,
+      l2065FundPrice: null,
+      l2070FundPrice: null,
+      l2075FundPrice: null,
+      dataSource: null,
+    },
+    profile: dto.profile ?? null,
+    totalMarketValue: dto.totalMarketValue ?? 0,
+    pricesAsOfUtc: dto.pricesAsOfUtc ?? null,
+  };
+}
+
 function mapStatusDto(dto: FinancialProfileSectionStatusDto): FinancialProfileSectionStatus {
   const key = assertSectionKey(dto.sectionKey) ? dto.sectionKey : 'household';
   return {

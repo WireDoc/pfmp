@@ -21,10 +21,17 @@ import {
   Card,
   CardContent,
   Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  FormHelperText,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import EditIcon from '@mui/icons-material/Edit';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
@@ -69,6 +76,14 @@ export const SchedulerAdminView: React.FC = () => {
     severity: 'success',
   });
   const [triggeringJob, setTriggeringJob] = useState<string | null>(null);
+  
+  // Edit schedule dialog state
+  const [editDialog, setEditDialog] = useState<{ open: boolean; job: RecurringJobInfo | null }>({
+    open: false,
+    job: null,
+  });
+  const [editCron, setEditCron] = useState('');
+  const [savingSchedule, setSavingSchedule] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -158,6 +173,42 @@ export const SchedulerAdminView: React.FC = () => {
     }
   };
 
+  const handleOpenEditDialog = (job: RecurringJobInfo) => {
+    setEditDialog({ open: true, job });
+    setEditCron(job.cron);
+  };
+
+  const handleCloseEditDialog = () => {
+    setEditDialog({ open: false, job: null });
+    setEditCron('');
+  };
+
+  const handleSaveSchedule = async () => {
+    if (!editDialog.job) return;
+    
+    setSavingSchedule(true);
+    try {
+      const result = await schedulerService.updateJobSchedule(editDialog.job.id, editCron);
+      setSnackbar({
+        open: true,
+        message: result.message,
+        severity: result.success ? 'success' : 'error',
+      });
+      if (result.success) {
+        handleCloseEditDialog();
+        fetchData(); // Refresh job list
+      }
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        message: `Failed to update schedule: ${err}`,
+        severity: 'error',
+      });
+    } finally {
+      setSavingSchedule(false);
+    }
+  };
+
   const formatDateTime = (dateStr: string | null) => {
     if (!dateStr) return '—';
     const date = new Date(dateStr);
@@ -192,9 +243,11 @@ export const SchedulerAdminView: React.FC = () => {
 
   const getCronDescription = (cron: string): string => {
     // Simple cron to human-readable (basic cases)
-    if (cron === '0 23 * * *') return 'Daily at 11:00 PM';
-    if (cron === '30 23 * * *') return 'Daily at 11:30 PM';
-    if (cron === '0 0 * * *') return 'Daily at midnight';
+    // Note: Jobs are scheduled in Eastern Time (ET)
+    if (cron === '0 22 * * *') return 'Daily at 10:00 PM ET';
+    if (cron === '0 23 * * *') return 'Daily at 11:00 PM ET';
+    if (cron === '30 23 * * *') return 'Daily at 11:30 PM ET';
+    if (cron === '0 0 * * *') return 'Daily at midnight ET';
     if (cron === '0 * * * *') return 'Every hour';
     return cron;
   };
@@ -299,6 +352,16 @@ export const SchedulerAdminView: React.FC = () => {
                 </Typography>
               </TableCell>
               <TableCell align="right">
+                <Tooltip title="Edit Schedule">
+                  <span>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleOpenEditDialog(job)}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                  </span>
+                </Tooltip>
                 <Tooltip title="Run Now">
                   <span>
                     <IconButton
@@ -500,7 +563,7 @@ export const SchedulerAdminView: React.FC = () => {
           <Button
             variant="outlined"
             startIcon={<OpenInNewIcon />}
-            href="/hangfire"
+            href="http://localhost:5052/hangfire"
             target="_blank"
           >
             Hangfire Dashboard
@@ -599,6 +662,83 @@ export const SchedulerAdminView: React.FC = () => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Edit Schedule Dialog */}
+      <Dialog open={editDialog.open} onClose={handleCloseEditDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          Edit Schedule: {editDialog.job?.id}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 1 }}>
+            <TextField
+              label="Cron Expression"
+              value={editCron}
+              onChange={(e) => setEditCron(e.target.value)}
+              fullWidth
+              placeholder="0 22 * * *"
+              helperText="Format: minute hour day month weekday (e.g., '0 22 * * *' = Daily at 10 PM)"
+              sx={{ mb: 2 }}
+            />
+            <Typography variant="caption" color="text.secondary" component="div" sx={{ mb: 1 }}>
+              Common schedules (all times in Eastern Time):
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              <Chip 
+                label="10 PM Daily" 
+                size="small" 
+                onClick={() => setEditCron('0 22 * * *')}
+                variant={editCron === '0 22 * * *' ? 'filled' : 'outlined'}
+                color={editCron === '0 22 * * *' ? 'primary' : 'default'}
+              />
+              <Chip 
+                label="11 PM Daily" 
+                size="small" 
+                onClick={() => setEditCron('0 23 * * *')}
+                variant={editCron === '0 23 * * *' ? 'filled' : 'outlined'}
+                color={editCron === '0 23 * * *' ? 'primary' : 'default'}
+              />
+              <Chip 
+                label="11:30 PM Daily" 
+                size="small" 
+                onClick={() => setEditCron('30 23 * * *')}
+                variant={editCron === '30 23 * * *' ? 'filled' : 'outlined'}
+                color={editCron === '30 23 * * *' ? 'primary' : 'default'}
+              />
+              <Chip 
+                label="Midnight" 
+                size="small" 
+                onClick={() => setEditCron('0 0 * * *')}
+                variant={editCron === '0 0 * * *' ? 'filled' : 'outlined'}
+                color={editCron === '0 0 * * *' ? 'primary' : 'default'}
+              />
+              <Chip 
+                label="Every Hour" 
+                size="small" 
+                onClick={() => setEditCron('0 * * * *')}
+                variant={editCron === '0 * * * *' ? 'filled' : 'outlined'}
+                color={editCron === '0 * * * *' ? 'primary' : 'default'}
+              />
+            </Box>
+            {editDialog.job && (
+              <FormHelperText sx={{ mt: 2 }}>
+                Current schedule: {getCronDescription(editDialog.job.cron)} ({editDialog.job.cron})
+              </FormHelperText>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseEditDialog} disabled={savingSchedule}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSaveSchedule} 
+            variant="contained" 
+            disabled={savingSchedule || !editCron.trim()}
+          >
+            {savingSchedule ? <CircularProgress size={20} /> : 'Save Schedule'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

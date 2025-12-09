@@ -163,6 +163,24 @@ public class SchedulerAdminController : ControllerBase
     }
 
     /// <summary>
+    /// Trigger TSP price refresh job
+    /// </summary>
+    [HttpPost("trigger/tsp-refresh")]
+    public ActionResult<TriggerJobResponse> TriggerTspRefresh()
+    {
+        var jobId = _backgroundJobClient.Enqueue<TspPriceRefreshJob>(job => job.RefreshTspPricesAsync(CancellationToken.None));
+        _logger.LogInformation("Manually triggered TSP price refresh job: {BackgroundJobId}", jobId);
+
+        return Ok(new TriggerJobResponse
+        {
+            Success = true,
+            JobId = jobId,
+            Message = "TSP price refresh job has been queued",
+            TriggeredAt = DateTime.UtcNow
+        });
+    }
+
+    /// <summary>
     /// Get recent job history (succeeded and failed)
     /// </summary>
     [HttpGet("history")]
@@ -208,6 +226,119 @@ public class SchedulerAdminController : ControllerBase
             Processing = processing,
             RetrievedAt = DateTime.UtcNow
         });
+    }
+
+    /// <summary>
+    /// Update the schedule (cron expression) for a recurring job
+    /// </summary>
+    [HttpPut("jobs/{jobId}/schedule")]
+    public ActionResult<UpdateScheduleResponse> UpdateJobSchedule(string jobId, [FromBody] UpdateScheduleRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.CronExpression))
+        {
+            return BadRequest(new UpdateScheduleResponse
+            {
+                Success = false,
+                JobId = jobId,
+                Message = "Cron expression is required",
+                UpdatedAt = DateTime.UtcNow
+            });
+        }
+
+        // Validate cron expression format (basic validation)
+        var cronParts = request.CronExpression.Trim().Split(' ');
+        if (cronParts.Length != 5)
+        {
+            return BadRequest(new UpdateScheduleResponse
+            {
+                Success = false,
+                JobId = jobId,
+                Message = "Invalid cron expression. Expected 5 parts: minute hour day month weekday",
+                UpdatedAt = DateTime.UtcNow
+            });
+        }
+
+        try
+        {
+            // Get current job info to preserve the job type
+            using var connection = JobStorage.Current.GetConnection();
+            var recurringJobs = connection.GetRecurringJobs();
+            var existingJob = recurringJobs.FirstOrDefault(j => j.Id == jobId);
+
+            if (existingJob == null)
+            {
+                return NotFound(new UpdateScheduleResponse
+                {
+                    Success = false,
+                    JobId = jobId,
+                    Message = $"Job '{jobId}' not found",
+                    UpdatedAt = DateTime.UtcNow
+                });
+            }
+
+            // Update the job with the new cron expression
+            var easternTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+            var cronExpression = request.CronExpression.Trim();
+
+            // Re-register the job with the new schedule based on job ID
+            switch (jobId)
+            {
+                case "daily-tsp-refresh":
+                    RecurringJob.AddOrUpdate<TspPriceRefreshJob>(
+                        jobId,
+                        job => job.RefreshTspPricesAsync(CancellationToken.None),
+                        cronExpression,
+                        new RecurringJobOptions { TimeZone = easternTimeZone });
+                    break;
+
+                case "daily-price-refresh":
+                    RecurringJob.AddOrUpdate<PriceRefreshJob>(
+                        jobId,
+                        job => job.RefreshAllHoldingPricesAsync(CancellationToken.None),
+                        cronExpression,
+                        new RecurringJobOptions { TimeZone = easternTimeZone });
+                    break;
+
+                case "daily-networth-snapshot":
+                    RecurringJob.AddOrUpdate<NetWorthSnapshotJob>(
+                        jobId,
+                        job => job.CaptureAllUserSnapshotsAsync(CancellationToken.None),
+                        cronExpression,
+                        new RecurringJobOptions { TimeZone = easternTimeZone });
+                    break;
+
+                default:
+                    return BadRequest(new UpdateScheduleResponse
+                    {
+                        Success = false,
+                        JobId = jobId,
+                        Message = $"Unknown job type: '{jobId}'. Schedule updates are only supported for known job types.",
+                        UpdatedAt = DateTime.UtcNow
+                    });
+            }
+
+            _logger.LogInformation("Updated schedule for job {JobId} to: {CronExpression}", jobId, cronExpression);
+
+            return Ok(new UpdateScheduleResponse
+            {
+                Success = true,
+                JobId = jobId,
+                NewCronExpression = cronExpression,
+                Message = $"Schedule updated successfully. New schedule: {cronExpression}",
+                UpdatedAt = DateTime.UtcNow
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update schedule for job: {JobId}", jobId);
+            return BadRequest(new UpdateScheduleResponse
+            {
+                Success = false,
+                JobId = jobId,
+                Message = $"Failed to update schedule: {ex.Message}",
+                UpdatedAt = DateTime.UtcNow
+            });
+        }
     }
 }
 
@@ -288,6 +419,20 @@ public record JobHistoryItem
     public string? ExceptionMessage { get; init; }
     public string? ExceptionType { get; init; }
     public string? ServerId { get; init; }
+}
+
+public record UpdateScheduleRequest
+{
+    public string CronExpression { get; init; } = "";
+}
+
+public record UpdateScheduleResponse
+{
+    public bool Success { get; init; }
+    public string JobId { get; init; } = "";
+    public string? NewCronExpression { get; init; }
+    public string Message { get; init; } = "";
+    public DateTime UpdatedAt { get; init; }
 }
 
 #endregion

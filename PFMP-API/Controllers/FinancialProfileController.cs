@@ -88,6 +88,17 @@ namespace PFMP_API.Controllers
             return Ok(summary);
         }
 
+        /// <summary>
+        /// Get comprehensive TSP detail view including user positions and all fund prices.
+        /// Uses stored prices only (no external API calls) - prices updated by TspPriceRefreshJob.
+        /// </summary>
+        [HttpGet("{userId:int}/tsp/detail")]
+        public async Task<ActionResult<TspDetailResponse>> GetTspDetail(int userId, CancellationToken ct = default)
+        {
+            var detail = await _service.GetTspDetailAsync(userId, ct);
+            return Ok(detail);
+        }
+
         [HttpPost("{userId:int}/tsp/snapshot")]
         public async Task<ActionResult> CreateTspSnapshot(int userId, CancellationToken ct = default)
         {

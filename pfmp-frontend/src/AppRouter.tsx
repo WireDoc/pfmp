@@ -26,6 +26,7 @@ const TasksView = lazy(() => import('./views/dashboard/TasksView').then(m => ({ 
 const ProfileView = lazy(() => import('./views/dashboard/ProfileView').then(m => ({ default: m.ProfileView })));
 const SettingsView = lazy(() => import('./views/dashboard/SettingsView').then(m => ({ default: m.SettingsView })));
 const HelpView = lazy(() => import('./views/dashboard/HelpView').then(m => ({ default: m.HelpView })));
+const TspDetailView = lazy(() => import('./views/dashboard/TspDetailView').then(m => ({ default: m.TspDetailView })));
 
 // NotFound lazy component supplied via staticRoutes (staticNotFound)
 
@@ -146,6 +147,10 @@ export function AppRouter(props: AppRouterProps) {
         {
           path: 'help',
           element: <Suspense fallback={<PageSpinner />}><HelpView /></Suspense>,
+        },
+        {
+          path: 'tsp',
+          element: <Suspense fallback={<PageSpinner />}><TspDetailView /></Suspense>,
         },
       ];
     }

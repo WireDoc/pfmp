@@ -774,6 +774,91 @@ namespace PFMP_API.Services.FinancialProfile
             };
         }
 
+        /// <summary>
+        /// Get comprehensive TSP detail including user positions and all fund prices.
+        /// Uses stored prices only - no external API calls. Prices updated by TspPriceRefreshJob.
+        /// </summary>
+        public async Task<TspDetailResponse> GetTspDetailAsync(int userId, CancellationToken ct = default)
+        {
+            // Get user's positions with stored prices (no API call)
+            var positions = await _db.TspLifecyclePositions.AsNoTracking()
+                .Where(p => p.UserId == userId)
+                .OrderBy(p => p.FundCode)
+                .Select(p => new TspSummaryLiteItem
+                {
+                    FundCode = p.FundCode,
+                    CurrentPrice = p.CurrentPrice,
+                    Units = p.Units,
+                    CurrentMarketValue = p.CurrentMarketValue,
+                    CurrentMixPercent = p.CurrentMixPercent
+                })
+                .ToListAsync(ct);
+
+            // Get latest fund prices from TSPFundPrices table (updated by background job)
+            var latestPrices = await _db.TSPFundPrices
+                .OrderByDescending(p => p.PriceDate)
+                .FirstOrDefaultAsync(ct);
+
+            var allFundPrices = latestPrices != null ? new TspFundPricesSnapshot
+            {
+                PriceDate = latestPrices.PriceDate,
+                GFundPrice = latestPrices.GFundPrice,
+                FFundPrice = latestPrices.FFundPrice,
+                CFundPrice = latestPrices.CFundPrice,
+                SFundPrice = latestPrices.SFundPrice,
+                IFundPrice = latestPrices.IFundPrice,
+                LIncomeFundPrice = latestPrices.LIncomeFundPrice,
+                L2030FundPrice = latestPrices.L2030FundPrice,
+                L2035FundPrice = latestPrices.L2035FundPrice,
+                L2040FundPrice = latestPrices.L2040FundPrice,
+                L2045FundPrice = latestPrices.L2045FundPrice,
+                L2050FundPrice = latestPrices.L2050FundPrice,
+                L2055FundPrice = latestPrices.L2055FundPrice,
+                L2060FundPrice = latestPrices.L2060FundPrice,
+                L2065FundPrice = latestPrices.L2065FundPrice,
+                L2070FundPrice = latestPrices.L2070FundPrice,
+                L2075FundPrice = latestPrices.L2075FundPrice,
+                DataSource = latestPrices.DataSource
+            } : new TspFundPricesSnapshot();
+
+            // Get user's TSP profile
+            var profile = await _db.TspProfiles.AsNoTracking()
+                .Where(p => p.UserId == userId)
+                .Select(p => new TspProfileInfo
+                {
+                    ContributionRatePercent = p.ContributionRatePercent,
+                    EmployerMatchPercent = p.EmployerMatchPercent,
+                    TotalBalance = p.TotalBalance,
+                    TargetBalance = p.TargetBalance,
+                    UpdatedAt = p.LastUpdatedAt
+                })
+                .FirstOrDefaultAsync(ct);
+
+            // Calculate total market value
+            var totalMarketValue = positions
+                .Where(p => p.CurrentMarketValue.HasValue)
+                .Sum(p => p.CurrentMarketValue!.Value);
+
+            // Get last priced timestamp
+            var pricesAsOf = positions
+                .Select(p => p.CurrentPrice.HasValue)
+                .Any()
+                ? await _db.TspLifecyclePositions.AsNoTracking()
+                    .Where(p => p.UserId == userId && p.LastPricedAsOfUtc != null)
+                    .Select(p => p.LastPricedAsOfUtc)
+                    .MaxAsync(ct)
+                : null;
+
+            return new TspDetailResponse
+            {
+                Positions = positions,
+                AllFundPrices = allFundPrices,
+                Profile = profile,
+                TotalMarketValue = totalMarketValue,
+                PricesAsOfUtc = pricesAsOf
+            };
+        }
+
         public async Task<BackfillResult> BackfillTspBasePositionsAsync(int userId, bool dryRun = true, CancellationToken ct = default)
         {
             var fundCodes = new[] { "G", "F", "C", "S", "I", "L-INCOME" };
