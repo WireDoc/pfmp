@@ -78,9 +78,12 @@ This index lists every active document under `docs/` following the subject-first
 ## 🌊 waves
 
 ### Active Wave Plans
-- `docs/waves/wave-11-account-linking-strategy.md` – Wave 11: Plaid Integration (Jan 2026)
-- Wave 12: Advanced Analytics – Documented in `docs/history/roadmap.md`
-- Wave 13: AI Enhancement & Vetting – Documented in `docs/history/roadmap.md` (before Chatbot)
+- `docs/waves/wave-11-plan.md` – **Wave 11: Plaid Bank Account Linking** (Jan 2026)
+- `docs/waves/wave-11-account-linking-strategy.md` – Wave 11-13: Full account linking strategy reference
+- Wave 12: Brokerage Integration – Documented in `docs/history/roadmap.md`
+- Wave 13: Crypto Integration – Documented in `docs/history/roadmap.md`
+- Wave 14: Transaction Import – Documented in `docs/history/roadmap.md`
+- Wave 15: AI Enhancement & Vetting – Documented in `docs/history/roadmap.md`
 
 ### Wave Completion Summaries
 - `docs/waves/wave-10-complete.md` – **Wave 10 Complete** (Dec 2025) - Background Jobs & Automation

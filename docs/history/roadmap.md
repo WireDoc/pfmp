@@ -109,25 +109,65 @@ Originally planned for persistent sidebar navigation. Dashboard currently functi
 ## Planned Waves
 
 ### Wave 11: Plaid Bank Account Linking 📋
-**Target**: January 2026
+**Target**: January 2026 (4 weeks)
+
+**Scope:** Bank accounts only (checking, savings, money market, CD, HSA)
 
 - Plaid Link integration (12,000+ financial institutions)
-- Automatic account balance synchronization
-- Transaction import with category mapping
-- Secure token management
+- Automatic account balance synchronization (daily via Hangfire)
+- Manual override capability for user corrections
+- Settings page (`/settings/connections`) + Dashboard CTA
+- Secure token management via Data Protection API
 
-See `docs/waves/wave-11-account-linking-strategy.md`
+**Not in Wave 11:** Transaction import (Wave 14+), Brokerage linking (Wave 12)
 
-### Wave 12: Advanced Analytics 📋
-**Target**: Q1 2026 (Post-Plaid)
+**See:** `docs/waves/wave-11-plan.md`
 
-- Sankey Diagram for cash flow visualization (requires transaction data)
-- Budget vs Actual analysis
-- Spending insights and trends
-- Enhanced D3.js visualizations
+### Wave 12: Brokerage & Investment Linking 📋
+**Target**: February-March 2026
 
-### Wave 13: AI Enhancement & Vetting 📋
-**Target**: Q1-Q2 2026 (Before Chatbot)
+**Phase A: Plaid Investments** (~$1.00/account/month)
+- Covers Fidelity, Vanguard, and 10+ other brokerages
+- Holdings sync with cost basis
+- Fastest path to broad coverage
+
+**Phase B: Direct Brokerage APIs** (Free)
+| Broker | API | Holdings | Transactions | Notes |
+|--------|-----|----------|--------------|-------|
+| TD Ameritrade/Schwab | OAuth REST | ✅ | ✅ | Free, well-documented |
+| E*TRADE | OAuth REST | ✅ | ✅ | Free, Morgan Stanley owned |
+| Fidelity | ❌ No API | Use Plaid | Use Plaid | No public API |
+| Vanguard | ❌ No API | Use Plaid | Use Plaid | No public API |
+| Ally Invest | Limited | ⚠️ | ⚠️ | Poor API support |
+| Robinhood | ❌ Unofficial | ⚠️ | ⚠️ | TOS violation risk |
+
+**Recommendation:** Start with Plaid Investments for broad coverage, add direct Schwab/E*TRADE APIs for power users who want free access.
+
+### Wave 13: Crypto Exchange Integration 📋
+**Target**: Q1-Q2 2026
+
+All major exchanges offer **free** read-only APIs:
+
+| Exchange | API | Holdings | Transactions | Staking |
+|----------|-----|----------|--------------|---------|
+| Coinbase | REST + WS | ✅ | ✅ | ✅ |
+| Binance | REST + WS | ✅ | ✅ | ✅ |
+| Kraken | REST + WS | ✅ | ✅ | ✅ |
+| Gemini | REST + WS | ✅ | ✅ | ❌ |
+
+**Security:** Read-only API keys only (no trading/withdrawal permissions)
+
+### Wave 14: Transaction Import & Categorization 📋
+**Target**: Q2 2026
+
+- Add Plaid Transactions product (~$0.50/account/month)
+- 24-month transaction history import
+- Automatic categorization using Plaid categories
+- Duplicate detection with manual entries
+- Spending analysis and budgeting foundation
+
+### Wave 15: AI Enhancement & Vetting 📋
+**Target**: Q2 2026 (Before Chatbot)
 **Priority**: Required before Chatbot
 
 The Wave 7 AI advisory system focused on cash optimization. Before building the chatbot, the AI context needs expansion and vetting.
@@ -299,6 +339,73 @@ The dual AI pipeline (Wave 7) laid groundwork. Wave 13 expands context coverage.
 - Data retention policies
 - Backup/restore rehearsals
 - Privacy policy documentation
+
+---
+
+## Azure Production Migration Checklist
+
+When migrating from development (Synology NAS + laptop) to production:
+
+### Database Migration
+| Component | Development | Production |
+|-----------|-------------|------------|
+| PostgreSQL | Synology NAS (192.168.1.108:5433) | Azure PostgreSQL Flexible Server |
+| Backup | Manual/Synology | Azure automated backups |
+| Encryption | Column-level where needed | TDE + column-level |
+
+### Secrets Management
+| Component | Development | Production |
+|-----------|-------------|------------|
+| Plaid Tokens | Data Protection API | Azure Key Vault |
+| API Keys | appsettings.local.json | Azure Key Vault |
+| Connection Strings | Environment variables | Azure Key Vault references |
+
+### Application Hosting
+| Component | Development | Production |
+|-----------|-------------|------------|
+| Backend | localhost:5052 | Azure App Service (Linux) |
+| Frontend | localhost:3000 | Azure Static Web Apps |
+| Hangfire | Local process | Azure App Service ("Always On") |
+
+### Plaid Configuration
+| Setting | Development | Production |
+|---------|-------------|------------|
+| Environment | `sandbox` | `production` |
+| Webhooks | Not implemented | Add webhook endpoint |
+| Token Storage | Data Protection API | Azure Key Vault |
+
+### Migration Steps
+1. **Provision Azure Resources**
+   - Azure PostgreSQL Flexible Server
+   - Azure App Service (Linux, P1v2 or higher for Always On)
+   - Azure Static Web Apps
+   - Azure Key Vault
+   - Azure Application Insights
+
+2. **Migrate Database**
+   - Export from Synology PostgreSQL
+   - Import to Azure PostgreSQL
+   - Verify EF migrations are current
+
+3. **Configure Secrets**
+   - Move all secrets to Azure Key Vault
+   - Update App Service to use Key Vault references
+   - Migrate Plaid tokens (re-encrypt with Key Vault)
+
+4. **Update Configuration**
+   - Set `ASPNETCORE_ENVIRONMENT=Production`
+   - Update Plaid environment to `production`
+   - Configure CORS for production domain
+
+5. **Enable Monitoring**
+   - Application Insights instrumentation
+   - Set up alerts for job failures
+   - Configure log retention
+
+6. **Security Hardening**
+   - Enable Azure Entra ID authentication
+   - Configure network security groups
+   - Enable Azure DDoS protection (if needed)
 
 ---
 
