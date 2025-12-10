@@ -1,7 +1,7 @@
 # Wave 10: Background Jobs & Automation
 
-> **Status**: 📋 Planning  
-> **Target**: Q1 2026  
+> **Status**: ✅ Complete  
+> **Completed**: December 2025  
 > **Priority**: High  
 > **Prerequisites**: Wave 9.3 Complete ✅
 
@@ -293,41 +293,51 @@ migrationBuilder.CreateTable("NetWorthSnapshots", ...);
 
 ## Implementation Phases
 
-### Phase 1: Foundation (3-4 hours)
-- [ ] Install Hangfire packages
-- [ ] Configure Hangfire with PostgreSQL
-- [ ] Add database migration for new fields
-- [ ] Create `NetWorthSnapshots` table
-- [ ] Basic Hangfire dashboard access
+### Phase 1: Foundation (3-4 hours) ✅
+- [x] Install Hangfire packages
+- [x] Configure Hangfire with PostgreSQL
+- [x] Add database migration for new fields
+- [x] Create `NetWorthSnapshots` table
+- [x] Basic Hangfire dashboard access (`/hangfire`)
 
-### Phase 2: Core Jobs (4-5 hours)
-- [ ] Implement `PriceRefreshJob`
-- [ ] Implement `NetWorthSnapshotJob`
-- [ ] Create manual refresh endpoint
-- [ ] Add refresh button to dashboard
+### Phase 2: Core Jobs (4-5 hours) ✅
+- [x] Implement `PriceRefreshJob`
+- [x] Implement `NetWorthSnapshotJob`
+- [x] Implement `TspPriceRefreshJob`
+- [x] Create manual refresh endpoint (`/api/accounts/{id}/refresh`)
+- [x] Add refresh button to dashboard
 
-### Phase 3: Net Worth Timeline (3-4 hours)
-- [ ] Create timeline API endpoint
-- [ ] Build `NetWorthTimelinePage` component
-- [ ] Add dashboard sparkline widget
-- [ ] Implement graceful empty state
-- [ ] Add to routing
+### Phase 3: Net Worth Timeline (3-4 hours) ✅
+- [x] Create timeline API endpoint (`/api/dashboard/net-worth/timeline`)
+- [x] Build `NetWorthTimelineView` component (D3.js stacked area chart)
+- [x] Add dashboard sparkline widget
+- [x] Implement graceful empty state
+- [x] Add routing (`/dashboard/net-worth`)
 
-### Phase 4: Scheduler Admin Page (4-5 hours)
-- [ ] Create scheduler API endpoints
-- [ ] Build `SchedulerPage` with MUI
-- [ ] Add to sidebar navigation
-- [ ] Real-time status updates
-- [ ] Manual "Run Now" functionality
+### Phase 4: Scheduler Admin Page (4-5 hours) ✅
+- [x] Create scheduler API endpoints (`/api/admin/scheduler/*`)
+- [x] Build `SchedulerAdminView` with MUI (746 lines)
+- [x] Add to routing (`/admin/scheduler`)
+- [x] Job status display with queue stats
+- [x] Manual "Run Now" functionality
+- [x] Schedule editing capability
 
-### Phase 5: Polish & Testing (2-3 hours)
-- [ ] Test with multiple users
-- [ ] Verify account filtering works
-- [ ] Test empty state scenarios
-- [ ] Error handling and logging
-- [ ] Documentation
+### Phase 5: Polish & Testing (2-3 hours) ✅
+- [x] Test with multiple users
+- [x] Error handling and logging
+- [x] Postman collection updated (v1.2.0)
 
-**Total Estimated: 16-21 hours (2-3 sessions)**
+**Completed: December 2025**
+
+---
+
+## Additional Deliverables (December 2025)
+
+### TSP Detail Page ✅
+- `TspDetailView` with full fund breakdown and prices
+- `TspPositionsEditor` component for editing positions
+- Navigation from dashboard TSP panel
+- Prices from stored `TSPFundPrices` table (no external API calls on page load)
 
 ---
 

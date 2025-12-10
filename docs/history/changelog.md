@@ -6,6 +6,41 @@ The format follows [Conventional Commits](https://www.conventionalcommits.org/).
 
 ---
 
+## [0.9.6-alpha] - 2025-12-10
+
+### Wave 10 Complete - Background Jobs & Automation
+
+**Hangfire Integration**
+- PostgreSQL-backed job storage
+- Scheduler Admin UI at `/admin/scheduler` (Sonarr-inspired design)
+- Hangfire dashboard at `/hangfire` for low-level monitoring
+
+**Scheduled Jobs**
+- `TspPriceRefreshJob` - Daily TSP fund price updates from tsp.gov
+- `PriceRefreshJob` - Daily stock price updates via FMP API
+- `NetWorthSnapshotJob` - Daily net worth snapshots for timeline
+- Manual "Run Now" functionality for all jobs
+- Schedule editing via admin UI
+
+**Net Worth Timeline**
+- Full-page view at `/dashboard/net-worth`
+- D3.js stacked area chart with category breakdown
+- Time range selector (1M, 3M, 6M, 1Y, YTD, ALL)
+- Graceful empty state for new users
+
+**TSP Detail Page**
+- Full-page view at `/dashboard/tsp`
+- All fund positions with current prices and market values
+- `TspPositionsEditor` component for editing units/contribution %
+- Navigation link from dashboard TSP panel
+- Prices from stored `TSPFundPrices` table (no API calls on page load)
+
+**API Updates**
+- `GET /api/financial-profile/{userId}/tsp/detail` - Comprehensive TSP data
+- Postman collection updated to v1.2.0 with all new endpoints
+
+---
+
 ## [0.9.5-alpha] - 2025-12-07
 
 ### Wave 9.3 Complete - All Options Delivered (~8,000+ lines)

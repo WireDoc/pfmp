@@ -1,6 +1,6 @@
 # PFMP Product Roadmap (2025–2026)
 
-_Last updated: 2025-12-07_
+_Last updated: 2025-12-10_
 
 ## Current Status Summary
 
@@ -11,13 +11,13 @@ _Last updated: 2025-12-07_
 | Wave 7: AI Advisory System | ✅ Complete | October 2025 |
 | Wave 8: Account Detail Views | ✅ Complete | November 2025 |
 | Wave 9: Market Data & Analytics | ✅ Complete | December 2025 |
-| Wave 10: Background Jobs | 🔄 Next | Q1 2026 |
-| Wave 11: Plaid Integration | 📋 Planned | January 2026 |
+| Wave 10: Background Jobs | ✅ Complete | December 2025 |
+| TSP Detail Page | ✅ Complete | December 2025 |
+| Wave 11: Plaid Integration | 🔄 Next | January 2026 |
 | Wave 12: Advanced Analytics | 📋 Planned | Q1 2026 |
 | Wave 13: AI Enhancement & Vetting | 📋 Planned | Q1-Q2 2026 |
-| TSP Detail Page | 📋 Planned | With Wave 10 or 11 |
 
-**Current Version**: v0.9.5-alpha (December 7, 2025)
+**Current Version**: v0.9.6-alpha (December 10, 2025)
 
 ---
 
@@ -82,32 +82,27 @@ Originally planned for persistent sidebar navigation. Dashboard currently functi
 | | • Correlation heatmap (toggle) | |
 | | • Net Worth Timeline component (awaiting backend) | |
 
----
-
-## In Progress
-
-### Wave 10: Background Jobs & Automation 🔄
-**Target**: Q1 2026
+### Wave 10: Background Jobs & Automation ✅
+**Completed**: December 2025
 
 **Infrastructure**
 - Hangfire integration with PostgreSQL storage
-- Dashboard-style job management UI (Sonarr-inspired)
+- Scheduler Admin UI at `/admin/scheduler` (Sonarr-inspired design)
+- Hangfire dashboard at `/hangfire`
 
 **Core Jobs**
 | Job | Schedule | Description |
 |-----|----------|-------------|
-| PriceRefreshJob | Hourly (market hours) | Update stock prices via FMP API |
-| PerformanceSnapshotJob | 4:30 PM EST daily | Capture net worth for timeline |
-| StalenessAlertJob | Daily | Flag stale account data |
-| TSPPriceRefreshJob | Daily | Update TSP fund prices |
+| TspPriceRefreshJob | Daily at 10 PM ET | Update TSP fund prices from tsp.gov |
+| PriceRefreshJob | Daily at 11 PM ET | Update stock prices via FMP API |
+| NetWorthSnapshotJob | Daily at 11:30 PM ET | Capture net worth for timeline |
 
 **Features**
-- Account-level `IsBackgroundRefreshEnabled` flag
-- Manual refresh buttons ("Refresh Prices" on account views)
-- Net Worth Timeline using snapshot data
-- Scheduler Admin UI with MUI design
-
-See `docs/waves/wave-10-plan.md` for detailed implementation plan.
+- Net Worth Timeline at `/dashboard/net-worth` with D3.js stacked area chart
+- TSP Detail Page at `/dashboard/tsp` with positions editor
+- Manual refresh buttons and "Run Now" functionality
+- Schedule editing via admin UI
+- Postman collection updated to v1.2.0
 
 ---
 

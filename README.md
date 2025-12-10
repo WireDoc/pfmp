@@ -122,28 +122,28 @@ See `docs/api/postman.md` for details.
 
 ## Status & roadmap
 
-- Active version: **v0.9.5-alpha** (Wave 9.3 Complete - December 7, 2025)
-- **Milestone**: Wave 9.3 fully complete with all 4 options delivered (~8,000+ lines)
-- **Achievement**: D3.js visualizations, debt payoff strategies, investment analytics, cash account UX
-- **Next Phase**: Wave 10 (Background Jobs & Net Worth Timeline)
-- Roadmap Phase 2 (Data Aggregation) in progress; Phase 3 (AI Advisory) on deck
+- Active version: **v0.9.6-alpha** (Wave 10 Complete - December 10, 2025)
+- **Milestone**: Wave 10 complete - Background Jobs & Automation fully operational
+- **Achievement**: Hangfire scheduler, TSP detail page, Net Worth Timeline, Scheduler Admin UI
+- **Next Phase**: Wave 11 (Plaid Bank Account Linking)
+- Roadmap Phase 2 (Data Aggregation) complete; Phase 3 (AI Advisory) on deck
 
 ### Upcoming Waves
 
 | Wave | Focus | Target |
 |------|-------|--------|
-| **10** | Background Jobs & Automation | Q1 2026 |
-| | • Daily price refresh jobs (Hangfire) | |
-| | • Net Worth Timeline with historical snapshots | |
-| | • Manual refresh buttons | |
 | **11** | Plaid Bank Account Linking | January 2026 |
 | | • 12,000+ bank integrations | |
 | | • Automatic balance sync | |
 | | • Transaction import with categories | |
-| **12** | Advanced Analytics | Post-Plaid |
+| **12** | Advanced Analytics | Q1 2026 |
 | | • Sankey Diagram (cash flow visualization) | |
 | | • Budget vs Actual analysis | |
 | | • Spending insights | |
+| **13** | AI Enhancement & Vetting | Q1-Q2 2026 |
+| | • Expand AI context coverage | |
+| | • Model upgrades (Gemini 3 Pro) | |
+| | • Chatbot preparation | |
 
 Track progress, migration notes, and future waves in `docs/waves/`
 
