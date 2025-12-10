@@ -2,7 +2,7 @@
   "info": {
     "name": "PFMP API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "description": "PFMP API endpoints grouped for development and testing. Adjust {{baseUrl}} as needed."
   },
   "item": [
@@ -83,6 +83,7 @@
         { "name": "TSP: Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/tsp" } },
         { "name": "TSP: Summary", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/tsp/summary" } },
   { "name": "TSP: Summary Lite", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/tsp/summary-lite" } },
+        { "name": "TSP: Detail (positions + all prices)", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/tsp/detail" } },
         { "name": "TSP: Snapshot (Create)", "request": { "method": "POST", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/tsp/snapshot" } },
         { "name": "TSP: Snapshot (Latest Meta)", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/tsp/snapshot/latest" } },
   { "name": "TSP: Backfill Base Funds (dry run)", "request": { "method": "POST", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/tsp/backfill/base-funds?dryRun=true" } },
@@ -504,6 +505,55 @@
       ]
     },
     {
+      "name": "Net Worth Timeline",
+      "description": "Dashboard net worth history and tracking",
+      "item": [
+        { "name": "Get Timeline", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard/net-worth/timeline?userId={{userId}}&months=12" } },
+        { "name": "Get Current Net Worth", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard/net-worth/current?userId={{userId}}" } },
+        { "name": "Get Sparkline", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard/net-worth/sparkline?userId={{userId}}&days=30" } }
+      ]
+    },
+    {
+      "name": "Loan Analytics",
+      "description": "Loan amortization, payoff strategies, and credit utilization analysis",
+      "item": [
+        { "name": "Get Amortization Schedule", "request": { "method": "GET", "url": "{{baseUrl}}/api/loan-analytics/{{loanId}}/amortization" } },
+        { "name": "Calculate Payoff Strategies", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"extraPayment\": 200,\n  \"oneTimePayment\": 0\n}" }, "url": "{{baseUrl}}/api/loan-analytics/{{loanId}}/payoff" } },
+        { "name": "Get Loan Details", "request": { "method": "GET", "url": "{{baseUrl}}/api/loan-analytics/{{loanId}}" } },
+        { "name": "Get Credit Utilization (by liability)", "request": { "method": "GET", "url": "{{baseUrl}}/api/loan-analytics/credit-utilization/{{liabilityId}}" } },
+        { "name": "Get User Credit Utilization", "request": { "method": "GET", "url": "{{baseUrl}}/api/loan-analytics/credit-utilization/user/{{userId}}" } },
+        { "name": "Get Payoff Strategies (user)", "request": { "method": "GET", "url": "{{baseUrl}}/api/loan-analytics/payoff-strategies/{{userId}}" } }
+      ]
+    },
+    {
+      "name": "Portfolio Analytics",
+      "description": "Portfolio performance and allocation analysis",
+      "item": [
+        { "name": "Get Performance Metrics", "request": { "method": "GET", "url": "{{baseUrl}}/api/portfolios/{{userId}}/performance?period=1Y" } },
+        { "name": "Get Allocation", "request": { "method": "GET", "url": "{{baseUrl}}/api/portfolios/{{userId}}/allocation" } }
+      ]
+    },
+    {
+      "name": "Price History",
+      "description": "Historical price data for holdings",
+      "item": [
+        { "name": "Get Price History (symbol)", "request": { "method": "GET", "url": "{{baseUrl}}/api/price-history/AAPL?period=1M" } },
+        { "name": "Get Price History (batch)", "request": { "method": "GET", "url": "{{baseUrl}}/api/price-history/batch?symbols=AAPL,MSFT,SPY&period=1M" } },
+        { "name": "Backfill Account Price History", "request": { "method": "POST", "url": "{{baseUrl}}/api/price-history/backfill/{{accountId}}" } }
+      ]
+    },
+    {
+      "name": "Account Refresh",
+      "description": "Account refresh and snapshot operations",
+      "item": [
+        { "name": "Refresh Account", "request": { "method": "POST", "url": "{{baseUrl}}/api/accounts/{{accountId}}/refresh" } },
+        { "name": "Refresh All Accounts", "request": { "method": "POST", "url": "{{baseUrl}}/api/accounts/refresh-all?userId={{userId}}" } },
+        { "name": "Trigger Snapshot", "request": { "method": "POST", "url": "{{baseUrl}}/api/accounts/{{accountId}}/snapshot" } },
+        { "name": "Queue Refresh All (async)", "request": { "method": "POST", "url": "{{baseUrl}}/api/accounts/refresh-all/async?userId={{userId}}" } },
+        { "name": "Queue Snapshot All (async)", "request": { "method": "POST", "url": "{{baseUrl}}/api/accounts/snapshot-all/async?userId={{userId}}" } }
+      ]
+    },
+    {
       "name": "Market Data",
       "item": [
         { "name": "Stock Price (one)", "request": { "method": "GET", "url": "{{baseUrl}}/api/market/price/MSFT" } },
@@ -784,6 +834,8 @@
     { "key": "alertId", "value": "1" },
     { "key": "goalId", "value": "1" },
     { "key": "incomeSourceId", "value": "1" },
+    { "key": "loanId", "value": "1" },
+    { "key": "liabilityId", "value": "00000000-0000-0000-0000-000000000000" },
     { "key": "guid", "value": "00000000000000000000000000000000" },
     { "key": "refreshToken", "value": "" },
     { "key": "openaiApiKey", "value": "your-openai-api-key-here" }
