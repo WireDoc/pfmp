@@ -426,7 +426,7 @@ export interface TspDetailResponse {
 }
 
 export async function fetchTspDetail(userId: number): Promise<TspDetailResponse> {
-  const resp = await apiClient.get(`/api/financial-profile/${userId}/tsp/detail`);
+  const resp = await apiClient.get(`/financial-profile/${userId}/tsp/detail`);
   const dto = resp.data as TspDetailResponse;
   return {
     positions: (dto.positions ?? []).map((i) => ({

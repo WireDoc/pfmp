@@ -1,5 +1,7 @@
-import { Box, Card, CardContent, Typography } from '@mui/material';
+import { Box, Button, Card, CardContent, Typography } from '@mui/material';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import { useNavigate } from 'react-router-dom';
 import type { AccountSnapshot } from '../../services/dashboard/types';
 
 interface TspPanelProps {
@@ -8,6 +10,8 @@ interface TspPanelProps {
 }
 
 export default function TspPanel({ tspAccount, loading = false }: TspPanelProps) {
+  const navigate = useNavigate();
+
   if (loading) {
     return (
       <Card>
@@ -78,11 +82,19 @@ export default function TspPanel({ tspAccount, loading = false }: TspPanelProps)
           </Box>
         </Box>
 
-        <Box mt={2}>
-          <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-            Note: TSP data is aggregated from individual fund positions (L2050, S Fund, etc.)
-            For detailed fund breakdown, visit your TSP account at tsp.gov
+        <Box mt={2} display="flex" justifyContent="space-between" alignItems="center">
+          <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', flex: 1 }}>
+            Click "View Details" for fund breakdown and current prices
           </Typography>
+          <Button
+            variant="outlined"
+            size="small"
+            endIcon={<OpenInNewIcon />}
+            onClick={() => navigate('/dashboard/tsp')}
+            sx={{ ml: 2 }}
+          >
+            View Details
+          </Button>
         </Box>
       </CardContent>
     </Card>

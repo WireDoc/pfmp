@@ -191,15 +191,64 @@ namespace PFMP_API.Services.FinancialProfile
                 if (input.LifecyclePositions != null && input.LifecyclePositions.Count > 0)
                 {
                     var now = DateTime.UtcNow;
+                    
+                    // Fetch latest prices from TSPFundPrices table to apply to new positions
+                    var latestPrices = await _db.TSPFundPrices
+                        .OrderByDescending(p => p.PriceDate)
+                        .FirstOrDefaultAsync(ct);
+                    
+                    // Build a price lookup dictionary
+                    var priceLookup = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+                    if (latestPrices != null)
+                    {
+                        priceLookup["G"] = latestPrices.GFundPrice;
+                        priceLookup["F"] = latestPrices.FFundPrice;
+                        priceLookup["C"] = latestPrices.CFundPrice;
+                        priceLookup["S"] = latestPrices.SFundPrice;
+                        priceLookup["I"] = latestPrices.IFundPrice;
+                        if (latestPrices.LIncomeFundPrice.HasValue) priceLookup["LINCOME"] = latestPrices.LIncomeFundPrice.Value;
+                        if (latestPrices.LIncomeFundPrice.HasValue) priceLookup["L-INCOME"] = latestPrices.LIncomeFundPrice.Value;
+                        if (latestPrices.L2030FundPrice.HasValue) priceLookup["L2030"] = latestPrices.L2030FundPrice.Value;
+                        if (latestPrices.L2035FundPrice.HasValue) priceLookup["L2035"] = latestPrices.L2035FundPrice.Value;
+                        if (latestPrices.L2040FundPrice.HasValue) priceLookup["L2040"] = latestPrices.L2040FundPrice.Value;
+                        if (latestPrices.L2045FundPrice.HasValue) priceLookup["L2045"] = latestPrices.L2045FundPrice.Value;
+                        if (latestPrices.L2050FundPrice.HasValue) priceLookup["L2050"] = latestPrices.L2050FundPrice.Value;
+                        if (latestPrices.L2055FundPrice.HasValue) priceLookup["L2055"] = latestPrices.L2055FundPrice.Value;
+                        if (latestPrices.L2060FundPrice.HasValue) priceLookup["L2060"] = latestPrices.L2060FundPrice.Value;
+                        if (latestPrices.L2065FundPrice.HasValue) priceLookup["L2065"] = latestPrices.L2065FundPrice.Value;
+                        if (latestPrices.L2070FundPrice.HasValue) priceLookup["L2070"] = latestPrices.L2070FundPrice.Value;
+                        if (latestPrices.L2075FundPrice.HasValue) priceLookup["L2075"] = latestPrices.L2075FundPrice.Value;
+                    }
+                    
                     foreach (var p in input.LifecyclePositions)
                     {
                         if (string.IsNullOrWhiteSpace(p.FundCode)) continue;
+                        
+                        var fundCode = p.FundCode.Trim().ToUpperInvariant();
+                        var normalizedKey = fundCode.Replace("-", "").Replace(" ", "");
+                        decimal? currentPrice = null;
+                        decimal? marketValue = null;
+                        
+                        // Try to get the current price for this fund
+                        if (priceLookup.TryGetValue(fundCode, out var price) || 
+                            priceLookup.TryGetValue(normalizedKey, out price))
+                        {
+                            currentPrice = price;
+                            if (p.Units > 0)
+                            {
+                                marketValue = p.Units * price;
+                            }
+                        }
+                        
                         _db.TspLifecyclePositions.Add(new Models.FinancialProfile.TspLifecyclePosition
                         {
                             UserId = userId,
-                            FundCode = p.FundCode.Trim().ToUpperInvariant(),
+                            FundCode = fundCode,
                             ContributionPercent = p.ContributionPercent,
                             Units = p.Units,
+                            CurrentPrice = currentPrice,
+                            CurrentMarketValue = marketValue,
+                            LastPricedAsOfUtc = latestPrices != null ? now : null,
                             DateUpdated = p.DateUpdated ?? now,
                             CreatedAt = now,
                             UpdatedAt = now

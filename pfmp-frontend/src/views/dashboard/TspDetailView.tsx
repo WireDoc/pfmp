@@ -17,15 +17,19 @@ import {
   Card,
   CardContent,
   Divider,
+  Button,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import EditIcon from '@mui/icons-material/Edit';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import ScheduleIcon from '@mui/icons-material/Schedule';
-import { fetchTspDetail, type TspDetailResponse } from '../../services/financialProfileApi';
+import { fetchTspDetail, upsertTspProfile, type TspDetailResponse } from '../../services/financialProfileApi';
 import { useDevUserId } from '../../dev/devUserState';
 import { useAuth } from '../../contexts/auth/useAuth';
+import { TspPositionsEditor, type TspPositionInput } from '../../components/tsp/TspPositionsEditor';
 
 // TSP Fund names for display
 const TSP_FUND_NAMES: Record<string, string> = {
@@ -84,6 +88,7 @@ export const TspDetailView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [editMode, setEditMode] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!userId) return;
@@ -119,6 +124,27 @@ export const TspDetailView: React.FC = () => {
     }
   };
 
+  const handleSavePositions = async (positions: TspPositionInput[], contributionRate: number) => {
+    if (!userId) throw new Error('No user ID');
+    
+    // Convert to the API payload format
+    const payload = {
+      contributionRatePercent: contributionRate,
+      lifecyclePositions: positions.map(p => ({
+        fundCode: p.fundCode,
+        contributionPercent: p.contributionPercent,
+        units: p.units,
+        dateUpdated: new Date().toISOString(),
+      })),
+    };
+    
+    await upsertTspProfile(userId, payload);
+    
+    // Refresh data after save
+    setEditMode(false);
+    await handleRefresh();
+  };
+
   const formatCurrency = (value: number | null) => {
     if (value === null || value === undefined) return '—';
     return new Intl.NumberFormat('en-US', {
@@ -149,11 +175,15 @@ export const TspDetailView: React.FC = () => {
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString('en-US', {
+    // Parse as UTC date to avoid timezone shift issues
+    // The API returns dates at midnight UTC (e.g., "2025-12-08T00:00:00Z")
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', {
       weekday: 'short',
       year: 'numeric',
       month: 'short',
       day: 'numeric',
+      timeZone: 'UTC', // Interpret as UTC to get the correct calendar date
     });
   };
 
@@ -181,7 +211,7 @@ export const TspDetailView: React.FC = () => {
   }
 
   return (
-    <Box>
+    <Box sx={{ p: 3 }}>
       {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box display="flex" alignItems="center" gap={2}>
@@ -196,7 +226,7 @@ export const TspDetailView: React.FC = () => {
           </Box>
         </Box>
         <Box display="flex" alignItems="center" gap={1}>
-          {data?.pricesAsOfUtc && (
+          {data?.pricesAsOfUtc && !editMode && (
             <Chip
               icon={<ScheduleIcon />}
               label={`Updated ${formatDateTime(data.pricesAsOfUtc)}`}
@@ -205,11 +235,30 @@ export const TspDetailView: React.FC = () => {
               color="info"
             />
           )}
-          <Tooltip title="Refresh data">
-            <IconButton onClick={handleRefresh} disabled={refreshing}>
-              <RefreshIcon className={refreshing ? 'spinning' : ''} />
-            </IconButton>
-          </Tooltip>
+          {editMode ? (
+            <Button
+              variant="outlined"
+              startIcon={<ArrowBackIcon />}
+              onClick={() => setEditMode(false)}
+            >
+              Back to View
+            </Button>
+          ) : (
+            <>
+              <Button
+                variant="contained"
+                startIcon={<EditIcon />}
+                onClick={() => setEditMode(true)}
+              >
+                Edit Positions
+              </Button>
+              <Tooltip title="Refresh data">
+                <IconButton onClick={handleRefresh} disabled={refreshing}>
+                  <RefreshIcon className={refreshing ? 'spinning' : ''} />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
         </Box>
       </Box>
 
@@ -219,26 +268,42 @@ export const TspDetailView: React.FC = () => {
         </Alert>
       )}
 
-      {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="overline" color="text.secondary">
-                Total Market Value
-              </Typography>
-              <Typography variant="h4" fontWeight={600} color="primary">
-                {formatCurrency(data?.totalMarketValue ?? 0)}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="overline" color="text.secondary">
-                Active Positions
-              </Typography>
+      {/* Edit Mode - Positions Editor */}
+      {editMode ? (
+        <TspPositionsEditor
+          positions={data?.positions.map(p => ({
+            fundCode: p.fundCode,
+            contributionPercent: p.currentMixPercent ?? undefined,
+            units: p.units,
+          })) ?? []}
+          onSave={handleSavePositions}
+          contributionRate={data?.profile?.contributionRatePercent ?? 0}
+          showContributionPercent={true}
+          showUnits={true}
+          title="Edit TSP Positions"
+        />
+      ) : (
+        <>
+          {/* Summary Cards */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Card>
+                <CardContent>
+                  <Typography variant="overline" color="text.secondary">
+                    Total Market Value
+                  </Typography>
+                  <Typography variant="h4" fontWeight={600} color="primary">
+                    {formatCurrency(data?.totalMarketValue ?? 0)}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Card>
+                <CardContent>
+                  <Typography variant="overline" color="text.secondary">
+                    Active Positions
+                  </Typography>
               <Typography variant="h4" fontWeight={600}>
                 {activePositions.length}
               </Typography>
@@ -410,6 +475,8 @@ export const TspDetailView: React.FC = () => {
           </Typography>
         </Box>
       </Paper>
+        </>
+      )}
 
       {/* CSS for spinning animation */}
       <style>{`
