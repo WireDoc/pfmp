@@ -9,13 +9,18 @@ import {
   MenuItem,
   Box,
   Alert,
+  Typography,
+  Divider,
 } from '@mui/material';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import { PlaidLinkButton } from '../plaid';
 
 interface Props {
   open: boolean;
   userId: number;
   onClose: () => void;
   onSave: (account: NewAccountData) => Promise<void>;
+  onLinkSuccess?: () => void;
 }
 
 export interface NewAccountData {
@@ -42,12 +47,12 @@ const accountTypes = [
 ];
 
 /**
- * AddAccountModal - Create new manual account
+ * AddAccountModal - Create new manual account or link bank
  * 
  * Allows users to add accounts directly from the dashboard
  * without going through the onboarding flow.
  */
-export function AddAccountModal({ open, userId, onClose, onSave }: Props) {
+export function AddAccountModal({ open, userId, onClose, onSave, onLinkSuccess }: Props) {
   const [formData, setFormData] = useState({
     name: '',
     institution: '',
@@ -154,7 +159,7 @@ export function AddAccountModal({ open, userId, onClose, onSave }: Props) {
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Add New Account</DialogTitle>
+      <DialogTitle>Add Account</DialogTitle>
       <DialogContent>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
           {saveError && (
@@ -162,6 +167,56 @@ export function AddAccountModal({ open, userId, onClose, onSave }: Props) {
               {saveError}
             </Alert>
           )}
+
+          {/* Link Bank Account Option */}
+          <Box
+            sx={{
+              p: 2,
+              borderRadius: 1,
+              bgcolor: 'primary.50',
+              border: '1px solid',
+              borderColor: 'primary.200',
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+              <AccountBalanceIcon color="primary" />
+              <Typography variant="subtitle1" fontWeight="medium">
+                Link Your Bank
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  bgcolor: 'success.main',
+                  color: 'white',
+                  px: 1,
+                  py: 0.25,
+                  borderRadius: 1,
+                  fontWeight: 'bold',
+                }}
+              >
+                Recommended
+              </Typography>
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Automatically sync your checking, savings, and money market account balances.
+            </Typography>
+            <PlaidLinkButton
+              variant="contained"
+              size="medium"
+              buttonText="Link Bank Account"
+              fullWidth
+              onSuccess={() => {
+                onLinkSuccess?.();
+                onClose();
+              }}
+            />
+          </Box>
+
+          <Divider sx={{ my: 1 }}>
+            <Typography variant="caption" color="text.secondary">
+              or add manually
+            </Typography>
+          </Divider>
 
           <TextField
             label="Account Name"

@@ -308,6 +308,7 @@ export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefres
         userId={userId}
         onClose={() => setAddAccountModalOpen(false)}
         onSave={handleCreateAccount}
+        onLinkSuccess={onRefresh}
       />
       
       <CsvImportModal
