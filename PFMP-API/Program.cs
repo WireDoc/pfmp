@@ -132,6 +132,12 @@ namespace PFMP_API
             builder.Services.AddScoped<PFMP_API.Jobs.NetWorthSnapshotJob>();
             builder.Services.AddScoped<PFMP_API.Jobs.TspPriceRefreshJob>();
 
+            // Plaid Integration Services (Wave 11)
+            builder.Services.AddDataProtection();
+            builder.Services.AddSingleton<PFMP_API.Services.Plaid.ICredentialEncryptionService, PFMP_API.Services.Plaid.DataProtectionEncryptionService>();
+            builder.Services.AddScoped<PFMP_API.Services.Plaid.IPlaidService, PFMP_API.Services.Plaid.PlaidService>();
+            builder.Services.AddScoped<PFMP_API.Jobs.PlaidSyncJob>();
+
             // Add Authentication Services
             builder.Services.AddScoped<IPasswordHashService, PasswordHashService>();
             builder.Services.AddHttpClient<IAuthenticationService, AuthenticationService>();
@@ -276,6 +282,13 @@ namespace PFMP_API
             RecurringJob.AddOrUpdate<PFMP_API.Jobs.TspPriceRefreshJob>(
                 "daily-tsp-refresh",
                 job => job.RefreshTspPricesAsync(CancellationToken.None),
+                "0 22 * * *", // 10 PM daily
+                new RecurringJobOptions { TimeZone = easternTimeZone });
+
+            // Daily Plaid bank account balance sync at 10 PM ET (Wave 11)
+            RecurringJob.AddOrUpdate<PFMP_API.Jobs.PlaidSyncJob>(
+                "daily-plaid-sync",
+                job => job.SyncAllConnections(),
                 "0 22 * * *", // 10 PM daily
                 new RecurringJobOptions { TimeZone = easternTimeZone });
 

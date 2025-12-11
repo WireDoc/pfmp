@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
 using PFMP_API.Models.FinancialProfile;
+using PFMP_API.Models.Plaid;
 
 namespace PFMP_API
 {
@@ -71,6 +72,10 @@ namespace PFMP_API
 
     // Background Jobs & Analytics (Wave 10)
     public DbSet<NetWorthSnapshot> NetWorthSnapshots { get; set; }
+
+    // Plaid Integration (Wave 11)
+    public DbSet<AccountConnection> AccountConnections { get; set; }
+    public DbSet<SyncHistory> SyncHistory { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -555,6 +560,38 @@ namespace PFMP_API
                 entity.HasOne(e => e.User)
                     .WithMany()
                     .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Plaid Integration (Wave 11)
+            modelBuilder.Entity<AccountConnection>(entity =>
+            {
+                entity.HasKey(e => e.ConnectionId);
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.PlaidItemId);
+                entity.HasIndex(e => new { e.UserId, e.Source });
+                entity.Property(e => e.PlaidItemId).HasMaxLength(100);
+                entity.Property(e => e.PlaidAccessToken).HasMaxLength(1000);
+                entity.Property(e => e.PlaidInstitutionId).HasMaxLength(50);
+                entity.Property(e => e.PlaidInstitutionName).HasMaxLength(200);
+                entity.Property(e => e.ErrorMessage).HasMaxLength(500);
+                entity.Property(e => e.ConnectedAt).IsRequired();
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<SyncHistory>(entity =>
+            {
+                entity.HasKey(e => e.SyncHistoryId);
+                entity.HasIndex(e => e.ConnectionId);
+                entity.HasIndex(e => e.SyncStartedAt);
+                entity.Property(e => e.ErrorMessage).HasMaxLength(500);
+                entity.Property(e => e.SyncStartedAt).IsRequired();
+                entity.HasOne(e => e.Connection)
+                    .WithMany()
+                    .HasForeignKey(e => e.ConnectionId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 

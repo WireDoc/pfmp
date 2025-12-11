@@ -1,9 +1,34 @@
 # Wave 11: Plaid Bank Account Linking
 
-> **Status**: 📋 Planning  
+> **Status**: 🔄 In Progress  
 > **Target**: January 2026 (4 weeks)  
 > **Priority**: 🔥 Critical - Phase 2 keystone feature  
-> **Prerequisites**: Wave 10 Complete ✅
+> **Prerequisites**: Wave 10 Complete ✅  
+> **Started**: December 11, 2025
+
+---
+
+## Implementation Progress
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| **Phase 1: Foundation** | ✅ Complete | Models, migration, services, encryption |
+| **Phase 2: Plaid Integration** | ✅ Complete | PlaidService, PlaidController, Hangfire job |
+| **Phase 3: Frontend** | 📋 Not Started | Plaid Link UI, Settings page, Dashboard CTA |
+| **Phase 4: Testing & Polish** | 📋 Not Started | Sandbox testing, error handling |
+
+### Completed Items (December 11, 2025)
+- ✅ Installed `Going.Plaid` v6.54.0 NuGet package
+- ✅ Added Plaid configuration to `appsettings.Development.json` and `.local.json`
+- ✅ Created EF migration `AddPlaidIntegration`:
+  - `AccountConnections` table
+  - `SyncHistory` table
+  - Extended `CashAccounts` with Plaid fields
+- ✅ Implemented `DataProtectionEncryptionService` for token encryption
+- ✅ Created `PlaidService` with full Plaid API integration
+- ✅ Created `PlaidController` with all REST endpoints
+- ✅ Created `PlaidSyncJob` (Hangfire) - Daily at 10 PM ET
+- ✅ Registered services and job in `Program.cs`
 
 ---
 
@@ -316,27 +341,67 @@ public interface IPlaidService
 {
     // Link flow
     Task<string> CreateLinkTokenAsync(int userId);
-    Task<AccountConnection> ExchangePublicTokenAsync(int userId, string publicToken);
+    Task<AccountConnection> ExchangePublicTokenAsync(int userId, string publicToken, string? institutionId = null, string? institutionName = null);
     
     // Account operations
-    Task<List<CashAccount>> FetchAccountsAsync(Guid connectionId);
+    Task<List<CashAccount>> FetchAndSyncAccountsAsync(Guid connectionId);
     Task<SyncResult> SyncConnectionAsync(Guid connectionId);
     Task<SyncResult> SyncAllUserConnectionsAsync(int userId);
     
     // Connection management
     Task DisconnectAsync(Guid connectionId);
     Task<List<AccountConnection>> GetUserConnectionsAsync(int userId);
+    Task<List<CashAccount>> GetConnectionAccountsAsync(Guid connectionId);
+    Task<List<SyncHistory>> GetSyncHistoryAsync(Guid connectionId, int limit = 10);
 }
 ```
 
-### PlaidController Endpoints
+### PlaidController Endpoints (Implemented)
 
-```
-POST /api/plaid/link-token              → Create Plaid Link token
-POST /api/plaid/exchange                → Exchange public token, create accounts
-GET  /api/plaid/connections             → List user's connected banks
-POST /api/plaid/connections/{id}/sync   → Manual refresh
-DELETE /api/plaid/connections/{id}      → Disconnect bank
+All endpoints require authentication via JWT Bearer token.
+
+| Method | Endpoint | Description | Request Body | Response |
+|--------|----------|-------------|--------------|----------|
+| `POST` | `/api/plaid/link-token` | Create Plaid Link token | None | `{ linkToken: string }` |
+| `POST` | `/api/plaid/exchange-token` | Exchange public token, create connection & accounts | `{ publicToken: string }` | `{ connection, accounts[] }` |
+| `GET` | `/api/plaid/connections` | List user's connected banks | None | `ConnectionDto[]` |
+| `GET` | `/api/plaid/connections/{id}/accounts` | Get accounts for a connection | None | `AccountDto[]` |
+| `POST` | `/api/plaid/connections/{id}/sync` | Manual balance refresh | None | `{ success, accountsUpdated, errorMessage }` |
+| `POST` | `/api/plaid/sync-all` | Sync all user connections | None | `{ success, accountsUpdated, errorMessage }` |
+| `DELETE` | `/api/plaid/connections/{id}` | Disconnect bank | None | 204 No Content |
+| `GET` | `/api/plaid/connections/{id}/history` | Get sync history | `?limit=10` | `SyncHistoryDto[]` |
+
+#### Response DTOs
+
+```typescript
+interface ConnectionDto {
+  connectionId: string;        // GUID
+  institutionName: string;
+  institutionId?: string;
+  status: string;              // Connected, SyncFailed, Expired, Disconnected
+  errorMessage?: string;
+  connectedAt: string;         // ISO 8601
+  lastSyncedAt?: string;
+}
+
+interface AccountDto {
+  cashAccountId: string;       // GUID
+  name: string;
+  balance: number;
+  plaidAccountId?: string;
+  syncStatus: string;
+  lastSyncedAt?: string;
+}
+
+interface SyncHistoryDto {
+  syncHistoryId: string;       // GUID
+  syncStartedAt: string;
+  syncCompletedAt?: string;
+  status: string;
+  errorMessage?: string;
+  accountsUpdated: number;
+  durationMs?: number;
+}
 ```
 
 ### Hangfire Job
@@ -435,26 +500,30 @@ Add "Link Bank Account" card to the Cash Accounts section:
 
 ## Implementation Phases
 
-### Phase 1: Foundation (Days 1-3)
-- [ ] Create Plaid developer account
-- [ ] Install `Going.Plaid` NuGet package
-- [ ] Add Plaid configuration to appsettings
-- [ ] Create EF migration:
+### Phase 1: Foundation (Days 1-3) ✅ Complete
+- [x] Create Plaid developer account
+- [x] Install `Going.Plaid` NuGet package
+- [x] Add Plaid configuration to appsettings
+- [x] Create EF migration:
   - `AccountConnections` table
   - `SyncHistory` table
   - Add `Source`, `PlaidItemId`, `PlaidAccountId`, `LastSyncedAt`, `SyncStatus` to `CashAccounts`
-- [ ] Implement `CredentialEncryptionService` (Data Protection API)
-- [ ] Create `IPlaidService` interface
+- [x] Implement `CredentialEncryptionService` (Data Protection API)
+- [x] Create `IPlaidService` interface
 
-### Phase 2: Plaid Integration (Days 4-7)
-- [ ] Implement `PlaidService`:
+### Phase 2: Plaid Integration (Days 4-7) ✅ Complete
+- [x] Implement `PlaidService`:
   - `CreateLinkTokenAsync`
   - `ExchangePublicTokenAsync`
-  - `FetchAccountsAsync`
+  - `FetchAndSyncAccountsAsync`
   - `SyncConnectionAsync`
-- [ ] Create `PlaidController` with all endpoints
-- [ ] Create `PlaidSyncJob` (Hangfire)
-- [ ] Register job: Daily at 10 PM ET
+  - `GetUserConnectionsAsync`
+  - `GetConnectionAccountsAsync`
+  - `GetSyncHistoryAsync`
+  - `DisconnectAsync`
+- [x] Create `PlaidController` with all endpoints
+- [x] Create `PlaidSyncJob` (Hangfire)
+- [x] Register job: Daily at 10 PM ET
 
 ### Phase 3: Frontend (Days 8-12)
 - [ ] Create `PlaidLinkButton` component
@@ -469,7 +538,7 @@ Add "Link Bank Account" card to the Cash Accounts section:
 - [ ] Plaid Sandbox testing (Chase, Wells Fargo, Citi)
 - [ ] Test sync job execution
 - [ ] Error handling (expired tokens, rate limits)
-- [ ] Update Postman collection
+- [x] Update Postman collection
 - [ ] Documentation
 
 ---

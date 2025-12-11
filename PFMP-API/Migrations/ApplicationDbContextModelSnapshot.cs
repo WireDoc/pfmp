@@ -737,6 +737,9 @@ namespace PFMP_API.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
+                    b.Property<bool>("AllowManualOverride")
+                        .HasColumnType("boolean");
+
                     b.Property<decimal>("Balance")
                         .HasColumnType("decimal(18,2)");
 
@@ -753,10 +756,24 @@ namespace PFMP_API.Migrations
                     b.Property<bool>("IsEmergencyFund")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTime?>("LastSyncedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("ManualBalanceOverride")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<string>("Nickname")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PlaidAccountId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PlaidItemId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Purpose")
                         .HasMaxLength(500)
@@ -768,6 +785,16 @@ namespace PFMP_API.Migrations
                     b.Property<string>("RoutingNumber")
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SyncErrorMessage")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("SyncStatus")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -2097,6 +2124,98 @@ namespace PFMP_API.Migrations
                     b.ToTable("OnboardingProgress");
                 });
 
+            modelBuilder.Entity("PFMP_API.Models.Plaid.AccountConnection", b =>
+                {
+                    b.Property<Guid>("ConnectionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ConnectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("LastSyncedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PlaidAccessToken")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("PlaidInstitutionId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PlaidInstitutionName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PlaidItemId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SyncFailureCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("ConnectionId");
+
+                    b.HasIndex("PlaidItemId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "Source");
+
+                    b.ToTable("AccountConnections");
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.Plaid.SyncHistory", b =>
+                {
+                    b.Property<Guid>("SyncHistoryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AccountsUpdated")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("ConnectionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DurationMs")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SyncCompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("SyncStartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("SyncHistoryId");
+
+                    b.HasIndex("ConnectionId");
+
+                    b.HasIndex("SyncStartedAt");
+
+                    b.ToTable("SyncHistory");
+                });
+
             modelBuilder.Entity("PFMP_API.Models.PriceHistory", b =>
                 {
                     b.Property<int>("PriceHistoryId")
@@ -3093,6 +3212,28 @@ namespace PFMP_API.Migrations
                         .HasForeignKey("PFMP_API.Models.OnboardingProgress", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.Plaid.AccountConnection", b =>
+                {
+                    b.HasOne("PFMP_API.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.Plaid.SyncHistory", b =>
+                {
+                    b.HasOne("PFMP_API.Models.Plaid.AccountConnection", "Connection")
+                        .WithMany()
+                        .HasForeignKey("ConnectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Connection");
                 });
 
             modelBuilder.Entity("PFMP_API.Models.PriceHistory", b =>

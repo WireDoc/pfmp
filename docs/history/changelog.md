@@ -6,6 +6,44 @@ The format follows [Conventional Commits](https://www.conventionalcommits.org/).
 
 ---
 
+## [0.9.7-alpha] - 2025-12-11
+
+### Wave 11 In Progress - Plaid Bank Account Linking
+
+**Backend Complete (Phase 1 & 2)**
+
+**Database Schema**
+- `AccountConnections` table for Plaid bank connections
+- `SyncHistory` table for sync audit trail
+- Extended `CashAccounts` with Plaid fields (Source, PlaidAccountId, PlaidItemId, SyncStatus, LastSyncedAt, etc.)
+- EF Core migration `AddPlaidIntegration` applied
+
+**Plaid Integration**
+- `Going.Plaid` v6.54.0 NuGet package
+- `PlaidService` - Full Plaid API integration (link token, exchange, sync, disconnect)
+- `DataProtectionEncryptionService` - ASP.NET Core Data Protection for token encryption
+- `PlaidSyncJob` - Hangfire job for daily balance sync at 10 PM ET
+
+**PlaidController Endpoints**
+- `POST /api/plaid/link-token` - Create Plaid Link token
+- `POST /api/plaid/exchange-token` - Exchange public token, create accounts
+- `GET /api/plaid/connections` - List user's connected banks
+- `GET /api/plaid/connections/{id}/accounts` - Get accounts for connection
+- `POST /api/plaid/connections/{id}/sync` - Manual balance refresh
+- `POST /api/plaid/sync-all` - Sync all user connections
+- `DELETE /api/plaid/connections/{id}` - Disconnect bank
+- `GET /api/plaid/connections/{id}/history` - Get sync history
+
+**API Updates**
+- Postman collection updated to v1.3.0 with Plaid endpoints
+- Added `connectionId` and `accessToken` variables
+
+**Pending (Phase 3 & 4)**
+- Frontend: Plaid Link UI, Settings page, Dashboard CTA
+- Testing: Plaid Sandbox testing with real credentials
+
+---
+
 ## [0.9.6-alpha] - 2025-12-10
 
 ### Wave 10 Complete - Background Jobs & Automation
