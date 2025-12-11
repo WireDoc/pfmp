@@ -1,10 +1,11 @@
 # Wave 11: Plaid Bank Account Linking
 
-> **Status**: 🔄 In Progress  
+> **Status**: ✅ Complete  
 > **Target**: January 2026 (4 weeks)  
 > **Priority**: 🔥 Critical - Phase 2 keystone feature  
 > **Prerequisites**: Wave 10 Complete ✅  
 > **Started**: December 11, 2025
+> **Completed**: December 11, 2025
 
 ---
 
@@ -14,10 +15,12 @@
 |-------|--------|-------------|
 | **Phase 1: Foundation** | ✅ Complete | Models, migration, services, encryption |
 | **Phase 2: Plaid Integration** | ✅ Complete | PlaidService, PlaidController, Hangfire job |
-| **Phase 3: Frontend** | 📋 Not Started | Plaid Link UI, Settings page, Dashboard CTA |
-| **Phase 4: Testing & Polish** | 📋 Not Started | Sandbox testing, error handling |
+| **Phase 3: Frontend** | ✅ Complete | Plaid Link UI, Settings page, Dashboard CTA |
+| **Phase 4: Testing & Polish** | ⏳ Manual Testing | Sandbox testing, error handling |
 
 ### Completed Items (December 11, 2025)
+
+**Backend (Commit 61722e9):**
 - ✅ Installed `Going.Plaid` v6.54.0 NuGet package
 - ✅ Added Plaid configuration to `appsettings.Development.json` and `.local.json`
 - ✅ Created EF migration `AddPlaidIntegration`:
@@ -29,6 +32,17 @@
 - ✅ Created `PlaidController` with all REST endpoints
 - ✅ Created `PlaidSyncJob` (Hangfire) - Daily at 10 PM ET
 - ✅ Registered services and job in `Program.cs`
+- ✅ Updated Postman collection v1.3.0
+
+**Frontend (Commit 1d98283):**
+- ✅ Installed `react-plaid-link` v4.1.1
+- ✅ Created `plaidApi.ts` service for backend communication
+- ✅ Created `PlaidLinkButton` component with react-plaid-link integration
+- ✅ Created `PlaidLinkCTA` component for dashboard use
+- ✅ Created `ConnectedBanksList` component with sync/disconnect actions
+- ✅ Created `ConnectionStatusChip` component with status indicators
+- ✅ Created `ConnectionsSettingsView` at `/settings/connections`
+- ✅ Added Dashboard CTA to `CashAccountManager`
 
 ---
 
