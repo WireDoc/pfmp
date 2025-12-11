@@ -28,14 +28,17 @@ import {
   DialogContent,
   DialogActions,
   Grid,
+  Tooltip,
 } from '@mui/material';
 import {
   Add,
   Edit,
   TrendingUp,
   TrendingDown,
+  AccountBalance,
 } from '@mui/icons-material';
 import type { Account } from '../../services/api';
+import { PlaidLinkCTA } from '../plaid';
 import { AccountType, AccountCategory, accountService } from '../../services/api';
 
 interface CashAccountManagerProps {
@@ -285,16 +288,29 @@ export const CashAccountManager: React.FC<CashAccountManagerProps> = ({ userId, 
         title="Cash Account Manager"
         subheader={`${cashAccounts.length} accounts | Total: $${optimizationData?.totalCash?.toLocaleString() || '0'}`}
         action={
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => {
-              resetForm();
-              setShowAddDialog(true);
-            }}
-          >
-            Add Account
-          </Button>
+          <Box display="flex" gap={1} alignItems="center">
+            <Tooltip title="Link your bank to automatically sync balances">
+              <span>
+                <PlaidLinkCTA 
+                  userId={userId} 
+                  onSuccess={() => {
+                    loadCashAccounts();
+                    if (onUpdate) onUpdate();
+                  }} 
+                />
+              </span>
+            </Tooltip>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => {
+                resetForm();
+                setShowAddDialog(true);
+              }}
+            >
+              Add Account
+            </Button>
+          </Box>
         }
       />
       <CardContent>
