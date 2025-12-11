@@ -7,7 +7,7 @@
 
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api';
 
 // ============================================================================
 // Types
@@ -88,7 +88,7 @@ function getAuthHeaders(): Record<string, string> {
  */
 export async function createLinkToken(): Promise<string> {
   const response = await axios.post<LinkTokenResponse>(
-    `${API_BASE_URL}/api/plaid/link-token`,
+    `${API_BASE_URL}/plaid/link-token`,
     {},
     { headers: getAuthHeaders() }
   );
@@ -101,7 +101,7 @@ export async function createLinkToken(): Promise<string> {
  */
 export async function exchangePublicToken(publicToken: string): Promise<ExchangeTokenResponse> {
   const response = await axios.post<ExchangeTokenResponse>(
-    `${API_BASE_URL}/api/plaid/exchange-token`,
+    `${API_BASE_URL}/plaid/exchange-token`,
     { publicToken },
     { headers: getAuthHeaders() }
   );
@@ -113,7 +113,7 @@ export async function exchangePublicToken(publicToken: string): Promise<Exchange
  */
 export async function getConnections(): Promise<PlaidConnection[]> {
   const response = await axios.get<PlaidConnection[]>(
-    `${API_BASE_URL}/api/plaid/connections`,
+    `${API_BASE_URL}/plaid/connections`,
     { headers: getAuthHeaders() }
   );
   return response.data;
@@ -124,7 +124,7 @@ export async function getConnections(): Promise<PlaidConnection[]> {
  */
 export async function getConnectionAccounts(connectionId: string): Promise<PlaidAccount[]> {
   const response = await axios.get<PlaidAccount[]>(
-    `${API_BASE_URL}/api/plaid/connections/${connectionId}/accounts`,
+    `${API_BASE_URL}/plaid/connections/${connectionId}/accounts`,
     { headers: getAuthHeaders() }
   );
   return response.data;
@@ -135,7 +135,7 @@ export async function getConnectionAccounts(connectionId: string): Promise<Plaid
  */
 export async function syncConnection(connectionId: string): Promise<SyncResult> {
   const response = await axios.post<SyncResult>(
-    `${API_BASE_URL}/api/plaid/connections/${connectionId}/sync`,
+    `${API_BASE_URL}/plaid/connections/${connectionId}/sync`,
     {},
     { headers: getAuthHeaders() }
   );
@@ -147,7 +147,7 @@ export async function syncConnection(connectionId: string): Promise<SyncResult> 
  */
 export async function syncAllConnections(): Promise<SyncResult> {
   const response = await axios.post<SyncResult>(
-    `${API_BASE_URL}/api/plaid/sync-all`,
+    `${API_BASE_URL}/plaid/sync-all`,
     {},
     { headers: getAuthHeaders() }
   );
@@ -160,7 +160,7 @@ export async function syncAllConnections(): Promise<SyncResult> {
  */
 export async function disconnectConnection(connectionId: string): Promise<void> {
   await axios.delete(
-    `${API_BASE_URL}/api/plaid/connections/${connectionId}`,
+    `${API_BASE_URL}/plaid/connections/${connectionId}`,
     { headers: getAuthHeaders() }
   );
 }
@@ -170,7 +170,7 @@ export async function disconnectConnection(connectionId: string): Promise<void> 
  */
 export async function getSyncHistory(connectionId: string, limit = 10): Promise<SyncHistoryEntry[]> {
   const response = await axios.get<SyncHistoryEntry[]>(
-    `${API_BASE_URL}/api/plaid/connections/${connectionId}/history`,
+    `${API_BASE_URL}/plaid/connections/${connectionId}/history`,
     { 
       params: { limit },
       headers: getAuthHeaders() 
