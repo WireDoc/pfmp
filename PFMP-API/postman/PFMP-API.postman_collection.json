@@ -2,8 +2,8 @@
   "info": {
     "name": "PFMP API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "1.3.0",
-    "description": "PFMP API endpoints grouped for development and testing. Adjust {{baseUrl}} as needed."
+    "version": "1.4.0",
+    "description": "PFMP API endpoints grouped for development and testing. Adjust {{baseUrl}} as needed. v1.4.0: Added Plaid reconnect and permanent delete endpoints."
   },
   "item": [
     {
@@ -184,7 +184,7 @@
     },
     {
       "name": "Plaid Integration",
-      "description": "Plaid bank account linking endpoints (Wave 11). Requires authentication. Test with Plaid Sandbox: user_good / pass_good / MFA: 1234",
+      "description": "Plaid bank account linking endpoints (Wave 11). Supports connect, sync, disconnect (pause), reconnect (update mode), and permanent delete. Test with Plaid Sandbox: user_good / pass_good / MFA: 1234",
       "item": [
         {
           "name": "Create Link Token",
@@ -205,7 +205,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"publicToken\": \"public-sandbox-xxxxxxxx\"\n}"
+              "raw": "{\n  \"publicToken\": \"public-sandbox-xxxxxxxx\",\n  \"institutionId\": \"ins_109508\",\n  \"institutionName\": \"First Platypus Bank\"\n}"
             },
             "url": "{{baseUrl}}/api/plaid/exchange-token"
           },
@@ -258,10 +258,41 @@
         },
         {
           "name": "Disconnect Connection",
+          "description": "Pauses syncing for a connection. The access token is preserved, allowing reconnection later.",
           "request": {
             "method": "DELETE",
             "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
             "url": "{{baseUrl}}/api/plaid/connections/{{connectionId}}"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Reconnect Link Token",
+          "description": "Creates a Plaid Link token in update mode for reconnecting a disconnected bank. User re-authenticates without duplicating accounts.",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "{{baseUrl}}/api/plaid/connections/{{connectionId}}/reconnect"
+          },
+          "response": []
+        },
+        {
+          "name": "Reconnect Success",
+          "description": "Called after successful Plaid Link reconnection. Marks connection as Connected and triggers a sync.",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "{{baseUrl}}/api/plaid/connections/{{connectionId}}/reconnect-success"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Connection Permanently",
+          "description": "Permanently removes a Plaid connection. Use deleteAccounts=true to remove linked accounts, or false to convert them to manual accounts.",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "{{baseUrl}}/api/plaid/connections/{{connectionId}}/permanent?deleteAccounts=false"
           },
           "response": []
         }

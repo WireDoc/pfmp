@@ -5,7 +5,7 @@
 > **Priority**: 🔥 Critical - Phase 2 keystone feature  
 > **Prerequisites**: Wave 10 Complete ✅  
 > **Started**: December 11, 2025
-> **Completed**: December 11, 2025
+> **Completed**: December 12, 2025
 
 ---
 
@@ -16,11 +16,11 @@
 | **Phase 1: Foundation** | ✅ Complete | Models, migration, services, encryption |
 | **Phase 2: Plaid Integration** | ✅ Complete | PlaidService, PlaidController, Hangfire job |
 | **Phase 3: Frontend** | ✅ Complete | Plaid Link UI, Settings page, Dashboard CTA |
-| **Phase 4: Testing & Polish** | ⏳ Manual Testing | Sandbox testing, error handling |
+| **Phase 4: Testing & Polish** | ✅ Complete | Sandbox testing, error handling, Vitest coverage |
 
-### Completed Items (December 11, 2025)
+### Completed Items (December 11-12, 2025)
 
-**Backend (Commit 61722e9):**
+**Backend (Commits 61722e9, 78a3b2d):**
 - ✅ Installed `Going.Plaid` v6.54.0 NuGet package
 - ✅ Added Plaid configuration to `appsettings.Development.json` and `.local.json`
 - ✅ Created EF migration `AddPlaidIntegration`:
@@ -32,9 +32,16 @@
 - ✅ Created `PlaidController` with all REST endpoints
 - ✅ Created `PlaidSyncJob` (Hangfire) - Daily at 10 PM ET
 - ✅ Registered services and job in `Program.cs`
-- ✅ Updated Postman collection v1.3.0
+- ✅ Updated Postman collection v1.4.0
 
-**Frontend (Commit 1d98283):**
+**Connection Lifecycle (December 12, 2025):**
+- ✅ Reconnect endpoint - Creates update-mode link token for expired/failed connections
+- ✅ Disconnect endpoint - Pauses sync without deleting data (status → Disconnected)
+- ✅ Delete endpoint - Permanent removal with option to keep/delete linked accounts
+- ✅ Plaid Item removal via API on permanent delete
+- ✅ Status-based menu actions in ConnectedBanksList
+
+**Frontend (Commits 1d98283, 78a3b2d):**
 - ✅ Installed `react-plaid-link` v4.1.1
 - ✅ Created `plaidApi.ts` service for backend communication
 - ✅ Created `PlaidLinkButton` component with react-plaid-link integration
@@ -43,8 +50,19 @@
 - ✅ Created `ConnectionStatusChip` component with status indicators
 - ✅ Created `ConnectionsSettingsView` at `/settings/connections`
 - ✅ Added Dashboard CTA to `CashAccountManager`
+- ✅ Added CD and HSA account types to CashAccountModal
+- ✅ Protected Plaid-linked accounts from manual deletion
+- ✅ Institution name auto-populated from Plaid metadata
+- ✅ Moved Connections and Scheduler to HeaderBar navigation
+- ✅ Added routes for `/dashboard/settings/connections` and `/dashboard/admin/scheduler`
 
----
+**Testing & Documentation (December 12, 2025):**
+- ✅ Plaid Sandbox testing with First Platypus Bank
+- ✅ HeaderBar.test.tsx - 13 tests (branding, navigation, user display, dev mode)
+- ✅ ConnectedBanksList.test.tsx - 15 tests (empty state, status menus, expand/collapse)
+- ✅ ConnectionsSettingsView.test.tsx - 11 tests (layout, loading, sync, errors)
+- ✅ Postman collection v1.4.0 with all connection lifecycle endpoints
+- ✅ Environment file updated with all required variables
 
 ## Executive Summary
 
@@ -700,15 +718,236 @@ Plaid__Environment=sandbox
 
 ---
 
-## References
+## Phase 4: Sandbox Testing & Development Plan
 
-- [Plaid Quickstart Guide](https://plaid.com/docs/quickstart/)
-- [Going.Plaid .NET SDK](https://github.com/viceroypenguin/Going.Plaid)
-- [react-plaid-link](https://github.com/plaid/react-plaid-link)
-- [Plaid Sandbox Testing](https://plaid.com/docs/sandbox/)
+> **Status**: ⏳ In Progress  
+> **Added**: December 11, 2025
+
+### Current Implementation Status
+
+The backend is already configured for **Sandbox mode** (see `PlaidService.cs` line 19):
+```csharp
+public string Environment { get; set; } = "sandbox";  // Default
+```
+
+The environment mapping in `PlaidService` supports:
+- `sandbox` → `Going.Plaid.Environment.Sandbox` (default)
+- `development` → `Going.Plaid.Environment.Development`  
+- `production` → `Going.Plaid.Environment.Production`
+
+### Plaid Sandbox Overview
+
+The Plaid Sandbox is a **free, fully-featured** environment for development and testing. Key features:
+
+| Feature | Description |
+|---------|-------------|
+| **Unlimited Items** | Create unlimited test connections |
+| **Test Institutions** | 10+ test banks including "First Platypus Bank" (`ins_109508`) |
+| **Default Credentials** | `user_good` / `pass_good` work for all institutions |
+| **Special Credentials** | Simulate different scenarios (MFA, errors, account types) |
+| **Custom Users** | Define custom account structures via Dashboard or API |
+| **Sandbox Endpoints** | Special endpoints to bypass Link, trigger webhooks, reset logins |
+
+### Testing Approach: Three Options
+
+#### Option 1: Pre-populated Test Users (Recommended for Quick Testing)
+
+Plaid provides several built-in test users. Use with `user_good` password or specified password:
+
+| Username | Password | Use Case |
+|----------|----------|----------|
+| `user_good` | `pass_good` | Basic account access, default balances |
+| `user_transactions_dynamic` | any | Realistic transactions that update over time |
+| `user_ewa_user` | any | EWA/payroll advance user persona |
+| `user_yuppie` | any | High-income professional persona |
+| `user_small_business` | any | Small business account persona |
+| `user_bank_income` | any | Wide variety of income streams |
+| `user_credit_profile_poor` | any | Net loss cash flow, no consistent income |
+| `user_credit_profile_good` | any | Neutral cash flow, gig economy income |
+| `user_credit_profile_excellent` | any | Positive cash flow, high salary + rental |
+
+**How to use:** Enter these credentials in Plaid Link when connecting a test institution.
+
+#### Option 2: Custom Sandbox Users (via Plaid Dashboard)
+
+Plaid provides a GitHub repo with pre-built JSON files for complex testing: [plaid/sandbox-custom-users](https://github.com/plaid/sandbox-custom-users)
+
+**Available custom user templates:**
+- `transactions/` - Transaction history users
+- `investments/` - Investment account users  
+- `income/` - Bank income testing
+- `liabilities/` - Debt/liability accounts
+- `auth/` - Auth flow testing
+- `identity/` - Identity verification
+
+**Setup:**
+1. Download JSON files from the repo
+2. Go to [Plaid Dashboard → Developers → Sandbox → Test Users](https://dashboard.plaid.com/developers/sandbox?tab=testUsers)
+3. Upload the JSON to create custom users
+4. Use the custom username/password specified in the JSON
+
+#### Option 3: Bypass Link via API (Recommended for Automated Testing)
+
+Use the `/sandbox/public_token/create` endpoint to create test Items without going through Link UI:
+
+```csharp
+// Backend endpoint to create test connections (dev-only)
+[HttpPost("sandbox/create-test-item")]
+public async Task<ActionResult> CreateTestItem([FromQuery] int userId, [FromBody] TestItemRequest request)
+{
+    // Only allow in sandbox environment
+    if (_options.Environment != "sandbox")
+        return BadRequest("Only available in sandbox");
+
+    // Create public token via Sandbox API
+    var response = await _plaidClient.SandboxPublicTokenCreateAsync(new()
+    {
+        ClientId = _options.ClientId,
+        Secret = _options.Secret,
+        InstitutionId = request.InstitutionId ?? "ins_109508", // First Platypus Bank
+        InitialProducts = new[] { Products.Transactions },
+        Options = new()
+        {
+            OverrideUsername = request.Username ?? "user_good",
+            OverridePassword = request.Password ?? "pass_good"
+        }
+    });
+
+    // Exchange for access token (reuse existing flow)
+    var connection = await _plaidService.ExchangePublicTokenAsync(
+        userId, 
+        response.PublicToken,
+        request.InstitutionId,
+        "Test Bank"
+    );
+
+    return Ok(new { ConnectionId = connection.ConnectionId });
+}
+```
+
+### Plaid Sandbox MCP Server
+
+Plaid offers an **MCP (Model Context Protocol) server** for AI-assisted development. This enables Copilot/Claude to:
+- Generate mock financial data
+- Search Plaid documentation
+- Create sandbox access tokens
+- Trigger test webhooks
+
+**Installation for VS Code:**
+
+Add to `.vscode/mcp.json` (or create if doesn't exist):
+```json
+{
+  "mcp": {
+    "servers": {
+      "plaid": {
+        "command": "uvx",
+        "args": [
+          "mcp-server-plaid",
+          "--client-id", "${input:plaid_client_id}",
+          "--secret", "${input:plaid_secret}"
+        ]
+      }
+    },
+    "inputs": [
+      {
+        "type": "promptString",
+        "id": "plaid_client_id",
+        "description": "Plaid Client ID (from Dashboard)"
+      },
+      {
+        "type": "promptString",
+        "id": "plaid_secret",
+        "description": "Plaid Sandbox Secret",
+        "password": true
+      }
+    ]
+  }
+}
+```
+
+**MCP Tools Available:**
+1. `get_mock_data_prompt` - Generate customized mock financial data
+2. `search_documentation` - Search Plaid docs for API/product info
+3. `get_sandbox_access_token` - Create sandbox access tokens programmatically
+4. `simulate_webhook` - Trigger webhook events for testing
+
+### Recommended Test Data Setup
+
+**Goal:** Create test users in PFMP that mirror different Plaid personas
+
+| PFMP Test User | Plaid Credentials | Purpose |
+|----------------|-------------------|---------|
+| User 1 (default) | `user_good` / `pass_good` | Basic testing, default accounts |
+| User 2 | `user_yuppie` / any | High-income scenario |
+| User 3 | `user_small_business` / any | Business accounts |
+| User 4 | `user_credit_profile_poor` / any | Financial stress scenario |
+| User 5 | Custom JSON (investments) | Investment account testing |
+
+**Implementation Steps:**
+1. Create "Link Test Bank" button (dev-only) that bypasses Link UI
+2. Use `/sandbox/public_token/create` to create Items with different test credentials
+3. Store connections against specific PFMP test users
+4. Sync balances to populate Cash Accounts view
+
+### Test Institutions
+
+| Institution | ID | Notes |
+|-------------|-----|-------|
+| First Platypus Bank | `ins_109508` | Primary test bank, non-OAuth |
+| Platypus OAuth Bank | `ins_127287` | OAuth flow testing |
+| Houndstooth Bank | `ins_109512` | Additional test bank |
+| Tattersall Federal Credit Union | `ins_109511` | Credit union testing |
+
+### Error Simulation
+
+Use password patterns to simulate errors:
+```
+password: error_ITEM_LOCKED          → ITEM_LOCKED error
+password: error_INVALID_CREDENTIALS  → Invalid login
+password: error_INSTITUTION_DOWN     → Bank unavailable
+password: mfa_device                 → Trigger MFA flow (code: 1234)
+```
+
+### Development vs Production Checklist
+
+| Aspect | Development (Sandbox) | Production |
+|--------|----------------------|------------|
+| **API Endpoint** | `sandbox.plaid.com` | `production.plaid.com` |
+| **Credentials** | Sandbox keys from Dashboard | Production keys (requires approval) |
+| **Data** | Fake, test data | Real bank data |
+| **Webhooks** | Optional, can use `/sandbox/item/fire_webhook` | Required for real-time updates |
+| **Token Encryption** | Data Protection API | Azure Key Vault |
+| **Sync Frequency** | On-demand for testing | Nightly job + webhooks |
+| **Error Handling** | Can ignore edge cases | Must handle all edge cases |
+| **Link Recovery** | Not critical | Critical for token expiration |
+
+### Next Steps (Phase 4 Completion)
+
+- [ ] Add Plaid Sandbox MCP server to `.vscode/mcp.json`
+- [ ] Create dev-only endpoint for `/sandbox/public_token/create` bypass
+- [ ] Test with `user_good` / `pass_good` credentials
+- [ ] Test with persona users (`user_yuppie`, `user_small_business`)
+- [ ] Create custom users via Dashboard for edge cases
+- [ ] Document test account mappings
+- [ ] Verify balance sync end-to-end
+- [ ] Test error scenarios (locked, expired, MFA)
 
 ---
 
-**Document Version:** 1.0  
+## References
+
+- [Plaid Quickstart Guide](https://plaid.com/docs/quickstart/)
+- [Plaid Sandbox Overview](https://plaid.com/docs/sandbox/)
+- [Plaid Test Credentials](https://plaid.com/docs/sandbox/test-credentials/)
+- [Plaid Custom Users](https://plaid.com/docs/sandbox/user-custom/)
+- [Sandbox Custom Users Repo](https://github.com/plaid/sandbox-custom-users)
+- [Plaid MCP Server](https://github.com/plaid/ai-coding-toolkit/tree/main/sandbox)
+- [Going.Plaid .NET SDK](https://github.com/viceroypenguin/Going.Plaid)
+- [react-plaid-link](https://github.com/plaid/react-plaid-link)
+
+---
+
+**Document Version:** 1.1  
 **Created:** December 10, 2025  
-**Last Updated:** December 10, 2025
+**Last Updated:** December 11, 2025

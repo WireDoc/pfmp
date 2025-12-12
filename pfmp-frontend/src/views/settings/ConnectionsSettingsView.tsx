@@ -27,8 +27,12 @@ import { Link as RouterLink } from 'react-router-dom';
 import { PlaidLinkButton, ConnectedBanksList } from '../../components/plaid';
 import { getConnections, syncAllConnections } from '../../services/plaidApi';
 import type { PlaidConnection } from '../../services/plaidApi';
+import { useDevUserId } from '../../dev/devUserState';
 
 export const ConnectionsSettingsView: React.FC = () => {
+  const devUserId = useDevUserId();
+  const userId = devUserId ?? Number(import.meta.env.VITE_PFMP_DASHBOARD_USER_ID || '1');
+  
   const [connections, setConnections] = useState<PlaidConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -37,7 +41,7 @@ export const ConnectionsSettingsView: React.FC = () => {
   const loadConnections = useCallback(async () => {
     try {
       setError(null);
-      const data = await getConnections();
+      const data = await getConnections(userId);
       setConnections(data);
     } catch (err) {
       setError('Failed to load connected accounts. Please try again.');
@@ -45,7 +49,7 @@ export const ConnectionsSettingsView: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     loadConnections();
@@ -55,7 +59,7 @@ export const ConnectionsSettingsView: React.FC = () => {
     setSyncing(true);
     setError(null);
     try {
-      await syncAllConnections();
+      await syncAllConnections(userId);
       await loadConnections();
     } catch (err) {
       setError('Failed to sync accounts. Please try again.');
@@ -128,6 +132,7 @@ export const ConnectionsSettingsView: React.FC = () => {
             </Button>
           )}
           <PlaidLinkButton
+            userId={userId}
             onSuccess={handleLinkSuccess}
             buttonText="Link Bank"
             size="medium"
@@ -159,6 +164,7 @@ export const ConnectionsSettingsView: React.FC = () => {
         ) : (
           <ConnectedBanksList
             connections={connections}
+            userId={userId}
             onRefresh={loadConnections}
             onDisconnect={handleDisconnect}
           />
@@ -182,6 +188,7 @@ export const ConnectionsSettingsView: React.FC = () => {
               and money market balances. We use bank-level encryption to keep your data secure.
             </Typography>
             <PlaidLinkButton
+              userId={userId}
               onSuccess={handleLinkSuccess}
               buttonText="Link Your First Bank"
               size="large"

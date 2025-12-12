@@ -288,6 +288,7 @@ export const CashAccountManager: React.FC<CashAccountManagerProps> = ({ userId, 
         action={
           <Box display="flex" gap={1} alignItems="center">
             <PlaidLinkButton 
+              userId={userId}
               variant="outlined"
               size="medium"
               buttonText="Link Bank"

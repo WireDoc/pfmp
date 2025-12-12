@@ -1,6 +1,6 @@
 # PFMP Product Roadmap (2025–2026)
 
-_Last updated: 2025-12-10_
+_Last updated: 2025-12-12_
 
 ## Current Status Summary
 
@@ -13,11 +13,11 @@ _Last updated: 2025-12-10_
 | Wave 9: Market Data & Analytics | ✅ Complete | December 2025 |
 | Wave 10: Background Jobs | ✅ Complete | December 2025 |
 | TSP Detail Page | ✅ Complete | December 2025 |
-| Wave 11: Plaid Integration | 🔄 Next | January 2026 |
+| Wave 11: Plaid Integration | ✅ Complete | December 2025 |
 | Wave 12: Advanced Analytics | 📋 Planned | Q1 2026 |
 | Wave 13: AI Enhancement & Vetting | 📋 Planned | Q1-Q2 2026 |
 
-**Current Version**: v0.9.6-alpha (December 10, 2025)
+**Current Version**: v0.9.8-alpha (December 12, 2025)
 
 ---
 
@@ -104,24 +104,26 @@ Originally planned for persistent sidebar navigation. Dashboard currently functi
 - Schedule editing via admin UI
 - Postman collection updated to v1.2.0
 
----
-
-## Planned Waves
-
-### Wave 11: Plaid Bank Account Linking 📋
-**Target**: January 2026 (4 weeks)
+### Wave 11: Plaid Bank Account Linking ✅
+**Completed**: December 12, 2025
 
 **Scope:** Bank accounts only (checking, savings, money market, CD, HSA)
 
 - Plaid Link integration (12,000+ financial institutions)
 - Automatic account balance synchronization (daily via Hangfire)
-- Manual override capability for user corrections
-- Settings page (`/settings/connections`) + Dashboard CTA
+- Connection lifecycle: connect, reconnect (update mode), disconnect (pause), delete
+- Settings page (`/dashboard/settings/connections`) + Dashboard CTA
 - Secure token management via Data Protection API
+- 39 new Vitest tests for Plaid components
+- Postman collection updated to v1.4.0
 
 **Not in Wave 11:** Transaction import (Wave 14+), Brokerage linking (Wave 12)
 
 **See:** `docs/waves/wave-11-plan.md`
+
+---
+
+## Planned Waves
 
 ### Wave 12: Brokerage & Investment Linking 📋
 **Target**: February-March 2026

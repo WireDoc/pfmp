@@ -196,6 +196,12 @@ public class CashAccountsController : ControllerBase
             return NotFound();
         }
 
+        // Prevent deletion of Plaid-managed accounts
+        if (account.Source == Models.Plaid.AccountSource.Plaid)
+        {
+            return BadRequest(new { message = "Cannot delete Plaid-linked accounts. Use Settings > Connections to disconnect the bank instead." });
+        }
+
         _context.CashAccounts.Remove(account);
         await _context.SaveChangesAsync();
 

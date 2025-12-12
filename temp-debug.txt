@@ -1,0 +1,18 @@
+2025-12-11 20:52:58.289 [info] Starting server plaid-sandbox
+2025-12-11 20:52:58.289 [info] Connection state: Starting
+2025-12-11 20:52:58.289 [info] Starting server from LocalProcess extension host
+2025-12-11 20:52:58.294 [info] Connection state: Starting
+2025-12-11 20:52:58.294 [info] Connection state: Running
+2025-12-11 20:52:59.399 [warning] [server stderr] 2025-12-11 20:52:59,397 - plaid-mcp-server - INFO - Setting up stdio communication channels
+2025-12-11 20:52:59.403 [warning] [server stderr] 2025-12-11 20:52:59,401 - plaid-mcp-server.tools - INFO - Enabled categories: None
+2025-12-11 20:52:59.403 [warning] [server stderr] 2025-12-11 20:52:59,401 - plaid-mcp-server.tools - INFO - All tool categories enabled
+2025-12-11 20:52:59.404 [warning] [server stderr] 2025-12-11 20:52:59,404 - plaid-mcp-server.tools - INFO - Registered tool: get_sandbox_access_token
+2025-12-11 20:52:59.404 [warning] [server stderr] 2025-12-11 20:52:59,404 - plaid-mcp-server.tools - INFO - Imported tool module: mcp_server_plaid.tools.tool_get_sandbox_access_token
+2025-12-11 20:52:59.405 [warning] [server stderr] 2025-12-11 20:52:59,405 - plaid-mcp-server.tools - INFO - Registered tool: search_documentation
+2025-12-11 20:52:59.405 [warning] [server stderr] 2025-12-11 20:52:59,405 - plaid-mcp-server.tools - INFO - Imported tool module: mcp_server_plaid.tools.tool_search_documentation
+2025-12-11 20:52:59.407 [warning] [server stderr] 2025-12-11 20:52:59,406 - plaid-mcp-server.tools - INFO - Registered tool: get_mock_data_prompt
+2025-12-11 20:52:59.407 [warning] [server stderr] 2025-12-11 20:52:59,406 - plaid-mcp-server.tools - INFO - Imported tool module: mcp_server_plaid.tools.pfm.tool_get_mock_data_prompt
+2025-12-11 20:52:59.408 [warning] [server stderr] 2025-12-11 20:52:59,407 - plaid-mcp-server.tools - INFO - Registered tool: simulate_webhook
+2025-12-11 20:52:59.408 [warning] [server stderr] 2025-12-11 20:52:59,407 - plaid-mcp-server.tools - INFO - Imported tool module: mcp_server_plaid.tools.pfm.tool_simulate_webhook
+2025-12-11 20:52:59.413 [warning] [server stderr] 2025-12-11 20:52:59,412 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2025-12-11 20:52:59.413 [info] Discovered 4 tools

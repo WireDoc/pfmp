@@ -21,6 +21,8 @@ import { createLinkToken, exchangePublicToken } from '../../services/plaidApi';
 import type { PlaidConnection, PlaidAccount } from '../../services/plaidApi';
 
 export interface PlaidLinkButtonProps {
+  /** User ID for API calls (required in dev mode) */
+  userId: number;
   /** Callback when bank accounts are successfully linked */
   onSuccess?: (connection: PlaidConnection, accounts: PlaidAccount[]) => void;
   /** Callback when the user exits Plaid Link without completing */
@@ -44,6 +46,7 @@ export interface PlaidLinkButtonProps {
 }
 
 export const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({
+  userId,
   onSuccess,
   onExit,
   onError,
@@ -67,7 +70,7 @@ export const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({
     setError(null);
     
     try {
-      const token = await createLinkToken();
+      const token = await createLinkToken(userId);
       setLinkToken(token);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to initialize bank connection';
@@ -76,7 +79,7 @@ export const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [onError]);
+  }, [userId, onError]);
 
   // Handle successful Plaid Link completion
   const handleOnSuccess = useCallback<PlaidLinkOnSuccess>(
@@ -87,7 +90,11 @@ export const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({
       try {
         console.log('Plaid Link success, exchanging token...', metadata);
         
-        const result = await exchangePublicToken(publicToken);
+        // Extract institution info from Plaid Link metadata
+        const institutionId = metadata.institution?.institution_id;
+        const institutionName = metadata.institution?.name;
+        
+        const result = await exchangePublicToken(publicToken, userId, institutionId, institutionName);
         
         setSuccessMessage(
           `Successfully linked ${result.accounts.length} account${result.accounts.length > 1 ? 's' : ''} from ${result.connection.institutionName}`
@@ -105,7 +112,7 @@ export const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({
         setIsExchanging(false);
       }
     },
-    [onSuccess, onError]
+    [userId, onSuccess, onError]
   );
 
   // Handle Plaid Link exit
@@ -192,8 +199,9 @@ export const PlaidLinkButton: React.FC<PlaidLinkButtonProps> = ({
  * A larger CTA version of the PlaidLinkButton for dashboard use
  */
 export const PlaidLinkCTA: React.FC<{
+  userId: number;
   onSuccess?: (connection: PlaidConnection, accounts: PlaidAccount[]) => void;
-}> = ({ onSuccess }) => {
+}> = ({ userId, onSuccess }) => {
   return (
     <Box
       sx={{
@@ -219,6 +227,7 @@ export const PlaidLinkCTA: React.FC<{
       </Typography>
       
       <PlaidLinkButton
+        userId={userId}
         variant="contained"
         color="inherit"
         buttonText="Link Account"

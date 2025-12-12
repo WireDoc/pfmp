@@ -201,6 +201,7 @@ export function AddAccountModal({ open, userId, onClose, onSave, onLinkSuccess }
               Automatically sync your checking, savings, and money market account balances.
             </Typography>
             <PlaidLinkButton
+              userId={userId}
               variant="contained"
               size="medium"
               buttonText="Link Bank Account"

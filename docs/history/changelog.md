@@ -6,6 +6,43 @@ The format follows [Conventional Commits](https://www.conventionalcommits.org/).
 
 ---
 
+## [0.9.8-alpha] - 2025-12-12
+
+### Wave 11 Complete - Plaid Bank Account Linking
+
+**Connection Lifecycle Management**
+- Reconnect endpoint for expired/failed connections (Plaid update mode)
+- Disconnect endpoint (pauses sync without deleting data)
+- Permanent delete with option to keep or remove linked accounts
+- Status-based menu actions in ConnectedBanksList
+
+**Frontend Polish**
+- Institution name auto-populated from Plaid metadata
+- Added CD and HSA account types to CashAccountModal
+- Protected Plaid-linked accounts from manual deletion
+- Moved Connections and Scheduler nav items to HeaderBar
+- Fixed 404 routes for `/dashboard/settings/connections` and `/dashboard/admin/scheduler`
+
+**Performance Fix**
+- DashboardController no longer calls external TSP API on every load
+- Uses cached TSPFundPrices table (populated by Hangfire job)
+
+**Test Coverage (39 new tests)**
+- HeaderBar.test.tsx - 13 tests (branding, navigation, user display, dev mode)
+- ConnectedBanksList.test.tsx - 15 tests (empty state, status menus, expand/collapse)
+- ConnectionsSettingsView.test.tsx - 11 tests (layout, loading, sync, errors)
+
+**Postman Collection v1.4.0**
+- Added: Create Reconnect Link Token, Reconnect Success, Delete Connection Permanently
+- Updated: Exchange Public Token now includes institutionId/institutionName
+- Environment: Added accessToken, cashAccountId, connectionId, holdingId, transactionId, loanId, liabilityId, API keys
+
+**Documentation**
+- Updated copilot-instructions.md with Section 10: Testing Requirements
+- Mandates Vitest for frontend changes, xUnit for backend changes
+
+---
+
 ## [0.9.7-alpha] - 2025-12-11
 
 ### Wave 11 In Progress - Plaid Bank Account Linking

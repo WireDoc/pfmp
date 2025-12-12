@@ -66,19 +66,6 @@ export type ConnectionStatus =
   | 'Disconnected';
 
 // ============================================================================
-// Helper to get auth headers
-// ============================================================================
-
-function getAuthHeaders(): Record<string, string> {
-  // Get token from localStorage or auth context
-  const token = localStorage.getItem('accessToken');
-  if (token) {
-    return { Authorization: `Bearer ${token}` };
-  }
-  return {};
-}
-
-// ============================================================================
 // API Functions
 // ============================================================================
 
@@ -86,11 +73,11 @@ function getAuthHeaders(): Record<string, string> {
  * Create a Plaid Link token for initializing Plaid Link in the frontend.
  * The token is single-use and expires after 4 hours.
  */
-export async function createLinkToken(): Promise<string> {
+export async function createLinkToken(userId: number): Promise<string> {
   const response = await axios.post<LinkTokenResponse>(
     `${API_BASE_URL}/plaid/link-token`,
     {},
-    { headers: getAuthHeaders() }
+    { params: { userId } }
   );
   return response.data.linkToken;
 }
@@ -99,22 +86,27 @@ export async function createLinkToken(): Promise<string> {
  * Exchange a public token from Plaid Link for an access token.
  * This creates the connection and imports all accounts.
  */
-export async function exchangePublicToken(publicToken: string): Promise<ExchangeTokenResponse> {
+export async function exchangePublicToken(
+  publicToken: string, 
+  userId: number,
+  institutionId?: string,
+  institutionName?: string
+): Promise<ExchangeTokenResponse> {
   const response = await axios.post<ExchangeTokenResponse>(
     `${API_BASE_URL}/plaid/exchange-token`,
-    { publicToken },
-    { headers: getAuthHeaders() }
+    { publicToken, institutionId, institutionName },
+    { params: { userId } }
   );
   return response.data;
 }
 
 /**
- * Get all Plaid connections for the current user.
+ * Get all Plaid connections for the specified user.
  */
-export async function getConnections(): Promise<PlaidConnection[]> {
+export async function getConnections(userId: number): Promise<PlaidConnection[]> {
   const response = await axios.get<PlaidConnection[]>(
     `${API_BASE_URL}/plaid/connections`,
-    { headers: getAuthHeaders() }
+    { params: { userId } }
   );
   return response.data;
 }
@@ -122,10 +114,10 @@ export async function getConnections(): Promise<PlaidConnection[]> {
 /**
  * Get all accounts for a specific connection.
  */
-export async function getConnectionAccounts(connectionId: string): Promise<PlaidAccount[]> {
+export async function getConnectionAccounts(connectionId: string, userId: number): Promise<PlaidAccount[]> {
   const response = await axios.get<PlaidAccount[]>(
     `${API_BASE_URL}/plaid/connections/${connectionId}/accounts`,
-    { headers: getAuthHeaders() }
+    { params: { userId } }
   );
   return response.data;
 }
@@ -133,48 +125,81 @@ export async function getConnectionAccounts(connectionId: string): Promise<Plaid
 /**
  * Manually trigger a sync for a specific connection.
  */
-export async function syncConnection(connectionId: string): Promise<SyncResult> {
+export async function syncConnection(connectionId: string, userId: number): Promise<SyncResult> {
   const response = await axios.post<SyncResult>(
     `${API_BASE_URL}/plaid/connections/${connectionId}/sync`,
     {},
-    { headers: getAuthHeaders() }
+    { params: { userId } }
   );
   return response.data;
 }
 
 /**
- * Sync all connections for the current user.
+ * Sync all connections for the specified user.
  */
-export async function syncAllConnections(): Promise<SyncResult> {
+export async function syncAllConnections(userId: number): Promise<SyncResult> {
   const response = await axios.post<SyncResult>(
     `${API_BASE_URL}/plaid/sync-all`,
     {},
-    { headers: getAuthHeaders() }
+    { params: { userId } }
   );
   return response.data;
 }
 
 /**
- * Disconnect a bank connection.
- * This removes the connection from Plaid and marks linked accounts as disconnected.
+ * Disconnect a bank connection (pauses syncing but allows reconnection).
+ * This marks the connection as disconnected but preserves the access token for potential reconnection.
  */
-export async function disconnectConnection(connectionId: string): Promise<void> {
+export async function disconnectConnection(connectionId: string, userId: number): Promise<void> {
   await axios.delete(
     `${API_BASE_URL}/plaid/connections/${connectionId}`,
-    { headers: getAuthHeaders() }
+    { params: { userId } }
+  );
+}
+
+/**
+ * Create a reconnect link token for a disconnected connection.
+ * Returns a link token to use with Plaid Link in update mode.
+ */
+export async function createReconnectLinkToken(connectionId: string, userId: number): Promise<string> {
+  const response = await axios.post<LinkTokenResponse>(
+    `${API_BASE_URL}/plaid/connections/${connectionId}/reconnect`,
+    {},
+    { params: { userId } }
+  );
+  return response.data.linkToken;
+}
+
+/**
+ * Mark a connection as successfully reconnected after user completes update mode Link.
+ */
+export async function reconnectSuccess(connectionId: string, userId: number): Promise<PlaidConnection> {
+  const response = await axios.post<PlaidConnection>(
+    `${API_BASE_URL}/plaid/connections/${connectionId}/reconnect-success`,
+    {},
+    { params: { userId } }
+  );
+  return response.data;
+}
+
+/**
+ * Permanently delete a connection and optionally its linked accounts.
+ * @param deleteAccounts If true, delete all linked accounts. If false, convert them to manual accounts.
+ */
+export async function deleteConnectionPermanently(connectionId: string, userId: number, deleteAccounts: boolean): Promise<void> {
+  await axios.delete(
+    `${API_BASE_URL}/plaid/connections/${connectionId}/permanent`,
+    { params: { userId, deleteAccounts } }
   );
 }
 
 /**
  * Get sync history for a connection.
  */
-export async function getSyncHistory(connectionId: string, limit = 10): Promise<SyncHistoryEntry[]> {
+export async function getSyncHistory(connectionId: string, userId: number, limit = 10): Promise<SyncHistoryEntry[]> {
   const response = await axios.get<SyncHistoryEntry[]>(
     `${API_BASE_URL}/plaid/connections/${connectionId}/history`,
-    { 
-      params: { limit },
-      headers: getAuthHeaders() 
-    }
+    { params: { userId, limit } }
   );
   return response.data;
 }

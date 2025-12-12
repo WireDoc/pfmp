@@ -122,28 +122,28 @@ See `docs/api/postman.md` for details.
 
 ## Status & roadmap
 
-- Active version: **v0.9.6-alpha** (Wave 10 Complete - December 10, 2025)
-- **Milestone**: Wave 10 complete - Background Jobs & Automation fully operational
-- **Achievement**: Hangfire scheduler, TSP detail page, Net Worth Timeline, Scheduler Admin UI
-- **Next Phase**: Wave 11 (Plaid Bank Account Linking)
+- Active version: **v0.9.8-alpha** (Wave 11 Complete - December 12, 2025)
+- **Milestone**: Wave 11 complete - Plaid Bank Account Linking fully operational
+- **Achievement**: Plaid integration with 12,000+ banks, connection lifecycle, 39 new tests
+- **Next Phase**: Wave 12 (Brokerage & Investment Linking)
 - Roadmap Phase 2 (Data Aggregation) complete; Phase 3 (AI Advisory) on deck
 
 ### Upcoming Waves
 
 | Wave | Focus | Target |
 |------|-------|--------|
-| **11** | Plaid Bank Account Linking | January 2026 |
-| | • 12,000+ bank integrations | |
-| | • Automatic balance sync | |
-| | • Transaction import with categories | |
-| **12** | Advanced Analytics | Q1 2026 |
-| | • Sankey Diagram (cash flow visualization) | |
-| | • Budget vs Actual analysis | |
-| | • Spending insights | |
+| **12** | Brokerage & Investment Linking | February 2026 |
+| | • Plaid Investments for broad coverage | |
+| | • Direct Schwab/E*TRADE APIs (free) | |
+| | • Holdings sync with cost basis | |
 | **13** | AI Enhancement & Vetting | Q1-Q2 2026 |
 | | • Expand AI context coverage | |
 | | • Model upgrades (Gemini 3 Pro) | |
 | | • Chatbot preparation | |
+| **14** | Transaction Import | Q2 2026 |
+| | • Plaid Transactions product | |
+| | • Auto-categorization | |
+| | • Spending analysis | |
 
 Track progress, migration notes, and future waves in `docs/waves/`
 

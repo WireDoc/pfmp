@@ -182,3 +182,23 @@ node .\test-client.mjs
       - Prefer `userEvent` and async assertions (findBy*) which already await UI stabilization
       - Start with `maxThreads: 2` locally and increase gradually while watching for flake
 
+## 10. Testing requirements
+
+- **Frontend changes**: When adding or modifying React components, create or update corresponding Vitest tests in `pfmp-frontend/src/tests/`.
+   - New components: Create a matching `ComponentName.test.tsx` file
+   - Modified components: Update existing tests or add coverage for new functionality
+   - Test location mirrors source structure: `src/components/` → `src/tests/components/`, `src/views/` → `src/tests/views/`, etc.
+   - Patterns: Use `@testing-library/react`, `userEvent`, mock services with `vi.mock()`, wrap with `MemoryRouter` for routing context
+   - Run tests: `npm test -- --run path/to/test.tsx` or `npm test` for all
+
+- **Backend changes**: When adding or modifying controllers/services, create or update corresponding xUnit tests in `PFMP-API.Tests/`.
+   - Controllers: Create `ControllerNameTests.cs` with `WebApplicationFactory` integration tests
+   - Services: Create `Services/ServiceNameTests.cs` with unit tests
+   - Use `Fixtures/` for shared test data and factory patterns
+   - Run tests: `dotnet test PFMP-API.Tests/PFMP-API.Tests.csproj`
+
+- **Before committing**: Run the full test suite to catch regressions:
+   ```powershell
+   cd C:\pfmp; dotnet test PFMP-API.Tests; npm test --prefix pfmp-frontend -- --run
+   ```
+

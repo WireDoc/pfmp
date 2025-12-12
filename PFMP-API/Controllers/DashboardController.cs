@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
 using PFMP_API.Models.FinancialProfile;
-using PFMP_API.Services;
 using PFMP_API.Services.FinancialProfile;
 
 namespace PFMP_API.Controllers;
@@ -13,16 +12,13 @@ public class DashboardController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<DashboardController> _logger;
-    private readonly TSPService _tspService;
 
     public DashboardController(
         ApplicationDbContext context,
-        ILogger<DashboardController> logger,
-        TSPService tspService)
+        ILogger<DashboardController> logger)
     {
         _context = context;
         _logger = logger;
-        _tspService = tspService;
     }
 
     /// <summary>
@@ -91,16 +87,19 @@ public class DashboardController : ControllerBase
             var totalCash = cashAccounts.Sum(a => a.Balance);
             var totalInvestments = investmentAccounts.Sum(a => a.CurrentBalance);
             
-            // Calculate TSP with current market prices from DailyTSP API
+            // Calculate TSP with cached prices from TSPFundPrices table (updated by Hangfire job)
             decimal totalTsp = 0;
             if (tspPositions.Any(p => p.Units > 0))
             {
-                var tspData = await _tspService.GetTSPDataAsync();
-                if (tspData != null)
+                var cachedPrices = await _context.TSPFundPrices
+                    .OrderByDescending(p => p.PriceDate)
+                    .FirstOrDefaultAsync();
+                    
+                if (cachedPrices != null)
                 {
                     foreach (var position in tspPositions.Where(p => p.Units > 0))
                     {
-                        var price = GetTspFundPrice(tspData, position.FundCode);
+                        var price = GetCachedTspFundPrice(cachedPrices, position.FundCode);
                         if (price.HasValue)
                         {
                             totalTsp += position.Units * price.Value;
@@ -295,28 +294,28 @@ public class DashboardController : ControllerBase
         }
     }
 
-    private static decimal? GetTspFundPrice(TSPModel tspData, string fundCode)
+    private static decimal? GetCachedTspFundPrice(TSPFundPrice cachedPrices, string fundCode)
     {
         var code = fundCode.Trim().ToUpperInvariant();
         
         return code switch
         {
-            "G" => (decimal)tspData.GFund,
-            "F" => (decimal)tspData.FFund,
-            "C" => (decimal)tspData.CFund,
-            "S" => (decimal)tspData.SFund,
-            "I" => (decimal)tspData.IFund,
-            "L-INCOME" or "LINCOME" => (decimal)tspData.LIncome,
-            "L2030" => (decimal)tspData.L2030,
-            "L2035" => (decimal)tspData.L2035,
-            "L2040" => (decimal)tspData.L2040,
-            "L2045" => (decimal)tspData.L2045,
-            "L2050" => (decimal)tspData.L2050,
-            "L2055" => (decimal)tspData.L2055,
-            "L2060" => (decimal)tspData.L2060,
-            "L2065" => (decimal)tspData.L2065,
-            "L2070" => (decimal)tspData.L2070,
-            "L2075" => (decimal)tspData.L2075,
+            "G" => cachedPrices.GFundPrice,
+            "F" => cachedPrices.FFundPrice,
+            "C" => cachedPrices.CFundPrice,
+            "S" => cachedPrices.SFundPrice,
+            "I" => cachedPrices.IFundPrice,
+            "L-INCOME" or "LINCOME" => cachedPrices.LIncomeFundPrice,
+            "L2030" => cachedPrices.L2030FundPrice,
+            "L2035" => cachedPrices.L2035FundPrice,
+            "L2040" => cachedPrices.L2040FundPrice,
+            "L2045" => cachedPrices.L2045FundPrice,
+            "L2050" => cachedPrices.L2050FundPrice,
+            "L2055" => cachedPrices.L2055FundPrice,
+            "L2060" => cachedPrices.L2060FundPrice,
+            "L2065" => cachedPrices.L2065FundPrice,
+            "L2070" => cachedPrices.L2070FundPrice,
+            "L2075" => cachedPrices.L2075FundPrice,
             _ => null
         };
     }

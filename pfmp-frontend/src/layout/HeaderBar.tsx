@@ -37,6 +37,18 @@ export function HeaderBar() {
         >
           Login
         </NavLink>
+        <NavLink
+          to="/dashboard/settings/connections"
+          style={({ isActive }) => ({ textDecoration: 'none', fontSize: 13, color: isActive ? '#38bdf8' : '#e2e8f0' })}
+        >
+          Connections
+        </NavLink>
+        <NavLink
+          to="/dashboard/admin/scheduler"
+          style={({ isActive }) => ({ textDecoration: 'none', fontSize: 13, color: isActive ? '#38bdf8' : '#e2e8f0' })}
+        >
+          Scheduler
+        </NavLink>
       </nav>
 
       <div style={{ marginLeft: 'auto', fontSize: 12, color: '#e2e8f0' }}>

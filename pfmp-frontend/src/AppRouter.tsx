@@ -27,6 +27,8 @@ const ProfileView = lazy(() => import('./views/dashboard/ProfileView').then(m =>
 const SettingsView = lazy(() => import('./views/dashboard/SettingsView').then(m => ({ default: m.SettingsView })));
 const HelpView = lazy(() => import('./views/dashboard/HelpView').then(m => ({ default: m.HelpView })));
 const TspDetailView = lazy(() => import('./views/dashboard/TspDetailView').then(m => ({ default: m.TspDetailView })));
+const ConnectionsSettingsView = lazy(() => import('./views/settings/ConnectionsSettingsView').then(m => ({ default: m.ConnectionsSettingsView })));
+const SchedulerAdminView = lazy(() => import('./views/admin/SchedulerAdminView'));
 
 // NotFound lazy component supplied via staticRoutes (staticNotFound)
 
@@ -151,6 +153,14 @@ export function AppRouter(props: AppRouterProps) {
         {
           path: 'tsp',
           element: <Suspense fallback={<PageSpinner />}><TspDetailView /></Suspense>,
+        },
+        {
+          path: 'settings/connections',
+          element: <Suspense fallback={<PageSpinner />}><ConnectionsSettingsView /></Suspense>,
+        },
+        {
+          path: 'admin/scheduler',
+          element: <Suspense fallback={<PageSpinner />}><SchedulerAdminView /></Suspense>,
         },
       ];
     }

@@ -67,6 +67,21 @@ namespace PFMP_API.Services.Plaid
         Task DisconnectAsync(Guid connectionId);
 
         /// <summary>
+        /// Creates an update-mode Link token for reconnecting an existing connection.
+        /// </summary>
+        Task<string> CreateReconnectLinkTokenAsync(Guid connectionId);
+
+        /// <summary>
+        /// Marks a reconnection as successful (after user completes update mode Link).
+        /// </summary>
+        Task ReconnectSuccessAsync(Guid connectionId);
+
+        /// <summary>
+        /// Permanently deletes a connection and optionally its linked accounts.
+        /// </summary>
+        Task DeleteConnectionAsync(Guid connectionId, bool deleteAccounts);
+
+        /// <summary>
         /// Gets all connections for a user.
         /// </summary>
         Task<List<AccountConnection>> GetUserConnectionsAsync(int userId);
@@ -402,24 +417,9 @@ namespace PFMP_API.Services.Plaid
                 throw new ArgumentException($"Connection {connectionId} not found");
             }
 
-            _logger.LogInformation("Disconnecting Plaid connection {ConnectionId}", connectionId);
+            _logger.LogInformation("Disconnecting Plaid connection {ConnectionId} (keeping token for reconnection)", connectionId);
 
-            // Optionally remove the Item from Plaid (prevents future syncs)
-            try
-            {
-                var accessToken = _encryption.Decrypt(connection.PlaidAccessToken!);
-                var request = new ItemRemoveRequest
-                {
-                    ClientId = _options.ClientId,
-                    Secret = _options.Secret,
-                    AccessToken = accessToken
-                };
-                await _plaidClient.ItemRemoveAsync(request);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to remove Plaid item, continuing with local disconnect");
-            }
+            // Don't remove from Plaid - keep the access token for potential reconnection
 
             // Update linked accounts to disconnected status
             var linkedAccounts = await _db.CashAccounts
@@ -429,16 +429,166 @@ namespace PFMP_API.Services.Plaid
             foreach (var account in linkedAccounts)
             {
                 account.SyncStatus = SyncStatus.Disconnected;
-                account.SyncErrorMessage = "Connection removed by user";
+                account.SyncErrorMessage = "Connection paused by user";
             }
 
-            // Mark connection as disconnected (don't delete for audit trail)
+            // Mark connection as disconnected (keep access token for reconnection)
             connection.Status = SyncStatus.Disconnected;
-            connection.PlaidAccessToken = null; // Clear the token
+            connection.ErrorMessage = "Disconnected by user - can be reconnected";
+            // NOTE: We keep PlaidAccessToken so user can reconnect later
 
             await _db.SaveChangesAsync();
 
             _logger.LogInformation("Plaid connection {ConnectionId} disconnected successfully", connectionId);
+        }
+
+        public async Task<string> CreateReconnectLinkTokenAsync(Guid connectionId)
+        {
+            var connection = await _db.AccountConnections.FindAsync(connectionId);
+            if (connection == null)
+            {
+                throw new ArgumentException($"Connection {connectionId} not found");
+            }
+
+            if (string.IsNullOrEmpty(connection.PlaidAccessToken))
+            {
+                throw new InvalidOperationException("Cannot reconnect - access token was deleted. Please link the bank again.");
+            }
+
+            _logger.LogInformation("Creating update-mode Link token for reconnection {ConnectionId}", connectionId);
+
+            var accessToken = _encryption.Decrypt(connection.PlaidAccessToken);
+
+            // Create link token in update mode (with access_token, without products)
+            var request = new LinkTokenCreateRequest
+            {
+                ClientId = _options.ClientId,
+                Secret = _options.Secret,
+                User = new LinkTokenCreateRequestUser
+                {
+                    ClientUserId = connection.UserId.ToString()
+                },
+                ClientName = "PFMP",
+                AccessToken = accessToken, // This puts Link in update mode
+                CountryCodes = new[] { CountryCode.Us },
+                Language = Language.English
+                // NOTE: Do NOT include Products array for update mode
+            };
+
+            var response = await _plaidClient.LinkTokenCreateAsync(request);
+
+            if (response.Error != null)
+            {
+                _logger.LogError("Plaid update-mode Link token creation failed: {ErrorCode} - {ErrorMessage}", 
+                    response.Error.ErrorCode, response.Error.ErrorMessage);
+                throw new Exception($"Plaid error: {response.Error.ErrorMessage}");
+            }
+
+            _logger.LogInformation("Update-mode Link token created for connection {ConnectionId}", connectionId);
+            return response.LinkToken;
+        }
+
+        public async Task ReconnectSuccessAsync(Guid connectionId)
+        {
+            var connection = await _db.AccountConnections.FindAsync(connectionId);
+            if (connection == null)
+            {
+                throw new ArgumentException($"Connection {connectionId} not found");
+            }
+
+            _logger.LogInformation("Marking connection {ConnectionId} as reconnected", connectionId);
+
+            connection.Status = SyncStatus.Connected;
+            connection.ErrorMessage = null;
+
+            // Update linked accounts status
+            var linkedAccounts = await _db.CashAccounts
+                .Where(a => a.PlaidItemId == connection.PlaidItemId)
+                .ToListAsync();
+
+            foreach (var account in linkedAccounts)
+            {
+                account.SyncStatus = SyncStatus.Connected;
+                account.SyncErrorMessage = null;
+            }
+
+            await _db.SaveChangesAsync();
+
+            // Trigger a sync to get fresh data
+            await FetchAndSyncAccountsAsync(connectionId);
+
+            _logger.LogInformation("Connection {ConnectionId} reconnected and synced successfully", connectionId);
+        }
+
+        public async Task DeleteConnectionAsync(Guid connectionId, bool deleteAccounts)
+        {
+            var connection = await _db.AccountConnections.FindAsync(connectionId);
+            if (connection == null)
+            {
+                throw new ArgumentException($"Connection {connectionId} not found");
+            }
+
+            _logger.LogInformation("Permanently deleting Plaid connection {ConnectionId}, deleteAccounts={DeleteAccounts}", 
+                connectionId, deleteAccounts);
+
+            // Remove the Item from Plaid if we still have a token
+            if (!string.IsNullOrEmpty(connection.PlaidAccessToken))
+            {
+                try
+                {
+                    var accessToken = _encryption.Decrypt(connection.PlaidAccessToken);
+                    var request = new ItemRemoveRequest
+                    {
+                        ClientId = _options.ClientId,
+                        Secret = _options.Secret,
+                        AccessToken = accessToken
+                    };
+                    await _plaidClient.ItemRemoveAsync(request);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to remove Plaid item from Plaid servers");
+                }
+            }
+
+            // Handle linked accounts
+            var linkedAccounts = await _db.CashAccounts
+                .Where(a => a.PlaidItemId == connection.PlaidItemId)
+                .ToListAsync();
+
+            if (deleteAccounts)
+            {
+                // Delete the accounts entirely
+                _db.CashAccounts.RemoveRange(linkedAccounts);
+                _logger.LogInformation("Deleted {Count} linked accounts", linkedAccounts.Count);
+            }
+            else
+            {
+                // Keep accounts but unlink them (convert to manual accounts)
+                foreach (var account in linkedAccounts)
+                {
+                    account.Source = AccountSource.Manual;
+                    account.PlaidItemId = null;
+                    account.PlaidAccountId = null;
+                    account.SyncStatus = SyncStatus.NotConnected;
+                    account.SyncErrorMessage = null;
+                    account.LastSyncedAt = null;
+                }
+                _logger.LogInformation("Unlinked {Count} accounts (converted to manual)", linkedAccounts.Count);
+            }
+
+            // Delete sync history for this connection
+            var syncHistory = await _db.SyncHistory
+                .Where(h => h.ConnectionId == connectionId)
+                .ToListAsync();
+            _db.SyncHistory.RemoveRange(syncHistory);
+
+            // Delete the connection record
+            _db.AccountConnections.Remove(connection);
+
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation("Plaid connection {ConnectionId} permanently deleted", connectionId);
         }
 
         public async Task<List<AccountConnection>> GetUserConnectionsAsync(int userId)

@@ -1,32 +1,16 @@
 info: PFMP_API.Services.TSPService[0]
-      Successfully retrieved TSP data for date: 12/08/2025
-warn: Hangfire.PostgreSql.PostgreSqlDistributedLock[0]
-      hangfire:recurring-jobs:lock: Failed to remove lock
-      Npgsql.PostgresException (0x80004005): 57P01: terminating connection due to unexpected postmaster exit
-         at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
-         at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
-         at Npgsql.Internal.NpgsqlConnector.ReadMessageLong(Boolean async, DataRowLoadingMode dataRowLoadingMode, Boolean readingNotifications, Boolean isReadingPrependedMessage)
-         at System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder`1.StateMachineBox`1.System.Threading.Tasks.Sources.IValueTaskSource<TResult>.GetResult(Int16 token)
-         at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
-         at Npgsql.NpgsqlDataReader.NextResult(Boolean async, Boolean isConsuming, CancellationToken cancellationToken)
-         at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
-         at Npgsql.NpgsqlCommand.ExecuteReader(Boolean async, CommandBehavior behavior, CancellationToken cancellationToken)
-         at Npgsql.NpgsqlCommand.ExecuteNonQuery(Boolean async, CancellationToken cancellationToken)
-         at Dapper.SqlMapper.ExecuteCommand(IDbConnection cnn, CommandDefinition& command, Action`2 paramReader) in /_/Dapper/SqlMapper.cs:line 2848
-         at Dapper.SqlMapper.ExecuteImpl(IDbConnection cnn, CommandDefinition& command) in /_/Dapper/SqlMapper.cs:line 579
-         at Hangfire.PostgreSql.PostgreSqlDistributedLock.LockHandler.TryRemoveLock(String resource, IDbConnection connection, PostgreSqlStorageOptions options, Boolean onlyExpired)
-        Exception data:
-          Severity: FATAL
-          SqlState: 57P01
-          MessageText: terminating connection due to unexpected postmaster exit
-          File: be-secure.c
-          Line: 207
-          Routine: secure_read
-warn: Hangfire.PostgreSql.PostgreSqlDistributedLock[0]
-      hangfire:recurring-jobs:lock: Failed to acquire lock
-      System.InvalidOperationException: Connection is not open
-         at Npgsql.ThrowHelper.ThrowInvalidOperationException(String message)
-         at Npgsql.NpgsqlConnection.CheckReady()
-         at Npgsql.NpgsqlConnection.BeginTransaction(Boolean async, IsolationLevel level, CancellationToken cancellationToken)
-         at Hangfire.PostgreSql.PostgreSqlDistributedLock.TransactionLockHandler.TryLock(IDbConnection connection, String schemaName, String resource)
-         at Hangfire.PostgreSql.PostgreSqlDistributedLock.LockHandler.Lock(String resource, TimeSpan timeout, IDbConnection connection, PostgreSqlStorageOptions options)
+      Successfully retrieved TSP data for date: 12/11/2025
+info: PFMP_API.Services.TSPService[0]
+      Successfully retrieved TSP data for date: 12/11/2025
+info: System.Net.Http.HttpClient.TSPClient.ClientHandler[101]
+      Received HTTP response headers after 232.9094ms - 200
+info: System.Net.Http.HttpClient.TSPClient.LogicalHandler[101]
+      End processing HTTP request after 238.3304ms - 200
+info: System.Net.Http.HttpClient.TSPClient.ClientHandler[101]
+      Received HTTP response headers after 234.2499ms - 200
+info: System.Net.Http.HttpClient.TSPClient.LogicalHandler[101]
+      End processing HTTP request after 239.6114ms - 200
+info: PFMP_API.Services.TSPService[0]
+      Successfully retrieved TSP data for date: 12/11/2025
+info: PFMP_API.Services.TSPService[0]
+      Successfully retrieved TSP data for date: 12/11/2025

@@ -1,8 +1,6 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PFMP_API.Models.Plaid;
 using PFMP_API.Services.Plaid;
-using System.Security.Claims;
 
 namespace PFMP_API.Controllers;
 
@@ -11,7 +9,6 @@ namespace PFMP_API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
 public class PlaidController : ControllerBase
 {
     private readonly IPlaidService _plaidService;
@@ -29,20 +26,19 @@ public class PlaidController : ControllerBase
     /// <returns>Link token for Plaid Link initialization</returns>
     [HttpPost("link-token")]
     [ProducesResponseType(typeof(LinkTokenResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<LinkTokenResponse>> CreateLinkToken()
+    public async Task<ActionResult<LinkTokenResponse>> CreateLinkToken([FromQuery] int userId)
     {
-        var userId = GetUserIdFromClaims();
-        if (userId == null)
+        if (userId <= 0)
         {
-            return Unauthorized("User ID not found in claims");
+            return BadRequest("Valid user ID is required");
         }
 
         try
         {
             _logger.LogInformation("Creating Plaid Link token for user {UserId}", userId);
-            var linkToken = await _plaidService.CreateLinkTokenAsync(userId.Value);
+            var linkToken = await _plaidService.CreateLinkTokenAsync(userId);
             
             return Ok(new LinkTokenResponse { LinkToken = linkToken });
         }
@@ -57,29 +53,28 @@ public class PlaidController : ControllerBase
     /// Exchange a Plaid public token for an access token and create the connection
     /// </summary>
     /// <param name="request">The public token from Plaid Link</param>
+    /// <param name="userId">The user ID</param>
     /// <returns>The created account connection with linked accounts</returns>
     [HttpPost("exchange-token")]
     [ProducesResponseType(typeof(ExchangeTokenResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<ExchangeTokenResponse>> ExchangePublicToken([FromBody] ExchangeTokenRequest request)
+    public async Task<ActionResult<ExchangeTokenResponse>> ExchangePublicToken([FromBody] ExchangeTokenRequest request, [FromQuery] int userId)
     {
         if (string.IsNullOrWhiteSpace(request.PublicToken))
         {
             return BadRequest(new ErrorResponse { Error = "Public token is required" });
         }
 
-        var userId = GetUserIdFromClaims();
-        if (userId == null)
+        if (userId <= 0)
         {
-            return Unauthorized("User ID not found in claims");
+            return BadRequest(new ErrorResponse { Error = "Valid user ID is required" });
         }
 
         try
         {
-            _logger.LogInformation("Exchanging Plaid public token for user {UserId}", userId);
-            var connection = await _plaidService.ExchangePublicTokenAsync(userId.Value, request.PublicToken);
+            _logger.LogInformation("Exchanging Plaid public token for user {UserId}, institution: {Institution}", userId, request.InstitutionName);
+            var connection = await _plaidService.ExchangePublicTokenAsync(userId, request.PublicToken, request.InstitutionId, request.InstitutionName);
             
             // Get the accounts that were created
             var accounts = await _plaidService.GetConnectionAccountsAsync(connection.ConnectionId);
@@ -106,23 +101,23 @@ public class PlaidController : ControllerBase
     }
 
     /// <summary>
-    /// Get all Plaid connections for the authenticated user
+    /// Get all Plaid connections for the specified user
     /// </summary>
+    /// <param name="userId">The user ID</param>
     /// <returns>List of account connections</returns>
     [HttpGet("connections")]
     [ProducesResponseType(typeof(List<ConnectionDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<List<ConnectionDto>>> GetConnections()
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<List<ConnectionDto>>> GetConnections([FromQuery] int userId)
     {
-        var userId = GetUserIdFromClaims();
-        if (userId == null)
+        if (userId <= 0)
         {
-            return Unauthorized("User ID not found in claims");
+            return BadRequest("Valid user ID is required");
         }
 
         try
         {
-            var connections = await _plaidService.GetUserConnectionsAsync(userId.Value);
+            var connections = await _plaidService.GetUserConnectionsAsync(userId);
             return Ok(connections.Select(MapToConnectionDto).ToList());
         }
         catch (Exception ex)
@@ -136,23 +131,23 @@ public class PlaidController : ControllerBase
     /// Get accounts for a specific connection
     /// </summary>
     /// <param name="connectionId">The connection ID</param>
+    /// <param name="userId">The user ID</param>
     /// <returns>List of accounts linked to this connection</returns>
     [HttpGet("connections/{connectionId}/accounts")]
     [ProducesResponseType(typeof(List<AccountDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<List<AccountDto>>> GetConnectionAccounts(Guid connectionId)
+    public async Task<ActionResult<List<AccountDto>>> GetConnectionAccounts(Guid connectionId, [FromQuery] int userId)
     {
-        var userId = GetUserIdFromClaims();
-        if (userId == null)
+        if (userId <= 0)
         {
-            return Unauthorized("User ID not found in claims");
+            return BadRequest("Valid user ID is required");
         }
 
         try
         {
             // Verify connection belongs to user
-            var connections = await _plaidService.GetUserConnectionsAsync(userId.Value);
+            var connections = await _plaidService.GetUserConnectionsAsync(userId);
             if (!connections.Any(c => c.ConnectionId == connectionId))
             {
                 return NotFound(new ErrorResponse { Error = "Connection not found" });
@@ -180,24 +175,24 @@ public class PlaidController : ControllerBase
     /// Manually trigger a sync for a specific connection
     /// </summary>
     /// <param name="connectionId">The connection ID to sync</param>
+    /// <param name="userId">The user ID</param>
     /// <returns>Sync result with updated accounts</returns>
     [HttpPost("connections/{connectionId}/sync")]
     [ProducesResponseType(typeof(SyncResultDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<SyncResultDto>> SyncConnection(Guid connectionId)
+    public async Task<ActionResult<SyncResultDto>> SyncConnection(Guid connectionId, [FromQuery] int userId)
     {
-        var userId = GetUserIdFromClaims();
-        if (userId == null)
+        if (userId <= 0)
         {
-            return Unauthorized("User ID not found in claims");
+            return BadRequest("Valid user ID is required");
         }
 
         try
         {
             // Verify connection belongs to user
-            var connections = await _plaidService.GetUserConnectionsAsync(userId.Value);
+            var connections = await _plaidService.GetUserConnectionsAsync(userId);
             if (!connections.Any(c => c.ConnectionId == connectionId))
             {
                 return NotFound(new ErrorResponse { Error = "Connection not found" });
@@ -221,25 +216,25 @@ public class PlaidController : ControllerBase
     }
 
     /// <summary>
-    /// Sync all connections for the authenticated user
+    /// Sync all connections for the specified user
     /// </summary>
+    /// <param name="userId">The user ID</param>
     /// <returns>Aggregate sync result</returns>
     [HttpPost("sync-all")]
     [ProducesResponseType(typeof(SyncResultDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<SyncResultDto>> SyncAllConnections()
+    public async Task<ActionResult<SyncResultDto>> SyncAllConnections([FromQuery] int userId)
     {
-        var userId = GetUserIdFromClaims();
-        if (userId == null)
+        if (userId <= 0)
         {
-            return Unauthorized("User ID not found in claims");
+            return BadRequest("Valid user ID is required");
         }
 
         try
         {
             _logger.LogInformation("Manual sync-all triggered for user {UserId}", userId);
-            var result = await _plaidService.SyncAllUserConnectionsAsync(userId.Value);
+            var result = await _plaidService.SyncAllUserConnectionsAsync(userId);
             
             return Ok(new SyncResultDto
             {
@@ -259,24 +254,24 @@ public class PlaidController : ControllerBase
     /// Disconnect (remove) a Plaid connection
     /// </summary>
     /// <param name="connectionId">The connection ID to disconnect</param>
+    /// <param name="userId">The user ID</param>
     /// <returns>No content on success</returns>
     [HttpDelete("connections/{connectionId}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> DisconnectConnection(Guid connectionId)
+    public async Task<IActionResult> DisconnectConnection(Guid connectionId, [FromQuery] int userId)
     {
-        var userId = GetUserIdFromClaims();
-        if (userId == null)
+        if (userId <= 0)
         {
-            return Unauthorized("User ID not found in claims");
+            return BadRequest("Valid user ID is required");
         }
 
         try
         {
             // Verify connection belongs to user
-            var connections = await _plaidService.GetUserConnectionsAsync(userId.Value);
+            var connections = await _plaidService.GetUserConnectionsAsync(userId);
             if (!connections.Any(c => c.ConnectionId == connectionId))
             {
                 return NotFound(new ErrorResponse { Error = "Connection not found" });
@@ -295,27 +290,155 @@ public class PlaidController : ControllerBase
     }
 
     /// <summary>
-    /// Get sync history for a specific connection
+    /// Create a link token for reconnecting a disconnected connection (update mode)
     /// </summary>
-    /// <param name="connectionId">The connection ID</param>
-    /// <param name="limit">Maximum number of history entries to return (default 10)</param>
-    /// <returns>List of sync history entries</returns>
-    [HttpGet("connections/{connectionId}/history")]
-    [ProducesResponseType(typeof(List<SyncHistoryDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    /// <param name="connectionId">The connection ID to reconnect</param>
+    /// <param name="userId">The user ID</param>
+    /// <returns>Link token for update mode</returns>
+    [HttpPost("connections/{connectionId}/reconnect")]
+    [ProducesResponseType(typeof(LinkTokenResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<List<SyncHistoryDto>>> GetSyncHistory(Guid connectionId, [FromQuery] int limit = 10)
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<LinkTokenResponse>> CreateReconnectLinkToken(Guid connectionId, [FromQuery] int userId)
     {
-        var userId = GetUserIdFromClaims();
-        if (userId == null)
+        if (userId <= 0)
         {
-            return Unauthorized("User ID not found in claims");
+            return BadRequest("Valid user ID is required");
         }
 
         try
         {
             // Verify connection belongs to user
-            var connections = await _plaidService.GetUserConnectionsAsync(userId.Value);
+            var connections = await _plaidService.GetUserConnectionsAsync(userId);
+            var connection = connections.FirstOrDefault(c => c.ConnectionId == connectionId);
+            if (connection == null)
+            {
+                return NotFound(new ErrorResponse { Error = "Connection not found" });
+            }
+
+            _logger.LogInformation("Creating reconnect link token for connection {ConnectionId}", connectionId);
+            var linkToken = await _plaidService.CreateReconnectLinkTokenAsync(connectionId);
+            
+            return Ok(new LinkTokenResponse { LinkToken = linkToken });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Cannot reconnect connection {ConnectionId}", connectionId);
+            return BadRequest(new ErrorResponse { Error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create reconnect link token for connection {ConnectionId}", connectionId);
+            return StatusCode(500, new ErrorResponse { Error = "Failed to create reconnect token", Details = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Mark a connection as successfully reconnected (after user completes update mode Link)
+    /// </summary>
+    /// <param name="connectionId">The connection ID that was reconnected</param>
+    /// <param name="userId">The user ID</param>
+    /// <returns>Updated connection info</returns>
+    [HttpPost("connections/{connectionId}/reconnect-success")]
+    [ProducesResponseType(typeof(ConnectionDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<ConnectionDto>> ReconnectSuccess(Guid connectionId, [FromQuery] int userId)
+    {
+        if (userId <= 0)
+        {
+            return BadRequest("Valid user ID is required");
+        }
+
+        try
+        {
+            // Verify connection belongs to user
+            var connections = await _plaidService.GetUserConnectionsAsync(userId);
+            if (!connections.Any(c => c.ConnectionId == connectionId))
+            {
+                return NotFound(new ErrorResponse { Error = "Connection not found" });
+            }
+
+            _logger.LogInformation("Marking connection {ConnectionId} as reconnected", connectionId);
+            await _plaidService.ReconnectSuccessAsync(connectionId);
+            
+            // Get updated connection
+            var updatedConnections = await _plaidService.GetUserConnectionsAsync(userId);
+            var updated = updatedConnections.First(c => c.ConnectionId == connectionId);
+            
+            return Ok(MapToConnectionDto(updated));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to complete reconnection for connection {ConnectionId}", connectionId);
+            return StatusCode(500, new ErrorResponse { Error = "Failed to complete reconnection", Details = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Permanently delete a connection and optionally its linked accounts
+    /// </summary>
+    /// <param name="connectionId">The connection ID to delete</param>
+    /// <param name="userId">The user ID</param>
+    /// <param name="deleteAccounts">If true, delete linked accounts; if false, convert them to manual accounts</param>
+    /// <returns>No content on success</returns>
+    [HttpDelete("connections/{connectionId}/permanent")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> DeleteConnectionPermanently(Guid connectionId, [FromQuery] int userId, [FromQuery] bool deleteAccounts = false)
+    {
+        if (userId <= 0)
+        {
+            return BadRequest("Valid user ID is required");
+        }
+
+        try
+        {
+            // Verify connection belongs to user
+            var connections = await _plaidService.GetUserConnectionsAsync(userId);
+            if (!connections.Any(c => c.ConnectionId == connectionId))
+            {
+                return NotFound(new ErrorResponse { Error = "Connection not found" });
+            }
+
+            _logger.LogInformation("Permanently deleting connection {ConnectionId}, deleteAccounts={DeleteAccounts}", connectionId, deleteAccounts);
+            await _plaidService.DeleteConnectionAsync(connectionId, deleteAccounts);
+            
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to permanently delete connection {ConnectionId}", connectionId);
+            return StatusCode(500, new ErrorResponse { Error = "Failed to delete connection", Details = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Get sync history for a specific connection
+    /// </summary>
+    /// <param name="connectionId">The connection ID</param>
+    /// <param name="userId">The user ID</param>
+    /// <param name="limit">Maximum number of history entries to return (default 10)</param>
+    /// <returns>List of sync history entries</returns>
+    [HttpGet("connections/{connectionId}/history")]
+    [ProducesResponseType(typeof(List<SyncHistoryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<List<SyncHistoryDto>>> GetSyncHistory(Guid connectionId, [FromQuery] int userId, [FromQuery] int limit = 10)
+    {
+        if (userId <= 0)
+        {
+            return BadRequest("Valid user ID is required");
+        }
+
+        try
+        {
+            // Verify connection belongs to user
+            var connections = await _plaidService.GetUserConnectionsAsync(userId);
             if (!connections.Any(c => c.ConnectionId == connectionId))
             {
                 return NotFound(new ErrorResponse { Error = "Connection not found" });
@@ -338,19 +461,6 @@ public class PlaidController : ControllerBase
             _logger.LogError(ex, "Failed to get sync history for connection {ConnectionId}", connectionId);
             return StatusCode(500, new ErrorResponse { Error = "Failed to get sync history", Details = ex.Message });
         }
-    }
-
-    private int? GetUserIdFromClaims()
-    {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
-            ?? User.FindFirst("sub")?.Value
-            ?? User.FindFirst("UserId")?.Value;
-            
-        if (int.TryParse(userIdClaim, out var userId))
-        {
-            return userId;
-        }
-        return null;
     }
 
     private static ConnectionDto MapToConnectionDto(AccountConnection connection)
@@ -377,6 +487,8 @@ public class LinkTokenResponse
 public class ExchangeTokenRequest
 {
     public string PublicToken { get; set; } = string.Empty;
+    public string? InstitutionId { get; set; }
+    public string? InstitutionName { get; set; }
 }
 
 public class ExchangeTokenResponse

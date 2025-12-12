@@ -36,6 +36,8 @@ const accountTypes = [
   { value: 'checking', label: 'Checking' },
   { value: 'savings', label: 'Savings' },
   { value: 'money_market', label: 'Money Market' },
+  { value: 'cd', label: 'CD (Certificate of Deposit)' },
+  { value: 'hsa', label: 'HSA (Health Savings Account)' },
 ];
 
 export function CashAccountModal({ open, userId, account, onClose, onSave, onDelete }: Props) {
