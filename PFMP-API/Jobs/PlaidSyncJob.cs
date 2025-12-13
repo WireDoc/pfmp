@@ -48,12 +48,27 @@ namespace PFMP_API.Jobs
             {
                 try
                 {
+                    // Sync account balances
                     var result = await plaidService.SyncConnectionAsync(connection.ConnectionId);
                     if (result.Success)
                     {
                         successCount++;
                         _logger.LogDebug("Successfully synced connection {ConnectionId}: {AccountCount} accounts updated",
                             connection.ConnectionId, result.AccountsUpdated);
+
+                        // Also sync transactions
+                        var txnResult = await plaidService.SyncTransactionsAsync(connection.ConnectionId);
+                        if (txnResult.Success)
+                        {
+                            _logger.LogDebug("Synced transactions for {ConnectionId}: +{Added} ~{Modified} -{Removed}",
+                                connection.ConnectionId, txnResult.TransactionsAdded, 
+                                txnResult.TransactionsModified, txnResult.TransactionsRemoved);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Transaction sync failed for {ConnectionId}: {Error}",
+                                connection.ConnectionId, txnResult.ErrorMessage);
+                        }
                     }
                     else
                     {

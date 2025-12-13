@@ -778,9 +778,10 @@ namespace PFMP_API.Services.Plaid
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Transaction sync failed for connection {ConnectionId}", connectionId);
+                var innerMessage = ex.InnerException?.Message ?? ex.Message;
+                _logger.LogError(ex, "Transaction sync failed for connection {ConnectionId}: {InnerError}", connectionId, innerMessage);
                 result.Success = false;
-                result.ErrorMessage = ex.Message;
+                result.ErrorMessage = innerMessage;
                 result.DurationMs = (int)(DateTime.UtcNow - startTime).TotalMilliseconds;
             }
 
@@ -827,9 +828,26 @@ namespace PFMP_API.Services.Plaid
             // Plaid amounts: positive = money out, negative = money in
             // We store as: positive = money in, negative = money out
             entity.Amount = -(plaidTxn.Amount ?? 0);
-            entity.TransactionDate = plaidTxn.Date.HasValue ? plaidTxn.Date.Value.ToDateTime(TimeOnly.MinValue) : DateTime.UtcNow;
+            
+            // Convert DateOnly to UTC DateTime
+            if (plaidTxn.Date.HasValue)
+            {
+                entity.TransactionDate = DateTime.SpecifyKind(
+                    plaidTxn.Date.Value.ToDateTime(TimeOnly.MinValue), 
+                    DateTimeKind.Utc);
+            }
+            else
+            {
+                entity.TransactionDate = DateTime.UtcNow;
+            }
+            
             entity.Description = plaidTxn.MerchantName ?? plaidTxn.OriginalDescription ?? "Unknown";
             entity.ExternalTransactionId = plaidTxn.TransactionId;
+
+            // Required non-nullable fields
+            entity.IsPending = plaidTxn.Pending ?? false;
+            entity.IsRecurring = false; // Plaid doesn't provide this directly
+            entity.CreatedAt = DateTime.UtcNow;
 
             // Plaid-specific fields
             entity.PlaidCategory = plaidTxn.PersonalFinanceCategory?.Primary;
