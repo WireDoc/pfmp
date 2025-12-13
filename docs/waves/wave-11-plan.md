@@ -5,7 +5,7 @@
 > **Priority**: 🔥 Critical - Phase 2 keystone feature  
 > **Prerequisites**: Wave 10 Complete ✅  
 > **Started**: December 11, 2025
-> **Completed**: December 12, 2025
+> **Completed**: December 13, 2025
 
 ---
 
@@ -19,9 +19,9 @@
 | **Phase 4: Testing & Polish** | ✅ Complete | Sandbox testing, error handling, Vitest coverage |
 | **Phase 5: Transactions** | ✅ Complete | Transaction sync, storage, and retrieval |
 
-### Completed Items (December 11-12, 2025)
+### Completed Items (December 11-13, 2025)
 
-**Backend (Commits 61722e9, 78a3b2d):**
+**Backend (Commits 61722e9, 78a3b2d, 293a0e6, 09bd852):**
 - ✅ Installed `Going.Plaid` v6.54.0 NuGet package
 - ✅ Added Plaid configuration to `appsettings.Development.json` and `.local.json`
 - ✅ Created EF migration `AddPlaidIntegration`:
@@ -34,6 +34,14 @@
 - ✅ Created `PlaidSyncJob` (Hangfire) - Daily at 10 PM ET
 - ✅ Registered services and job in `Program.cs`
 - ✅ Updated Postman collection v1.4.0
+
+**Transaction Sync (December 13, 2025 - Phase 5):**
+- ✅ PlaidSyncJob now syncs transactions after balance sync
+- ✅ Fixed DateTime UTC conversion for PostgreSQL compatibility
+- ✅ Transaction description fallback: MerchantName → OriginalDescription → Name → Category
+- ✅ Proper Plaid category mapping (FOOD_AND_DRINK, TRAVEL, etc.)
+- ✅ Cursor-based incremental sync (only fetches new/modified transactions)
+- ✅ 33 sandbox transactions synced and verified
 
 **Connection Lifecycle (December 12, 2025):**
 - ✅ Reconnect endpoint - Creates update-mode link token for expired/failed connections

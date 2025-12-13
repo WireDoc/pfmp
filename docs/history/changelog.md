@@ -6,9 +6,22 @@ The format follows [Conventional Commits](https://www.conventionalcommits.org/).
 
 ---
 
+## [0.9.9-alpha] - 2025-12-13
+
+### Wave 11 Phase 5 - Plaid Transaction Sync
+
+**Transaction Sync Implementation**
+- Added transaction sync to daily PlaidSyncJob (runs after balance sync)
+- Fixed DateTime UTC conversion for PostgreSQL compatibility
+- Improved transaction description fallback (MerchantName → Name → Category)
+- 33 sandbox transactions synced with proper categories
+- Transactions stored with PlaidCategory, PlaidCategoryDetailed, PaymentChannel
+
+---
+
 ## [0.9.8-alpha] - 2025-12-12
 
-### Wave 11 Complete - Plaid Bank Account Linking
+### Wave 11 Phases 1-4 - Plaid Bank Account Linking
 
 **Connection Lifecycle Management**
 - Reconnect endpoint for expired/failed connections (Plaid update mode)

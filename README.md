@@ -11,11 +11,11 @@ PFMP is an AI-assisted financial planning platform for government employees and 
 - **Authentication**: Azure Entra ID with local bypass mode for development
 - **AI Architecture**: Dual-model pipeline planned (Azure OpenAI + Anthropic) with consensus scoring - See Phase 3 in roadmap
 - **Current Highlights**: 
-  - **Wave 9.3 Complete** - All four options delivered (December 2025)
-  - **Option D**: D3.js visualizations (sunburst charts, correlation heatmaps) as toggle options
-  - **Option B**: Loan & credit card views with debt payoff strategies (Avalanche vs Snowball)
-  - **Option A**: Enhanced investment metrics with 4 analytics tabs (Performance, Tax, Risk, Allocation)
-  - **Option C**: Polish Cash Account UX with transaction tracking
+  - **Wave 11 Complete** - Plaid bank account linking with transaction sync (December 2025)
+  - Automatic balance + transaction sync for 12,000+ financial institutions
+  - Connection lifecycle: connect, reconnect, disconnect, delete
+  - **Wave 10 Complete** - Background jobs with Hangfire (TSP prices, market data, net worth snapshots)
+  - **Wave 9.3 Complete** - D3.js visualizations, debt payoff strategies, investment analytics
   - Debt Payoff Dashboard: Strategy comparison with auto loan and mortgage filters
   - Performance analytics: TWR/MWR, Sharpe ratio, volatility, benchmark comparison vs SPY/QQQ/IWM/VTI
   - Tax insights: Unrealized gains/losses, short/long-term classification, tax-loss harvesting

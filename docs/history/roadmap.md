@@ -1,6 +1,6 @@
 # PFMP Product Roadmap (2025–2026)
 
-_Last updated: 2025-12-12_
+_Last updated: 2025-12-13_
 
 ## Current Status Summary
 
@@ -17,7 +17,7 @@ _Last updated: 2025-12-12_
 | Wave 12: Advanced Analytics | 📋 Planned | Q1 2026 |
 | Wave 13: AI Enhancement & Vetting | 📋 Planned | Q1-Q2 2026 |
 
-**Current Version**: v0.9.8-alpha (December 12, 2025)
+**Current Version**: v0.9.9-alpha (December 13, 2025)
 
 ---
 
@@ -105,19 +105,25 @@ Originally planned for persistent sidebar navigation. Dashboard currently functi
 - Postman collection updated to v1.2.0
 
 ### Wave 11: Plaid Bank Account Linking ✅
-**Completed**: December 12, 2025
+**Completed**: December 13, 2025
 
 **Scope:** Bank accounts only (checking, savings, money market, CD, HSA)
 
+**Phases Completed:**
+| Phase | Description |
+|-------|-------------|
+| Phase 1-2 | Backend: Models, migration, PlaidService, encryption |
+| Phase 3 | Frontend: Plaid Link UI, Settings page, Dashboard CTA |
+| Phase 4 | Testing: 39 Vitest tests, Postman v1.4.0 |
+| Phase 5 | Transaction sync: Daily sync, categorization, description mapping |
+
+**Key Features:**
 - Plaid Link integration (12,000+ financial institutions)
-- Automatic account balance synchronization (daily via Hangfire)
-- Connection lifecycle: connect, reconnect (update mode), disconnect (pause), delete
+- Automatic account balance + transaction sync (daily via Hangfire)
+- Connection lifecycle: connect, reconnect (update mode), disconnect, delete
 - Settings page (`/dashboard/settings/connections`) + Dashboard CTA
 - Secure token management via Data Protection API
-- 39 new Vitest tests for Plaid components
-- Postman collection updated to v1.4.0
-
-**Not in Wave 11:** Transaction import (Wave 14+), Brokerage linking (Wave 12)
+- Transaction categorization (FOOD_AND_DRINK, TRAVEL, TRANSPORTATION, etc.)
 
 **See:** `docs/waves/wave-11-plan.md`
 
@@ -159,14 +165,15 @@ All major exchanges offer **free** read-only APIs:
 
 **Security:** Read-only API keys only (no trading/withdrawal permissions)
 
-### Wave 14: Transaction Import & Categorization 📋
+### Wave 14: Spending Analysis & Budgeting 📋
 **Target**: Q2 2026
 
-- Add Plaid Transactions product (~$0.50/account/month)
-- 24-month transaction history import
-- Automatic categorization using Plaid categories
-- Duplicate detection with manual entries
-- Spending analysis and budgeting foundation
+Building on Wave 11's transaction sync foundation:
+- Spending trends and category breakdown visualizations
+- Budget creation and tracking
+- Recurring transaction detection
+- Anomaly detection for unusual spending
+- Cash flow forecasting
 
 ### Wave 15: AI Enhancement & Vetting 📋
 **Target**: Q2 2026 (Before Chatbot)
