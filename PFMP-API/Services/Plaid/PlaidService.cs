@@ -3,7 +3,9 @@ using Going.Plaid.Entity;
 using Going.Plaid.Item;
 using Going.Plaid.Link;
 using Going.Plaid.Accounts;
+using Going.Plaid.Transactions;
 using Microsoft.EntityFrameworkCore;
+using PFMP_API.Models;
 using PFMP_API.Models.FinancialProfile;
 using PFMP_API.Models.Plaid;
 
@@ -27,6 +29,21 @@ namespace PFMP_API.Services.Plaid
         public bool Success { get; set; }
         public DateTime SyncedAt { get; set; } = DateTime.UtcNow;
         public int AccountsUpdated { get; set; }
+        public int DurationMs { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+
+    /// <summary>
+    /// Result of a transaction sync operation.
+    /// </summary>
+    public class TransactionSyncResult
+    {
+        public bool Success { get; set; }
+        public DateTime SyncedAt { get; set; } = DateTime.UtcNow;
+        public int TransactionsAdded { get; set; }
+        public int TransactionsModified { get; set; }
+        public int TransactionsRemoved { get; set; }
+        public bool HasMore { get; set; }
         public int DurationMs { get; set; }
         public string? ErrorMessage { get; set; }
     }
@@ -95,6 +112,16 @@ namespace PFMP_API.Services.Plaid
         /// Gets sync history for a connection.
         /// </summary>
         Task<List<SyncHistory>> GetSyncHistoryAsync(Guid connectionId, int limit = 10);
+
+        /// <summary>
+        /// Syncs transactions for a connection using /transactions/sync cursor-based approach.
+        /// </summary>
+        Task<TransactionSyncResult> SyncTransactionsAsync(Guid connectionId);
+
+        /// <summary>
+        /// Gets transactions for a connection with optional filtering.
+        /// </summary>
+        Task<List<CashTransaction>> GetConnectionTransactionsAsync(Guid connectionId, DateTime? startDate = null, DateTime? endDate = null, int? limit = null);
     }
 
     /// <summary>
@@ -257,7 +284,7 @@ namespace PFMP_API.Services.Plaid
             foreach (var plaidAccount in response.Accounts)
             {
                 // Only process depository accounts (checking, savings, money market, CD)
-                if (plaidAccount.Type != AccountType.Depository)
+                if (plaidAccount.Type != Going.Plaid.Entity.AccountType.Depository)
                 {
                     _logger.LogDebug("Skipping non-depository account {AccountId}: {Type}", 
                         plaidAccount.AccountId, plaidAccount.Type);
@@ -620,6 +647,244 @@ namespace PFMP_API.Services.Plaid
                 .OrderByDescending(h => h.SyncStartedAt)
                 .Take(limit)
                 .ToListAsync();
+        }
+
+        public async Task<TransactionSyncResult> SyncTransactionsAsync(Guid connectionId)
+        {
+            var startTime = DateTime.UtcNow;
+            var result = new TransactionSyncResult();
+
+            try
+            {
+                var connection = await _db.AccountConnections.FindAsync(connectionId);
+                if (connection == null)
+                {
+                    throw new ArgumentException($"Connection {connectionId} not found");
+                }
+
+                if (string.IsNullOrEmpty(connection.PlaidAccessToken))
+                {
+                    throw new InvalidOperationException("Connection has no access token");
+                }
+
+                var accessToken = _encryption.Decrypt(connection.PlaidAccessToken);
+
+                // Get linked accounts for this connection
+                var linkedAccounts = await _db.CashAccounts
+                    .Where(a => a.PlaidItemId == connection.PlaidItemId && a.UserId == connection.UserId)
+                    .ToListAsync();
+
+                if (!linkedAccounts.Any())
+                {
+                    _logger.LogWarning("No linked accounts found for connection {ConnectionId}", connectionId);
+                    result.Success = true;
+                    result.DurationMs = (int)(DateTime.UtcNow - startTime).TotalMilliseconds;
+                    return result;
+                }
+
+                // Create a mapping of PlaidAccountId to CashAccountId
+                var accountIdMap = linkedAccounts
+                    .Where(a => !string.IsNullOrEmpty(a.PlaidAccountId))
+                    .ToDictionary(a => a.PlaidAccountId!, a => a.CashAccountId);
+
+                // Call Plaid transactions/sync endpoint
+                var request = new TransactionsSyncRequest
+                {
+                    ClientId = _options.ClientId,
+                    Secret = _options.Secret,
+                    AccessToken = accessToken,
+                    Cursor = connection.TransactionsCursor // null for first sync
+                };
+
+                var response = await _plaidClient.TransactionsSyncAsync(request);
+
+                _logger.LogInformation(
+                    "Transaction sync for {ConnectionId}: {Added} added, {Modified} modified, {Removed} removed, HasMore: {HasMore}",
+                    connectionId,
+                    response.Added.Count,
+                    response.Modified.Count,
+                    response.Removed.Count,
+                    response.HasMore);
+
+                // Process added transactions
+                foreach (var txn in response.Added)
+                {
+                    if (!accountIdMap.TryGetValue(txn.AccountId, out var cashAccountId))
+                    {
+                        _logger.LogDebug("Skipping transaction for unlinked account {PlaidAccountId}", txn.AccountId);
+                        continue;
+                    }
+
+                    // Check if transaction already exists
+                    var existing = await _db.CashTransactions
+                        .FirstOrDefaultAsync(t => t.PlaidTransactionId == txn.TransactionId);
+
+                    if (existing != null)
+                    {
+                        // Update existing transaction
+                        MapPlaidTransactionToEntity(txn, existing);
+                        result.TransactionsModified++;
+                    }
+                    else
+                    {
+                        // Create new transaction
+                        var newTxn = new CashTransaction
+                        {
+                            CashAccountId = cashAccountId,
+                            PlaidTransactionId = txn.TransactionId,
+                            Source = "Plaid"
+                        };
+                        MapPlaidTransactionToEntity(txn, newTxn);
+                        _db.CashTransactions.Add(newTxn);
+                        result.TransactionsAdded++;
+                    }
+                }
+
+                // Process modified transactions
+                foreach (var txn in response.Modified)
+                {
+                    var existing = await _db.CashTransactions
+                        .FirstOrDefaultAsync(t => t.PlaidTransactionId == txn.TransactionId);
+
+                    if (existing != null)
+                    {
+                        MapPlaidTransactionToEntity(txn, existing);
+                        result.TransactionsModified++;
+                    }
+                }
+
+                // Process removed transactions
+                foreach (var removed in response.Removed)
+                {
+                    var existing = await _db.CashTransactions
+                        .FirstOrDefaultAsync(t => t.PlaidTransactionId == removed.TransactionId);
+
+                    if (existing != null)
+                    {
+                        _db.CashTransactions.Remove(existing);
+                        result.TransactionsRemoved++;
+                    }
+                }
+
+                // Update cursor and last sync time
+                connection.TransactionsCursor = response.NextCursor;
+                connection.TransactionsLastSyncedAt = DateTime.UtcNow;
+                result.HasMore = response.HasMore;
+
+                await _db.SaveChangesAsync();
+
+                result.Success = true;
+                result.DurationMs = (int)(DateTime.UtcNow - startTime).TotalMilliseconds;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Transaction sync failed for connection {ConnectionId}", connectionId);
+                result.Success = false;
+                result.ErrorMessage = ex.Message;
+                result.DurationMs = (int)(DateTime.UtcNow - startTime).TotalMilliseconds;
+            }
+
+            return result;
+        }
+
+        public async Task<List<CashTransaction>> GetConnectionTransactionsAsync(
+            Guid connectionId,
+            DateTime? startDate = null,
+            DateTime? endDate = null,
+            int? limit = null)
+        {
+            var connection = await _db.AccountConnections.FindAsync(connectionId);
+            if (connection == null)
+            {
+                throw new ArgumentException($"Connection {connectionId} not found");
+            }
+
+            // Get all cash accounts linked to this connection
+            var accountIds = await _db.CashAccounts
+                .Where(a => a.PlaidItemId == connection.PlaidItemId && a.UserId == connection.UserId)
+                .Select(a => a.CashAccountId)
+                .ToListAsync();
+
+            var query = _db.CashTransactions
+                .Where(t => accountIds.Contains(t.CashAccountId));
+
+            if (startDate.HasValue)
+                query = query.Where(t => t.TransactionDate >= startDate.Value);
+
+            if (endDate.HasValue)
+                query = query.Where(t => t.TransactionDate <= endDate.Value);
+
+            query = query.OrderByDescending(t => t.TransactionDate);
+
+            if (limit.HasValue)
+                query = query.Take(limit.Value);
+
+            return await query.ToListAsync();
+        }
+
+        private static void MapPlaidTransactionToEntity(Going.Plaid.Entity.Transaction plaidTxn, CashTransaction entity)
+        {
+            // Plaid amounts: positive = money out, negative = money in
+            // We store as: positive = money in, negative = money out
+            entity.Amount = -(plaidTxn.Amount ?? 0);
+            entity.TransactionDate = plaidTxn.Date.HasValue ? plaidTxn.Date.Value.ToDateTime(TimeOnly.MinValue) : DateTime.UtcNow;
+            entity.Description = plaidTxn.MerchantName ?? plaidTxn.OriginalDescription ?? "Unknown";
+            entity.ExternalTransactionId = plaidTxn.TransactionId;
+
+            // Plaid-specific fields
+            entity.PlaidCategory = plaidTxn.PersonalFinanceCategory?.Primary;
+            entity.PlaidCategoryDetailed = plaidTxn.PersonalFinanceCategory?.Detailed;
+            entity.PaymentChannel = plaidTxn.PaymentChannel?.ToString()?.ToLowerInvariant();
+            entity.MerchantLogoUrl = plaidTxn.LogoUrl;
+
+            // Map category to our types
+            entity.TransactionType = MapPlaidCategoryToType(plaidTxn.PersonalFinanceCategory?.Primary);
+            entity.Category = MapPlaidCategoryToOurCategory(plaidTxn.PersonalFinanceCategory?.Primary);
+        }
+
+        private static string MapPlaidCategoryToType(string? plaidCategory)
+        {
+            if (string.IsNullOrEmpty(plaidCategory)) return "other";
+
+            return plaidCategory.ToUpperInvariant() switch
+            {
+                "INCOME" => "deposit",
+                "TRANSFER_IN" => "transfer_in",
+                "TRANSFER_OUT" => "transfer_out",
+                "LOAN_PAYMENTS" => "payment",
+                "BANK_FEES" => "fee",
+                "ENTERTAINMENT" or "FOOD_AND_DRINK" or "GENERAL_MERCHANDISE" or 
+                "GENERAL_SERVICES" or "GOVERNMENT_AND_NON_PROFIT" or "HOME_IMPROVEMENT" or
+                "MEDICAL" or "PERSONAL_CARE" or "RENT_AND_UTILITIES" or "TRANSPORTATION" or
+                "TRAVEL" => "withdrawal",
+                _ => "other"
+            };
+        }
+
+        private static string MapPlaidCategoryToOurCategory(string? plaidCategory)
+        {
+            if (string.IsNullOrEmpty(plaidCategory)) return "Uncategorized";
+
+            return plaidCategory.ToUpperInvariant() switch
+            {
+                "INCOME" => "Income",
+                "TRANSFER_IN" => "Transfer In",
+                "TRANSFER_OUT" => "Transfer Out",
+                "LOAN_PAYMENTS" => "Debt Payment",
+                "BANK_FEES" => "Fees",
+                "ENTERTAINMENT" => "Entertainment",
+                "FOOD_AND_DRINK" => "Food & Drink",
+                "GENERAL_MERCHANDISE" => "Shopping",
+                "GENERAL_SERVICES" => "Services",
+                "GOVERNMENT_AND_NON_PROFIT" => "Government",
+                "HOME_IMPROVEMENT" => "Home",
+                "MEDICAL" => "Healthcare",
+                "PERSONAL_CARE" => "Personal Care",
+                "RENT_AND_UTILITIES" => "Bills & Utilities",
+                "TRANSPORTATION" => "Transportation",
+                "TRAVEL" => "Travel",
+                _ => "Uncategorized"
+            };
         }
 
         private static string MapPlaidSubtypeToAccountType(AccountSubtype? subtype)

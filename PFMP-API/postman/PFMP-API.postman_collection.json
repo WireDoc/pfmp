@@ -2,8 +2,8 @@
   "info": {
     "name": "PFMP API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "1.4.0",
-    "description": "PFMP API endpoints grouped for development and testing. Adjust {{baseUrl}} as needed. v1.4.0: Added Plaid reconnect and permanent delete endpoints."
+    "version": "1.5.0",
+    "description": "PFMP API endpoints grouped for development and testing. Adjust {{baseUrl}} as needed. v1.5.0: Added Plaid transaction sync endpoints (Phase 5)."
   },
   "item": [
     {
@@ -293,6 +293,26 @@
             "method": "DELETE",
             "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
             "url": "{{baseUrl}}/api/plaid/connections/{{connectionId}}/permanent?deleteAccounts=false"
+          },
+          "response": []
+        },
+        {
+          "name": "Sync Transactions",
+          "description": "Triggers incremental transaction sync for a connection. Uses Plaid's cursor-based sync to fetch new, modified, and removed transactions efficiently.",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "{{baseUrl}}/api/plaid/connections/{{connectionId}}/transactions/sync"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Connection Transactions",
+          "description": "Retrieves transactions for all accounts linked to this connection. Optional date filters and limit parameter.",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "{{baseUrl}}/api/plaid/connections/{{connectionId}}/transactions?limit=100"
           },
           "response": []
         }

@@ -17,6 +17,7 @@
 | **Phase 2: Plaid Integration** | ✅ Complete | PlaidService, PlaidController, Hangfire job |
 | **Phase 3: Frontend** | ✅ Complete | Plaid Link UI, Settings page, Dashboard CTA |
 | **Phase 4: Testing & Polish** | ✅ Complete | Sandbox testing, error handling, Vitest coverage |
+| **Phase 5: Transactions** | ✅ Complete | Transaction sync, storage, and retrieval |
 
 ### Completed Items (December 11-12, 2025)
 
@@ -653,13 +654,26 @@ public class AzureKeyVaultEncryptionService : ICredentialEncryptionService
 1. **Phase A:** Plaid Investments for broad coverage (Fidelity, Vanguard, etc.)
 2. **Phase B:** Direct TD/Schwab API for cost savings on high-volume users
 
-### Transaction Import (Wave 14+)
+### Transaction Import (Wave 14+ → Moved to Wave 11 Phase 5)
 
-Add Plaid Transactions product for:
-- Spending analysis
+> **Status**: ✅ Implemented December 13, 2025
+
+Since the Transactions product is already requested during Link (and billed monthly regardless), transaction sync was moved up from Wave 14.
+
+**Implemented:**
+- ✅ `PlaidTransaction` model and migration
+- ✅ `/transactions/sync` cursor-based syncing in PlaidService
+- ✅ `GET /api/Plaid/connections/{id}/transactions` endpoint
+- ✅ `POST /api/Plaid/connections/{id}/transactions/sync` endpoint
+- ✅ Automatic transaction sync in PlaidSyncJob (daily)
+- ✅ Transaction cursor stored on AccountConnection for incremental syncs
+- ✅ Postman collection updated (v1.5.0)
+
+**Deferred to future waves:**
+- Spending analysis and categorization UI
 - Budget vs actual tracking
-- Automatic categorization
 - Transaction deduplication with manual entries
+- Transaction search and filtering UI
 
 ### Crypto Exchange Integration (Wave 13+)
 

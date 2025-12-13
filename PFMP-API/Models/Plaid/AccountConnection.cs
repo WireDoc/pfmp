@@ -46,6 +46,18 @@ namespace PFMP_API.Models.Plaid
         public DateTime ConnectedAt { get; set; } = DateTime.UtcNow;
         public DateTime? LastSyncedAt { get; set; }
 
+        /// <summary>
+        /// Cursor for incremental transaction sync (from /transactions/sync).
+        /// Null means initial sync required.
+        /// </summary>
+        [MaxLength(500)]
+        public string? TransactionsCursor { get; set; }
+
+        /// <summary>
+        /// When transactions were last synced for this connection.
+        /// </summary>
+        public DateTime? TransactionsLastSyncedAt { get; set; }
+
         // Navigation
         [ForeignKey("UserId")]
         public virtual User User { get; set; } = null!;

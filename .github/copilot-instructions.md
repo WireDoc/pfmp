@@ -202,3 +202,10 @@ node .\test-client.mjs
    cd C:\pfmp; dotnet test PFMP-API.Tests; npm test --prefix pfmp-frontend -- --run
    ```
 
+- **Postman updates**: When adding or modifying API endpoints, update the Postman collection and environment files:
+   - Collection: `PFMP-API/postman/PFMP-API.postman_collection.json` - Add new requests with examples
+   - Environment: `PFMP-API/postman/PFMP-Local.postman_environment.json` - Add any new variables
+   - Increment the collection version in the `info` object when making changes
+   - Group endpoints by folder (e.g., "Plaid", "Accounts", "Admin")
+   - Include request/response examples for documentation
+

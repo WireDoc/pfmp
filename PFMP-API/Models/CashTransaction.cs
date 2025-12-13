@@ -92,6 +92,42 @@ public class CashTransaction
     public string? ExternalTransactionId { get; set; }
 
     /// <summary>
+    /// Plaid transaction ID (unique across all Plaid transactions)
+    /// </summary>
+    [MaxLength(100)]
+    public string? PlaidTransactionId { get; set; }
+
+    /// <summary>
+    /// Source of this transaction: Manual, CSV, Plaid
+    /// </summary>
+    [MaxLength(20)]
+    public string? Source { get; set; }
+
+    /// <summary>
+    /// Plaid personal finance category (primary), e.g., "FOOD_AND_DRINK", "TRANSPORTATION"
+    /// </summary>
+    [MaxLength(100)]
+    public string? PlaidCategory { get; set; }
+
+    /// <summary>
+    /// Plaid personal finance category (detailed), e.g., "FOOD_AND_DRINK_RESTAURANTS"
+    /// </summary>
+    [MaxLength(150)]
+    public string? PlaidCategoryDetailed { get; set; }
+
+    /// <summary>
+    /// Payment channel: online, in store, other
+    /// </summary>
+    [MaxLength(20)]
+    public string? PaymentChannel { get; set; }
+
+    /// <summary>
+    /// Merchant logo URL from Plaid
+    /// </summary>
+    [MaxLength(500)]
+    public string? MerchantLogoUrl { get; set; }
+
+    /// <summary>
     /// Additional notes
     /// </summary>
     public string? Notes { get; set; }

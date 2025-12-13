@@ -476,6 +476,114 @@ public class PlaidController : ControllerBase
             LastSyncedAt = connection.LastSyncedAt
         };
     }
+
+    /// <summary>
+    /// Sync transactions for a specific connection using Plaid's incremental sync
+    /// </summary>
+    /// <param name="connectionId">The connection ID to sync transactions for</param>
+    /// <param name="userId">The user ID for authorization</param>
+    /// <returns>Sync result with transaction counts</returns>
+    [HttpPost("connections/{connectionId}/transactions/sync")]
+    [ProducesResponseType(typeof(TransactionSyncResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<TransactionSyncResultDto>> SyncTransactions(Guid connectionId, [FromQuery] int userId)
+    {
+        if (userId <= 0)
+        {
+            return BadRequest(new ErrorResponse { Error = "Valid user ID is required" });
+        }
+
+        try
+        {
+            // Verify connection belongs to user
+            var connections = await _plaidService.GetUserConnectionsAsync(userId);
+            if (!connections.Any(c => c.ConnectionId == connectionId))
+            {
+                return NotFound(new ErrorResponse { Error = "Connection not found" });
+            }
+
+            _logger.LogInformation("Syncing transactions for connection {ConnectionId}, user {UserId}", connectionId, userId);
+            var result = await _plaidService.SyncTransactionsAsync(connectionId);
+
+            return Ok(new TransactionSyncResultDto
+            {
+                Success = result.Success,
+                TransactionsAdded = result.TransactionsAdded,
+                TransactionsModified = result.TransactionsModified,
+                TransactionsRemoved = result.TransactionsRemoved,
+                HasMore = result.HasMore,
+                ErrorMessage = result.ErrorMessage
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to sync transactions for connection {ConnectionId}", connectionId);
+            return StatusCode(500, new ErrorResponse { Error = "Failed to sync transactions", Details = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Get transactions for a specific connection
+    /// </summary>
+    /// <param name="connectionId">The connection ID to get transactions for</param>
+    /// <param name="userId">The user ID for authorization</param>
+    /// <param name="startDate">Optional start date filter</param>
+    /// <param name="endDate">Optional end date filter</param>
+    /// <param name="limit">Maximum number of transactions to return (default 100)</param>
+    /// <returns>List of transactions</returns>
+    [HttpGet("connections/{connectionId}/transactions")]
+    [ProducesResponseType(typeof(List<TransactionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<List<TransactionDto>>> GetConnectionTransactions(
+        Guid connectionId,
+        [FromQuery] int userId,
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null,
+        [FromQuery] int limit = 100)
+    {
+        if (userId <= 0)
+        {
+            return BadRequest(new ErrorResponse { Error = "Valid user ID is required" });
+        }
+
+        try
+        {
+            // Verify connection belongs to user
+            var connections = await _plaidService.GetUserConnectionsAsync(userId);
+            if (!connections.Any(c => c.ConnectionId == connectionId))
+            {
+                return NotFound(new ErrorResponse { Error = "Connection not found" });
+            }
+
+            var transactions = await _plaidService.GetConnectionTransactionsAsync(connectionId, startDate, endDate, limit);
+
+            return Ok(transactions.Select(t => new TransactionDto
+            {
+                TransactionId = t.CashTransactionId,
+                CashAccountId = t.CashAccountId,
+                Amount = t.Amount,
+                TransactionDate = t.TransactionDate,
+                Description = t.Description,
+                Category = t.Category,
+                TransactionType = t.TransactionType,
+                PlaidTransactionId = t.PlaidTransactionId,
+                PlaidCategory = t.PlaidCategory,
+                PlaidCategoryDetailed = t.PlaidCategoryDetailed,
+                PaymentChannel = t.PaymentChannel,
+                MerchantLogoUrl = t.MerchantLogoUrl,
+                Source = t.Source
+            }).ToList());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get transactions for connection {ConnectionId}", connectionId);
+            return StatusCode(500, new ErrorResponse { Error = "Failed to get transactions", Details = ex.Message });
+        }
+    }
 }
 
 // DTOs
@@ -540,4 +648,31 @@ public class ErrorResponse
 {
     public string Error { get; set; } = string.Empty;
     public string? Details { get; set; }
+}
+
+public class TransactionSyncResultDto
+{
+    public bool Success { get; set; }
+    public int TransactionsAdded { get; set; }
+    public int TransactionsModified { get; set; }
+    public int TransactionsRemoved { get; set; }
+    public bool HasMore { get; set; }
+    public string? ErrorMessage { get; set; }
+}
+
+public class TransactionDto
+{
+    public int TransactionId { get; set; }
+    public Guid CashAccountId { get; set; }
+    public decimal Amount { get; set; }
+    public DateTime TransactionDate { get; set; }
+    public string? Description { get; set; }
+    public string? Category { get; set; }
+    public string? TransactionType { get; set; }
+    public string? PlaidTransactionId { get; set; }
+    public string? PlaidCategory { get; set; }
+    public string? PlaidCategoryDetailed { get; set; }
+    public string? PaymentChannel { get; set; }
+    public string? MerchantLogoUrl { get; set; }
+    public string? Source { get; set; }
 }
