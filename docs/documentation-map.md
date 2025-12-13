@@ -1,6 +1,6 @@
 # PFMP Documentation Map
 
-_Last updated: 2025-12-10_
+_Last updated: 2025-12-13_
 
 This index lists every active document under `docs/` following the subject-first taxonomy. Paths are relative to the repository root (`C:\pfmp`). Archive folders capture retired or historical material.
 
@@ -78,14 +78,14 @@ This index lists every active document under `docs/` following the subject-first
 ## 🌊 waves
 
 ### Active Wave Plans
-- `docs/waves/wave-11-plan.md` – **Wave 11: Plaid Bank Account Linking** (Jan 2026)
+- `docs/waves/wave-12-plan.md` – **Wave 12: Brokerage & Investment Linking** (Q1 2026)
 - `docs/waves/wave-11-account-linking-strategy.md` – Wave 11-13: Full account linking strategy reference
-- Wave 12: Brokerage Integration – Documented in `docs/history/roadmap.md`
 - Wave 13: Crypto Integration – Documented in `docs/history/roadmap.md`
-- Wave 14: Transaction Import – Documented in `docs/history/roadmap.md`
+- Wave 14: Spending Analysis – Documented in `docs/history/roadmap.md`
 - Wave 15: AI Enhancement & Vetting – Documented in `docs/history/roadmap.md`
 
 ### Wave Completion Summaries
+- `docs/waves/wave-11-complete.md` – **Wave 11 Complete** (Dec 2025) - Plaid Bank Account Linking
 - `docs/waves/wave-10-complete.md` – **Wave 10 Complete** (Dec 2025) - Background Jobs & Automation
 - `docs/waves/wave-9.3-complete-summary.md` – **Wave 9.3 Complete** (Dec 2025) - All 4 options
 - `docs/waves/wave-9.3-option-a-all-parts-complete.md` – Option A: Investment Metrics
