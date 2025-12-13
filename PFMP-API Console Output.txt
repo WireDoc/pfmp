@@ -1,16 +1,1005 @@
-info: PFMP_API.Services.TSPService[0]
-      Successfully retrieved TSP data for date: 12/11/2025
-info: PFMP_API.Services.TSPService[0]
-      Successfully retrieved TSP data for date: 12/11/2025
-info: System.Net.Http.HttpClient.TSPClient.ClientHandler[101]
-      Received HTTP response headers after 232.9094ms - 200
-info: System.Net.Http.HttpClient.TSPClient.LogicalHandler[101]
-      End processing HTTP request after 238.3304ms - 200
-info: System.Net.Http.HttpClient.TSPClient.ClientHandler[101]
-      Received HTTP response headers after 234.2499ms - 200
-info: System.Net.Http.HttpClient.TSPClient.LogicalHandler[101]
-      End processing HTTP request after 239.6114ms - 200
-info: PFMP_API.Services.TSPService[0]
-      Successfully retrieved TSP data for date: 12/11/2025
-info: PFMP_API.Services.TSPService[0]
-      Successfully retrieved TSP data for date: 12/11/2025
+      Builder(IHostBuilder hostBuilder)     
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.EnsureServer(
+      )
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(DelegatingHandler[] handlers)  
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(Uri baseAddress, DelegatingHand
+      ler[] handlers)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      WebApplicationFactoryClientOptions opt
+      ions)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      )
+         at PFMP_API.Tests.AccountsControlle
+      rTests.UpdateAccount_ReturnsNoContent(
+      ) in C:\pfmp\PFMP-API.Tests\AccountsCo
+      ntrollerTests.cs:line 95
+      --- End of stack trace from previous l
+      ocation ---
+    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
+      PFMP_API.Tests.UserAdminControllerTest
+      s.CreateTestUser_Scenarios(scenario: "
+      done") (21ms): Error Message: System.I
+      nvalidOperationException : Current Job
+      Storage instance has not been initiali
+      zed yet. You must set it before using 
+      Hangfire Client or Server API. For .NE
+      T Core applications please call the `I
+      ServiceCollection.AddHangfire` extensi
+      on method from Hangfire.NetCore or Han
+      gfire.AspNetCore package depending on 
+      your application type when configuring
+       the services and ensure service-based
+       APIs are used instead of static ones,
+       like `IBackgroundJobClient` instead o
+      f `BackgroundJob` and `IRecurringJobMa
+      nager` instead of `RecurringJob`.     
+      Stack Trace:
+         at Hangfire.JobStorage.get_Current(
+      ) in C:\projects\hangfire-525\src\Hang
+      fire.Core\JobStorage.cs:line 42       
+         at Hangfire.RecurringJobManager..ct
+      or() in C:\projects\hangfire-525\src\H
+      angfire.Core\RecurringJobManager.cs:li
+      ne 42
+         at Hangfire.RecurringJob.<>c.<.ccto
+      r>b__61_0() in C:\projects\hangfire-52
+      5\src\Hangfire.Core\RecurringJob.cs:li
+      ne 29
+         at System.Lazy`1.CreateValue()     
+         at Hangfire.RecurringJob.AddOrUpdat
+      e[T](String recurringJobId, Expression
+      `1 methodCall, String cronExpression, 
+      RecurringJobOptions options) in C:\pro
+      jects\hangfire-525\src\Hangfire.Core\R
+      ecurringJob.cs:line 598
+         at PFMP_API.Program.Main(String[] a
+      rgs) in C:\pfmp\PFMP-API\Program.cs:li
+      ne 268
+         at PFMP_API.Program.<Main>(String[]
+       args)
+         at InvokeStub_Program.<Main>(Object
+      , Span`1)
+         at System.Reflection.MethodBaseInvo
+      ker.InvokeWithOneArg(Object obj, Bindi
+      ngFlags invokeAttr, Binder binder, Obj
+      ect[] parameters, CultureInfo culture)
+      --- End of stack trace from previous l
+      ocation ---
+         at Microsoft.AspNetCore.Mvc.Testing
+      .DeferredHostBuilder.DeferredHost.Star
+      tAsync(CancellationToken cancellationT
+      oken)
+         at Microsoft.Extensions.Hosting.Hos
+      tingAbstractionsHostExtensions.Start(I
+      Host host)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateHost(IH
+      ostBuilder builder)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.ConfigureHost
+      Builder(IHostBuilder hostBuilder)     
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.EnsureServer(
+      )
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(DelegatingHandler[] handlers)  
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(Uri baseAddress, DelegatingHand
+      ler[] handlers)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      WebApplicationFactoryClientOptions opt
+      ions)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      )
+         at PFMP_API.Tests.UserAdminControll
+      erTests.CreateTestUser_Scenarios(Strin
+      g scenario) in C:\pfmp\PFMP-API.Tests\
+      UserAdminControllerTests.cs:line 38   
+      --- End of stack trace from previous l
+      ocation ---
+    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
+      PFMP_API.Tests.ExpensesControllerTests
+      .GetExpense_ReturnsOk (42ms): Error Me
+      ssage: System.InvalidOperationExceptio
+      n : Current JobStorage instance has no
+      t been initialized yet. You must set i
+      t before using Hangfire Client or Serv
+      er API. For .NET Core applications ple
+      ase call the `IServiceCollection.AddHa
+      ngfire` extension method from Hangfire
+      .NetCore or Hangfire.AspNetCore packag
+      e depending on your application type w
+      hen configuring the services and ensur
+      e service-based APIs are used instead 
+      of static ones, like `IBackgroundJobCl
+      ient` instead of `BackgroundJob` and `
+      IRecurringJobManager` instead of `Recu
+      rringJob`.
+      Stack Trace:
+         at Hangfire.JobStorage.get_Current(
+      ) in C:\projects\hangfire-525\src\Hang
+      fire.Core\JobStorage.cs:line 42       
+         at Hangfire.RecurringJobManager..ct
+      or() in C:\projects\hangfire-525\src\H
+      angfire.Core\RecurringJobManager.cs:li
+      ne 42
+         at Hangfire.RecurringJob.<>c.<.ccto
+      r>b__61_0() in C:\projects\hangfire-52
+      5\src\Hangfire.Core\RecurringJob.cs:li
+      ne 29
+         at System.Lazy`1.CreateValue()     
+         at Hangfire.RecurringJob.AddOrUpdat
+      e[T](String recurringJobId, Expression
+      `1 methodCall, String cronExpression, 
+      RecurringJobOptions options) in C:\pro
+      jects\hangfire-525\src\Hangfire.Core\R
+      ecurringJob.cs:line 598
+         at PFMP_API.Program.Main(String[] a
+      rgs) in C:\pfmp\PFMP-API\Program.cs:li
+      ne 268
+         at PFMP_API.Program.<Main>(String[]
+       args)
+         at InvokeStub_Program.<Main>(Object
+      , Span`1)
+         at System.Reflection.MethodBaseInvo
+      ker.InvokeWithOneArg(Object obj, Bindi
+      ngFlags invokeAttr, Binder binder, Obj
+      ect[] parameters, CultureInfo culture)
+      --- End of stack trace from previous l
+      ocation ---
+         at Microsoft.AspNetCore.Mvc.Testing
+      .DeferredHostBuilder.DeferredHost.Star
+      tAsync(CancellationToken cancellationT
+      oken)
+         at Microsoft.Extensions.Hosting.Hos
+      tingAbstractionsHostExtensions.Start(I
+      Host host)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateHost(IH
+      ostBuilder builder)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.ConfigureHost
+      Builder(IHostBuilder hostBuilder)     
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.EnsureServer(
+      )
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(DelegatingHandler[] handlers)  
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(Uri baseAddress, DelegatingHand
+      ler[] handlers)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      WebApplicationFactoryClientOptions opt
+      ions)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      )
+         at PFMP_API.Tests.ExpensesControlle
+      rTests.GetExpense_ReturnsOk() in C:\pf
+      mp\PFMP-API.Tests\ExpensesControllerTe
+      sts.cs:line 67
+      --- End of stack trace from previous l
+      ocation ---
+    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
+      PFMP_API.Tests.SchedulerAdminControlle
+      rTests.ListTriggers_ReturnsOk (35ms): 
+      Error Message: System.InvalidOperation
+      Exception : Current JobStorage instanc
+      e has not been initialized yet. You mu
+      st set it before using Hangfire Client
+       or Server API. For .NET Core applicat
+      ions please call the `IServiceCollecti
+      on.AddHangfire` extension method from 
+      Hangfire.NetCore or Hangfire.AspNetCor
+      e package depending on your applicatio
+      n type when configuring the services a
+      nd ensure service-based APIs are used 
+      instead of static ones, like `IBackgro
+      undJobClient` instead of `BackgroundJo
+      b` and `IRecurringJobManager` instead 
+      of `RecurringJob`.
+      Stack Trace:
+         at Hangfire.JobStorage.get_Current(
+      ) in C:\projects\hangfire-525\src\Hang
+      fire.Core\JobStorage.cs:line 42       
+         at Hangfire.RecurringJobManager..ct
+      or() in C:\projects\hangfire-525\src\H
+      angfire.Core\RecurringJobManager.cs:li
+      ne 42
+         at Hangfire.RecurringJob.<>c.<.ccto
+      r>b__61_0() in C:\projects\hangfire-52
+      5\src\Hangfire.Core\RecurringJob.cs:li
+      ne 29
+         at System.Lazy`1.CreateValue()     
+         at Hangfire.RecurringJob.AddOrUpdat
+      e[T](String recurringJobId, Expression
+      `1 methodCall, String cronExpression, 
+      RecurringJobOptions options) in C:\pro
+      jects\hangfire-525\src\Hangfire.Core\R
+      ecurringJob.cs:line 598
+         at PFMP_API.Program.Main(String[] a
+      rgs) in C:\pfmp\PFMP-API\Program.cs:li
+      ne 268
+         at PFMP_API.Program.<Main>(String[]
+       args)
+         at InvokeStub_Program.<Main>(Object
+      , Span`1)
+         at System.Reflection.MethodBaseInvo
+      ker.InvokeWithOneArg(Object obj, Bindi
+      ngFlags invokeAttr, Binder binder, Obj
+      ect[] parameters, CultureInfo culture)
+      --- End of stack trace from previous l
+      ocation ---
+         at Microsoft.AspNetCore.Mvc.Testing
+      .DeferredHostBuilder.DeferredHost.Star
+      tAsync(CancellationToken cancellationT
+      oken)
+         at Microsoft.Extensions.Hosting.Hos
+      tingAbstractionsHostExtensions.Start(I
+      Host host)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateHost(IH
+      ostBuilder builder)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.ConfigureHost
+      Builder(IHostBuilder hostBuilder)     
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.EnsureServer(
+      )
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(DelegatingHandler[] handlers)  
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(Uri baseAddress, DelegatingHand
+      ler[] handlers)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      WebApplicationFactoryClientOptions opt
+      ions)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      )
+         at PFMP_API.Tests.SchedulerAdminCon
+      trollerTests.ListTriggers_ReturnsOk() 
+      in C:\pfmp\PFMP-API.Tests\SchedulerAdm
+      inControllerTests.cs:line 36
+      --- End of stack trace from previous l
+      ocation ---
+    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
+      PFMP_API.Tests.PlaidControllerTests.Ge
+      tPlaidWebhookStatus_ReturnsOk (35ms): 
+      Error Message: System.InvalidOperation
+      Exception : Current JobStorage instanc
+      e has not been initialized yet. You mu
+      st set it before using Hangfire Client
+       or Server API. For .NET Core applicat
+      ions please call the `IServiceCollecti
+      on.AddHangfire` extension method from 
+      Hangfire.NetCore or Hangfire.AspNetCor
+      e package depending on your applicatio
+      n type when configuring the services a
+      nd ensure service-based APIs are used 
+      instead of static ones, like `IBackgro
+      undJobClient` instead of `BackgroundJo
+      b` and `IRecurringJobManager` instead 
+      of `RecurringJob`.
+      Stack Trace:
+         at Hangfire.JobStorage.get_Current(
+      ) in C:\projects\hangfire-525\src\Hang
+      fire.Core\JobStorage.cs:line 42       
+         at Hangfire.RecurringJobManager..ct
+      or() in C:\projects\hangfire-525\src\H
+      angfire.Core\RecurringJobManager.cs:li
+      ne 42
+         at Hangfire.RecurringJob.<>c.<.ccto
+      r>b__61_0() in C:\projects\hangfire-52
+      5\src\Hangfire.Core\RecurringJob.cs:li
+      ne 29
+         at System.Lazy`1.CreateValue()     
+         at Hangfire.RecurringJob.AddOrUpdat
+      e[T](String recurringJobId, Expression
+      `1 methodCall, String cronExpression, 
+      RecurringJobOptions options) in C:\pro
+      jects\hangfire-525\src\Hangfire.Core\R
+      ecurringJob.cs:line 598
+         at PFMP_API.Program.Main(String[] a
+      rgs) in C:\pfmp\PFMP-API\Program.cs:li
+      ne 268
+         at PFMP_API.Program.<Main>(String[]
+       args)
+         at InvokeStub_Program.<Main>(Object
+      , Span`1)
+         at System.Reflection.MethodBaseInvo
+      ker.InvokeWithOneArg(Object obj, Bindi
+      ngFlags invokeAttr, Binder binder, Obj
+      ect[] parameters, CultureInfo culture)
+      --- End of stack trace from previous l
+      ocation ---
+         at Microsoft.AspNetCore.Mvc.Testing
+      .DeferredHostBuilder.DeferredHost.Star
+      tAsync(CancellationToken cancellationT
+      oken)
+         at Microsoft.Extensions.Hosting.Hos
+      tingAbstractionsHostExtensions.Start(I
+      Host host)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateHost(IH
+      ostBuilder builder)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.ConfigureHost
+      Builder(IHostBuilder hostBuilder)     
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.EnsureServer(
+      )
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(DelegatingHandler[] handlers)  
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(Uri baseAddress, DelegatingHand
+      ler[] handlers)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      WebApplicationFactoryClientOptions opt
+      ions)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      )
+         at PFMP_API.Tests.PlaidControllerTe
+      sts.GetPlaidWebhookStatus_ReturnsOk() 
+      in C:\pfmp\PFMP-API.Tests\PlaidControl
+      lerTests.cs:line 87
+      --- End of stack trace from previous l
+      ocation ---
+    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
+      PFMP_API.Tests.NotificationsController
+      Tests.GetUnreadCount_ReturnsOk (35ms):
+       Error Message: System.InvalidOperatio
+      nException : Current JobStorage instan
+      ce has not been initialized yet. You m
+      ust set it before using Hangfire Clien
+      t or Server API. For .NET Core applica
+      tions please call the `IServiceCollect
+      ion.AddHangfire` extension method from
+       Hangfire.NetCore or Hangfire.AspNetCo
+      re package depending on your applicati
+      on type when configuring the services 
+      and ensure service-based APIs are used
+       instead of static ones, like `IBackgr
+      oundJobClient` instead of `BackgroundJ
+      ob` and `IRecurringJobManager` instead
+       of `RecurringJob`.
+      Stack Trace:
+         at Hangfire.JobStorage.get_Current(
+      ) in C:\projects\hangfire-525\src\Hang
+      fire.Core\JobStorage.cs:line 42       
+         at Hangfire.RecurringJobManager..ct
+      or() in C:\projects\hangfire-525\src\H
+      angfire.Core\RecurringJobManager.cs:li
+      ne 42
+         at Hangfire.RecurringJob.<>c.<.ccto
+      r>b__61_0() in C:\projects\hangfire-52
+      5\src\Hangfire.Core\RecurringJob.cs:li
+      ne 29
+         at System.Lazy`1.CreateValue()     
+         at Hangfire.RecurringJob.AddOrUpdat
+      e[T](String recurringJobId, Expression
+      `1 methodCall, String cronExpression, 
+      RecurringJobOptions options) in C:\pro
+      jects\hangfire-525\src\Hangfire.Core\R
+      ecurringJob.cs:line 598
+         at PFMP_API.Program.Main(String[] a
+      rgs) in C:\pfmp\PFMP-API\Program.cs:li
+      ne 268
+         at PFMP_API.Program.<Main>(String[]
+       args)
+         at InvokeStub_Program.<Main>(Object
+      , Span`1)
+         at System.Reflection.MethodBaseInvo
+      ker.InvokeWithOneArg(Object obj, Bindi
+      ngFlags invokeAttr, Binder binder, Obj
+      ect[] parameters, CultureInfo culture)
+      --- End of stack trace from previous l
+      ocation ---
+         at Microsoft.AspNetCore.Mvc.Testing
+      .DeferredHostBuilder.DeferredHost.Star
+      tAsync(CancellationToken cancellationT
+      oken)
+         at Microsoft.Extensions.Hosting.Hos
+      tingAbstractionsHostExtensions.Start(I
+      Host host)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateHost(IH
+      ostBuilder builder)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.ConfigureHost
+      Builder(IHostBuilder hostBuilder)     
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.EnsureServer(
+      )
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(DelegatingHandler[] handlers)  
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(Uri baseAddress, DelegatingHand
+      ler[] handlers)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      WebApplicationFactoryClientOptions opt
+      ions)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      )
+         at PFMP_API.Tests.NotificationsCont
+      rollerTests.GetUnreadCount_ReturnsOk()
+       in C:\pfmp\PFMP-API.Tests\Notificatio
+      nsControllerTests.cs:line 40
+      --- End of stack trace from previous l
+      ocation ---
+    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
+      PFMP_API.Tests.TransactionsControllerT
+      ests.ListTransactions_ReturnsOk (34ms)
+      : Error Message: System.InvalidOperati
+      onException : Current JobStorage insta
+      nce has not been initialized yet. You 
+      must set it before using Hangfire Clie
+      nt or Server API. For .NET Core applic
+      ations please call the `IServiceCollec
+      tion.AddHangfire` extension method fro
+      m Hangfire.NetCore or Hangfire.AspNetC
+      ore package depending on your applicat
+      ion type when configuring the services
+       and ensure service-based APIs are use
+      d instead of static ones, like `IBackg
+      roundJobClient` instead of `Background
+      Job` and `IRecurringJobManager` instea
+      d of `RecurringJob`.
+      Stack Trace:
+         at Hangfire.JobStorage.get_Current(
+      ) in C:\projects\hangfire-525\src\Hang
+      fire.Core\JobStorage.cs:line 42       
+         at Hangfire.RecurringJobManager..ct
+      or() in C:\projects\hangfire-525\src\H
+      angfire.Core\RecurringJobManager.cs:li
+      ne 42
+         at Hangfire.RecurringJob.<>c.<.ccto
+      r>b__61_0() in C:\projects\hangfire-52
+      5\src\Hangfire.Core\RecurringJob.cs:li
+      ne 29
+         at System.Lazy`1.CreateValue()     
+         at Hangfire.RecurringJob.AddOrUpdat
+      e[T](String recurringJobId, Expression
+      `1 methodCall, String cronExpression, 
+      RecurringJobOptions options) in C:\pro
+      jects\hangfire-525\src\Hangfire.Core\R
+      ecurringJob.cs:line 598
+         at PFMP_API.Program.Main(String[] a
+      rgs) in C:\pfmp\PFMP-API\Program.cs:li
+      ne 268
+         at PFMP_API.Program.<Main>(String[]
+       args)
+         at InvokeStub_Program.<Main>(Object
+      , Span`1)
+         at System.Reflection.MethodBaseInvo
+      ker.InvokeWithOneArg(Object obj, Bindi
+      ngFlags invokeAttr, Binder binder, Obj
+      ect[] parameters, CultureInfo culture)
+      --- End of stack trace from previous l
+      ocation ---
+         at Microsoft.AspNetCore.Mvc.Testing
+      .DeferredHostBuilder.DeferredHost.Star
+      tAsync(CancellationToken cancellationT
+      oken)
+         at Microsoft.Extensions.Hosting.Hos
+      tingAbstractionsHostExtensions.Start(I
+      Host host)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateHost(IH
+      ostBuilder builder)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.ConfigureHost
+      Builder(IHostBuilder hostBuilder)     
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.EnsureServer(
+      )
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(DelegatingHandler[] handlers)  
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(Uri baseAddress, DelegatingHand
+      ler[] handlers)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      WebApplicationFactoryClientOptions opt
+      ions)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      )
+         at PFMP_API.Tests.TransactionsContr
+      ollerTests.ListTransactions_ReturnsOk(
+      ) in C:\pfmp\PFMP-API.Tests\Transactio
+      nsControllerTests.cs:line 23
+      --- End of stack trace from previous l
+      ocation ---
+    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
+      PFMP_API.Tests.HoldingsControllerTests
+      .GetPortfolioSummary_ReturnsOk (35ms):
+       Error Message: System.InvalidOperatio
+      nException : Current JobStorage instan
+      ce has not been initialized yet. You m
+      ust set it before using Hangfire Clien
+      t or Server API. For .NET Core applica
+      tions please call the `IServiceCollect
+      ion.AddHangfire` extension method from
+       Hangfire.NetCore or Hangfire.AspNetCo
+      re package depending on your applicati
+      on type when configuring the services 
+      and ensure service-based APIs are used
+       instead of static ones, like `IBackgr
+      oundJobClient` instead of `BackgroundJ
+      ob` and `IRecurringJobManager` instead
+       of `RecurringJob`.
+      Stack Trace:
+         at Hangfire.JobStorage.get_Current(
+      ) in C:\projects\hangfire-525\src\Hang
+      fire.Core\JobStorage.cs:line 42       
+         at Hangfire.RecurringJobManager..ct
+      or() in C:\projects\hangfire-525\src\H
+      angfire.Core\RecurringJobManager.cs:li
+      ne 42
+         at Hangfire.RecurringJob.<>c.<.ccto
+      r>b__61_0() in C:\projects\hangfire-52
+      5\src\Hangfire.Core\RecurringJob.cs:li
+      ne 29
+         at System.Lazy`1.CreateValue()     
+         at Hangfire.RecurringJob.AddOrUpdat
+      e[T](String recurringJobId, Expression
+      `1 methodCall, String cronExpression, 
+      RecurringJobOptions options) in C:\pro
+      jects\hangfire-525\src\Hangfire.Core\R
+      ecurringJob.cs:line 598
+         at PFMP_API.Program.Main(String[] a
+      rgs) in C:\pfmp\PFMP-API\Program.cs:li
+      ne 268
+         at PFMP_API.Program.<Main>(String[]
+       args)
+         at InvokeStub_Program.<Main>(Object
+      , Span`1)
+         at System.Reflection.MethodBaseInvo
+      ker.InvokeWithOneArg(Object obj, Bindi
+      ngFlags invokeAttr, Binder binder, Obj
+      ect[] parameters, CultureInfo culture)
+      --- End of stack trace from previous l
+      ocation ---
+         at Microsoft.AspNetCore.Mvc.Testing
+      .DeferredHostBuilder.DeferredHost.Star
+      tAsync(CancellationToken cancellationT
+      oken)
+         at Microsoft.Extensions.Hosting.Hos
+      tingAbstractionsHostExtensions.Start(I
+      Host host)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateHost(IH
+      ostBuilder builder)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.ConfigureHost
+      Builder(IHostBuilder hostBuilder)     
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.EnsureServer(
+      )
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(DelegatingHandler[] handlers)  
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(Uri baseAddress, DelegatingHand
+      ler[] handlers)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      WebApplicationFactoryClientOptions opt
+      ions)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      )
+         at PFMP_API.Tests.HoldingsControlle
+      rTests.GetPortfolioSummary_ReturnsOk()
+       in C:\pfmp\PFMP-API.Tests\HoldingsCon
+      trollerTests.cs:line 72
+      --- End of stack trace from previous l
+      ocation ---
+    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
+      PFMP_API.Tests.CategoriesControllerTes
+      ts.GetCategory_NotFound_ReturnsNotFoun
+      d (34ms): Error Message: System.Invali
+      dOperationException : Current JobStora
+      ge instance has not been initialized y
+      et. You must set it before using Hangf
+      ire Client or Server API. For .NET Cor
+      e applications please call the `IServi
+      ceCollection.AddHangfire` extension me
+      thod from Hangfire.NetCore or Hangfire
+      .AspNetCore package depending on your 
+      application type when configuring the 
+      services and ensure service-based APIs
+       are used instead of static ones, like
+       `IBackgroundJobClient` instead of `Ba
+      ckgroundJob` and `IRecurringJobManager
+      ` instead of `RecurringJob`.
+      Stack Trace:
+         at Hangfire.JobStorage.get_Current(
+      ) in C:\projects\hangfire-525\src\Hang
+      fire.Core\JobStorage.cs:line 42       
+         at Hangfire.RecurringJobManager..ct
+      or() in C:\projects\hangfire-525\src\H
+      angfire.Core\RecurringJobManager.cs:li
+      ne 42
+         at Hangfire.RecurringJob.<>c.<.ccto
+      r>b__61_0() in C:\projects\hangfire-52
+      5\src\Hangfire.Core\RecurringJob.cs:li
+      ne 29
+         at System.Lazy`1.CreateValue()     
+         at Hangfire.RecurringJob.AddOrUpdat
+      e[T](String recurringJobId, Expression
+      `1 methodCall, String cronExpression, 
+      RecurringJobOptions options) in C:\pro
+      jects\hangfire-525\src\Hangfire.Core\R
+      ecurringJob.cs:line 598
+         at PFMP_API.Program.Main(String[] a
+      rgs) in C:\pfmp\PFMP-API\Program.cs:li
+      ne 268
+         at PFMP_API.Program.<Main>(String[]
+       args)
+         at InvokeStub_Program.<Main>(Object
+      , Span`1)
+         at System.Reflection.MethodBaseInvo
+      ker.InvokeWithOneArg(Object obj, Bindi
+      ngFlags invokeAttr, Binder binder, Obj
+      ect[] parameters, CultureInfo culture)
+      --- End of stack trace from previous l
+      ocation ---
+         at Microsoft.AspNetCore.Mvc.Testing
+      .DeferredHostBuilder.DeferredHost.Star
+      tAsync(CancellationToken cancellationT
+      oken)
+         at Microsoft.Extensions.Hosting.Hos
+      tingAbstractionsHostExtensions.Start(I
+      Host host)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateHost(IH
+      ostBuilder builder)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.ConfigureHost
+      Builder(IHostBuilder hostBuilder)     
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.EnsureServer(
+      )
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(DelegatingHandler[] handlers)  
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(Uri baseAddress, DelegatingHand
+      ler[] handlers)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      WebApplicationFactoryClientOptions opt
+      ions)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      )
+         at PFMP_API.Tests.CategoriesControl
+      lerTests.GetCategory_NotFound_ReturnsN
+      otFound() in C:\pfmp\PFMP-API.Tests\Ca
+      tegoriesControllerTests.cs:line 51    
+      --- End of stack trace from previous l
+      ocation ---
+    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
+      PFMP_API.Tests.LiabilitiesControllerTe
+      sts.DeleteLiability_ReturnsNoContent (
+      34ms): Error Message: System.InvalidOp
+      erationException : Current JobStorage 
+      instance has not been initialized yet.
+       You must set it before using Hangfire
+       Client or Server API. For .NET Core a
+      pplications please call the `IServiceC
+      ollection.AddHangfire` extension metho
+      d from Hangfire.NetCore or Hangfire.As
+      pNetCore package depending on your app
+      lication type when configuring the ser
+      vices and ensure service-based APIs ar
+      e used instead of static ones, like `I
+      BackgroundJobClient` instead of `Backg
+      roundJob` and `IRecurringJobManager` i
+      nstead of `RecurringJob`.
+      Stack Trace:
+         at Hangfire.JobStorage.get_Current(
+      ) in C:\projects\hangfire-525\src\Hang
+      fire.Core\JobStorage.cs:line 42       
+         at Hangfire.RecurringJobManager..ct
+      or() in C:\projects\hangfire-525\src\H
+      angfire.Core\RecurringJobManager.cs:li
+      ne 42
+         at Hangfire.RecurringJob.<>c.<.ccto
+      r>b__61_0() in C:\projects\hangfire-52
+      5\src\Hangfire.Core\RecurringJob.cs:li
+      ne 29
+         at System.Lazy`1.CreateValue()     
+         at Hangfire.RecurringJob.AddOrUpdat
+      e[T](String recurringJobId, Expression
+      `1 methodCall, String cronExpression, 
+      RecurringJobOptions options) in C:\pro
+      jects\hangfire-525\src\Hangfire.Core\R
+      ecurringJob.cs:line 598
+         at PFMP_API.Program.Main(String[] a
+      rgs) in C:\pfmp\PFMP-API\Program.cs:li
+      ne 268
+         at PFMP_API.Program.<Main>(String[]
+       args)
+         at InvokeStub_Program.<Main>(Object
+      , Span`1)
+         at System.Reflection.MethodBaseInvo
+      ker.InvokeWithOneArg(Object obj, Bindi
+      ngFlags invokeAttr, Binder binder, Obj
+      ect[] parameters, CultureInfo culture)
+      --- End of stack trace from previous l
+      ocation ---
+         at Microsoft.AspNetCore.Mvc.Testing
+      .DeferredHostBuilder.DeferredHost.Star
+      tAsync(CancellationToken cancellationT
+      oken)
+         at Microsoft.Extensions.Hosting.Hos
+      tingAbstractionsHostExtensions.Start(I
+      Host host)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateHost(IH
+      ostBuilder builder)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.ConfigureHost
+      Builder(IHostBuilder hostBuilder)     
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.EnsureServer(
+      )
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(DelegatingHandler[] handlers)  
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(Uri baseAddress, DelegatingHand
+      ler[] handlers)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      WebApplicationFactoryClientOptions opt
+      ions)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      )
+         at PFMP_API.Tests.LiabilitiesContro
+      llerTests.DeleteLiability_ReturnsNoCon
+      tent() in C:\pfmp\PFMP-API.Tests\Liabi
+      litiesControllerTests.cs:line 111     
+      --- End of stack trace from previous l
+      ocation ---
+    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
+      PFMP_API.Tests.TasksControllerTests.Up
+      dateTaskStatus_ReturnsNoContent (34ms)
+      : Error Message: System.InvalidOperati
+      onException : Current JobStorage insta
+      nce has not been initialized yet. You 
+      must set it before using Hangfire Clie
+      nt or Server API. For .NET Core applic
+      ations please call the `IServiceCollec
+      tion.AddHangfire` extension method fro
+      m Hangfire.NetCore or Hangfire.AspNetC
+      ore package depending on your applicat
+      ion type when configuring the services
+       and ensure service-based APIs are use
+      d instead of static ones, like `IBackg
+      roundJobClient` instead of `Background
+      Job` and `IRecurringJobManager` instea
+      d of `RecurringJob`.
+      Stack Trace:
+         at Hangfire.JobStorage.get_Current(
+      ) in C:\projects\hangfire-525\src\Hang
+      fire.Core\JobStorage.cs:line 42       
+         at Hangfire.RecurringJobManager..ct
+      or() in C:\projects\hangfire-525\src\H
+      angfire.Core\RecurringJobManager.cs:li
+      ne 42
+         at Hangfire.RecurringJob.<>c.<.ccto
+      r>b__61_0() in C:\projects\hangfire-52
+      5\src\Hangfire.Core\RecurringJob.cs:li
+      ne 29
+         at System.Lazy`1.CreateValue()     
+         at Hangfire.RecurringJob.AddOrUpdat
+      e[T](String recurringJobId, Expression
+      `1 methodCall, String cronExpression, 
+      RecurringJobOptions options) in C:\pro
+      jects\hangfire-525\src\Hangfire.Core\R
+      ecurringJob.cs:line 598
+         at PFMP_API.Program.Main(String[] a
+      rgs) in C:\pfmp\PFMP-API\Program.cs:li
+      ne 268
+         at PFMP_API.Program.<Main>(String[]
+       args)
+         at InvokeStub_Program.<Main>(Object
+      , Span`1)
+         at System.Reflection.MethodBaseInvo
+      ker.InvokeWithOneArg(Object obj, Bindi
+      ngFlags invokeAttr, Binder binder, Obj
+      ect[] parameters, CultureInfo culture)
+      --- End of stack trace from previous l
+      ocation ---
+         at Microsoft.AspNetCore.Mvc.Testing
+      .DeferredHostBuilder.DeferredHost.Star
+      tAsync(CancellationToken cancellationT
+      oken)
+         at Microsoft.Extensions.Hosting.Hos
+      tingAbstractionsHostExtensions.Start(I
+      Host host)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateHost(IH
+      ostBuilder builder)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.ConfigureHost
+      Builder(IHostBuilder hostBuilder)     
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.EnsureServer(
+      )
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(DelegatingHandler[] handlers)  
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(Uri baseAddress, DelegatingHand
+      ler[] handlers)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      WebApplicationFactoryClientOptions opt
+      ions)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      )
+         at PFMP_API.Tests.TasksControllerTe
+      sts.UpdateTaskStatus_ReturnsNoContent(
+      ) in C:\pfmp\PFMP-API.Tests\TasksContr
+      ollerTests.cs:line 117
+      --- End of stack trace from previous l
+      ocation ---
+    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
+      PFMP_API.Tests.GoalsControllerTests.Up
+      dateGoalProgress_ReturnsNoContent (35m
+      s): Error Message: System.InvalidOpera
+      tionException : Current JobStorage ins
+      tance has not been initialized yet. Yo
+      u must set it before using Hangfire Cl
+      ient or Server API. For .NET Core appl
+      ications please call the `IServiceColl
+      ection.AddHangfire` extension method f
+      rom Hangfire.NetCore or Hangfire.AspNe
+      tCore package depending on your applic
+      ation type when configuring the servic
+      es and ensure service-based APIs are u
+      sed instead of static ones, like `IBac
+      kgroundJobClient` instead of `Backgrou
+      ndJob` and `IRecurringJobManager` inst
+      ead of `RecurringJob`.
+      Stack Trace:
+         at Hangfire.JobStorage.get_Current(
+      ) in C:\projects\hangfire-525\src\Hang
+      fire.Core\JobStorage.cs:line 42       
+         at Hangfire.RecurringJobManager..ct
+      or() in C:\projects\hangfire-525\src\H
+      angfire.Core\RecurringJobManager.cs:li
+      ne 42
+         at Hangfire.RecurringJob.<>c.<.ccto
+      r>b__61_0() in C:\projects\hangfire-52
+      5\src\Hangfire.Core\RecurringJob.cs:li
+      ne 29
+         at System.Lazy`1.CreateValue()     
+         at Hangfire.RecurringJob.AddOrUpdat
+      e[T](String recurringJobId, Expression
+      `1 methodCall, String cronExpression, 
+      RecurringJobOptions options) in C:\pro
+      jects\hangfire-525\src\Hangfire.Core\R
+      ecurringJob.cs:line 598
+         at PFMP_API.Program.Main(String[] a
+      rgs) in C:\pfmp\PFMP-API\Program.cs:li
+      ne 268
+         at PFMP_API.Program.<Main>(String[]
+       args)
+         at InvokeStub_Program.<Main>(Object
+      , Span`1)
+         at System.Reflection.MethodBaseInvo
+      ker.InvokeWithOneArg(Object obj, Bindi
+      ngFlags invokeAttr, Binder binder, Obj
+      ect[] parameters, CultureInfo culture)
+      --- End of stack trace from previous l
+      ocation ---
+         at Microsoft.AspNetCore.Mvc.Testing
+      .DeferredHostBuilder.DeferredHost.Star
+      tAsync(CancellationToken cancellationT
+      oken)
+         at Microsoft.Extensions.Hosting.Hos
+      tingAbstractionsHostExtensions.Start(I
+      Host host)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateHost(IH
+      ostBuilder builder)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.ConfigureHost
+      Builder(IHostBuilder hostBuilder)     
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.EnsureServer(
+      )
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(DelegatingHandler[] handlers)  
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateDefault
+      Client(Uri baseAddress, DelegatingHand
+      ler[] handlers)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      WebApplicationFactoryClientOptions opt
+      ions)
+         at Microsoft.AspNetCore.Mvc.Testing
+      .WebApplicationFactory`1.CreateClient(
+      )
+         at PFMP_API.Tests.GoalsControllerTe
+      sts.UpdateGoalProgress_ReturnsNoConten
+      t() in C:\pfmp\PFMP-API.Tests\GoalsCon
+      trollerTests.cs:line 92
+      --- End of stack trace from previous l
+      ocation ---
+    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
+      PFMP_API.Tests.AuthControllerTests.Log
+      in_ReturnsOk_WithValidCredentials (37m
+      s): Error Message: System.InvalidOpera
+      tionException : Current JobStorage ins
+      tance has not been initialized yet. Yo
+      u must set it before using Hangfire Cl
+      ient or Server API. For .NET Core appl
+      ications please call the `IServiceColl
+      ection.AddHangfire` extension method f
+      rom Hangfire.NetCore or Hangfire.AspNe
+      tCore package depending on your applic
+      ation type when configuring the servic
+      es and ensure service-based APIs are u
+      sed instead of static ones, like `IBac
+      kgroundJobClient` instead of `Backgrou
+      ndJob` and `IRecurringJobManager` inst
+      ead of `RecurringJob`.
+      Stack Trace:
+         at Hangfire.JobStorage.get_Current(
+      ) in C:\projects\hangfire-525\src\Hang
+      fire.Core\JobStorage.cs:line 42       
+         at Hangfire.RecurringJobManager..ct
+      or() in C:\projects\hangfire-525\src\H
+      angfire.Core\RecurringJobManager.cs:li
+      ne 42
+         at Hangfire.RecurringJob.<>c.<.ccto
+      r>b__61_0() in C:\projects\hangfire-52
+      5\src\Hangfire.Core\RecurringJob.cs:li
+      ne 29
+         at System.Lazy`1.CreateValue()     
+         at Hangfire.RecurringJob.AddOrUpdat
+      e[T](String recurringJobId, Expression
+      `1 methodCall, String cronExpression, 
+      RecurringJobOptions options) in C:\pro

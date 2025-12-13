@@ -1,17 +1,18 @@
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using PFMP_API.Tests.Fixtures;
 using Xunit;
 
 namespace PFMP_API.Tests;
 
-public class HealthEndpointTests : IClassFixture<WebApplicationFactory<PFMP_API.Program>>
+public class HealthEndpointTests : IClassFixture<TestingWebAppFactory>
 {
-    private readonly WebApplicationFactory<PFMP_API.Program> _factory;
+    private readonly TestingWebAppFactory _factory;
 
-    public HealthEndpointTests(WebApplicationFactory<PFMP_API.Program> factory)
+    public HealthEndpointTests(TestingWebAppFactory factory)
     {
-        _factory = factory.WithWebHostBuilder(_ => {});
+        _factory = factory;
     }
 
     [Fact]

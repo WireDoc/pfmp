@@ -1,17 +1,18 @@
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using PFMP_API.Tests.Fixtures;
 using Xunit;
 
 namespace PFMP_API.Tests;
 
-public class FinancialProfileTspBackfillTests : IClassFixture<WebApplicationFactory<PFMP_API.Program>>
+public class FinancialProfileTspBackfillTests : IClassFixture<TestingWebAppFactory>
 {
-    private readonly WebApplicationFactory<PFMP_API.Program> _factory;
+    private readonly TestingWebAppFactory _factory;
 
-    public FinancialProfileTspBackfillTests(WebApplicationFactory<PFMP_API.Program> factory)
+    public FinancialProfileTspBackfillTests(TestingWebAppFactory factory)
     {
-        _factory = factory.WithWebHostBuilder(_ => { });
+        _factory = factory;
     }
 
     [Fact]

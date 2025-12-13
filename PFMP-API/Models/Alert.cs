@@ -85,7 +85,7 @@ namespace PFMP_API.Models
 
         // Navigation properties
         [JsonIgnore] // Prevent circular reference in JSON serialization
-        public virtual User User { get; set; } = null!;
+        public virtual User? User { get; set; }
     // Legacy GeneratedTask link removed with new workflow (alerts no longer spawn tasks directly).
     }
 }

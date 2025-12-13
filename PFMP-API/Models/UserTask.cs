@@ -97,7 +97,7 @@ namespace PFMP_API.Models
 
         // Navigation Properties
         [JsonIgnore]
-        public virtual User User { get; set; } = null!;
+        public virtual User? User { get; set; }
         [JsonIgnore]
         public virtual Alert? SourceAlert { get; set; }
     }

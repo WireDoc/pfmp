@@ -3,17 +3,18 @@ using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using PFMP_API.Models;
 using PFMP_API.Models.FinancialProfile;
+using PFMP_API.Tests.Fixtures;
 using Xunit;
 
 namespace PFMP_API.Tests;
 
-public class FinancialProfileTspSummaryLiteTests : IClassFixture<WebApplicationFactory<PFMP_API.Program>>
+public class FinancialProfileTspSummaryLiteTests : IClassFixture<TestingWebAppFactory>
 {
-    private readonly WebApplicationFactory<PFMP_API.Program> _factory;
+    private readonly TestingWebAppFactory _factory;
 
-    public FinancialProfileTspSummaryLiteTests(WebApplicationFactory<PFMP_API.Program> factory)
+    public FinancialProfileTspSummaryLiteTests(TestingWebAppFactory factory)
     {
-        _factory = factory.WithWebHostBuilder(_ => { });
+        _factory = factory;
     }
 
     [Fact]
