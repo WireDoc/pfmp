@@ -841,7 +841,11 @@ namespace PFMP_API.Services.Plaid
                 entity.TransactionDate = DateTime.UtcNow;
             }
             
-            entity.Description = plaidTxn.MerchantName ?? plaidTxn.OriginalDescription ?? "Unknown";
+            entity.Description = plaidTxn.MerchantName 
+                ?? plaidTxn.OriginalDescription 
+                ?? plaidTxn.Name  // Plaid's cleaned transaction name
+                ?? plaidTxn.PersonalFinanceCategory?.Primary?.Replace("_", " ")
+                ?? "Unknown";
             entity.ExternalTransactionId = plaidTxn.TransactionId;
 
             // Required non-nullable fields
