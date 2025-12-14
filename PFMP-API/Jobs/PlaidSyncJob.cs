@@ -6,7 +6,7 @@ using PFMP_API.Models.Plaid;
 namespace PFMP_API.Jobs
 {
     /// <summary>
-    /// Hangfire background job for syncing Plaid account balances.
+    /// Hangfire background job for syncing Plaid account balances and investments.
     /// Scheduled to run daily at 10 PM ET to capture end-of-day balances.
     /// </summary>
     public class PlaidSyncJob
@@ -33,6 +33,7 @@ namespace PFMP_API.Jobs
             using var scope = _serviceProvider.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var plaidService = scope.ServiceProvider.GetRequiredService<IPlaidService>();
+            var investmentsService = scope.ServiceProvider.GetRequiredService<IPlaidInvestmentsService>();
 
             // Get all active connections
             var connections = await db.AccountConnections
@@ -43,38 +44,77 @@ namespace PFMP_API.Jobs
 
             int successCount = 0;
             int failureCount = 0;
+            int investmentSuccessCount = 0;
+            int investmentFailureCount = 0;
 
             foreach (var connection in connections)
             {
                 try
                 {
-                    // Sync account balances
-                    var result = await plaidService.SyncConnectionAsync(connection.ConnectionId);
-                    if (result.Success)
-                    {
-                        successCount++;
-                        _logger.LogDebug("Successfully synced connection {ConnectionId}: {AccountCount} accounts updated",
-                            connection.ConnectionId, result.AccountsUpdated);
+                    // Check if this is an investment connection based on AccountSource
+                    bool isInvestmentConnection = connection.Source == AccountSource.PlaidInvestments;
 
-                        // Also sync transactions
-                        var txnResult = await plaidService.SyncTransactionsAsync(connection.ConnectionId);
-                        if (txnResult.Success)
+                    if (isInvestmentConnection)
+                    {
+                        // Sync investment holdings
+                        var holdingsResult = await investmentsService.SyncInvestmentHoldingsAsync(connection.ConnectionId);
+                        if (holdingsResult.Success)
                         {
-                            _logger.LogDebug("Synced transactions for {ConnectionId}: +{Added} ~{Modified} -{Removed}",
-                                connection.ConnectionId, txnResult.TransactionsAdded, 
-                                txnResult.TransactionsModified, txnResult.TransactionsRemoved);
+                            investmentSuccessCount++;
+                            _logger.LogDebug("Successfully synced investment holdings for {ConnectionId}: {AccountCount} accounts, {HoldingsCount} holdings",
+                                connection.ConnectionId, holdingsResult.AccountsUpdated, holdingsResult.HoldingsUpdated);
+
+                            // Also sync investment transactions
+                            var txnResult = await investmentsService.SyncInvestmentTransactionsAsync(connection.ConnectionId);
+                            if (txnResult.Success)
+                            {
+                                _logger.LogDebug("Synced investment transactions for {ConnectionId}: +{Created} ~{Updated} ({Total} total)",
+                                    connection.ConnectionId, txnResult.TransactionsCreated, 
+                                    txnResult.TransactionsUpdated, txnResult.TransactionsTotal);
+                            }
+                            else
+                            {
+                                _logger.LogWarning("Investment transaction sync failed for {ConnectionId}: {Error}",
+                                    connection.ConnectionId, txnResult.ErrorMessage);
+                            }
                         }
                         else
                         {
-                            _logger.LogWarning("Transaction sync failed for {ConnectionId}: {Error}",
-                                connection.ConnectionId, txnResult.ErrorMessage);
+                            investmentFailureCount++;
+                            _logger.LogWarning("Investment sync failed for connection {ConnectionId}: {Error}",
+                                connection.ConnectionId, holdingsResult.ErrorMessage);
                         }
                     }
                     else
                     {
-                        failureCount++;
-                        _logger.LogWarning("Sync failed for connection {ConnectionId}: {Error}",
-                            connection.ConnectionId, result.ErrorMessage);
+                        // Sync cash account balances
+                        var result = await plaidService.SyncConnectionAsync(connection.ConnectionId);
+                        if (result.Success)
+                        {
+                            successCount++;
+                            _logger.LogDebug("Successfully synced connection {ConnectionId}: {AccountCount} accounts updated",
+                                connection.ConnectionId, result.AccountsUpdated);
+
+                            // Also sync cash transactions
+                            var txnResult = await plaidService.SyncTransactionsAsync(connection.ConnectionId);
+                            if (txnResult.Success)
+                            {
+                                _logger.LogDebug("Synced transactions for {ConnectionId}: +{Added} ~{Modified} -{Removed}",
+                                    connection.ConnectionId, txnResult.TransactionsAdded, 
+                                    txnResult.TransactionsModified, txnResult.TransactionsRemoved);
+                            }
+                            else
+                            {
+                                _logger.LogWarning("Transaction sync failed for {ConnectionId}: {Error}",
+                                    connection.ConnectionId, txnResult.ErrorMessage);
+                            }
+                        }
+                        else
+                        {
+                            failureCount++;
+                            _logger.LogWarning("Sync failed for connection {ConnectionId}: {Error}",
+                                connection.ConnectionId, result.ErrorMessage);
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -86,8 +126,8 @@ namespace PFMP_API.Jobs
 
             var duration = DateTime.UtcNow - startTime;
             _logger.LogInformation(
-                "Plaid sync job completed in {Duration}ms. Success: {Success}, Failed: {Failed}",
-                duration.TotalMilliseconds, successCount, failureCount);
+                "Plaid sync job completed in {Duration}ms. Cash: {CashSuccess}/{CashFailed}, Investments: {InvSuccess}/{InvFailed}",
+                duration.TotalMilliseconds, successCount, failureCount, investmentSuccessCount, investmentFailureCount);
         }
 
         /// <summary>
