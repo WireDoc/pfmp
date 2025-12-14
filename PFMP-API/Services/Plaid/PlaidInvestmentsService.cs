@@ -788,6 +788,15 @@ namespace PFMP_API.Services.Plaid
                 ? sym
                 : null;
 
+            // Look up the holding by symbol to link the transaction
+            int? holdingId = null;
+            if (!string.IsNullOrEmpty(symbol))
+            {
+                var holding = await _db.Holdings
+                    .FirstOrDefaultAsync(h => h.AccountId == accountId && h.Symbol == symbol);
+                holdingId = holding?.HoldingId;
+            }
+
             // Map Plaid type/subtype to our transaction type (convert enums to strings)
             var typeStr = plaidTx.Type.ToString();
             var subtypeStr = plaidTx.Subtype.ToString();
@@ -801,6 +810,7 @@ namespace PFMP_API.Services.Plaid
                 existing.Price = plaidTx.Price != 0 ? (decimal)plaidTx.Price : null;
                 existing.Fee = plaidTx.Fees != 0 ? (decimal)plaidTx.Fees : null;
                 existing.Symbol = symbol;
+                existing.HoldingId = holdingId; // Link to holding
                 existing.Description = plaidTx.Name;
                 existing.PlaidInvestmentType = typeStr;
                 existing.PlaidInvestmentSubtype = subtypeStr;
@@ -813,6 +823,7 @@ namespace PFMP_API.Services.Plaid
                 var transaction = new PfmpTransaction
                 {
                     AccountId = accountId,
+                    HoldingId = holdingId, // Link to holding
                     TransactionType = txType,
                     Symbol = symbol,
                     Quantity = plaidTx.Quantity != 0 ? (decimal)plaidTx.Quantity : null,

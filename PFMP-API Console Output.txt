@@ -428,3 +428,705 @@ info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
       End processing HTTP request after 49.3718ms - 200
 info: PFMP_API.Controllers.HoldingsController[0]
       Stored 20 historical prices for SBSI
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Services.AI.OpenAIService[0]
+      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
+info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
+      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Controllers.TasksController[0]
+      Retrieved 0 tasks for user 20
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Services.AI.OpenAIService[0]
+      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
+info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
+      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
+info: PFMP_API.Controllers.TasksController[0]
+      Retrieved 0 tasks for user 20
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:23:32
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 212.3544ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 212.4932ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:23:32
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 48.1824ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 48.2911ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:23:32
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 47.1879ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 47.3383ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:23:33
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 107.6781ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 107.7827ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:23:33
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 48.1543ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 48.2902ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:23:33
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 46.785ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 46.9348ms - 200
+info: PFMP_API.Controllers.PlaidController[0]
+      Syncing investment transactions for connection d36dddea-a500-4ccd-b6a1-3fe2fee3c475, user 20
+info: PFMP_API.Services.Plaid.PlaidInvestmentsService[0]
+      Syncing investment transactions for connection d36dddea-a500-4ccd-b6a1-3fe2fee3c475
+info: PFMP_API.Services.Plaid.PlaidInvestmentsService[0]
+      Investment transactions sync completed for connection d36dddea-a500-4ccd-b6a1-3fe2fee3c475: 100 created, 0 updated, 147 total in 1278ms
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching allocation for account 108, dimension assetClass
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching allocation for account 108, dimension assetClass
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching allocation for account 108, dimension sector
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching allocation for account 108, dimension geography
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching allocation for account 108, dimension marketCap
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:24:49
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 223.2562ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 223.4003ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:24:49
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 51.6025ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 51.7353ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for DBLTX from 11/14/2025 22:24:52
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/DBLTX?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/DBLTX?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 50.6921ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 50.8035ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Stored 20 historical prices for DBLTX
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:24:59
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 48.6679ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 48.7684ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:24:59
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 47.4626ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 47.5717ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:24:59
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 47.2374ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 47.3632ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for NHX105509 from 11/14/2025 22:25:04
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/NHX105509?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/NHX105509?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 48.358ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 48.511ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for NHX105509 from 11/14/2025 22:25:04
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/NHX105509?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/NHX105509?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 50.1971ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 50.3485ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for NHX105509 from 11/14/2025 22:25:04
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/NHX105509?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/NHX105509?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 50.524ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 50.6493ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for MIPTX from 11/14/2025 22:25:09
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/MIPTX?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/MIPTX?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 48.9507ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 49.0197ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Stored 20 historical prices for MIPTX
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching performance metrics for account 108, period 1Y
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Date range: 12/14/2024 22:25:19 to 12/14/2025 22:25:19
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching historical performance data...
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Retrieved 54 historical data points
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching performance metrics for account 108, period 1Y
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Date range: 12/14/2024 22:25:24 to 12/14/2025 22:25:24
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for SPY
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for QQQ
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for IWM
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VTI
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for AGG
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VEU
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching historical performance data...
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Retrieved 54 historical data points
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching performance metrics for account 108, period 3Y
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Date range: 12/14/2022 22:25:48 to 12/14/2025 22:25:48
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching historical performance data...
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Retrieved 158 historical data points
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching performance metrics for account 108, period 1Y
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Date range: 12/14/2024 22:26:39 to 12/14/2025 22:26:39
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for SPY
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for QQQ
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for IWM
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VTI
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for AGG
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VEU
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching historical performance data...
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Retrieved 54 historical data points
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching performance metrics for account 108, period 1Y
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Date range: 12/14/2024 22:26:44 to 12/14/2025 22:26:44
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for SPY
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for QQQ
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for IWM
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VTI
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for AGG
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VEU
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching historical performance data...
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Retrieved 54 historical data points
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Services.AI.OpenAIService[0]
+      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
+info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
+      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
+info: PFMP_API.Controllers.TasksController[0]
+      Retrieved 0 tasks for user 20
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Services.AI.OpenAIService[0]
+      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
+info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
+      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
+info: PFMP_API.Controllers.TasksController[0]
+      Retrieved 0 tasks for user 20
+info: PFMP_API.Controllers.PlaidController[0]
+      Creating Plaid Investments Link token for user 20
+info: PFMP_API.Services.Plaid.PlaidInvestmentsService[0]
+      Creating Plaid Investments Link token for user 20
+info: PFMP_API.Services.Plaid.PlaidInvestmentsService[0]
+      Plaid Investments Link token created successfully for user 20
+info: PFMP_API.Controllers.PlaidController[0]
+      Creating reconnect link token for connection d36dddea-a500-4ccd-b6a1-3fe2fee3c475
+info: PFMP_API.Services.Plaid.PlaidService[0]
+      Creating update-mode Link token for reconnection d36dddea-a500-4ccd-b6a1-3fe2fee3c475
+info: PFMP_API.Services.Plaid.PlaidService[0]
+      Update-mode Link token created for connection d36dddea-a500-4ccd-b6a1-3fe2fee3c475
+info: PFMP_API.Controllers.PlaidController[0]
+      Marking connection d36dddea-a500-4ccd-b6a1-3fe2fee3c475 as reconnected
+info: PFMP_API.Services.Plaid.PlaidService[0]
+      Marking connection d36dddea-a500-4ccd-b6a1-3fe2fee3c475 as reconnected
+info: PFMP_API.Services.Plaid.PlaidService[0]
+      Fetching accounts for connection d36dddea-a500-4ccd-b6a1-3fe2fee3c475
+info: PFMP_API.Services.Plaid.PlaidService[0]
+      Synced 6 accounts for connection d36dddea-a500-4ccd-b6a1-3fe2fee3c475
+info: PFMP_API.Services.Plaid.PlaidService[0]
+      Connection d36dddea-a500-4ccd-b6a1-3fe2fee3c475 reconnected and synced successfully
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Services.AI.OpenAIService[0]
+      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
+info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
+      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
+info: PFMP_API.Controllers.TasksController[0]
+      Retrieved 0 tasks for user 20
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+info: PFMP_API.Services.AI.OpenAIService[0]
+      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
+info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
+      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Controllers.TasksController[0]
+      Retrieved 0 tasks for user 20
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:29:18
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 173.7524ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 173.8512ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:29:19
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 46.8272ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 46.9216ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:29:19
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 46.7433ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 46.8343ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:29:19
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 244.0543ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 244.1604ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:29:19
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 48.337ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 48.4048ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:29:19
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 46.6292ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 46.7322ms - 200
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching performance metrics for account 108, period 1Y
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Date range: 12/14/2024 22:29:21 to 12/14/2025 22:29:21
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for SPY
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for QQQ
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for IWM
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VTI
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for AGG
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VEU
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching historical performance data...
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Retrieved 54 historical data points
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching performance metrics for account 108, period 1Y
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Date range: 12/14/2024 22:29:26 to 12/14/2025 22:29:26
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for SPY
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for QQQ
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for IWM
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VTI
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for AGG
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VEU
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching historical performance data...
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Retrieved 54 historical data points
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching performance metrics for account 108, period 1Y
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Date range: 12/14/2024 22:29:48 to 12/14/2025 22:29:48
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for SPY
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for QQQ
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for IWM
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VTI
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for AGG
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VEU
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching historical performance data...
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Retrieved 54 historical data points
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching performance metrics for account 108, period 1Y
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Date range: 12/14/2024 22:29:54 to 12/14/2025 22:29:54
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for SPY
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for QQQ
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for IWM
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VTI
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for AGG
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VEU
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching historical performance data...
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Retrieved 54 historical data points
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching performance metrics for account 108, period 1Y
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Date range: 12/14/2024 22:30:37 to 12/14/2025 22:30:37
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for SPY
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for QQQ
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for IWM
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VTI
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for AGG
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VEU
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching historical performance data...
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Retrieved 54 historical data points
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching performance metrics for account 108, period 1Y
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Date range: 12/14/2024 22:30:43 to 12/14/2025 22:30:43
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching performance metrics for account 108, period 1M
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Date range: 11/14/2025 22:30:45 to 12/14/2025 22:30:45
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/SPY?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/SPY?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 213.4156ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 213.5217ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/QQQ?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/QQQ?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 48.1322ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 48.2319ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/IWM?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/IWM?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 46.8584ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 46.9542ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/VTI?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/VTI?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 49.267ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 49.4115ms - 200
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for SPY
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for QQQ
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for IWM
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VTI
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for AGG
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VEU
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching historical performance data...
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/AGG?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/AGG?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 46.5026ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 46.5854ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/VEU?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/VEU?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 47.5059ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 47.5925ms - 200
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching historical performance data...
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Retrieved 6 historical data points
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Retrieved 54 historical data points
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Services.AI.OpenAIService[0]
+      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
+info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
+      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
+info: PFMP_API.Controllers.TasksController[0]
+      Retrieved 0 tasks for user 20
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Services.AI.OpenAIService[0]
+      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
+info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
+      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Controllers.TasksController[0]
+      Retrieved 0 tasks for user 20
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching performance metrics for account 95, period 1Y
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Date range: 12/14/2024 22:31:05 to 12/14/2025 22:31:05
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for SPY
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for QQQ
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for IWM
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VTI
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for AGG
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VEU
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching historical performance data...
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Retrieved 54 historical data points
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching performance metrics for account 95, period 1Y
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Date range: 12/14/2024 22:31:11 to 12/14/2025 22:31:11
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for SPY
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for QQQ
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for IWM
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VTI
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for AGG
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VEU
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching historical performance data...
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Retrieved 54 historical data points
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching allocation for account 95, dimension assetClass
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching allocation for account 95, dimension assetClass
