@@ -19,6 +19,11 @@ const breadcrumbConfigs: Record<string, BreadcrumbConfig> = {
   '/dashboard/profile': { path: '/dashboard/profile', label: 'Profile' },
   '/dashboard/settings': { path: '/dashboard/settings', label: 'Settings' },
   '/dashboard/help': { path: '/dashboard/help', label: 'Help' },
+  '/dashboard/tsp': { path: '/dashboard/tsp', label: 'Thrift Savings Plan' },
+  '/dashboard/net-worth': { path: '/dashboard/net-worth', label: 'Net Worth Timeline' },
+  '/dashboard/debt-payoff': { path: '/dashboard/debt-payoff', label: 'Debt Payoff' },
+  '/dashboard/admin': { path: '/dashboard/admin', label: 'Admin' },
+  '/dashboard/admin/scheduler': { path: '/dashboard/admin/scheduler', label: 'Scheduler' },
 };
 
 /**
@@ -109,6 +114,29 @@ export function DashboardBreadcrumbs() {
           breadcrumbs.push({
             path: location.pathname,
             label: accountName || 'Loading...',
+          });
+        }
+        // Special handling for admin/* routes (e.g., /dashboard/admin/scheduler)
+        else if (secondSegment === 'admin' && pathSegments.length > 2) {
+          const thirdSegment = pathSegments[2];
+          const fullPath = `/dashboard/admin/${thirdSegment}`;
+          breadcrumbs.push(breadcrumbConfigs['/dashboard/admin']);
+          if (breadcrumbConfigs[fullPath]) {
+            breadcrumbs.push(breadcrumbConfigs[fullPath]);
+          } else {
+            breadcrumbs.push({
+              path: fullPath,
+              label: thirdSegment.charAt(0).toUpperCase() + thirdSegment.slice(1),
+            });
+          }
+        }
+        // Special handling for settings/* routes (e.g., /dashboard/settings/connections)
+        else if (secondSegment === 'settings' && pathSegments.length > 2) {
+          const thirdSegment = pathSegments[2];
+          breadcrumbs.push(breadcrumbConfigs['/dashboard/settings']);
+          breadcrumbs.push({
+            path: location.pathname,
+            label: thirdSegment.charAt(0).toUpperCase() + thirdSegment.slice(1),
           });
         }
         else if (breadcrumbConfigs[secondPath]) {

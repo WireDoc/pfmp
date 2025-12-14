@@ -1,16 +1,21 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import LiabilitiesPanel from '../views/dashboard/LiabilitiesPanel';
 import type { LiabilitySnapshot } from '../services/dashboard/types';
 
+const renderWithRouter = (ui: React.ReactElement) => {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+};
+
 describe('LiabilitiesPanel', () => {
   it('renders loading state', () => {
-    render(<LiabilitiesPanel liabilities={[]} loading={true} />);
+    renderWithRouter(<LiabilitiesPanel liabilities={[]} loading={true} />);
     expect(screen.getByText(/Loading.../i)).toBeInTheDocument();
   });
 
   it('renders empty state when no liabilities provided', () => {
-    render(<LiabilitiesPanel liabilities={[]} loading={false} />);
+    renderWithRouter(<LiabilitiesPanel liabilities={[]} loading={false} />);
     expect(screen.getByText(/No liabilities to display/i)).toBeInTheDocument();
   });
 
@@ -26,7 +31,7 @@ describe('LiabilitiesPanel', () => {
         lastUpdated: '2025-01-01T00:00:00Z',
       },
     ];
-    render(<LiabilitiesPanel liabilities={liabilities} loading={false} />);
+    renderWithRouter(<LiabilitiesPanel liabilities={liabilities} loading={false} />);
     
     // "Student Loan" appears as both name and type
     expect(screen.getAllByText('Student Loan').length).toBeGreaterThan(0);
@@ -56,7 +61,7 @@ describe('LiabilitiesPanel', () => {
         lastUpdated: '2025-01-01T00:00:00Z',
       },
     ];
-    render(<LiabilitiesPanel liabilities={liabilities} loading={false} />);
+    renderWithRouter(<LiabilitiesPanel liabilities={liabilities} loading={false} />);
     
     // Total debt: 5k + 15k = 20k (appears in multiple places)
     expect(screen.getByText('Total Debt')).toBeInTheDocument();
@@ -77,7 +82,7 @@ describe('LiabilitiesPanel', () => {
         lastUpdated: '2025-01-01T00:00:00Z',
       },
     ];
-    render(<LiabilitiesPanel liabilities={liabilities} loading={false} />);
+    renderWithRouter(<LiabilitiesPanel liabilities={liabilities} loading={false} />);
     
     expect(screen.getByText('Medical Bill')).toBeInTheDocument();
     // Amount appears in multiple places
@@ -98,7 +103,7 @@ describe('LiabilitiesPanel', () => {
         lastUpdated: '2025-01-01T00:00:00Z',
       },
     ];
-    render(<LiabilitiesPanel liabilities={liabilities} loading={false} />);
+    renderWithRouter(<LiabilitiesPanel liabilities={liabilities} loading={false} />);
     
     expect(screen.getByText(/Mortgage - 123 Main St/)).toBeInTheDocument();
     // Amount appears in multiple places

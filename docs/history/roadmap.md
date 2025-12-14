@@ -1,6 +1,6 @@
 # PFMP Product Roadmap (2025–2026)
 
-_Last updated: 2025-12-13_
+_Last updated: 2025-12-14_
 
 ## Current Status Summary
 
@@ -14,10 +14,12 @@ _Last updated: 2025-12-13_
 | Wave 10: Background Jobs | ✅ Complete | December 2025 |
 | TSP Detail Page | ✅ Complete | December 2025 |
 | Wave 11: Plaid Integration | ✅ Complete | December 2025 |
-| Wave 12: Advanced Analytics | 📋 Planned | Q1 2026 |
-| Wave 13: AI Enhancement & Vetting | 📋 Planned | Q1-Q2 2026 |
+| Wave 12: Brokerage Linking | 🔄 In Progress | Q1 2026 |
+| Wave 13: Crypto Exchanges | 📋 Planned | Q1-Q2 2026 |
+| Wave 14: Spending Analysis | 📋 Planned | Q2 2026 |
+| Wave 15: AI Enhancement | 📋 Planned | Q2 2026 |
 
-**Current Version**: v0.9.9-alpha (December 13, 2025)
+**Current Version**: v0.10.1-alpha (December 14, 2025)
 
 ---
 
@@ -131,8 +133,19 @@ Originally planned for persistent sidebar navigation. Dashboard currently functi
 
 ## Planned Waves
 
-### Wave 12: Brokerage & Investment Linking 📋
-**Target**: February-March 2026
+### Wave 12: Brokerage & Investment Linking �
+**Status**: In Progress (Phase 2.5)
+**Target**: Q1 2026
+
+**Completed (Dec 13-14, 2025):**
+
+| Phase | Description |
+|-------|-------------|
+| Phase 1 | Backend: PlaidInvestmentsService, PlaidSecurity model, EF migration |
+| Phase 2 | Frontend: PlaidInvestmentsLinkButton, InvestmentsSettingsView |
+
+**In Progress:**
+- Phase 2.5: Investment transactions sync (buy, sell, dividend, contribution, withdrawal)
 
 **Phase A: Plaid Investments** (~$1.00/account/month)
 - Covers Fidelity, Vanguard, and 10+ other brokerages

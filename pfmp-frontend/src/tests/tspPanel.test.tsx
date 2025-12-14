@@ -1,16 +1,21 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import TspPanel from '../views/dashboard/TspPanel';
 import type { AccountSnapshot } from '../services/dashboard/types';
 
+const renderWithRouter = (ui: React.ReactElement) => {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+};
+
 describe('TspPanel', () => {
   it('renders loading state', () => {
-    render(<TspPanel tspAccount={undefined} loading={true} />);
+    renderWithRouter(<TspPanel tspAccount={undefined} loading={true} />);
     expect(screen.getByText(/Loading.../i)).toBeInTheDocument();
   });
 
   it('renders empty state when no TSP account provided', () => {
-    render(<TspPanel tspAccount={undefined} loading={false} />);
+    renderWithRouter(<TspPanel tspAccount={undefined} loading={false} />);
     expect(screen.getByText(/No TSP data available/i)).toBeInTheDocument();
   });
 
@@ -24,7 +29,7 @@ describe('TspPanel', () => {
       syncStatus: 'ok',
       lastSync: '2025-01-01T00:00:00Z',
     };
-    render(<TspPanel tspAccount={tspAccount} loading={false} />);
+    renderWithRouter(<TspPanel tspAccount={tspAccount} loading={false} />);
     
     expect(screen.getByText('Thrift Savings Plan (TSP)')).toBeInTheDocument();
     // Balance appears in multiple places with different formatting
@@ -42,7 +47,7 @@ describe('TspPanel', () => {
       syncStatus: 'ok',
       lastSync: '2025-01-15T10:30:00Z',
     };
-    render(<TspPanel tspAccount={tspAccount} loading={false} />);
+    renderWithRouter(<TspPanel tspAccount={tspAccount} loading={false} />);
     
     // Date formatting varies by locale, just check that "Last updated" text exists
     expect(screen.getByText(/Last updated:/i)).toBeInTheDocument();
@@ -58,7 +63,7 @@ describe('TspPanel', () => {
       syncStatus: 'pending',
       lastSync: '2025-01-01T00:00:00Z',
     };
-    render(<TspPanel tspAccount={tspAccount} loading={false} />);
+    renderWithRouter(<TspPanel tspAccount={tspAccount} loading={false} />);
     
     expect(screen.getByText(/Pending sync/i)).toBeInTheDocument();
   });
@@ -73,9 +78,10 @@ describe('TspPanel', () => {
       syncStatus: 'ok',
       lastSync: '2025-01-01T00:00:00Z',
     };
-    render(<TspPanel tspAccount={tspAccount} loading={false} />);
+    renderWithRouter(<TspPanel tspAccount={tspAccount} loading={false} />);
     
-    expect(screen.getByText(/TSP data is aggregated from individual fund positions/i)).toBeInTheDocument();
-    expect(screen.getByText(/tsp.gov/i)).toBeInTheDocument();
+    // Component shows helpful text and a View Details button
+    expect(screen.getByText(/fund breakdown and current prices/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /View Details/i })).toBeInTheDocument();
   });
 });

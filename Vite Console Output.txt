@@ -1,0 +1,25 @@
+========================================
+Session started: 12/14/2025 15:34:25
+========================================
+
+
+> pfmp-frontend@0.0.0 dev
+> vite
+
+
+  VITE v7.1.10  ready in 255 ms
+
+  GP£  Local:   http://localhost:3000/
+  GP£  Network: use --host to expose
+  GP£  press h + enter to show help
+3:34:29 PM [vite] http proxy error: /api/dev/users
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+3:34:29 PM [vite] http proxy error: /api/dev/users
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7)
+3:37:37 PM [vite] (client) hmr update /src/views/dashboard/OverviewPanel.tsx
+3:37:42 PM [vite] (client) hmr update /src/views/dashboard/OverviewPanel.tsx
+^C

@@ -6,6 +6,43 @@ The format follows [Conventional Commits](https://www.conventionalcommits.org/).
 
 ---
 
+## [0.10.1-alpha] - 2025-12-14
+
+### Wave 12 Phase 2 - Plaid Investments Frontend + Phase 2.5 Started
+
+**Frontend Investment Linking**
+- PlaidInvestmentsLinkButton component with react-plaid-link integration
+- PlaidInvestmentsCTA dashboard component for quick linking
+- InvestmentsSettingsView at `/dashboard/settings/investments`
+- SettingsView updated with Investment Accounts navigation
+- Investment API functions in plaidApi.ts (types, link token, exchange, sync)
+- AppRouter routes for investments settings page
+
+**Net Worth Calculation Fix**
+- Fixed NetWorthSnapshotJob to match Dashboard calculation exactly
+- Now uses CashAccounts table (not Accounts for cash)
+- Uses TspLifecyclePositions with TSPFundPrices for live TSP values
+- Uses Properties table for real estate values
+- Manual snapshot trigger now updates existing snapshots instead of skipping
+- Net worth timeline now matches dashboard values
+
+**Developer Experience**
+- Console output now logs to files (`PFMP-API Console Output.txt`, `Vite Console Output.txt`)
+- ANSI codes stripped from file output while preserving console colors
+- Dev server windows auto-close when processes end (no more `-NoExit`)
+- Backend console colors preserved via `DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION`
+
+**UI Polish**
+- Dashboard overview shows 2 decimal places for currency values
+- Breadcrumbs added to TspDetailView, NetWorthTimelineView, SchedulerAdminView
+- Test fixes for LiabilitiesPanel and TspPanel (MemoryRouter wrapping)
+
+**Phase 2.5 In Progress: Investment Transactions**
+- Adding Plaid `/investments/transactions/get` endpoint support
+- Will sync buy, sell, dividend, contribution, withdrawal transactions
+
+---
+
 ## [0.10.0-alpha] - 2025-12-13
 
 ### Wave 12 Phase 1 - Plaid Investments Backend

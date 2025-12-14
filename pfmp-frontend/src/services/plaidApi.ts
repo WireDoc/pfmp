@@ -265,3 +265,156 @@ export function formatSyncTime(dateString?: string): string {
   
   return date.toLocaleDateString();
 }
+
+// ============================================================================
+// Investments Types (Wave 12)
+// ============================================================================
+
+export interface InvestmentAccount {
+  accountId: number;
+  accountName: string;
+  accountType: string;
+  currentBalance: number;
+  plaidAccountId?: string;
+  connectionId?: string;
+  lastSyncedAt?: string;
+  syncStatus?: string;
+}
+
+export interface Holding {
+  holdingId: number;
+  symbol?: string;
+  shares: number;
+  costBasis?: number;
+  currentPrice?: number;
+  marketValue: number;
+  gainLoss?: number;
+  plaidSecurityId?: string;
+  cusip?: string;
+  isin?: string;
+  lastSyncedAt?: string;
+}
+
+export interface InvestmentsExchangeResponse {
+  connection: PlaidConnection;
+  accountsCreated: number;
+}
+
+export interface InvestmentsSyncResult {
+  success: boolean;
+  accountsUpdated: number;
+  holdingsUpdated: number;
+  securitiesUpdated: number;
+  durationMs?: number;
+  errorMessage?: string;
+}
+
+export interface SandboxSeedRequest {
+  accountName?: string;
+  accountSubtype?: string;
+  startingBalance?: number;
+  holdings?: SandboxHoldingRequest[];
+}
+
+export interface SandboxHoldingRequest {
+  securityId?: string;
+  tickerSymbol: string;
+  securityName: string;
+  securityType?: string;
+  quantity: number;
+  costBasis: number;
+  currentPrice: number;
+  cusip?: string;
+  isin?: string;
+}
+
+export interface SandboxSeedResult {
+  success: boolean;
+  connectionId?: string;
+  itemId?: string;
+  accountsCreated: number;
+  holdingsCreated: number;
+  errorMessage?: string;
+}
+
+// ============================================================================
+// Investments API Functions (Wave 12)
+// ============================================================================
+
+/**
+ * Create a Plaid Link token for investments product.
+ */
+export async function createInvestmentsLinkToken(userId: number): Promise<string> {
+  const response = await axios.post<LinkTokenResponse>(
+    `${API_BASE_URL}/plaid/investments/link-token`,
+    {},
+    { params: { userId } }
+  );
+  return response.data.linkToken;
+}
+
+/**
+ * Exchange a public token from Plaid Link for investments.
+ */
+export async function exchangeInvestmentsPublicToken(
+  publicToken: string,
+  userId: number,
+  institutionId?: string,
+  institutionName?: string
+): Promise<InvestmentsExchangeResponse> {
+  const response = await axios.post<InvestmentsExchangeResponse>(
+    `${API_BASE_URL}/plaid/investments/exchange-token`,
+    { publicToken, institutionId, institutionName },
+    { params: { userId } }
+  );
+  return response.data;
+}
+
+/**
+ * Get all investment accounts for the user.
+ */
+export async function getInvestmentAccounts(userId: number): Promise<InvestmentAccount[]> {
+  const response = await axios.get<InvestmentAccount[]>(
+    `${API_BASE_URL}/plaid/investments/accounts`,
+    { params: { userId } }
+  );
+  return response.data;
+}
+
+/**
+ * Get holdings for an investment account.
+ */
+export async function getAccountHoldings(accountId: number, userId: number): Promise<Holding[]> {
+  const response = await axios.get<Holding[]>(
+    `${API_BASE_URL}/plaid/investments/accounts/${accountId}/holdings`,
+    { params: { userId } }
+  );
+  return response.data;
+}
+
+/**
+ * Sync investment holdings for a connection.
+ */
+export async function syncInvestmentHoldings(connectionId: string, userId: number): Promise<InvestmentsSyncResult> {
+  const response = await axios.post<InvestmentsSyncResult>(
+    `${API_BASE_URL}/plaid/investments/connections/${connectionId}/sync`,
+    {},
+    { params: { userId } }
+  );
+  return response.data;
+}
+
+/**
+ * Create a sandbox investment user for testing (sandbox only).
+ */
+export async function createSandboxInvestmentUser(
+  userId: number,
+  config?: SandboxSeedRequest
+): Promise<SandboxSeedResult> {
+  const response = await axios.post<SandboxSeedResult>(
+    `${API_BASE_URL}/plaid/investments/sandbox/seed`,
+    config ?? {},
+    { params: { userId } }
+  );
+  return response.data;
+}

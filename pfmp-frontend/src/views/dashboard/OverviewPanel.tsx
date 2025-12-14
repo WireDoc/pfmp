@@ -68,7 +68,7 @@ export const OverviewPanel: React.FC<Props> = ({ data, loading, userId }) => {
           <Box>
             <Typography variant="subtitle2" color="text.secondary">Net Worth</Typography>
             <Box display="flex" alignItems="center" gap={2}>
-              <Typography variant="h5">${data.netWorth.netWorth.amount.toLocaleString()}</Typography>
+              <Typography variant="h5">${data.netWorth.netWorth.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
               {showSparkline && (
                 <Link to="/dashboard/net-worth" style={{ textDecoration: 'none' }}>
                   <NetWorthSparkline 
@@ -82,11 +82,11 @@ export const OverviewPanel: React.FC<Props> = ({ data, loading, userId }) => {
           </Box>
           <Box>
             <Typography variant="subtitle2" color="text.secondary">Assets</Typography>
-            <Typography>${data.netWorth.totalAssets.amount.toLocaleString()}</Typography>
+            <Typography>${data.netWorth.totalAssets.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
           </Box>
             <Box>
             <Typography variant="subtitle2" color="text.secondary">Liabilities</Typography>
-            <Typography>${data.netWorth.totalLiabilities.amount.toLocaleString()}</Typography>
+            <Typography>${data.netWorth.totalLiabilities.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
           </Box>
           {data.netWorth.change30dPct !== undefined && (
             <Box>

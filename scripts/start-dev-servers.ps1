@@ -47,26 +47,51 @@ function Test-Command($name){ $null -ne (Get-Command $name -ErrorAction Silently
 if (-not (Test-Command dotnet)) { Write-Host "ERROR: 'dotnet' not on PATH" -ForegroundColor Red; exit 2 }
 if (-not (Test-Command npm)) { Write-Host "ERROR: 'npm' not on PATH" -ForegroundColor Red; exit 2 }
 
+# Log file paths
+$apiLogFile = Join-Path $repoRoot 'PFMP-API Console Output.txt'
+$frontendLogFile = Join-Path $repoRoot 'Vite Console Output.txt'
+
 Write-Host "Launching (mode=$numericMode)" -ForegroundColor Green
 Write-Host " API Path:      $apiPath" -ForegroundColor Yellow
 Write-Host " Frontend Path: $frontendPath" -ForegroundColor Yellow
+Write-Host " API Log:       $apiLogFile" -ForegroundColor DarkGray
+Write-Host " Frontend Log:  $frontendLogFile" -ForegroundColor DarkGray
 
 function Start-PfmpWindow {
     param(
         [string]$Title,
         [string]$WorkDir,
-        [string]$Body
+        [string]$Body,
+        [string]$LogFile = $null
     )
-    $command = "[Console]::Title='$Title'; Set-Location '$WorkDir'; $Body"
-    Start-Process powershell -WorkingDirectory $WorkDir -ArgumentList '-NoExit','-Command', $command | Out-Null
+    if ($LogFile) {
+        # Wrap the command to tee output to both console and file
+        # ANSI codes are stripped from file output but preserved in console
+        $logSetup = @"
+`$logFile = '$LogFile';
+`$null = New-Item -Path `$logFile -ItemType File -Force;
+Add-Content -Path `$logFile -Value '========================================';
+Add-Content -Path `$logFile -Value ('Session started: ' + (Get-Date));
+Add-Content -Path `$logFile -Value '========================================';
+Add-Content -Path `$logFile -Value '';
+function Strip-Ansi([string]`$text) { `$text -replace '\x1b\[[0-9;]*m','' -replace '\x1b\[[0-9;]*[A-Za-z]','' }
+"@
+        # Use Write-Output to preserve ANSI in console, strip for file
+        # Window closes automatically when process ends (no -NoExit)
+        $command = "[Console]::Title='$Title'; Set-Location '$WorkDir'; $logSetup $Body 2>&1 | ForEach-Object { `$line = `$_.ToString(); Write-Output `$line; Add-Content -Path `$logFile -Value (Strip-Ansi `$line) }"
+    } else {
+        $command = "[Console]::Title='$Title'; Set-Location '$WorkDir'; $Body"
+    }
+    Start-Process powershell -WorkingDirectory $WorkDir -ArgumentList '-Command', $command | Out-Null
 }
 
 if ($numericMode -eq 0 -or $numericMode -eq 1) {
-        Start-PfmpWindow -Title 'PFMP API' -WorkDir $apiPath -Body "`$env:DOTNET_ENVIRONMENT='Development'; Write-Host 'API listening http://localhost:5052' -ForegroundColor Green; dotnet run --urls=http://localhost:5052"
+    # Enable ANSI color passthrough for dotnet when output is redirected
+    Start-PfmpWindow -Title 'PFMP API' -WorkDir $apiPath -LogFile $apiLogFile -Body "`$env:DOTNET_ENVIRONMENT='Development'; `$env:DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION='true'; Write-Host 'API listening http://localhost:5052' -ForegroundColor Green; dotnet run --urls=http://localhost:5052"
     Start-Sleep -Seconds 2
 }
 if ($numericMode -eq 0 -or $numericMode -eq 2) {
-        Start-PfmpWindow -Title 'PFMP Frontend' -WorkDir $frontendPath -Body "Write-Host 'Frontend dev server http://localhost:3000' -ForegroundColor Green; npm run dev"
+    Start-PfmpWindow -Title 'PFMP Frontend' -WorkDir $frontendPath -LogFile $frontendLogFile -Body "Write-Host 'Frontend dev server http://localhost:3000' -ForegroundColor Green; npm run dev"
 }
 
 switch ($numericMode) { 0 { $msg='Both services starting' } 1 { $msg='Backend starting' } 2 { $msg='Frontend starting' } }

@@ -48,17 +48,20 @@ Write-Host 'Starting test run at:' (Get-Date) -ForegroundColor Yellow;
 Write-Host 'Output file: $outputFile' -ForegroundColor Yellow;
 Write-Host '';
 
-# Clear previous output
-'' | Out-File '$outputFile' -Encoding UTF8;
+# Clear previous output and set encoding
+`$null = New-Item -Path '$outputFile' -ItemType File -Force;
 
 # Run tests and tee to both console and file
 try {
     Write-Host 'Building and running tests...' -ForegroundColor Green;
     Write-Host '';
     
-    # Run dotnet test with output to file
+    # Run dotnet test with output to file (UTF8 encoding)
     `$output = dotnet test $verbosityArg 2>&1;
-    `$output | Tee-Object -FilePath '$outputFile' -Append;
+    `$output | ForEach-Object { `$_ } | Tee-Object -FilePath '$outputFile' -Append;
+    # Re-save as UTF8 to fix encoding
+    `$content = Get-Content '$outputFile' -Raw;
+    [System.IO.File]::WriteAllText('$outputFile', `$content, [System.Text.UTF8Encoding]::new(`$false));
     
     Write-Host '';
     Write-Host '========================================' -ForegroundColor Cyan;

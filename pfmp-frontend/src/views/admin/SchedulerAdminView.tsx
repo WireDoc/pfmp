@@ -27,6 +27,8 @@ import {
   DialogActions,
   TextField,
   FormHelperText,
+  Breadcrumbs,
+  Link,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -37,6 +39,8 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { useNavigate } from 'react-router-dom';
 import schedulerService, {
   type SchedulerJobsResponse,
   type QueueStatsResponse,
@@ -64,6 +68,7 @@ function TabPanel(props: TabPanelProps) {
  * Wave 10: Background Jobs & Automation - Phase 4
  */
 export const SchedulerAdminView: React.FC = () => {
+  const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
   const [jobs, setJobs] = useState<SchedulerJobsResponse | null>(null);
   const [queueStats, setQueueStats] = useState<QueueStatsResponse | null>(null);
@@ -548,6 +553,28 @@ export const SchedulerAdminView: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
+      {/* Secondary Breadcrumbs - Back Navigation */}
+      <Breadcrumbs sx={{ mb: 2 }}>
+        <Link
+          component="button"
+          variant="body2"
+          onClick={() => navigate('/dashboard')}
+          sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+        >
+          <ArrowBackIcon fontSize="small" />
+          Dashboard
+        </Link>
+        <Link
+          component="button"
+          variant="body2"
+          onClick={() => navigate('/dashboard/admin')}
+          underline="hover"
+        >
+          Admin
+        </Link>
+        <Typography color="text.primary">Scheduler</Typography>
+      </Breadcrumbs>
+
       {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box>

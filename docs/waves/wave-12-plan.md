@@ -1,15 +1,15 @@
 # Wave 12: Brokerage & Investment Linking
 
-> **Status**: � In Progress (Phase 1 Complete)  
-> **Target**: Q1 2026  
-> **Priority**: High  
-> **Prerequisites**: Wave 11 Complete ✅
+> **Status**: In Progress (Phase 2.5 - Investment Transactions)
+> **Target**: Q1 2026
+> **Priority**: High
+> **Prerequisites**: Wave 11 Complete
 
 ---
 
 ## Progress Summary
 
-### ✅ Phase 1: Backend Foundation (Complete - Dec 13, 2025)
+### Phase 1: Backend Foundation (Complete - Dec 13, 2025)
 - PlaidInvestmentsService with sandbox seeding capability
 - PlaidSecurity model for securities reference data
 - Extended Account/Holding models with Plaid fields
@@ -17,16 +17,25 @@
 - EF migration AddPlaidInvestmentsSupport applied
 - Sandbox seeding tested: 2 accounts, 13 holdings created
 
-### 🔄 Phase 2: Frontend Integration (Not Started)
-- Investments-specific PlaidLinkButton
-- Settings page investments section
-- Holdings display on portfolio
+### Phase 2: Frontend Integration (Complete - Dec 14, 2025)
+- PlaidInvestmentsLinkButton component with react-plaid-link
+- InvestmentsSettingsView at /dashboard/settings/investments
+- SettingsView updated with Investment Accounts navigation
+- Investment API functions added to plaidApi.ts
+- AppRouter routes for investments settings
+- PlaidInvestmentsCTA dashboard component
 
-### ⏳ Phase 3: Testing & Documentation (Not Started)
+### Phase 2.5: Investment Transactions (In Progress - Dec 14, 2025)
+- Extend PlaidInvestmentsService with /investments/transactions/get endpoint
+- Store investment transactions (buy, sell, dividend, contribution, withdrawal)
+- Display transactions in investment account views
+
+### Phase 3: Testing & Documentation (Not Started)
 
 ---
 
 ## Executive Summary
+
 
 Wave 12 extends Plaid integration to investment accounts (brokerages, retirement accounts, robo-advisors). This enables automatic holdings sync, cost basis tracking, and unified portfolio views.
 
@@ -77,7 +86,7 @@ Plaid's default `user_good` test user does **NOT** have investment accounts. Onl
 Plaid provides a "Custom Sandbox User" feature that allows us to define investment accounts with specific holdings for testing.
 
 **Method 1: Dashboard Configuration**
-1. Go to [Plaid Dashboard → Developers → Sandbox](https://dashboard.plaid.com/developers/sandbox?tab=testUsers)
+1. Go to [Plaid Dashboard †’ Developers †’ Sandbox](https://dashboard.plaid.com/developers/sandbox?tab=testUsers)
 2. Create a custom test user with investment accounts
 3. Define holdings (stocks, ETFs, mutual funds)
 

@@ -27,7 +27,9 @@ const ProfileView = lazy(() => import('./views/dashboard/ProfileView').then(m =>
 const SettingsView = lazy(() => import('./views/dashboard/SettingsView').then(m => ({ default: m.SettingsView })));
 const HelpView = lazy(() => import('./views/dashboard/HelpView').then(m => ({ default: m.HelpView })));
 const TspDetailView = lazy(() => import('./views/dashboard/TspDetailView').then(m => ({ default: m.TspDetailView })));
+const NetWorthTimelineView = lazy(() => import('./views/dashboard/NetWorthTimelineView').then(m => ({ default: m.NetWorthTimelineView })));
 const ConnectionsSettingsView = lazy(() => import('./views/settings/ConnectionsSettingsView').then(m => ({ default: m.ConnectionsSettingsView })));
+const InvestmentsSettingsView = lazy(() => import('./views/settings/InvestmentsSettingsView').then(m => ({ default: m.InvestmentsSettingsView })));
 const SchedulerAdminView = lazy(() => import('./views/admin/SchedulerAdminView'));
 
 // NotFound lazy component supplied via staticRoutes (staticNotFound)
@@ -155,8 +157,16 @@ export function AppRouter(props: AppRouterProps) {
           element: <Suspense fallback={<PageSpinner />}><TspDetailView /></Suspense>,
         },
         {
+          path: 'net-worth',
+          element: <Suspense fallback={<PageSpinner />}><NetWorthTimelineView /></Suspense>,
+        },
+        {
           path: 'settings/connections',
           element: <Suspense fallback={<PageSpinner />}><ConnectionsSettingsView /></Suspense>,
+        },
+        {
+          path: 'settings/investments',
+          element: <Suspense fallback={<PageSpinner />}><InvestmentsSettingsView /></Suspense>,
         },
         {
           path: 'admin/scheduler',

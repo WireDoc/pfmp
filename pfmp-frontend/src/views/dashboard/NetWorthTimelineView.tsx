@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
+  Breadcrumbs,
+  Link,
   Paper,
   Typography,
   ToggleButtonGroup,
@@ -11,8 +13,10 @@ import {
   IconButton,
   Skeleton,
 } from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import TimelineIcon from '@mui/icons-material/Timeline';
+import { useNavigate } from 'react-router-dom';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -61,6 +65,7 @@ const periodLabels: Record<TimelinePeriod, string> = {
 export const NetWorthTimelineView: React.FC = () => {
   const { user } = useAuth();
   const devUserId = useDevUserId();
+  const navigate = useNavigate();
   // Priority: 1) Dev user switcher, 2) Authenticated user, 3) Env var fallback
   const userId = devUserId ?? (user?.localAccountId ? Number(user.localAccountId) : null) ?? Number(import.meta.env.VITE_PFMP_DASHBOARD_USER_ID || '1');
   const [period, setPeriod] = useState<TimelinePeriod>('3M');
@@ -299,6 +304,20 @@ export const NetWorthTimelineView: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
+      {/* Secondary Breadcrumbs - Back Navigation */}
+      <Breadcrumbs sx={{ mb: 2 }}>
+        <Link
+          component="button"
+          variant="body2"
+          onClick={() => navigate('/dashboard')}
+          sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+        >
+          <ArrowBackIcon fontSize="small" />
+          Dashboard
+        </Link>
+        <Typography color="text.primary">Net Worth Timeline</Typography>
+      </Breadcrumbs>
+
       {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">Net Worth Timeline</Typography>

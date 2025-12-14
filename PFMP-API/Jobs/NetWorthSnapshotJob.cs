@@ -101,6 +101,7 @@ public class NetWorthSnapshotJob
 
     /// <summary>
     /// Capture a single user's net worth snapshot.
+    /// Matches the calculation logic in DashboardController.GetDashboardSummary()
     /// </summary>
     public async Task<NetWorthSnapshot?> CaptureUserSnapshotAsync(
         int userId, 
@@ -109,77 +110,125 @@ public class NetWorthSnapshotJob
     {
         var date = snapshotDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
 
-        // Get all user accounts with holdings
+        // Get investment/retirement accounts from Accounts table (exclude cash types - they use CashAccounts table)
         var accounts = await _context.Accounts
             .Include(a => a.Holdings)
             .Where(a => a.UserId == userId)
             .Where(a => a.IsActive)
+            .Where(a => a.AccountType != AccountType.Checking &&
+                       a.AccountType != AccountType.Savings &&
+                       a.AccountType != AccountType.MoneyMarket &&
+                       a.AccountType != AccountType.CertificateOfDeposit)
             .ToListAsync(cancellationToken);
 
-        // Get real estate properties
-        var properties = await _context.RealEstateProperties
+        // Get cash accounts from separate CashAccounts table
+        var cashAccounts = await _context.CashAccounts
+            .Where(ca => ca.UserId == userId)
+            .ToListAsync(cancellationToken);
+
+        // Get TSP positions
+        var tspPositions = await _context.TspLifecyclePositions
             .Where(p => p.UserId == userId)
             .ToListAsync(cancellationToken);
 
-        // Calculate totals by category
-        decimal investmentsTotal = 0;
-        decimal cashTotal = 0;
-        decimal retirementTotal = 0;
-        decimal liabilitiesTotal = 0;
+        // Get real estate properties from Properties table (PropertyProfile)
+        var properties = await _context.Properties
+            .Where(p => p.UserId == userId)
+            .ToListAsync(cancellationToken);
 
-        foreach (var account in accounts)
+        // Get liabilities
+        var liabilities = await _context.LiabilityAccounts
+            .Where(l => l.UserId == userId)
+            .ToListAsync(cancellationToken);
+
+        // Calculate totals matching Dashboard logic exactly
+        // Dashboard uses CurrentBalance directly for investments, not holdings calculation
+        decimal cashTotal = cashAccounts.Sum(a => a.Balance);
+        
+        // Dashboard filters for specific investment account types and uses CurrentBalance
+        var investmentAccounts = accounts.Where(a => 
+            a.AccountType == AccountType.Brokerage || 
+            a.AccountType == AccountType.RetirementAccountIRA || 
+            a.AccountType == AccountType.RetirementAccount401k || 
+            a.AccountType == AccountType.RetirementAccountRoth ||
+            a.AccountType == AccountType.HSA).ToList();
+        
+        decimal investmentsTotal = investmentAccounts.Sum(a => a.CurrentBalance);
+
+        // Calculate TSP with cached prices (matching Dashboard)
+        decimal tspTotal = 0;
+        if (tspPositions.Any(p => p.Units > 0))
         {
-            var accountValue = account.Holdings.Sum(h => h.Quantity * h.CurrentPrice);
-            if (accountValue == 0)
-            {
-                accountValue = account.CurrentBalance;
-            }
+            var cachedPrices = await _context.TSPFundPrices
+                .OrderByDescending(p => p.PriceDate)
+                .FirstOrDefaultAsync(cancellationToken);
 
-            switch (account.Category)
+            if (cachedPrices != null)
             {
-                case AccountCategory.Cash:
-                    cashTotal += accountValue;
-                    break;
-                case AccountCategory.TaxDeferred:
-                case AccountCategory.TaxFree:
-                    retirementTotal += accountValue;
-                    break;
-                case AccountCategory.Taxable:
-                case AccountCategory.TaxAdvantaged:
-                case AccountCategory.Cryptocurrency:
-                case AccountCategory.Alternative:
-                    investmentsTotal += accountValue;
-                    break;
-                default:
-                    investmentsTotal += accountValue;
-                    break;
+                foreach (var position in tspPositions.Where(p => p.Units > 0))
+                {
+                    var price = GetCachedTspFundPrice(cachedPrices, position.FundCode);
+                    if (price.HasValue)
+                    {
+                        tspTotal += position.Units * price.Value;
+                    }
+                }
             }
         }
 
-        // Calculate real estate equity (value - mortgage)
-        decimal realEstateEquity = properties.Sum(p => 
-            p.CurrentMarketValue - p.MortgageBalance);
+        // Real estate value (full value, not equity - matches Dashboard)
+        decimal realEstateValue = properties.Sum(p => p.EstimatedValue);
 
-        // Get liabilities from liability accounts
-        var liabilities = await _context.LiabilityAccounts
-            .Where(l => l.UserId == userId)
-            .SumAsync(l => l.CurrentBalance, cancellationToken);
-        liabilitiesTotal = liabilities;
+        // Calculate liabilities (standalone + mortgage balances from properties)
+        // Matches Dashboard: liabilities.Sum(l.CurrentBalance) + properties.Sum(p.MortgageBalance ?? 0)
+        decimal liabilitiesTotal = liabilities.Sum(l => l.CurrentBalance);
+        decimal mortgageTotal = properties.Sum(p => p.MortgageBalance ?? 0);
+        liabilitiesTotal += mortgageTotal;
 
-        // Calculate total net worth
-        var totalNetWorth = investmentsTotal + cashTotal + realEstateEquity + retirementTotal - liabilitiesTotal;
+        // Calculate total assets exactly like Dashboard:
+        // totalAssets = totalCash + totalInvestments + totalTsp + totalProperties
+        decimal totalAssets = cashTotal + investmentsTotal + tspTotal + realEstateValue;
+        
+        // Net worth = assets - liabilities (Dashboard formula)
+        var totalNetWorth = totalAssets - liabilitiesTotal;
 
         return new NetWorthSnapshot
         {
             UserId = userId,
             SnapshotDate = date,
             TotalNetWorth = totalNetWorth,
-            InvestmentsTotal = investmentsTotal,
+            InvestmentsTotal = investmentsTotal, // Brokerage + IRA/401k/Roth/HSA
             CashTotal = cashTotal,
-            RealEstateEquity = realEstateEquity,
-            RetirementTotal = retirementTotal,
+            RealEstateEquity = realEstateValue - mortgageTotal, // Store net equity for display
+            RetirementTotal = tspTotal, // TSP (calculated with live prices)
             LiabilitiesTotal = liabilitiesTotal,
             CreatedAt = DateTime.UtcNow
+        };
+    }
+
+    private static decimal? GetCachedTspFundPrice(TSPFundPrice cachedPrices, string fundCode)
+    {
+        var code = fundCode.Trim().ToUpperInvariant();
+        
+        return code switch
+        {
+            "G" => cachedPrices.GFundPrice,
+            "F" => cachedPrices.FFundPrice,
+            "C" => cachedPrices.CFundPrice,
+            "S" => cachedPrices.SFundPrice,
+            "I" => cachedPrices.IFundPrice,
+            "L-INCOME" or "LINCOME" => cachedPrices.LIncomeFundPrice,
+            "L2030" => cachedPrices.L2030FundPrice,
+            "L2035" => cachedPrices.L2035FundPrice,
+            "L2040" => cachedPrices.L2040FundPrice,
+            "L2045" => cachedPrices.L2045FundPrice,
+            "L2050" => cachedPrices.L2050FundPrice,
+            "L2055" => cachedPrices.L2055FundPrice,
+            "L2060" => cachedPrices.L2060FundPrice,
+            "L2065" => cachedPrices.L2065FundPrice,
+            "L2070" => cachedPrices.L2070FundPrice,
+            "L2075" => cachedPrices.L2075FundPrice,
+            _ => null
         };
     }
 
@@ -190,23 +239,33 @@ public class NetWorthSnapshotJob
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        // Check if already exists
+        // Check if already exists - if so, update it instead
         var existing = await _context.NetWorthSnapshots
-            .AnyAsync(s => s.UserId == userId && s.SnapshotDate == today, cancellationToken);
-
-        if (existing)
-        {
-            _logger.LogInformation("Snapshot already exists for user {UserId} on {Date}", userId, today);
-            return;
-        }
+            .FirstOrDefaultAsync(s => s.UserId == userId && s.SnapshotDate == today, cancellationToken);
 
         var snapshot = await CaptureUserSnapshotAsync(userId, today, cancellationToken);
-        if (snapshot != null)
+        if (snapshot == null) return;
+
+        if (existing != null)
+        {
+            // Update existing snapshot
+            existing.TotalNetWorth = snapshot.TotalNetWorth;
+            existing.InvestmentsTotal = snapshot.InvestmentsTotal;
+            existing.CashTotal = snapshot.CashTotal;
+            existing.RealEstateEquity = snapshot.RealEstateEquity;
+            existing.RetirementTotal = snapshot.RetirementTotal;
+            existing.LiabilitiesTotal = snapshot.LiabilitiesTotal;
+            existing.CreatedAt = DateTime.UtcNow;
+            _logger.LogInformation("Updated snapshot for user {UserId}: Net Worth = {NetWorth:C}", 
+                userId, existing.TotalNetWorth);
+        }
+        else
         {
             _context.NetWorthSnapshots.Add(snapshot);
-            await _context.SaveChangesAsync(cancellationToken);
             _logger.LogInformation("Created snapshot for user {UserId}: Net Worth = {NetWorth:C}", 
                 userId, snapshot.TotalNetWorth);
         }
+
+        await _context.SaveChangesAsync(cancellationToken);
     }
 }

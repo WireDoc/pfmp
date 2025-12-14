@@ -18,6 +18,8 @@ import {
   CardContent,
   Divider,
   Button,
+  Breadcrumbs,
+  Link,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -26,6 +28,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import ScheduleIcon from '@mui/icons-material/Schedule';
+import { useNavigate } from 'react-router-dom';
 import { fetchTspDetail, upsertTspProfile, type TspDetailResponse } from '../../services/financialProfileApi';
 import { useDevUserId } from '../../dev/devUserState';
 import { useAuth } from '../../contexts/auth/useAuth';
@@ -83,6 +86,7 @@ export const TspDetailView: React.FC = () => {
   const { user } = useAuth();
   const devUserId = useDevUserId();
   const userId = devUserId ?? (user?.localAccountId ? Number(user.localAccountId) : null) ?? Number(import.meta.env.VITE_PFMP_DASHBOARD_USER_ID || '1');
+  const navigate = useNavigate();
 
   const [data, setData] = useState<TspDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -212,6 +216,20 @@ export const TspDetailView: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
+      {/* Secondary Breadcrumbs - Back Navigation */}
+      <Breadcrumbs sx={{ mb: 2 }}>
+        <Link
+          component="button"
+          variant="body2"
+          onClick={() => navigate('/dashboard')}
+          sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+        >
+          <ArrowBackIcon fontSize="small" />
+          Dashboard
+        </Link>
+        <Typography color="text.primary">Thrift Savings Plan</Typography>
+      </Breadcrumbs>
+
       {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box display="flex" alignItems="center" gap={2}>

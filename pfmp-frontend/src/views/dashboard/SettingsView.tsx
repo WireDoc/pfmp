@@ -1,26 +1,101 @@
-import { Box, Typography, Paper } from '@mui/material';
+import { Box, Typography, Paper, List, ListItem, ListItemIcon, ListItemText, ListItemButton, Divider, Chip } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import ColorLensIcon from '@mui/icons-material/ColorLens';
+import SecurityIcon from '@mui/icons-material/Security';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 /**
- * SettingsView - Placeholder for user settings page
- * User preferences and configuration
+ * SettingsView - User settings and configuration
+ * Route: /dashboard/settings
  */
 export function SettingsView() {
+  const navigate = useNavigate();
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom>
         Settings
       </Typography>
-      <Paper sx={{ p: 3, mt: 2 }}>
-        <Typography variant="body1">
-          Settings view coming soon. This will allow you to configure:
+      
+      {/* Connected Accounts Section */}
+      <Paper sx={{ mt: 3 }}>
+        <Typography variant="h6" sx={{ p: 2, pb: 1 }}>
+          Connected Accounts
         </Typography>
-        <ul>
-          <li>Notification preferences</li>
-          <li>Data refresh frequency</li>
-          <li>Privacy settings</li>
-          <li>Theme preferences (light/dark mode)</li>
-          <li>Account security</li>
-        </ul>
+        <Divider />
+        <List disablePadding>
+          <ListItem disablePadding>
+            <ListItemButton onClick={() => navigate('/dashboard/settings/connections')}>
+              <ListItemIcon>
+                <AccountBalanceIcon color="primary" />
+              </ListItemIcon>
+              <ListItemText 
+                primary="Bank Accounts" 
+                secondary="Manage connected bank accounts via Plaid"
+              />
+              <ChevronRightIcon color="action" />
+            </ListItemButton>
+          </ListItem>
+          <Divider variant="inset" component="li" />
+          <ListItem disablePadding>
+            <ListItemButton onClick={() => navigate('/dashboard/settings/investments')}>
+              <ListItemIcon>
+                <TrendingUpIcon color="success" />
+              </ListItemIcon>
+              <ListItemText 
+                primary="Investment Accounts" 
+                secondary="Link brokerage accounts and track holdings"
+              />
+              <Chip label="New" color="success" size="small" sx={{ mr: 1 }} />
+              <ChevronRightIcon color="action" />
+            </ListItemButton>
+          </ListItem>
+        </List>
+      </Paper>
+
+      {/* Preferences Section - Coming Soon */}
+      <Paper sx={{ mt: 3 }}>
+        <Typography variant="h6" sx={{ p: 2, pb: 1 }}>
+          Preferences
+        </Typography>
+        <Divider />
+        <List disablePadding>
+          <ListItem>
+            <ListItemIcon>
+              <NotificationsIcon color="disabled" />
+            </ListItemIcon>
+            <ListItemText 
+              primary="Notifications" 
+              secondary="Email and alert preferences"
+            />
+            <Chip label="Coming Soon" size="small" variant="outlined" />
+          </ListItem>
+          <Divider variant="inset" component="li" />
+          <ListItem>
+            <ListItemIcon>
+              <ColorLensIcon color="disabled" />
+            </ListItemIcon>
+            <ListItemText 
+              primary="Appearance" 
+              secondary="Theme and display options"
+            />
+            <Chip label="Coming Soon" size="small" variant="outlined" />
+          </ListItem>
+          <Divider variant="inset" component="li" />
+          <ListItem>
+            <ListItemIcon>
+              <SecurityIcon color="disabled" />
+            </ListItemIcon>
+            <ListItemText 
+              primary="Security" 
+              secondary="Password and authentication settings"
+            />
+            <Chip label="Coming Soon" size="small" variant="outlined" />
+          </ListItem>
+        </List>
       </Paper>
     </Box>
   );

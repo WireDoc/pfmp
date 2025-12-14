@@ -1,1005 +1,1119 @@
-      Builder(IHostBuilder hostBuilder)     
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.EnsureServer(
-      )
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(DelegatingHandler[] handlers)  
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(Uri baseAddress, DelegatingHand
-      ler[] handlers)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      WebApplicationFactoryClientOptions opt
-      ions)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      )
-         at PFMP_API.Tests.AccountsControlle
-      rTests.UpdateAccount_ReturnsNoContent(
-      ) in C:\pfmp\PFMP-API.Tests\AccountsCo
-      ntrollerTests.cs:line 95
-      --- End of stack trace from previous l
-      ocation ---
-    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
-      PFMP_API.Tests.UserAdminControllerTest
-      s.CreateTestUser_Scenarios(scenario: "
-      done") (21ms): Error Message: System.I
-      nvalidOperationException : Current Job
-      Storage instance has not been initiali
-      zed yet. You must set it before using 
-      Hangfire Client or Server API. For .NE
-      T Core applications please call the `I
-      ServiceCollection.AddHangfire` extensi
-      on method from Hangfire.NetCore or Han
-      gfire.AspNetCore package depending on 
-      your application type when configuring
-       the services and ensure service-based
-       APIs are used instead of static ones,
-       like `IBackgroundJobClient` instead o
-      f `BackgroundJob` and `IRecurringJobMa
-      nager` instead of `RecurringJob`.     
-      Stack Trace:
-         at Hangfire.JobStorage.get_Current(
-      ) in C:\projects\hangfire-525\src\Hang
-      fire.Core\JobStorage.cs:line 42       
-         at Hangfire.RecurringJobManager..ct
-      or() in C:\projects\hangfire-525\src\H
-      angfire.Core\RecurringJobManager.cs:li
-      ne 42
-         at Hangfire.RecurringJob.<>c.<.ccto
-      r>b__61_0() in C:\projects\hangfire-52
-      5\src\Hangfire.Core\RecurringJob.cs:li
-      ne 29
-         at System.Lazy`1.CreateValue()     
-         at Hangfire.RecurringJob.AddOrUpdat
-      e[T](String recurringJobId, Expression
-      `1 methodCall, String cronExpression, 
-      RecurringJobOptions options) in C:\pro
-      jects\hangfire-525\src\Hangfire.Core\R
-      ecurringJob.cs:line 598
-         at PFMP_API.Program.Main(String[] a
-      rgs) in C:\pfmp\PFMP-API\Program.cs:li
-      ne 268
-         at PFMP_API.Program.<Main>(String[]
-       args)
-         at InvokeStub_Program.<Main>(Object
-      , Span`1)
-         at System.Reflection.MethodBaseInvo
-      ker.InvokeWithOneArg(Object obj, Bindi
-      ngFlags invokeAttr, Binder binder, Obj
-      ect[] parameters, CultureInfo culture)
-      --- End of stack trace from previous l
-      ocation ---
-         at Microsoft.AspNetCore.Mvc.Testing
-      .DeferredHostBuilder.DeferredHost.Star
-      tAsync(CancellationToken cancellationT
-      oken)
-         at Microsoft.Extensions.Hosting.Hos
-      tingAbstractionsHostExtensions.Start(I
-      Host host)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateHost(IH
-      ostBuilder builder)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.ConfigureHost
-      Builder(IHostBuilder hostBuilder)     
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.EnsureServer(
-      )
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(DelegatingHandler[] handlers)  
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(Uri baseAddress, DelegatingHand
-      ler[] handlers)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      WebApplicationFactoryClientOptions opt
-      ions)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      )
-         at PFMP_API.Tests.UserAdminControll
-      erTests.CreateTestUser_Scenarios(Strin
-      g scenario) in C:\pfmp\PFMP-API.Tests\
-      UserAdminControllerTests.cs:line 38   
-      --- End of stack trace from previous l
-      ocation ---
-    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
-      PFMP_API.Tests.ExpensesControllerTests
-      .GetExpense_ReturnsOk (42ms): Error Me
-      ssage: System.InvalidOperationExceptio
-      n : Current JobStorage instance has no
-      t been initialized yet. You must set i
-      t before using Hangfire Client or Serv
-      er API. For .NET Core applications ple
-      ase call the `IServiceCollection.AddHa
-      ngfire` extension method from Hangfire
-      .NetCore or Hangfire.AspNetCore packag
-      e depending on your application type w
-      hen configuring the services and ensur
-      e service-based APIs are used instead 
-      of static ones, like `IBackgroundJobCl
-      ient` instead of `BackgroundJob` and `
-      IRecurringJobManager` instead of `Recu
-      rringJob`.
-      Stack Trace:
-         at Hangfire.JobStorage.get_Current(
-      ) in C:\projects\hangfire-525\src\Hang
-      fire.Core\JobStorage.cs:line 42       
-         at Hangfire.RecurringJobManager..ct
-      or() in C:\projects\hangfire-525\src\H
-      angfire.Core\RecurringJobManager.cs:li
-      ne 42
-         at Hangfire.RecurringJob.<>c.<.ccto
-      r>b__61_0() in C:\projects\hangfire-52
-      5\src\Hangfire.Core\RecurringJob.cs:li
-      ne 29
-         at System.Lazy`1.CreateValue()     
-         at Hangfire.RecurringJob.AddOrUpdat
-      e[T](String recurringJobId, Expression
-      `1 methodCall, String cronExpression, 
-      RecurringJobOptions options) in C:\pro
-      jects\hangfire-525\src\Hangfire.Core\R
-      ecurringJob.cs:line 598
-         at PFMP_API.Program.Main(String[] a
-      rgs) in C:\pfmp\PFMP-API\Program.cs:li
-      ne 268
-         at PFMP_API.Program.<Main>(String[]
-       args)
-         at InvokeStub_Program.<Main>(Object
-      , Span`1)
-         at System.Reflection.MethodBaseInvo
-      ker.InvokeWithOneArg(Object obj, Bindi
-      ngFlags invokeAttr, Binder binder, Obj
-      ect[] parameters, CultureInfo culture)
-      --- End of stack trace from previous l
-      ocation ---
-         at Microsoft.AspNetCore.Mvc.Testing
-      .DeferredHostBuilder.DeferredHost.Star
-      tAsync(CancellationToken cancellationT
-      oken)
-         at Microsoft.Extensions.Hosting.Hos
-      tingAbstractionsHostExtensions.Start(I
-      Host host)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateHost(IH
-      ostBuilder builder)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.ConfigureHost
-      Builder(IHostBuilder hostBuilder)     
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.EnsureServer(
-      )
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(DelegatingHandler[] handlers)  
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(Uri baseAddress, DelegatingHand
-      ler[] handlers)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      WebApplicationFactoryClientOptions opt
-      ions)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      )
-         at PFMP_API.Tests.ExpensesControlle
-      rTests.GetExpense_ReturnsOk() in C:\pf
-      mp\PFMP-API.Tests\ExpensesControllerTe
-      sts.cs:line 67
-      --- End of stack trace from previous l
-      ocation ---
-    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
-      PFMP_API.Tests.SchedulerAdminControlle
-      rTests.ListTriggers_ReturnsOk (35ms): 
-      Error Message: System.InvalidOperation
-      Exception : Current JobStorage instanc
-      e has not been initialized yet. You mu
-      st set it before using Hangfire Client
-       or Server API. For .NET Core applicat
-      ions please call the `IServiceCollecti
-      on.AddHangfire` extension method from 
-      Hangfire.NetCore or Hangfire.AspNetCor
-      e package depending on your applicatio
-      n type when configuring the services a
-      nd ensure service-based APIs are used 
-      instead of static ones, like `IBackgro
-      undJobClient` instead of `BackgroundJo
-      b` and `IRecurringJobManager` instead 
-      of `RecurringJob`.
-      Stack Trace:
-         at Hangfire.JobStorage.get_Current(
-      ) in C:\projects\hangfire-525\src\Hang
-      fire.Core\JobStorage.cs:line 42       
-         at Hangfire.RecurringJobManager..ct
-      or() in C:\projects\hangfire-525\src\H
-      angfire.Core\RecurringJobManager.cs:li
-      ne 42
-         at Hangfire.RecurringJob.<>c.<.ccto
-      r>b__61_0() in C:\projects\hangfire-52
-      5\src\Hangfire.Core\RecurringJob.cs:li
-      ne 29
-         at System.Lazy`1.CreateValue()     
-         at Hangfire.RecurringJob.AddOrUpdat
-      e[T](String recurringJobId, Expression
-      `1 methodCall, String cronExpression, 
-      RecurringJobOptions options) in C:\pro
-      jects\hangfire-525\src\Hangfire.Core\R
-      ecurringJob.cs:line 598
-         at PFMP_API.Program.Main(String[] a
-      rgs) in C:\pfmp\PFMP-API\Program.cs:li
-      ne 268
-         at PFMP_API.Program.<Main>(String[]
-       args)
-         at InvokeStub_Program.<Main>(Object
-      , Span`1)
-         at System.Reflection.MethodBaseInvo
-      ker.InvokeWithOneArg(Object obj, Bindi
-      ngFlags invokeAttr, Binder binder, Obj
-      ect[] parameters, CultureInfo culture)
-      --- End of stack trace from previous l
-      ocation ---
-         at Microsoft.AspNetCore.Mvc.Testing
-      .DeferredHostBuilder.DeferredHost.Star
-      tAsync(CancellationToken cancellationT
-      oken)
-         at Microsoft.Extensions.Hosting.Hos
-      tingAbstractionsHostExtensions.Start(I
-      Host host)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateHost(IH
-      ostBuilder builder)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.ConfigureHost
-      Builder(IHostBuilder hostBuilder)     
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.EnsureServer(
-      )
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(DelegatingHandler[] handlers)  
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(Uri baseAddress, DelegatingHand
-      ler[] handlers)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      WebApplicationFactoryClientOptions opt
-      ions)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      )
-         at PFMP_API.Tests.SchedulerAdminCon
-      trollerTests.ListTriggers_ReturnsOk() 
-      in C:\pfmp\PFMP-API.Tests\SchedulerAdm
-      inControllerTests.cs:line 36
-      --- End of stack trace from previous l
-      ocation ---
-    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
-      PFMP_API.Tests.PlaidControllerTests.Ge
-      tPlaidWebhookStatus_ReturnsOk (35ms): 
-      Error Message: System.InvalidOperation
-      Exception : Current JobStorage instanc
-      e has not been initialized yet. You mu
-      st set it before using Hangfire Client
-       or Server API. For .NET Core applicat
-      ions please call the `IServiceCollecti
-      on.AddHangfire` extension method from 
-      Hangfire.NetCore or Hangfire.AspNetCor
-      e package depending on your applicatio
-      n type when configuring the services a
-      nd ensure service-based APIs are used 
-      instead of static ones, like `IBackgro
-      undJobClient` instead of `BackgroundJo
-      b` and `IRecurringJobManager` instead 
-      of `RecurringJob`.
-      Stack Trace:
-         at Hangfire.JobStorage.get_Current(
-      ) in C:\projects\hangfire-525\src\Hang
-      fire.Core\JobStorage.cs:line 42       
-         at Hangfire.RecurringJobManager..ct
-      or() in C:\projects\hangfire-525\src\H
-      angfire.Core\RecurringJobManager.cs:li
-      ne 42
-         at Hangfire.RecurringJob.<>c.<.ccto
-      r>b__61_0() in C:\projects\hangfire-52
-      5\src\Hangfire.Core\RecurringJob.cs:li
-      ne 29
-         at System.Lazy`1.CreateValue()     
-         at Hangfire.RecurringJob.AddOrUpdat
-      e[T](String recurringJobId, Expression
-      `1 methodCall, String cronExpression, 
-      RecurringJobOptions options) in C:\pro
-      jects\hangfire-525\src\Hangfire.Core\R
-      ecurringJob.cs:line 598
-         at PFMP_API.Program.Main(String[] a
-      rgs) in C:\pfmp\PFMP-API\Program.cs:li
-      ne 268
-         at PFMP_API.Program.<Main>(String[]
-       args)
-         at InvokeStub_Program.<Main>(Object
-      , Span`1)
-         at System.Reflection.MethodBaseInvo
-      ker.InvokeWithOneArg(Object obj, Bindi
-      ngFlags invokeAttr, Binder binder, Obj
-      ect[] parameters, CultureInfo culture)
-      --- End of stack trace from previous l
-      ocation ---
-         at Microsoft.AspNetCore.Mvc.Testing
-      .DeferredHostBuilder.DeferredHost.Star
-      tAsync(CancellationToken cancellationT
-      oken)
-         at Microsoft.Extensions.Hosting.Hos
-      tingAbstractionsHostExtensions.Start(I
-      Host host)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateHost(IH
-      ostBuilder builder)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.ConfigureHost
-      Builder(IHostBuilder hostBuilder)     
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.EnsureServer(
-      )
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(DelegatingHandler[] handlers)  
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(Uri baseAddress, DelegatingHand
-      ler[] handlers)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      WebApplicationFactoryClientOptions opt
-      ions)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      )
-         at PFMP_API.Tests.PlaidControllerTe
-      sts.GetPlaidWebhookStatus_ReturnsOk() 
-      in C:\pfmp\PFMP-API.Tests\PlaidControl
-      lerTests.cs:line 87
-      --- End of stack trace from previous l
-      ocation ---
-    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
-      PFMP_API.Tests.NotificationsController
-      Tests.GetUnreadCount_ReturnsOk (35ms):
-       Error Message: System.InvalidOperatio
-      nException : Current JobStorage instan
-      ce has not been initialized yet. You m
-      ust set it before using Hangfire Clien
-      t or Server API. For .NET Core applica
-      tions please call the `IServiceCollect
-      ion.AddHangfire` extension method from
-       Hangfire.NetCore or Hangfire.AspNetCo
-      re package depending on your applicati
-      on type when configuring the services 
-      and ensure service-based APIs are used
-       instead of static ones, like `IBackgr
-      oundJobClient` instead of `BackgroundJ
-      ob` and `IRecurringJobManager` instead
-       of `RecurringJob`.
-      Stack Trace:
-         at Hangfire.JobStorage.get_Current(
-      ) in C:\projects\hangfire-525\src\Hang
-      fire.Core\JobStorage.cs:line 42       
-         at Hangfire.RecurringJobManager..ct
-      or() in C:\projects\hangfire-525\src\H
-      angfire.Core\RecurringJobManager.cs:li
-      ne 42
-         at Hangfire.RecurringJob.<>c.<.ccto
-      r>b__61_0() in C:\projects\hangfire-52
-      5\src\Hangfire.Core\RecurringJob.cs:li
-      ne 29
-         at System.Lazy`1.CreateValue()     
-         at Hangfire.RecurringJob.AddOrUpdat
-      e[T](String recurringJobId, Expression
-      `1 methodCall, String cronExpression, 
-      RecurringJobOptions options) in C:\pro
-      jects\hangfire-525\src\Hangfire.Core\R
-      ecurringJob.cs:line 598
-         at PFMP_API.Program.Main(String[] a
-      rgs) in C:\pfmp\PFMP-API\Program.cs:li
-      ne 268
-         at PFMP_API.Program.<Main>(String[]
-       args)
-         at InvokeStub_Program.<Main>(Object
-      , Span`1)
-         at System.Reflection.MethodBaseInvo
-      ker.InvokeWithOneArg(Object obj, Bindi
-      ngFlags invokeAttr, Binder binder, Obj
-      ect[] parameters, CultureInfo culture)
-      --- End of stack trace from previous l
-      ocation ---
-         at Microsoft.AspNetCore.Mvc.Testing
-      .DeferredHostBuilder.DeferredHost.Star
-      tAsync(CancellationToken cancellationT
-      oken)
-         at Microsoft.Extensions.Hosting.Hos
-      tingAbstractionsHostExtensions.Start(I
-      Host host)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateHost(IH
-      ostBuilder builder)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.ConfigureHost
-      Builder(IHostBuilder hostBuilder)     
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.EnsureServer(
-      )
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(DelegatingHandler[] handlers)  
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(Uri baseAddress, DelegatingHand
-      ler[] handlers)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      WebApplicationFactoryClientOptions opt
-      ions)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      )
-         at PFMP_API.Tests.NotificationsCont
-      rollerTests.GetUnreadCount_ReturnsOk()
-       in C:\pfmp\PFMP-API.Tests\Notificatio
-      nsControllerTests.cs:line 40
-      --- End of stack trace from previous l
-      ocation ---
-    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
-      PFMP_API.Tests.TransactionsControllerT
-      ests.ListTransactions_ReturnsOk (34ms)
-      : Error Message: System.InvalidOperati
-      onException : Current JobStorage insta
-      nce has not been initialized yet. You 
-      must set it before using Hangfire Clie
-      nt or Server API. For .NET Core applic
-      ations please call the `IServiceCollec
-      tion.AddHangfire` extension method fro
-      m Hangfire.NetCore or Hangfire.AspNetC
-      ore package depending on your applicat
-      ion type when configuring the services
-       and ensure service-based APIs are use
-      d instead of static ones, like `IBackg
-      roundJobClient` instead of `Background
-      Job` and `IRecurringJobManager` instea
-      d of `RecurringJob`.
-      Stack Trace:
-         at Hangfire.JobStorage.get_Current(
-      ) in C:\projects\hangfire-525\src\Hang
-      fire.Core\JobStorage.cs:line 42       
-         at Hangfire.RecurringJobManager..ct
-      or() in C:\projects\hangfire-525\src\H
-      angfire.Core\RecurringJobManager.cs:li
-      ne 42
-         at Hangfire.RecurringJob.<>c.<.ccto
-      r>b__61_0() in C:\projects\hangfire-52
-      5\src\Hangfire.Core\RecurringJob.cs:li
-      ne 29
-         at System.Lazy`1.CreateValue()     
-         at Hangfire.RecurringJob.AddOrUpdat
-      e[T](String recurringJobId, Expression
-      `1 methodCall, String cronExpression, 
-      RecurringJobOptions options) in C:\pro
-      jects\hangfire-525\src\Hangfire.Core\R
-      ecurringJob.cs:line 598
-         at PFMP_API.Program.Main(String[] a
-      rgs) in C:\pfmp\PFMP-API\Program.cs:li
-      ne 268
-         at PFMP_API.Program.<Main>(String[]
-       args)
-         at InvokeStub_Program.<Main>(Object
-      , Span`1)
-         at System.Reflection.MethodBaseInvo
-      ker.InvokeWithOneArg(Object obj, Bindi
-      ngFlags invokeAttr, Binder binder, Obj
-      ect[] parameters, CultureInfo culture)
-      --- End of stack trace from previous l
-      ocation ---
-         at Microsoft.AspNetCore.Mvc.Testing
-      .DeferredHostBuilder.DeferredHost.Star
-      tAsync(CancellationToken cancellationT
-      oken)
-         at Microsoft.Extensions.Hosting.Hos
-      tingAbstractionsHostExtensions.Start(I
-      Host host)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateHost(IH
-      ostBuilder builder)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.ConfigureHost
-      Builder(IHostBuilder hostBuilder)     
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.EnsureServer(
-      )
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(DelegatingHandler[] handlers)  
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(Uri baseAddress, DelegatingHand
-      ler[] handlers)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      WebApplicationFactoryClientOptions opt
-      ions)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      )
-         at PFMP_API.Tests.TransactionsContr
-      ollerTests.ListTransactions_ReturnsOk(
-      ) in C:\pfmp\PFMP-API.Tests\Transactio
-      nsControllerTests.cs:line 23
-      --- End of stack trace from previous l
-      ocation ---
-    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
-      PFMP_API.Tests.HoldingsControllerTests
-      .GetPortfolioSummary_ReturnsOk (35ms):
-       Error Message: System.InvalidOperatio
-      nException : Current JobStorage instan
-      ce has not been initialized yet. You m
-      ust set it before using Hangfire Clien
-      t or Server API. For .NET Core applica
-      tions please call the `IServiceCollect
-      ion.AddHangfire` extension method from
-       Hangfire.NetCore or Hangfire.AspNetCo
-      re package depending on your applicati
-      on type when configuring the services 
-      and ensure service-based APIs are used
-       instead of static ones, like `IBackgr
-      oundJobClient` instead of `BackgroundJ
-      ob` and `IRecurringJobManager` instead
-       of `RecurringJob`.
-      Stack Trace:
-         at Hangfire.JobStorage.get_Current(
-      ) in C:\projects\hangfire-525\src\Hang
-      fire.Core\JobStorage.cs:line 42       
-         at Hangfire.RecurringJobManager..ct
-      or() in C:\projects\hangfire-525\src\H
-      angfire.Core\RecurringJobManager.cs:li
-      ne 42
-         at Hangfire.RecurringJob.<>c.<.ccto
-      r>b__61_0() in C:\projects\hangfire-52
-      5\src\Hangfire.Core\RecurringJob.cs:li
-      ne 29
-         at System.Lazy`1.CreateValue()     
-         at Hangfire.RecurringJob.AddOrUpdat
-      e[T](String recurringJobId, Expression
-      `1 methodCall, String cronExpression, 
-      RecurringJobOptions options) in C:\pro
-      jects\hangfire-525\src\Hangfire.Core\R
-      ecurringJob.cs:line 598
-         at PFMP_API.Program.Main(String[] a
-      rgs) in C:\pfmp\PFMP-API\Program.cs:li
-      ne 268
-         at PFMP_API.Program.<Main>(String[]
-       args)
-         at InvokeStub_Program.<Main>(Object
-      , Span`1)
-         at System.Reflection.MethodBaseInvo
-      ker.InvokeWithOneArg(Object obj, Bindi
-      ngFlags invokeAttr, Binder binder, Obj
-      ect[] parameters, CultureInfo culture)
-      --- End of stack trace from previous l
-      ocation ---
-         at Microsoft.AspNetCore.Mvc.Testing
-      .DeferredHostBuilder.DeferredHost.Star
-      tAsync(CancellationToken cancellationT
-      oken)
-         at Microsoft.Extensions.Hosting.Hos
-      tingAbstractionsHostExtensions.Start(I
-      Host host)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateHost(IH
-      ostBuilder builder)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.ConfigureHost
-      Builder(IHostBuilder hostBuilder)     
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.EnsureServer(
-      )
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(DelegatingHandler[] handlers)  
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(Uri baseAddress, DelegatingHand
-      ler[] handlers)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      WebApplicationFactoryClientOptions opt
-      ions)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      )
-         at PFMP_API.Tests.HoldingsControlle
-      rTests.GetPortfolioSummary_ReturnsOk()
-       in C:\pfmp\PFMP-API.Tests\HoldingsCon
-      trollerTests.cs:line 72
-      --- End of stack trace from previous l
-      ocation ---
-    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
-      PFMP_API.Tests.CategoriesControllerTes
-      ts.GetCategory_NotFound_ReturnsNotFoun
-      d (34ms): Error Message: System.Invali
-      dOperationException : Current JobStora
-      ge instance has not been initialized y
-      et. You must set it before using Hangf
-      ire Client or Server API. For .NET Cor
-      e applications please call the `IServi
-      ceCollection.AddHangfire` extension me
-      thod from Hangfire.NetCore or Hangfire
-      .AspNetCore package depending on your 
-      application type when configuring the 
-      services and ensure service-based APIs
-       are used instead of static ones, like
-       `IBackgroundJobClient` instead of `Ba
-      ckgroundJob` and `IRecurringJobManager
-      ` instead of `RecurringJob`.
-      Stack Trace:
-         at Hangfire.JobStorage.get_Current(
-      ) in C:\projects\hangfire-525\src\Hang
-      fire.Core\JobStorage.cs:line 42       
-         at Hangfire.RecurringJobManager..ct
-      or() in C:\projects\hangfire-525\src\H
-      angfire.Core\RecurringJobManager.cs:li
-      ne 42
-         at Hangfire.RecurringJob.<>c.<.ccto
-      r>b__61_0() in C:\projects\hangfire-52
-      5\src\Hangfire.Core\RecurringJob.cs:li
-      ne 29
-         at System.Lazy`1.CreateValue()     
-         at Hangfire.RecurringJob.AddOrUpdat
-      e[T](String recurringJobId, Expression
-      `1 methodCall, String cronExpression, 
-      RecurringJobOptions options) in C:\pro
-      jects\hangfire-525\src\Hangfire.Core\R
-      ecurringJob.cs:line 598
-         at PFMP_API.Program.Main(String[] a
-      rgs) in C:\pfmp\PFMP-API\Program.cs:li
-      ne 268
-         at PFMP_API.Program.<Main>(String[]
-       args)
-         at InvokeStub_Program.<Main>(Object
-      , Span`1)
-         at System.Reflection.MethodBaseInvo
-      ker.InvokeWithOneArg(Object obj, Bindi
-      ngFlags invokeAttr, Binder binder, Obj
-      ect[] parameters, CultureInfo culture)
-      --- End of stack trace from previous l
-      ocation ---
-         at Microsoft.AspNetCore.Mvc.Testing
-      .DeferredHostBuilder.DeferredHost.Star
-      tAsync(CancellationToken cancellationT
-      oken)
-         at Microsoft.Extensions.Hosting.Hos
-      tingAbstractionsHostExtensions.Start(I
-      Host host)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateHost(IH
-      ostBuilder builder)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.ConfigureHost
-      Builder(IHostBuilder hostBuilder)     
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.EnsureServer(
-      )
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(DelegatingHandler[] handlers)  
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(Uri baseAddress, DelegatingHand
-      ler[] handlers)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      WebApplicationFactoryClientOptions opt
-      ions)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      )
-         at PFMP_API.Tests.CategoriesControl
-      lerTests.GetCategory_NotFound_ReturnsN
-      otFound() in C:\pfmp\PFMP-API.Tests\Ca
-      tegoriesControllerTests.cs:line 51    
-      --- End of stack trace from previous l
-      ocation ---
-    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
-      PFMP_API.Tests.LiabilitiesControllerTe
-      sts.DeleteLiability_ReturnsNoContent (
-      34ms): Error Message: System.InvalidOp
-      erationException : Current JobStorage 
-      instance has not been initialized yet.
-       You must set it before using Hangfire
-       Client or Server API. For .NET Core a
-      pplications please call the `IServiceC
-      ollection.AddHangfire` extension metho
-      d from Hangfire.NetCore or Hangfire.As
-      pNetCore package depending on your app
-      lication type when configuring the ser
-      vices and ensure service-based APIs ar
-      e used instead of static ones, like `I
-      BackgroundJobClient` instead of `Backg
-      roundJob` and `IRecurringJobManager` i
-      nstead of `RecurringJob`.
-      Stack Trace:
-         at Hangfire.JobStorage.get_Current(
-      ) in C:\projects\hangfire-525\src\Hang
-      fire.Core\JobStorage.cs:line 42       
-         at Hangfire.RecurringJobManager..ct
-      or() in C:\projects\hangfire-525\src\H
-      angfire.Core\RecurringJobManager.cs:li
-      ne 42
-         at Hangfire.RecurringJob.<>c.<.ccto
-      r>b__61_0() in C:\projects\hangfire-52
-      5\src\Hangfire.Core\RecurringJob.cs:li
-      ne 29
-         at System.Lazy`1.CreateValue()     
-         at Hangfire.RecurringJob.AddOrUpdat
-      e[T](String recurringJobId, Expression
-      `1 methodCall, String cronExpression, 
-      RecurringJobOptions options) in C:\pro
-      jects\hangfire-525\src\Hangfire.Core\R
-      ecurringJob.cs:line 598
-         at PFMP_API.Program.Main(String[] a
-      rgs) in C:\pfmp\PFMP-API\Program.cs:li
-      ne 268
-         at PFMP_API.Program.<Main>(String[]
-       args)
-         at InvokeStub_Program.<Main>(Object
-      , Span`1)
-         at System.Reflection.MethodBaseInvo
-      ker.InvokeWithOneArg(Object obj, Bindi
-      ngFlags invokeAttr, Binder binder, Obj
-      ect[] parameters, CultureInfo culture)
-      --- End of stack trace from previous l
-      ocation ---
-         at Microsoft.AspNetCore.Mvc.Testing
-      .DeferredHostBuilder.DeferredHost.Star
-      tAsync(CancellationToken cancellationT
-      oken)
-         at Microsoft.Extensions.Hosting.Hos
-      tingAbstractionsHostExtensions.Start(I
-      Host host)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateHost(IH
-      ostBuilder builder)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.ConfigureHost
-      Builder(IHostBuilder hostBuilder)     
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.EnsureServer(
-      )
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(DelegatingHandler[] handlers)  
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(Uri baseAddress, DelegatingHand
-      ler[] handlers)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      WebApplicationFactoryClientOptions opt
-      ions)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      )
-         at PFMP_API.Tests.LiabilitiesContro
-      llerTests.DeleteLiability_ReturnsNoCon
-      tent() in C:\pfmp\PFMP-API.Tests\Liabi
-      litiesControllerTests.cs:line 111     
-      --- End of stack trace from previous l
-      ocation ---
-    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
-      PFMP_API.Tests.TasksControllerTests.Up
-      dateTaskStatus_ReturnsNoContent (34ms)
-      : Error Message: System.InvalidOperati
-      onException : Current JobStorage insta
-      nce has not been initialized yet. You 
-      must set it before using Hangfire Clie
-      nt or Server API. For .NET Core applic
-      ations please call the `IServiceCollec
-      tion.AddHangfire` extension method fro
-      m Hangfire.NetCore or Hangfire.AspNetC
-      ore package depending on your applicat
-      ion type when configuring the services
-       and ensure service-based APIs are use
-      d instead of static ones, like `IBackg
-      roundJobClient` instead of `Background
-      Job` and `IRecurringJobManager` instea
-      d of `RecurringJob`.
-      Stack Trace:
-         at Hangfire.JobStorage.get_Current(
-      ) in C:\projects\hangfire-525\src\Hang
-      fire.Core\JobStorage.cs:line 42       
-         at Hangfire.RecurringJobManager..ct
-      or() in C:\projects\hangfire-525\src\H
-      angfire.Core\RecurringJobManager.cs:li
-      ne 42
-         at Hangfire.RecurringJob.<>c.<.ccto
-      r>b__61_0() in C:\projects\hangfire-52
-      5\src\Hangfire.Core\RecurringJob.cs:li
-      ne 29
-         at System.Lazy`1.CreateValue()     
-         at Hangfire.RecurringJob.AddOrUpdat
-      e[T](String recurringJobId, Expression
-      `1 methodCall, String cronExpression, 
-      RecurringJobOptions options) in C:\pro
-      jects\hangfire-525\src\Hangfire.Core\R
-      ecurringJob.cs:line 598
-         at PFMP_API.Program.Main(String[] a
-      rgs) in C:\pfmp\PFMP-API\Program.cs:li
-      ne 268
-         at PFMP_API.Program.<Main>(String[]
-       args)
-         at InvokeStub_Program.<Main>(Object
-      , Span`1)
-         at System.Reflection.MethodBaseInvo
-      ker.InvokeWithOneArg(Object obj, Bindi
-      ngFlags invokeAttr, Binder binder, Obj
-      ect[] parameters, CultureInfo culture)
-      --- End of stack trace from previous l
-      ocation ---
-         at Microsoft.AspNetCore.Mvc.Testing
-      .DeferredHostBuilder.DeferredHost.Star
-      tAsync(CancellationToken cancellationT
-      oken)
-         at Microsoft.Extensions.Hosting.Hos
-      tingAbstractionsHostExtensions.Start(I
-      Host host)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateHost(IH
-      ostBuilder builder)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.ConfigureHost
-      Builder(IHostBuilder hostBuilder)     
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.EnsureServer(
-      )
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(DelegatingHandler[] handlers)  
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(Uri baseAddress, DelegatingHand
-      ler[] handlers)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      WebApplicationFactoryClientOptions opt
-      ions)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      )
-         at PFMP_API.Tests.TasksControllerTe
-      sts.UpdateTaskStatus_ReturnsNoContent(
-      ) in C:\pfmp\PFMP-API.Tests\TasksContr
-      ollerTests.cs:line 117
-      --- End of stack trace from previous l
-      ocation ---
-    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
-      PFMP_API.Tests.GoalsControllerTests.Up
-      dateGoalProgress_ReturnsNoContent (35m
-      s): Error Message: System.InvalidOpera
-      tionException : Current JobStorage ins
-      tance has not been initialized yet. Yo
-      u must set it before using Hangfire Cl
-      ient or Server API. For .NET Core appl
-      ications please call the `IServiceColl
-      ection.AddHangfire` extension method f
-      rom Hangfire.NetCore or Hangfire.AspNe
-      tCore package depending on your applic
-      ation type when configuring the servic
-      es and ensure service-based APIs are u
-      sed instead of static ones, like `IBac
-      kgroundJobClient` instead of `Backgrou
-      ndJob` and `IRecurringJobManager` inst
-      ead of `RecurringJob`.
-      Stack Trace:
-         at Hangfire.JobStorage.get_Current(
-      ) in C:\projects\hangfire-525\src\Hang
-      fire.Core\JobStorage.cs:line 42       
-         at Hangfire.RecurringJobManager..ct
-      or() in C:\projects\hangfire-525\src\H
-      angfire.Core\RecurringJobManager.cs:li
-      ne 42
-         at Hangfire.RecurringJob.<>c.<.ccto
-      r>b__61_0() in C:\projects\hangfire-52
-      5\src\Hangfire.Core\RecurringJob.cs:li
-      ne 29
-         at System.Lazy`1.CreateValue()     
-         at Hangfire.RecurringJob.AddOrUpdat
-      e[T](String recurringJobId, Expression
-      `1 methodCall, String cronExpression, 
-      RecurringJobOptions options) in C:\pro
-      jects\hangfire-525\src\Hangfire.Core\R
-      ecurringJob.cs:line 598
-         at PFMP_API.Program.Main(String[] a
-      rgs) in C:\pfmp\PFMP-API\Program.cs:li
-      ne 268
-         at PFMP_API.Program.<Main>(String[]
-       args)
-         at InvokeStub_Program.<Main>(Object
-      , Span`1)
-         at System.Reflection.MethodBaseInvo
-      ker.InvokeWithOneArg(Object obj, Bindi
-      ngFlags invokeAttr, Binder binder, Obj
-      ect[] parameters, CultureInfo culture)
-      --- End of stack trace from previous l
-      ocation ---
-         at Microsoft.AspNetCore.Mvc.Testing
-      .DeferredHostBuilder.DeferredHost.Star
-      tAsync(CancellationToken cancellationT
-      oken)
-         at Microsoft.Extensions.Hosting.Hos
-      tingAbstractionsHostExtensions.Start(I
-      Host host)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateHost(IH
-      ostBuilder builder)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.ConfigureHost
-      Builder(IHostBuilder hostBuilder)     
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.EnsureServer(
-      )
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(DelegatingHandler[] handlers)  
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateDefault
-      Client(Uri baseAddress, DelegatingHand
-      ler[] handlers)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      WebApplicationFactoryClientOptions opt
-      ions)
-         at Microsoft.AspNetCore.Mvc.Testing
-      .WebApplicationFactory`1.CreateClient(
-      )
-         at PFMP_API.Tests.GoalsControllerTe
-      sts.UpdateGoalProgress_ReturnsNoConten
-      t() in C:\pfmp\PFMP-API.Tests\GoalsCon
-      trollerTests.cs:line 92
-      --- End of stack trace from previous l
-      ocation ---
-    C:\projects\hangfire-525\src\Hangfire.Core\JobStorage.cs(42): error TESTERROR:      
-      PFMP_API.Tests.AuthControllerTests.Log
-      in_ReturnsOk_WithValidCredentials (37m
-      s): Error Message: System.InvalidOpera
-      tionException : Current JobStorage ins
-      tance has not been initialized yet. Yo
-      u must set it before using Hangfire Cl
-      ient or Server API. For .NET Core appl
-      ications please call the `IServiceColl
-      ection.AddHangfire` extension method f
-      rom Hangfire.NetCore or Hangfire.AspNe
-      tCore package depending on your applic
-      ation type when configuring the servic
-      es and ensure service-based APIs are u
-      sed instead of static ones, like `IBac
-      kgroundJobClient` instead of `Backgrou
-      ndJob` and `IRecurringJobManager` inst
-      ead of `RecurringJob`.
-      Stack Trace:
-         at Hangfire.JobStorage.get_Current(
-      ) in C:\projects\hangfire-525\src\Hang
-      fire.Core\JobStorage.cs:line 42       
-         at Hangfire.RecurringJobManager..ct
-      or() in C:\projects\hangfire-525\src\H
-      angfire.Core\RecurringJobManager.cs:li
-      ne 42
-         at Hangfire.RecurringJob.<>c.<.ccto
-      r>b__61_0() in C:\projects\hangfire-52
-      5\src\Hangfire.Core\RecurringJob.cs:li
-      ne 29
-         at System.Lazy`1.CreateValue()     
-         at Hangfire.RecurringJob.AddOrUpdat
-      e[T](String recurringJobId, Expression
-      `1 methodCall, String cronExpression, 
-      RecurringJobOptions options) in C:\pro
+========================================
+Session started: 12/14/2025 15:34:23
+========================================
+
+Using launch settings from C:\pfmp\PFMP-API\Properties\launchSettings.json...
+Building...
+C:\pfmp\PFMP-API\PfmpDevContext.cs(92,10): warning CS1030: #warning: 'To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.' [C:\pfmp\PFMP-API\PFMP-API.csproj]
+C:\pfmp\PFMP-API\Program.cs(18,34): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [C:\pfmp\PFMP-API\PFMP-API.csproj]
+C:\pfmp\PFMP-API\Services\AI\AIIntelligenceService.cs(790,36): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [C:\pfmp\PFMP-API\PFMP-API.csproj]
+C:\pfmp\PFMP-API\Services\MarketData\FmpMarketDataService.cs(94,29): warning CS8604: Possible null reference argument for parameter 'item' in 'void List<FmpQuote>.Add(FmpQuote item)'. [C:\pfmp\PFMP-API\PFMP-API.csproj]
+C:\pfmp\PFMP-API\Controllers\PlaidController.cs(471,31): warning CS8601: Possible null reference assignment. [C:\pfmp\PFMP-API\PFMP-API.csproj]
+C:\pfmp\PFMP-API\Services\Plaid\PlaidService.cs(712,51): warning CS8604: Possible null reference argument for parameter 'key' in 'bool Dictionary<string, Guid>.TryGetValue(string key, out Guid value)'. [C:\pfmp\PFMP-API\PFMP-API.csproj]
+C:\pfmp\PFMP-API\Services\Plaid\PlaidService.cs(846,20): warning CS0612: 'Transaction.Name' is obsolete [C:\pfmp\PFMP-API\PFMP-API.csproj]
+info: Hangfire.PostgreSql.PostgreSqlStorage[0]
+      Start installing Hangfire SQL objects...
+info: Hangfire.PostgreSql.PostgreSqlStorage[0]
+      Hangfire SQL objects installed.
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:5052
+info: Hangfire.BackgroundJobServer[0]
+      Starting Hangfire Server using job storage: 'PostgreSQL Server: Host: 192.168.1.108, DB: pfmp_dev, Schema: hangfire'
+info: Hangfire.BackgroundJobServer[0]
+      Using the following options for PostgreSQL job storage:
+info: Hangfire.BackgroundJobServer[0]
+          Queue poll interval: 00:00:15.
+info: Hangfire.BackgroundJobServer[0]
+          Invisibility timeout: 00:30:00.
+info: Hangfire.BackgroundJobServer[0]
+          Use sliding invisibility timeout: False.
+info: Hangfire.BackgroundJobServer[0]
+      Using the following options for Hangfire Server:
+          Worker count: 48
+          Listening queues: 'default', 'price-refresh', 'snapshots'
+          Shutdown timeout: 00:00:15
+          Schedule polling interval: 00:00:15
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: C:\pfmp\PFMP-API
+info: Hangfire.Server.BackgroundServerProcess[0]
+      Server proart1:35380:0b47b87d successfully announced in 22.3688 ms
+info: Hangfire.Server.BackgroundServerProcess[0]
+      Server proart1:35380:0b47b87d is starting the registered dispatchers: ServerWatchdog, ServerJobCancellationWatcher, ExpirationManager, CountersAggregator, Worker, DelayedJobScheduler, RecurringJobScheduler...
+info: Hangfire.Server.BackgroundServerProcess[0]
+      Server proart1:35380:0b47b87d all the dispatchers started
+info: PFMP_API.Jobs.NetWorthSnapshotJob[0]
+      Updated snapshot for user 20: Net Worth = -ñ1,222,487.72
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Services.AI.OpenAIService[0]
+      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
+info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
+      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
+info: PFMP_API.Controllers.TasksController[0]
+      Retrieved 0 tasks for user 20
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Controllers.TasksController[0]
+      Retrieved 0 tasks for user 20
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Services.AI.OpenAIService[0]
+      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
+info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
+      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Services.AI.OpenAIService[0]
+      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
+info: PFMP_API.Controllers.TasksController[0]
+      Retrieved 0 tasks for user 20
+info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
+      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Controllers.TasksController[0]
+      Retrieved 0 tasks for user 20
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Services.AI.OpenAIService[0]
+      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
+info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
+      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Services.AI.OpenAIService[0]
+      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
+info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
+      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
+info: PFMP_API.Controllers.TasksController[0]
+      Retrieved 0 tasks for user 20
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Services.AI.OpenAIService[0]
+      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
+info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
+      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
+info: PFMP_API.Controllers.TasksController[0]
+      Retrieved 0 tasks for user 20
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Services.AI.OpenAIService[0]
+      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
+info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
+      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
+info: PFMP_API.Controllers.TasksController[0]
+      Retrieved 0 tasks for user 20
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Services.AI.OpenAIService[0]
+      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
+info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
+      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
+info: PFMP_API.Controllers.TasksController[0]
+      Retrieved 0 tasks for user 20
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Services.AI.OpenAIService[0]
+      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
+info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
+      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
+info: PFMP_API.Controllers.TasksController[0]
+      Retrieved 0 tasks for user 20
+warn: Microsoft.EntityFrameworkCore.Query[20504]
+      Compiling a query which loads related collections for more than one collection navigation, either via 'Include' or through projection, but no 'QuerySplittingBehavior' has been configured. By default, Entity Framework will use 'QuerySplittingBehavior.SingleQuery', which can potentially result in slow query performance. See https://go.microsoft.com/fwlink/?linkid=2134277 for more information. To identify the query that's triggering this warning call 'ConfigureWarnings(w => w.Throw(RelationalEventId.MultipleCollectionIncludeWarning))'.
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 21:37:32
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 291.3671ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 302.1042ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 21:37:32
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 50.4356ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 50.5605ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 21:37:32
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 361.3217ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 361.4541ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 21:37:33
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 48.8643ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 48.988ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 21:37:33
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 48.9386ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 49.0664ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 21:37:33
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 48.6279ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 48.7561ms - 200
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching performance metrics for account 108, period 1Y
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Date range: 12/14/2024 21:37:37 to 12/14/2025 21:37:37
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching tax insights for account 108
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching tax insights for account 108
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching risk metrics for account 108, period 1Y
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching historical performance data...
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Retrieved 54 historical data points
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching performance metrics for account 108, period 1Y
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Date range: 12/14/2024 21:37:42 to 12/14/2025 21:37:42
+warn: Microsoft.EntityFrameworkCore.Query[10102]
+      The query uses a row limiting operator ('Skip'/'Take') without an 'OrderBy' operator. This may lead to unpredictable results. If the 'Distinct' operator is used after 'OrderBy', then make sure to use the 'OrderBy' operator after 'Distinct' as the ordering would otherwise get erased.
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: ACHN vs DBLTX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation ACHN vs DBLTX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: ACHN=0, DBLTX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: ACHN vs BTC
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation ACHN vs BTC: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: ACHN=0, BTC=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: ACHN vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation ACHN vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: ACHN=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: ACHN vs MIPTX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation ACHN vs MIPTX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: ACHN=0, MIPTX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: ACHN vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation ACHN vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: ACHN=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: ACHN vs NHX105509
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation ACHN vs NHX105509: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: ACHN=0, NHX105509=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: ACHN vs CAMYX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation ACHN vs CAMYX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: ACHN=0, CAMYX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: ACHN vs SBSI
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation ACHN vs SBSI: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: ACHN=0, SBSI=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: ACHN vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation ACHN vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: ACHN=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: ACHN vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation ACHN vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: ACHN=0, SPY=463
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: DBLTX vs BTC
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation DBLTX vs BTC: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: DBLTX=0, BTC=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: DBLTX vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation DBLTX vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: DBLTX=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: DBLTX vs MIPTX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation DBLTX vs MIPTX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: DBLTX=0, MIPTX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: DBLTX vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation DBLTX vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: DBLTX=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: DBLTX vs NHX105509
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation DBLTX vs NHX105509: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: DBLTX=0, NHX105509=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: DBLTX vs CAMYX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation DBLTX vs CAMYX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: DBLTX=0, CAMYX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: DBLTX vs SBSI
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation DBLTX vs SBSI: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: DBLTX=0, SBSI=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: DBLTX vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation DBLTX vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: DBLTX=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: DBLTX vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation DBLTX vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: DBLTX=0, SPY=463
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: BTC vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation BTC vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: BTC=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: BTC vs MIPTX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation BTC vs MIPTX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: BTC=0, MIPTX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: BTC vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation BTC vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: BTC=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: BTC vs NHX105509
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation BTC vs NHX105509: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: BTC=0, NHX105509=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: BTC vs CAMYX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation BTC vs CAMYX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: BTC=0, CAMYX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: BTC vs SBSI
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation BTC vs SBSI: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: BTC=0, SBSI=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: BTC vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation BTC vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: BTC=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: BTC vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation BTC vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: BTC=0, SPY=463
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs MIPTX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs MIPTX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, MIPTX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs NHX105509
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs NHX105509: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, NHX105509=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs CAMYX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs CAMYX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, CAMYX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs SBSI
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs SBSI: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, SPY=463
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: MIPTX vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation MIPTX vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: MIPTX=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: MIPTX vs NHX105509
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation MIPTX vs NHX105509: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: MIPTX=0, NHX105509=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: MIPTX vs CAMYX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation MIPTX vs CAMYX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: MIPTX=0, CAMYX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: MIPTX vs SBSI
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation MIPTX vs SBSI: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: MIPTX=0, SBSI=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: MIPTX vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation MIPTX vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: MIPTX=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: MIPTX vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation MIPTX vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: MIPTX=0, SPY=463
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs NHX105509
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs NHX105509: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, NHX105509=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs CAMYX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs CAMYX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, CAMYX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs SBSI
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs SBSI: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, SBSI=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, SPY=463
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: NHX105509 vs CAMYX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation NHX105509 vs CAMYX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: NHX105509=0, CAMYX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: NHX105509 vs SBSI
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation NHX105509 vs SBSI: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: NHX105509=0, SBSI=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: NHX105509 vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation NHX105509 vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: NHX105509=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: NHX105509 vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation NHX105509 vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: NHX105509=0, SPY=463
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: CAMYX vs SBSI
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation CAMYX vs SBSI: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: CAMYX=0, SBSI=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: CAMYX vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation CAMYX vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: CAMYX=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: CAMYX vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation CAMYX vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: CAMYX=0, SPY=463
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: SBSI vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation SBSI vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: SBSI=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: SBSI vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation SBSI vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: SBSI=0, SPY=463
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, SPY=463
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for SPY
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for QQQ
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for IWM
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VTI
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for AGG
+info: PFMP_API.Services.BenchmarkDataService[0]
+      Returning cached benchmark data for VEU
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching historical performance data...
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Retrieved 54 historical data points
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching risk metrics for account 108, period 1Y
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: ACHN vs DBLTX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation ACHN vs DBLTX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: ACHN=0, DBLTX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: ACHN vs BTC
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation ACHN vs BTC: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: ACHN=0, BTC=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: ACHN vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation ACHN vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: ACHN=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: ACHN vs MIPTX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation ACHN vs MIPTX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: ACHN=0, MIPTX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: ACHN vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation ACHN vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: ACHN=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: ACHN vs NHX105509
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation ACHN vs NHX105509: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: ACHN=0, NHX105509=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: ACHN vs CAMYX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation ACHN vs CAMYX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: ACHN=0, CAMYX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: ACHN vs SBSI
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation ACHN vs SBSI: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: ACHN=0, SBSI=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: ACHN vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation ACHN vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: ACHN=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: ACHN vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation ACHN vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: ACHN=0, SPY=463
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: DBLTX vs BTC
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation DBLTX vs BTC: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: DBLTX=0, BTC=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: DBLTX vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation DBLTX vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: DBLTX=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: DBLTX vs MIPTX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation DBLTX vs MIPTX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: DBLTX=0, MIPTX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: DBLTX vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation DBLTX vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: DBLTX=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: DBLTX vs NHX105509
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation DBLTX vs NHX105509: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: DBLTX=0, NHX105509=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: DBLTX vs CAMYX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation DBLTX vs CAMYX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: DBLTX=0, CAMYX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: DBLTX vs SBSI
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation DBLTX vs SBSI: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: DBLTX=0, SBSI=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: DBLTX vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation DBLTX vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: DBLTX=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: DBLTX vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation DBLTX vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: DBLTX=0, SPY=463
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: BTC vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation BTC vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: BTC=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: BTC vs MIPTX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation BTC vs MIPTX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: BTC=0, MIPTX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: BTC vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation BTC vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: BTC=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: BTC vs NHX105509
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation BTC vs NHX105509: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: BTC=0, NHX105509=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: BTC vs CAMYX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation BTC vs CAMYX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: BTC=0, CAMYX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: BTC vs SBSI
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation BTC vs SBSI: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: BTC=0, SBSI=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: BTC vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation BTC vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: BTC=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: BTC vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation BTC vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: BTC=0, SPY=463
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs MIPTX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs MIPTX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, MIPTX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs NHX105509
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs NHX105509: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, NHX105509=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs CAMYX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs CAMYX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, CAMYX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs SBSI
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs SBSI: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, SBSI=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, SPY=463
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: MIPTX vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation MIPTX vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: MIPTX=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: MIPTX vs NHX105509
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation MIPTX vs NHX105509: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: MIPTX=0, NHX105509=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: MIPTX vs CAMYX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation MIPTX vs CAMYX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: MIPTX=0, CAMYX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: MIPTX vs SBSI
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation MIPTX vs SBSI: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: MIPTX=0, SBSI=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: MIPTX vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation MIPTX vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: MIPTX=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: MIPTX vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation MIPTX vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: MIPTX=0, SPY=463
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs NHX105509
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs NHX105509: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, NHX105509=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs CAMYX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs CAMYX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, CAMYX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs SBSI
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs SBSI: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, SBSI=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, SPY=463
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: NHX105509 vs CAMYX
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation NHX105509 vs CAMYX: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: NHX105509=0, CAMYX=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: NHX105509 vs SBSI
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation NHX105509 vs SBSI: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: NHX105509=0, SBSI=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: NHX105509 vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation NHX105509 vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: NHX105509=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: NHX105509 vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation NHX105509 vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: NHX105509=0, SPY=463
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: CAMYX vs SBSI
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation CAMYX vs SBSI: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: CAMYX=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: CAMYX vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation CAMYX vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: CAMYX=0, SPY=463
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: SBSI vs UNKNOWN
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation SBSI vs UNKNOWN: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: SBSI=0, UNKNOWN=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: SBSI vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation SBSI vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: SBSI=0, SPY=463
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, SPY=463
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching allocation for account 108, dimension assetClass
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching allocation for account 108, dimension assetClass
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching allocation for account 108, dimension assetClass
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching allocation for account 108, dimension assetClass
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Services.AI.OpenAIService[0]
+      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
+info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
+      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Controllers.TasksController[0]
+      Retrieved 0 tasks for user 20
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Services.AI.OpenAIService[0]
+      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
+info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
+      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
+info: PFMP_API.Controllers.TasksController[0]
+      Retrieved 0 tasks for user 20
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching allocation for account 107, dimension assetClass
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching allocation for account 107, dimension assetClass
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching allocation for account 107, dimension assetClass
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching allocation for account 107, dimension assetClass
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching allocation for account 107, dimension sector
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching allocation for account 107, dimension geography
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching allocation for account 107, dimension marketCap
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching risk metrics for account 107, period 1Y
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs NFLX180201C00355000
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs NFLX180201C00355000: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, NFLX180201C00355000=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs EWZ
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs EWZ: Found 0 and 20 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, EWZ=20
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, SPY=463
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: NFLX180201C00355000 vs EWZ
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation NFLX180201C00355000 vs EWZ: Found 0 and 20 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: NFLX180201C00355000=0, EWZ=20
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: NFLX180201C00355000 vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation NFLX180201C00355000 vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: NFLX180201C00355000=0, SPY=463
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: EWZ vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation EWZ vs SPY: Found 20 and 463 price points
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation EWZ vs SPY: 3 common dates
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation EWZ vs SPY: 2 return periods
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation EWZ vs SPY: stdDev1=0.00701450397110491, stdDev2=0.00511119756165796, cov=0.0000358525155933515272498016
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation EWZ vs SPY: 1.000000000000000941352324696
+info: Hangfire.Server.ServerWatchdog[0]
+      2 servers were removed due to timeout
+info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
+      Fetching risk metrics for account 107, period 1Y
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs NFLX180201C00355000
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs NFLX180201C00355000: Found 0 and 0 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, NFLX180201C00355000=0
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs EWZ
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs EWZ: Found 0 and 20 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, EWZ=20
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: UNKNOWN vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation UNKNOWN vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: UNKNOWN=0, SPY=463
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: NFLX180201C00355000 vs EWZ
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation NFLX180201C00355000 vs EWZ: Found 0 and 20 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: NFLX180201C00355000=0, EWZ=20
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: NFLX180201C00355000 vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation NFLX180201C00355000 vs SPY: Found 0 and 463 price points
+warn: PFMP_API.Services.RiskAnalysisService[0]
+      Insufficient price data for correlation: NFLX180201C00355000=0, SPY=463
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Starting correlation calculation: EWZ vs SPY
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation EWZ vs SPY: Found 20 and 463 price points
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation EWZ vs SPY: 3 common dates
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation EWZ vs SPY: 2 return periods
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation EWZ vs SPY: stdDev1=0.00701450397110491, stdDev2=0.00511119756165796, cov=0.0000358525155933515272498016
+info: PFMP_API.Services.RiskAnalysisService[0]
+      Correlation EWZ vs SPY: 1.000000000000000941352324696
+warn: Hangfire.Server.BackgroundProcessingServer[0]
+      Stopping the server due to DomainUnload or ProcessExit event...
+info: Hangfire.Server.BackgroundServerProcess[0]
+      Server proart1:35380:0b47b87d caught stopping signal...
+info: Hangfire.Server.BackgroundServerProcess[0]
+      Server proart1:35380:0b47b87d caught stopped signal...
+warn: Hangfire.Server.BackgroundServerProcess[0]
