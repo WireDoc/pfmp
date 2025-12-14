@@ -77,6 +77,9 @@ namespace PFMP_API
     public DbSet<AccountConnection> AccountConnections { get; set; }
     public DbSet<SyncHistory> SyncHistory { get; set; }
 
+    // Plaid Investments (Wave 12)
+    public DbSet<PlaidSecurity> PlaidSecurities { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

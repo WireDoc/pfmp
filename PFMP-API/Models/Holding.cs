@@ -83,6 +83,36 @@ namespace PFMP_API.Models
 
         public string? Notes { get; set; }
 
+        // Plaid Integration Fields (Wave 12)
+        /// <summary>
+        /// Plaid's unique security identifier for this holding
+        /// </summary>
+        [MaxLength(100)]
+        public string? PlaidSecurityId { get; set; }
+
+        /// <summary>
+        /// Plaid's unique holding identifier
+        /// </summary>
+        [MaxLength(100)]
+        public string? PlaidHoldingId { get; set; }
+
+        /// <summary>
+        /// When this holding was last synced from Plaid
+        /// </summary>
+        public DateTime? PlaidLastSyncedAt { get; set; }
+
+        /// <summary>
+        /// CUSIP identifier (from Plaid or manual)
+        /// </summary>
+        [MaxLength(20)]
+        public string? Cusip { get; set; }
+
+        /// <summary>
+        /// ISIN identifier (from Plaid or manual)
+        /// </summary>
+        [MaxLength(20)]
+        public string? Isin { get; set; }
+
         // Navigation Properties
         [ForeignKey("AccountId")]
         public virtual Account Account { get; set; } = null!;

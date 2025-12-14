@@ -100,6 +100,45 @@ namespace PFMP_API.Models
 
         public string? Notes { get; set; }
 
+        // Plaid Integration Fields (Wave 12)
+        /// <summary>
+        /// Source of the account data (Manual, Plaid, etc.)
+        /// </summary>
+        public int Source { get; set; } = 0; // 0 = Manual, 2 = Plaid, 3 = PlaidInvestments
+
+        /// <summary>
+        /// Plaid Item ID (references AccountConnection)
+        /// </summary>
+        [MaxLength(100)]
+        public string? PlaidItemId { get; set; }
+
+        /// <summary>
+        /// Plaid's unique identifier for this account
+        /// </summary>
+        [MaxLength(100)]
+        public string? PlaidAccountId { get; set; }
+
+        /// <summary>
+        /// Connection ID linking to AccountConnections table
+        /// </summary>
+        public Guid? ConnectionId { get; set; }
+
+        /// <summary>
+        /// When the account was last synced from Plaid
+        /// </summary>
+        public DateTime? PlaidLastSyncedAt { get; set; }
+
+        /// <summary>
+        /// Sync status for Plaid-linked accounts
+        /// </summary>
+        public int PlaidSyncStatus { get; set; } = 0; // 0 = NotConnected, 1 = Connected, 2 = Syncing, 3 = SyncFailed
+
+        /// <summary>
+        /// Error message from last sync failure
+        /// </summary>
+        [MaxLength(500)]
+        public string? PlaidSyncErrorMessage { get; set; }
+
         // Navigation Properties
         [ForeignKey("UserId")]
         [JsonIgnore] // Prevent circular reference in JSON serialization

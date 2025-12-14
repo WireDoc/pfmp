@@ -584,6 +584,309 @@ public class PlaidController : ControllerBase
             return StatusCode(500, new ErrorResponse { Error = "Failed to get transactions", Details = ex.Message });
         }
     }
+
+    #region Investments Endpoints (Wave 12)
+
+    /// <summary>
+    /// Generate a Plaid Link token for investments product
+    /// </summary>
+    [HttpPost("investments/link-token")]
+    [ProducesResponseType(typeof(LinkTokenResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<LinkTokenResponse>> CreateInvestmentsLinkToken(
+        [FromQuery] int userId,
+        [FromServices] IPlaidInvestmentsService investmentsService)
+    {
+        if (userId <= 0)
+        {
+            return BadRequest("Valid user ID is required");
+        }
+
+        try
+        {
+            _logger.LogInformation("Creating Plaid Investments Link token for user {UserId}", userId);
+            var linkToken = await investmentsService.CreateInvestmentsLinkTokenAsync(userId);
+            
+            return Ok(new LinkTokenResponse { LinkToken = linkToken });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create Plaid Investments Link token for user {UserId}", userId);
+            return StatusCode(500, new ErrorResponse { Error = "Failed to create investments link token", Details = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Exchange a Plaid public token for investments and create the connection
+    /// </summary>
+    [HttpPost("investments/exchange-token")]
+    [ProducesResponseType(typeof(InvestmentsExchangeResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<InvestmentsExchangeResponse>> ExchangeInvestmentsPublicToken(
+        [FromBody] ExchangeTokenRequest request,
+        [FromQuery] int userId,
+        [FromServices] IPlaidInvestmentsService investmentsService)
+    {
+        if (string.IsNullOrWhiteSpace(request.PublicToken))
+        {
+            return BadRequest(new ErrorResponse { Error = "Public token is required" });
+        }
+
+        if (userId <= 0)
+        {
+            return BadRequest(new ErrorResponse { Error = "Valid user ID is required" });
+        }
+
+        try
+        {
+            _logger.LogInformation("Exchanging Plaid investments public token for user {UserId}", userId);
+            var connection = await investmentsService.ExchangeInvestmentsPublicTokenAsync(
+                userId, request.PublicToken, request.InstitutionId, request.InstitutionName);
+            
+            var accounts = await investmentsService.GetUserInvestmentAccountsAsync(userId);
+            
+            return Ok(new InvestmentsExchangeResponse
+            {
+                Connection = MapToConnectionDto(connection),
+                AccountsCreated = accounts.Count(a => a.ConnectionId == connection.ConnectionId)
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to exchange Plaid investments public token for user {UserId}", userId);
+            return StatusCode(500, new ErrorResponse { Error = "Failed to exchange investments token", Details = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Sync investment holdings for a connection
+    /// </summary>
+    [HttpPost("investments/connections/{connectionId}/sync")]
+    [ProducesResponseType(typeof(InvestmentsSyncResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<InvestmentsSyncResultDto>> SyncInvestmentHoldings(
+        Guid connectionId,
+        [FromQuery] int userId,
+        [FromServices] IPlaidInvestmentsService investmentsService)
+    {
+        if (userId <= 0)
+        {
+            return BadRequest(new ErrorResponse { Error = "Valid user ID is required" });
+        }
+
+        try
+        {
+            var result = await investmentsService.SyncInvestmentHoldingsAsync(connectionId);
+            
+            return Ok(new InvestmentsSyncResultDto
+            {
+                Success = result.Success,
+                AccountsUpdated = result.AccountsUpdated,
+                HoldingsUpdated = result.HoldingsUpdated,
+                SecuritiesUpdated = result.SecuritiesUpdated,
+                DurationMs = result.DurationMs,
+                ErrorMessage = result.ErrorMessage
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to sync investment holdings for connection {ConnectionId}", connectionId);
+            return StatusCode(500, new ErrorResponse { Error = "Failed to sync investments", Details = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Get investment accounts for a user
+    /// </summary>
+    [HttpGet("investments/accounts")]
+    [ProducesResponseType(typeof(List<InvestmentAccountDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<List<InvestmentAccountDto>>> GetInvestmentAccounts(
+        [FromQuery] int userId,
+        [FromServices] IPlaidInvestmentsService investmentsService)
+    {
+        if (userId <= 0)
+        {
+            return BadRequest(new ErrorResponse { Error = "Valid user ID is required" });
+        }
+
+        try
+        {
+            var accounts = await investmentsService.GetUserInvestmentAccountsAsync(userId);
+            
+            return Ok(accounts.Select(a => new InvestmentAccountDto
+            {
+                AccountId = a.AccountId,
+                AccountName = a.AccountName,
+                AccountType = a.AccountType.ToString(),
+                CurrentBalance = a.CurrentBalance,
+                PlaidAccountId = a.PlaidAccountId,
+                ConnectionId = a.ConnectionId,
+                LastSyncedAt = a.PlaidLastSyncedAt,
+                SyncStatus = a.PlaidSyncStatus
+            }).ToList());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get investment accounts for user {UserId}", userId);
+            return StatusCode(500, new ErrorResponse { Error = "Failed to get investment accounts", Details = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Get holdings for an investment account
+    /// </summary>
+    [HttpGet("investments/accounts/{accountId}/holdings")]
+    [ProducesResponseType(typeof(List<HoldingDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<List<HoldingDto>>> GetAccountHoldings(
+        int accountId,
+        [FromQuery] int userId,
+        [FromServices] IPlaidInvestmentsService investmentsService)
+    {
+        if (userId <= 0)
+        {
+            return BadRequest(new ErrorResponse { Error = "Valid user ID is required" });
+        }
+
+        try
+        {
+            var holdings = await investmentsService.GetAccountHoldingsAsync(accountId);
+            
+            return Ok(holdings.Select(h => new HoldingDto
+            {
+                HoldingId = h.HoldingId,
+                Symbol = h.Symbol,
+                Shares = h.Quantity,
+                CostBasis = h.TotalCostBasis,
+                CurrentPrice = h.CurrentPrice,
+                MarketValue = h.CurrentValue,
+                GainLoss = h.UnrealizedGainLoss,
+                PlaidSecurityId = h.PlaidSecurityId,
+                Cusip = h.Cusip,
+                Isin = h.Isin,
+                LastSyncedAt = h.PlaidLastSyncedAt
+            }).ToList());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get holdings for account {AccountId}", accountId);
+            return StatusCode(500, new ErrorResponse { Error = "Failed to get holdings", Details = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Create a sandbox investment user with custom holdings (sandbox only)
+    /// </summary>
+    [HttpPost("investments/sandbox/seed")]
+    [ProducesResponseType(typeof(SandboxSeedResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<SandboxSeedResultDto>> CreateSandboxInvestmentUser(
+        [FromBody] SandboxSeedRequest request,
+        [FromQuery] int userId,
+        [FromServices] IPlaidInvestmentsService investmentsService)
+    {
+        if (userId <= 0)
+        {
+            return BadRequest(new ErrorResponse { Error = "Valid user ID is required" });
+        }
+
+        try
+        {
+            _logger.LogInformation("Creating sandbox investment user for user {UserId}", userId);
+
+            var config = new SandboxInvestmentConfig
+            {
+                AccountName = request.AccountName ?? "Test Investment Account",
+                AccountSubtype = request.AccountSubtype ?? "brokerage",
+                StartingBalance = request.StartingBalance ?? 100000m,
+                Holdings = request.Holdings?.Select(h => new SandboxHoldingConfig
+                {
+                    SecurityId = h.SecurityId ?? Guid.NewGuid().ToString(),
+                    TickerSymbol = h.TickerSymbol,
+                    SecurityName = h.SecurityName,
+                    SecurityType = h.SecurityType ?? "equity",
+                    Quantity = h.Quantity,
+                    CostBasis = h.CostBasis,
+                    CurrentPrice = h.CurrentPrice,
+                    Cusip = h.Cusip,
+                    Isin = h.Isin
+                }).ToList() ?? GetDefaultHoldings()
+            };
+
+            var result = await investmentsService.CreateSandboxInvestmentUserAsync(userId, config);
+
+            return Ok(new SandboxSeedResultDto
+            {
+                Success = result.Success,
+                ConnectionId = result.ConnectionId,
+                ItemId = result.ItemId,
+                AccountsCreated = result.AccountsCreated,
+                HoldingsCreated = result.HoldingsCreated,
+                ErrorMessage = result.ErrorMessage
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create sandbox investment user for user {UserId}", userId);
+            return StatusCode(500, new ErrorResponse { Error = "Failed to create sandbox investment user", Details = ex.Message });
+        }
+    }
+
+    private static List<SandboxHoldingConfig> GetDefaultHoldings()
+    {
+        return new List<SandboxHoldingConfig>
+        {
+            new()
+            {
+                SecurityId = "security_aapl",
+                TickerSymbol = "AAPL",
+                SecurityName = "Apple Inc.",
+                SecurityType = "equity",
+                Quantity = 50,
+                CostBasis = 7500m,
+                CurrentPrice = 175.50m
+            },
+            new()
+            {
+                SecurityId = "security_msft",
+                TickerSymbol = "MSFT",
+                SecurityName = "Microsoft Corporation",
+                SecurityType = "equity",
+                Quantity = 30,
+                CostBasis = 9000m,
+                CurrentPrice = 380.25m
+            },
+            new()
+            {
+                SecurityId = "security_vti",
+                TickerSymbol = "VTI",
+                SecurityName = "Vanguard Total Stock Market ETF",
+                SecurityType = "etf",
+                Quantity = 100,
+                CostBasis = 22000m,
+                CurrentPrice = 245.00m
+            },
+            new()
+            {
+                SecurityId = "security_bnd",
+                TickerSymbol = "BND",
+                SecurityName = "Vanguard Total Bond Market ETF",
+                SecurityType = "etf",
+                Quantity = 75,
+                CostBasis = 5625m,
+                CurrentPrice = 72.50m
+            }
+        };
+    }
+
+    #endregion
 }
 
 // DTOs
@@ -676,3 +979,81 @@ public class TransactionDto
     public string? MerchantLogoUrl { get; set; }
     public string? Source { get; set; }
 }
+
+#region Investment DTOs (Wave 12)
+
+public class InvestmentsExchangeResponse
+{
+    public ConnectionDto Connection { get; set; } = new();
+    public int AccountsCreated { get; set; }
+}
+
+public class InvestmentsSyncResultDto
+{
+    public bool Success { get; set; }
+    public int AccountsUpdated { get; set; }
+    public int HoldingsUpdated { get; set; }
+    public int SecuritiesUpdated { get; set; }
+    public int DurationMs { get; set; }
+    public string? ErrorMessage { get; set; }
+}
+
+public class InvestmentAccountDto
+{
+    public int AccountId { get; set; }
+    public string AccountName { get; set; } = string.Empty;
+    public string AccountType { get; set; } = string.Empty;
+    public decimal CurrentBalance { get; set; }
+    public string? PlaidAccountId { get; set; }
+    public Guid? ConnectionId { get; set; }
+    public DateTime? LastSyncedAt { get; set; }
+    public int SyncStatus { get; set; }
+}
+
+public class HoldingDto
+{
+    public int HoldingId { get; set; }
+    public string Symbol { get; set; } = string.Empty;
+    public decimal Shares { get; set; }
+    public decimal CostBasis { get; set; }
+    public decimal CurrentPrice { get; set; }
+    public decimal MarketValue { get; set; }
+    public decimal GainLoss { get; set; }
+    public string? PlaidSecurityId { get; set; }
+    public string? Cusip { get; set; }
+    public string? Isin { get; set; }
+    public DateTime? LastSyncedAt { get; set; }
+}
+
+public class SandboxSeedRequest
+{
+    public string? AccountName { get; set; }
+    public string? AccountSubtype { get; set; }
+    public decimal? StartingBalance { get; set; }
+    public List<SandboxHoldingRequest>? Holdings { get; set; }
+}
+
+public class SandboxHoldingRequest
+{
+    public string? SecurityId { get; set; }
+    public string TickerSymbol { get; set; } = string.Empty;
+    public string SecurityName { get; set; } = string.Empty;
+    public string? SecurityType { get; set; }
+    public decimal Quantity { get; set; }
+    public decimal CostBasis { get; set; }
+    public decimal CurrentPrice { get; set; }
+    public string? Cusip { get; set; }
+    public string? Isin { get; set; }
+}
+
+public class SandboxSeedResultDto
+{
+    public bool Success { get; set; }
+    public Guid? ConnectionId { get; set; }
+    public string? ItemId { get; set; }
+    public int AccountsCreated { get; set; }
+    public int HoldingsCreated { get; set; }
+    public string? ErrorMessage { get; set; }
+}
+
+#endregion

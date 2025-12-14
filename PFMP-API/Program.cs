@@ -143,6 +143,9 @@ namespace PFMP_API
             builder.Services.AddScoped<PFMP_API.Services.Plaid.IPlaidService, PFMP_API.Services.Plaid.PlaidService>();
             builder.Services.AddScoped<PFMP_API.Jobs.PlaidSyncJob>();
 
+            // Plaid Investments Services (Wave 12)
+            builder.Services.AddScoped<PFMP_API.Services.Plaid.IPlaidInvestmentsService, PFMP_API.Services.Plaid.PlaidInvestmentsService>();
+
             // Add Authentication Services
             builder.Services.AddScoped<IPasswordHashService, PasswordHashService>();
             builder.Services.AddHttpClient<IAuthenticationService, AuthenticationService>();
