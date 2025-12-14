@@ -14,7 +14,7 @@ import {
 import { DataGrid, type GridColDef, type GridPaginationModel, type GridSortModel } from '@mui/x-data-grid';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { Search, FileDownload, FilterListOff, Add, Edit, Delete } from '@mui/icons-material';
+import { Search, FileDownload, FilterListOff, Add, Edit, Delete, Sync as SyncIcon } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { TransactionTypeChip } from './TransactionTypeChip';
 import { InvestmentTransactionForm } from './InvestmentTransactionForm';
@@ -23,22 +23,29 @@ import {
   deleteTransaction,
   type FetchTransactionsParams,
 } from '../../services/investmentTransactionsApi';
+import { syncInvestmentTransactions } from '../../services/plaidApi';
 import type { InvestmentTransaction, TransactionType } from '../../types/investmentTransactions';
 
 interface InvestmentTransactionListProps {
   accountId: number;
+  connectionId?: string;
+  userId?: number;
   onAddTransaction?: () => void;
   onEditTransaction?: (transaction: InvestmentTransaction) => void;
 }
 
 export const InvestmentTransactionList: React.FC<InvestmentTransactionListProps> = ({
   accountId,
+  connectionId,
+  userId,
   onEditTransaction,
 }) => {
   // Data state
   const [transactions, setTransactions] = useState<InvestmentTransaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   // Form state
   const [formOpen, setFormOpen] = useState(false);
@@ -130,6 +137,33 @@ export const InvestmentTransactionList: React.FC<InvestmentTransactionListProps>
     setSymbolFilter('');
     setStartDate(null);
     setEndDate(null);
+  };
+
+  // Sync transactions from Plaid
+  const handleSyncTransactions = async () => {
+    if (!connectionId || !userId) return;
+    
+    setSyncing(true);
+    setError(null);
+    setSuccessMessage(null);
+    
+    try {
+      const result = await syncInvestmentTransactions(connectionId, userId);
+      if (result.success) {
+        setSuccessMessage(
+          `Synced ${result.transactionsCreated} new transactions (${result.transactionsUpdated} updated, ${result.transactionsTotal} total)`
+        );
+        // Refresh the transaction list
+        await fetchData();
+      } else {
+        setError(result.errorMessage ?? 'Transaction sync failed');
+      }
+    } catch (err) {
+      console.error('Error syncing transactions:', err);
+      setError('Failed to sync transactions. Please try again.');
+    } finally {
+      setSyncing(false);
+    }
   };
 
   // CSV Export
@@ -357,22 +391,50 @@ export const InvestmentTransactionList: React.FC<InvestmentTransactionListProps>
     { value: 'CRYPTO_SWAP', label: 'Crypto Swap' },
   ];
 
-  if (error) {
-    return (
-      <Alert severity="error" sx={{ mb: 2 }}>
-        {error}
-      </Alert>
-    );
-  }
-
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Paper sx={{ p: 2 }}>
+        {/* Error Alert */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
+        
+        {/* Success Alert */}
+        {successMessage && (
+          <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccessMessage(null)}>
+            {successMessage}
+          </Alert>
+        )}
+
         {/* Toolbar with filters */}
         <Toolbar disableGutters sx={{ mb: 2, flexWrap: 'wrap', gap: 2 }}>
           <Typography variant="h6" component="div" sx={{ flexGrow: 0, minWidth: 150 }}>
             Transactions
           </Typography>
+
+          {/* Sync from Plaid button */}
+          {connectionId && userId && (
+            <Tooltip title="Sync from Plaid">
+              <IconButton
+                onClick={handleSyncTransactions}
+                disabled={syncing}
+                size="small"
+                color="primary"
+              >
+                <SyncIcon
+                  sx={{
+                    animation: syncing ? 'spin 1s linear infinite' : 'none',
+                    '@keyframes spin': {
+                      '0%': { transform: 'rotate(0deg)' },
+                      '100%': { transform: 'rotate(360deg)' },
+                    },
+                  }}
+                />
+              </IconButton>
+            </Tooltip>
+          )}
 
           {/* Search */}
           <TextField

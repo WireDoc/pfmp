@@ -1,5 +1,5 @@
 ========================================
-Session started: 12/14/2025 15:34:23
+Session started: 12/14/2025 16:09:45
 ========================================
 
 Using launch settings from C:\pfmp\PFMP-API\Properties\launchSettings.json...
@@ -7,9 +7,12 @@ Building...
 C:\pfmp\PFMP-API\PfmpDevContext.cs(92,10): warning CS1030: #warning: 'To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.' [C:\pfmp\PFMP-API\PFMP-API.csproj]
 C:\pfmp\PFMP-API\Program.cs(18,34): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [C:\pfmp\PFMP-API\PFMP-API.csproj]
 C:\pfmp\PFMP-API\Services\AI\AIIntelligenceService.cs(790,36): warning CS1998: This async method lacks 'await' operators and will run synchronously. Consider using the 'await' operator to await non-blocking API calls, or 'await Task.Run(...)' to do CPU-bound work on a background thread. [C:\pfmp\PFMP-API\PFMP-API.csproj]
-C:\pfmp\PFMP-API\Services\MarketData\FmpMarketDataService.cs(94,29): warning CS8604: Possible null reference argument for parameter 'item' in 'void List<FmpQuote>.Add(FmpQuote item)'. [C:\pfmp\PFMP-API\PFMP-API.csproj]
 C:\pfmp\PFMP-API\Controllers\PlaidController.cs(471,31): warning CS8601: Possible null reference assignment. [C:\pfmp\PFMP-API\PFMP-API.csproj]
+C:\pfmp\PFMP-API\Services\MarketData\FmpMarketDataService.cs(94,29): warning CS8604: Possible null reference argument for parameter 'item' in 'void List<FmpQuote>.Add(FmpQuote item)'. [C:\pfmp\PFMP-API\PFMP-API.csproj]
+C:\pfmp\PFMP-API\Services\Plaid\PlaidInvestmentsService.cs(608,95): warning CS8620: Argument of type 'Dictionary<string, string>' cannot be used for parameter 'securityMap' of type 'Dictionary<string, string?>' in 'Task<(bool Created, Transaction Tx)> PlaidInvestmentsService.UpsertInvestmentTransactionAsync(int accountId, InvestmentTransaction plaidTx, Dictionary<string, string?> securityMap)' due to differences in the nullability of reference types. [C:\pfmp\PFMP-API\PFMP-API.csproj]
 C:\pfmp\PFMP-API\Services\Plaid\PlaidService.cs(712,51): warning CS8604: Possible null reference argument for parameter 'key' in 'bool Dictionary<string, Guid>.TryGetValue(string key, out Guid value)'. [C:\pfmp\PFMP-API\PFMP-API.csproj]
+C:\pfmp\PFMP-API\Services\Plaid\PlaidInvestmentsService.cs(802,52): warning CS8629: Nullable value type may be null. [C:\pfmp\PFMP-API\PFMP-API.csproj]
+C:\pfmp\PFMP-API\Services\Plaid\PlaidInvestmentsService.cs(821,47): warning CS8629: Nullable value type may be null. [C:\pfmp\PFMP-API\PFMP-API.csproj]
 C:\pfmp\PFMP-API\Services\Plaid\PlaidService.cs(846,20): warning CS0612: 'Transaction.Name' is obsolete [C:\pfmp\PFMP-API\PFMP-API.csproj]
 info: Hangfire.PostgreSql.PostgreSqlStorage[0]
       Start installing Hangfire SQL objects...
@@ -40,13 +43,11 @@ info: Microsoft.Hosting.Lifetime[0]
 info: Microsoft.Hosting.Lifetime[0]
       Content root path: C:\pfmp\PFMP-API
 info: Hangfire.Server.BackgroundServerProcess[0]
-      Server proart1:35380:0b47b87d successfully announced in 22.3688 ms
+      Server proart1:11252:c8355754 successfully announced in 24.3876 ms
 info: Hangfire.Server.BackgroundServerProcess[0]
-      Server proart1:35380:0b47b87d is starting the registered dispatchers: ServerWatchdog, ServerJobCancellationWatcher, ExpirationManager, CountersAggregator, Worker, DelayedJobScheduler, RecurringJobScheduler...
+      Server proart1:11252:c8355754 is starting the registered dispatchers: ServerWatchdog, ServerJobCancellationWatcher, ExpirationManager, CountersAggregator, Worker, DelayedJobScheduler, RecurringJobScheduler...
 info: Hangfire.Server.BackgroundServerProcess[0]
-      Server proart1:35380:0b47b87d all the dispatchers started
-info: PFMP_API.Jobs.NetWorthSnapshotJob[0]
-      Updated snapshot for user 20: Net Worth = -ñ1,222,487.72
+      Server proart1:11252:c8355754 all the dispatchers started
 warn: PFMP_API.Services.MarketDataService[0]
       Financial Modeling Prep API key not configured. Market data will use fallback values.
 warn: PFMP_API.Services.MarketDataService[0]
@@ -73,10 +74,10 @@ info: PFMP_API.Controllers.TasksController[0]
       Retrieved 0 tasks for user 20
 warn: PFMP_API.Services.MarketDataService[0]
       Financial Modeling Prep API key not configured. Market data will use fallback values.
-warn: PFMP_API.Services.AIService[0]
-      Azure OpenAI configuration not found. AI features will use fallback logic.
 warn: PFMP_API.Services.MarketDataService[0]
       Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
 warn: PFMP_API.Services.AIService[0]
       Azure OpenAI configuration not found. AI features will use fallback logic.
 info: PFMP_API.Services.AI.OpenAIService[0]
@@ -89,44 +90,8 @@ warn: PFMP_API.Services.MarketDataService[0]
       Financial Modeling Prep API key not configured. Market data will use fallback values.
 warn: PFMP_API.Services.AIService[0]
       Azure OpenAI configuration not found. AI features will use fallback logic.
-warn: PFMP_API.Services.AIService[0]
-      Azure OpenAI configuration not found. AI features will use fallback logic.
 warn: PFMP_API.Services.MarketDataService[0]
       Financial Modeling Prep API key not configured. Market data will use fallback values.
-warn: PFMP_API.Services.AIService[0]
-      Azure OpenAI configuration not found. AI features will use fallback logic.
-info: PFMP_API.Services.AI.OpenAIService[0]
-      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
-info: PFMP_API.Controllers.TasksController[0]
-      Retrieved 0 tasks for user 20
-info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
-      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
-warn: PFMP_API.Services.MarketDataService[0]
-      Financial Modeling Prep API key not configured. Market data will use fallback values.
-warn: PFMP_API.Services.AIService[0]
-      Azure OpenAI configuration not found. AI features will use fallback logic.
-warn: PFMP_API.Services.MarketDataService[0]
-      Financial Modeling Prep API key not configured. Market data will use fallback values.
-warn: PFMP_API.Services.AIService[0]
-      Azure OpenAI configuration not found. AI features will use fallback logic.
-info: PFMP_API.Controllers.TasksController[0]
-      Retrieved 0 tasks for user 20
-warn: PFMP_API.Services.MarketDataService[0]
-      Financial Modeling Prep API key not configured. Market data will use fallback values.
-warn: PFMP_API.Services.AIService[0]
-      Azure OpenAI configuration not found. AI features will use fallback logic.
-info: PFMP_API.Services.AI.OpenAIService[0]
-      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
-info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
-      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
-warn: PFMP_API.Services.MarketDataService[0]
-      Financial Modeling Prep API key not configured. Market data will use fallback values.
-warn: PFMP_API.Services.MarketDataService[0]
-      Financial Modeling Prep API key not configured. Market data will use fallback values.
-warn: PFMP_API.Services.MarketDataService[0]
-      Financial Modeling Prep API key not configured. Market data will use fallback values.
-warn: PFMP_API.Services.AIService[0]
-      Azure OpenAI configuration not found. AI features will use fallback logic.
 warn: PFMP_API.Services.AIService[0]
       Azure OpenAI configuration not found. AI features will use fallback logic.
 warn: PFMP_API.Services.AIService[0]
@@ -141,12 +106,12 @@ warn: PFMP_API.Services.MarketDataService[0]
       Financial Modeling Prep API key not configured. Market data will use fallback values.
 warn: PFMP_API.Services.MarketDataService[0]
       Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
 warn: PFMP_API.Services.MarketDataService[0]
       Financial Modeling Prep API key not configured. Market data will use fallback values.
-warn: PFMP_API.Services.AIService[0]
-      Azure OpenAI configuration not found. AI features will use fallback logic.
-warn: PFMP_API.Services.AIService[0]
-      Azure OpenAI configuration not found. AI features will use fallback logic.
 warn: PFMP_API.Services.AIService[0]
       Azure OpenAI configuration not found. AI features will use fallback logic.
 info: PFMP_API.Services.AI.OpenAIService[0]
@@ -155,32 +120,16 @@ info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
       Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
 info: PFMP_API.Controllers.TasksController[0]
       Retrieved 0 tasks for user 20
+GetTransactions called - AccountId: 38078fd8-5047-432a-aca0-67f0a2dc172c, StartDate: , EndDate: , TransactionType: 
+GetTransactions called - AccountId: 38078fd8-5047-432a-aca0-67f0a2dc172c, StartDate: , EndDate: , TransactionType: 
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
 warn: PFMP_API.Services.MarketDataService[0]
       Financial Modeling Prep API key not configured. Market data will use fallback values.
 warn: PFMP_API.Services.AIService[0]
       Azure OpenAI configuration not found. AI features will use fallback logic.
-warn: PFMP_API.Services.MarketDataService[0]
-      Financial Modeling Prep API key not configured. Market data will use fallback values.
-warn: PFMP_API.Services.MarketDataService[0]
-      Financial Modeling Prep API key not configured. Market data will use fallback values.
-warn: PFMP_API.Services.AIService[0]
-      Azure OpenAI configuration not found. AI features will use fallback logic.
-warn: PFMP_API.Services.AIService[0]
-      Azure OpenAI configuration not found. AI features will use fallback logic.
-info: PFMP_API.Services.AI.OpenAIService[0]
-      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
-info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
-      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
-info: PFMP_API.Controllers.TasksController[0]
-      Retrieved 0 tasks for user 20
-warn: PFMP_API.Services.MarketDataService[0]
-      Financial Modeling Prep API key not configured. Market data will use fallback values.
-warn: PFMP_API.Services.AIService[0]
-      Azure OpenAI configuration not found. AI features will use fallback logic.
-warn: PFMP_API.Services.MarketDataService[0]
-      Financial Modeling Prep API key not configured. Market data will use fallback values.
-warn: PFMP_API.Services.MarketDataService[0]
-      Financial Modeling Prep API key not configured. Market data will use fallback values.
 warn: PFMP_API.Services.AIService[0]
       Azure OpenAI configuration not found. AI features will use fallback logic.
 warn: PFMP_API.Services.AIService[0]
@@ -212,790 +161,53 @@ info: PFMP_API.Controllers.TasksController[0]
 warn: Microsoft.EntityFrameworkCore.Query[20504]
       Compiling a query which loads related collections for more than one collection navigation, either via 'Include' or through projection, but no 'QuerySplittingBehavior' has been configured. By default, Entity Framework will use 'QuerySplittingBehavior.SingleQuery', which can potentially result in slow query performance. See https://go.microsoft.com/fwlink/?linkid=2134277 for more information. To identify the query that's triggering this warning call 'ConfigureWarnings(w => w.Throw(RelationalEventId.MultipleCollectionIncludeWarning))'.
 info: PFMP_API.Controllers.HoldingsController[0]
-      Fetching historical data from FMP for ACHN from 11/14/2025 21:37:32
+      Refreshing prices for symbols: UNKNOWN, NFLX180201C00355000, EWZ
 info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
-      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/quote/UNKNOWN,NFLX180201C00355000,EWZ?*
 info: System.Net.Http.HttpClient.Default.ClientHandler[100]
-      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/quote/UNKNOWN,NFLX180201C00355000,EWZ?*
 info: System.Net.Http.HttpClient.Default.ClientHandler[101]
-      Received HTTP response headers after 291.3671ms - 200
+      Received HTTP response headers after 297.2551ms - 200
 info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
-      End processing HTTP request after 302.1042ms - 200
+      End processing HTTP request after 306.4226ms - 200
+info: PFMP_API.Services.MarketData.FmpMarketDataService[0]
+      Fetched 1 quotes from FMP API
 info: PFMP_API.Controllers.HoldingsController[0]
-      Fetching historical data from FMP for ACHN from 11/14/2025 21:37:32
-info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
-      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
-info: System.Net.Http.HttpClient.Default.ClientHandler[100]
-      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
-info: System.Net.Http.HttpClient.Default.ClientHandler[101]
-      Received HTTP response headers after 50.4356ms - 200
-info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
-      End processing HTTP request after 50.5605ms - 200
+      Received 1 quotes from market data service
 info: PFMP_API.Controllers.HoldingsController[0]
-      Fetching historical data from FMP for ACHN from 11/14/2025 21:37:32
+      Quote symbols: EWZ
 info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
-      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/UNKNOWN?*
 info: System.Net.Http.HttpClient.Default.ClientHandler[100]
-      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/UNKNOWN?*
 info: System.Net.Http.HttpClient.Default.ClientHandler[101]
-      Received HTTP response headers after 361.3217ms - 200
+      Received HTTP response headers after 53.8053ms - 200
 info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
-      End processing HTTP request after 361.4541ms - 200
+      End processing HTTP request after 53.9634ms - 200
+warn: PFMP_API.Controllers.HoldingsController[0]
+      Failed to get quote for UNKNOWN
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/NFLX180201C00355000?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/NFLX180201C00355000?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 51.0926ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 51.2278ms - 200
+warn: PFMP_API.Controllers.HoldingsController[0]
+      Failed to get quote for NFLX180201C00355000
 info: PFMP_API.Controllers.HoldingsController[0]
-      Fetching historical data from FMP for ACHN from 11/14/2025 21:37:33
-info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
-      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
-info: System.Net.Http.HttpClient.Default.ClientHandler[100]
-      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
-info: System.Net.Http.HttpClient.Default.ClientHandler[101]
-      Received HTTP response headers after 48.8643ms - 200
-info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
-      End processing HTTP request after 48.988ms - 200
+      Updated price for EWZ: $33.33 (real-time)
 info: PFMP_API.Controllers.HoldingsController[0]
-      Fetching historical data from FMP for ACHN from 11/14/2025 21:37:33
-info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
-      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
-info: System.Net.Http.HttpClient.Default.ClientHandler[100]
-      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
-info: System.Net.Http.HttpClient.Default.ClientHandler[101]
-      Received HTTP response headers after 48.9386ms - 200
-info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
-      End processing HTTP request after 49.0664ms - 200
-info: PFMP_API.Controllers.HoldingsController[0]
-      Fetching historical data from FMP for ACHN from 11/14/2025 21:37:33
-info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
-      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
-info: System.Net.Http.HttpClient.Default.ClientHandler[100]
-      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
-info: System.Net.Http.HttpClient.Default.ClientHandler[101]
-      Received HTTP response headers after 48.6279ms - 200
-info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
-      End processing HTTP request after 48.7561ms - 200
-info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Fetching performance metrics for account 108, period 1Y
-info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Date range: 12/14/2024 21:37:37 to 12/14/2025 21:37:37
-info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Fetching tax insights for account 108
-info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Fetching tax insights for account 108
-info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Fetching risk metrics for account 108, period 1Y
-info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Fetching historical performance data...
-info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Retrieved 54 historical data points
-info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Fetching performance metrics for account 108, period 1Y
-info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Date range: 12/14/2024 21:37:42 to 12/14/2025 21:37:42
-warn: Microsoft.EntityFrameworkCore.Query[10102]
-      The query uses a row limiting operator ('Skip'/'Take') without an 'OrderBy' operator. This may lead to unpredictable results. If the 'Distinct' operator is used after 'OrderBy', then make sure to use the 'OrderBy' operator after 'Distinct' as the ordering would otherwise get erased.
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: ACHN vs DBLTX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation ACHN vs DBLTX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: ACHN=0, DBLTX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: ACHN vs BTC
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation ACHN vs BTC: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: ACHN=0, BTC=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: ACHN vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation ACHN vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: ACHN=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: ACHN vs MIPTX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation ACHN vs MIPTX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: ACHN=0, MIPTX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: ACHN vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation ACHN vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: ACHN=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: ACHN vs NHX105509
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation ACHN vs NHX105509: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: ACHN=0, NHX105509=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: ACHN vs CAMYX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation ACHN vs CAMYX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: ACHN=0, CAMYX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: ACHN vs SBSI
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation ACHN vs SBSI: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: ACHN=0, SBSI=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: ACHN vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation ACHN vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: ACHN=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: ACHN vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation ACHN vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: ACHN=0, SPY=463
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: DBLTX vs BTC
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation DBLTX vs BTC: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: DBLTX=0, BTC=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: DBLTX vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation DBLTX vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: DBLTX=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: DBLTX vs MIPTX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation DBLTX vs MIPTX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: DBLTX=0, MIPTX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: DBLTX vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation DBLTX vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: DBLTX=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: DBLTX vs NHX105509
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation DBLTX vs NHX105509: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: DBLTX=0, NHX105509=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: DBLTX vs CAMYX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation DBLTX vs CAMYX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: DBLTX=0, CAMYX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: DBLTX vs SBSI
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation DBLTX vs SBSI: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: DBLTX=0, SBSI=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: DBLTX vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation DBLTX vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: DBLTX=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: DBLTX vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation DBLTX vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: DBLTX=0, SPY=463
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: BTC vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation BTC vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: BTC=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: BTC vs MIPTX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation BTC vs MIPTX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: BTC=0, MIPTX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: BTC vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation BTC vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: BTC=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: BTC vs NHX105509
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation BTC vs NHX105509: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: BTC=0, NHX105509=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: BTC vs CAMYX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation BTC vs CAMYX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: BTC=0, CAMYX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: BTC vs SBSI
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation BTC vs SBSI: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: BTC=0, SBSI=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: BTC vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation BTC vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: BTC=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: BTC vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation BTC vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: BTC=0, SPY=463
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs MIPTX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs MIPTX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, MIPTX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs NHX105509
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs NHX105509: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, NHX105509=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs CAMYX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs CAMYX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, CAMYX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs SBSI
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs SBSI: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, SPY=463
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: MIPTX vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation MIPTX vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: MIPTX=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: MIPTX vs NHX105509
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation MIPTX vs NHX105509: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: MIPTX=0, NHX105509=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: MIPTX vs CAMYX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation MIPTX vs CAMYX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: MIPTX=0, CAMYX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: MIPTX vs SBSI
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation MIPTX vs SBSI: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: MIPTX=0, SBSI=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: MIPTX vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation MIPTX vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: MIPTX=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: MIPTX vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation MIPTX vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: MIPTX=0, SPY=463
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs NHX105509
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs NHX105509: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, NHX105509=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs CAMYX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs CAMYX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, CAMYX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs SBSI
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs SBSI: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, SBSI=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, SPY=463
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: NHX105509 vs CAMYX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation NHX105509 vs CAMYX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: NHX105509=0, CAMYX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: NHX105509 vs SBSI
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation NHX105509 vs SBSI: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: NHX105509=0, SBSI=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: NHX105509 vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation NHX105509 vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: NHX105509=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: NHX105509 vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation NHX105509 vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: NHX105509=0, SPY=463
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: CAMYX vs SBSI
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation CAMYX vs SBSI: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: CAMYX=0, SBSI=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: CAMYX vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation CAMYX vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: CAMYX=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: CAMYX vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation CAMYX vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: CAMYX=0, SPY=463
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: SBSI vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation SBSI vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: SBSI=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: SBSI vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation SBSI vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: SBSI=0, SPY=463
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, SPY=463
-info: PFMP_API.Services.BenchmarkDataService[0]
-      Returning cached benchmark data for SPY
-info: PFMP_API.Services.BenchmarkDataService[0]
-      Returning cached benchmark data for QQQ
-info: PFMP_API.Services.BenchmarkDataService[0]
-      Returning cached benchmark data for IWM
-info: PFMP_API.Services.BenchmarkDataService[0]
-      Returning cached benchmark data for VTI
-info: PFMP_API.Services.BenchmarkDataService[0]
-      Returning cached benchmark data for AGG
-info: PFMP_API.Services.BenchmarkDataService[0]
-      Returning cached benchmark data for VEU
-info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Fetching historical performance data...
-info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Retrieved 54 historical data points
-info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Fetching risk metrics for account 108, period 1Y
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: ACHN vs DBLTX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation ACHN vs DBLTX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: ACHN=0, DBLTX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: ACHN vs BTC
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation ACHN vs BTC: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: ACHN=0, BTC=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: ACHN vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation ACHN vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: ACHN=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: ACHN vs MIPTX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation ACHN vs MIPTX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: ACHN=0, MIPTX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: ACHN vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation ACHN vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: ACHN=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: ACHN vs NHX105509
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation ACHN vs NHX105509: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: ACHN=0, NHX105509=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: ACHN vs CAMYX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation ACHN vs CAMYX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: ACHN=0, CAMYX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: ACHN vs SBSI
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation ACHN vs SBSI: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: ACHN=0, SBSI=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: ACHN vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation ACHN vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: ACHN=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: ACHN vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation ACHN vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: ACHN=0, SPY=463
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: DBLTX vs BTC
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation DBLTX vs BTC: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: DBLTX=0, BTC=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: DBLTX vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation DBLTX vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: DBLTX=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: DBLTX vs MIPTX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation DBLTX vs MIPTX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: DBLTX=0, MIPTX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: DBLTX vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation DBLTX vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: DBLTX=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: DBLTX vs NHX105509
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation DBLTX vs NHX105509: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: DBLTX=0, NHX105509=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: DBLTX vs CAMYX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation DBLTX vs CAMYX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: DBLTX=0, CAMYX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: DBLTX vs SBSI
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation DBLTX vs SBSI: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: DBLTX=0, SBSI=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: DBLTX vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation DBLTX vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: DBLTX=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: DBLTX vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation DBLTX vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: DBLTX=0, SPY=463
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: BTC vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation BTC vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: BTC=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: BTC vs MIPTX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation BTC vs MIPTX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: BTC=0, MIPTX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: BTC vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation BTC vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: BTC=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: BTC vs NHX105509
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation BTC vs NHX105509: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: BTC=0, NHX105509=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: BTC vs CAMYX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation BTC vs CAMYX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: BTC=0, CAMYX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: BTC vs SBSI
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation BTC vs SBSI: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: BTC=0, SBSI=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: BTC vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation BTC vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: BTC=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: BTC vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation BTC vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: BTC=0, SPY=463
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs MIPTX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs MIPTX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, MIPTX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs NHX105509
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs NHX105509: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, NHX105509=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs CAMYX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs CAMYX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, CAMYX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs SBSI
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs SBSI: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, SBSI=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, SPY=463
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: MIPTX vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation MIPTX vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: MIPTX=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: MIPTX vs NHX105509
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation MIPTX vs NHX105509: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: MIPTX=0, NHX105509=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: MIPTX vs CAMYX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation MIPTX vs CAMYX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: MIPTX=0, CAMYX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: MIPTX vs SBSI
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation MIPTX vs SBSI: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: MIPTX=0, SBSI=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: MIPTX vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation MIPTX vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: MIPTX=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: MIPTX vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation MIPTX vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: MIPTX=0, SPY=463
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs NHX105509
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs NHX105509: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, NHX105509=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs CAMYX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs CAMYX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, CAMYX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs SBSI
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs SBSI: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, SBSI=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, SPY=463
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: NHX105509 vs CAMYX
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation NHX105509 vs CAMYX: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: NHX105509=0, CAMYX=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: NHX105509 vs SBSI
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation NHX105509 vs SBSI: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: NHX105509=0, SBSI=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: NHX105509 vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation NHX105509 vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: NHX105509=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: NHX105509 vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation NHX105509 vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: NHX105509=0, SPY=463
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: CAMYX vs SBSI
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation CAMYX vs SBSI: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: CAMYX=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: CAMYX vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation CAMYX vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: CAMYX=0, SPY=463
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: SBSI vs UNKNOWN
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation SBSI vs UNKNOWN: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: SBSI=0, UNKNOWN=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: SBSI vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation SBSI vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: SBSI=0, SPY=463
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, SPY=463
-info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Fetching allocation for account 108, dimension assetClass
-info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Fetching allocation for account 108, dimension assetClass
-info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Fetching allocation for account 108, dimension assetClass
-info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Fetching allocation for account 108, dimension assetClass
+      Updated account 107 balance: 320.76 -> 276.6600000000000000
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
 warn: PFMP_API.Services.MarketDataService[0]
       Financial Modeling Prep API key not configured. Market data will use fallback values.
 warn: PFMP_API.Services.MarketDataService[0]
       Financial Modeling Prep API key not configured. Market data will use fallback values.
 warn: PFMP_API.Services.AIService[0]
       Azure OpenAI configuration not found. AI features will use fallback logic.
-warn: PFMP_API.Services.MarketDataService[0]
-      Financial Modeling Prep API key not configured. Market data will use fallback values.
-warn: PFMP_API.Services.AIService[0]
-      Azure OpenAI configuration not found. AI features will use fallback logic.
-info: PFMP_API.Services.AI.OpenAIService[0]
-      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
-info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
-      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
-warn: PFMP_API.Services.AIService[0]
-      Azure OpenAI configuration not found. AI features will use fallback logic.
-warn: PFMP_API.Services.MarketDataService[0]
-      Financial Modeling Prep API key not configured. Market data will use fallback values.
-warn: PFMP_API.Services.AIService[0]
-      Azure OpenAI configuration not found. AI features will use fallback logic.
-info: PFMP_API.Controllers.TasksController[0]
-      Retrieved 0 tasks for user 20
-warn: PFMP_API.Services.MarketDataService[0]
-      Financial Modeling Prep API key not configured. Market data will use fallback values.
-warn: PFMP_API.Services.MarketDataService[0]
-      Financial Modeling Prep API key not configured. Market data will use fallback values.
 warn: PFMP_API.Services.AIService[0]
       Azure OpenAI configuration not found. AI features will use fallback logic.
 warn: PFMP_API.Services.AIService[0]
@@ -1006,114 +218,213 @@ info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
       Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
 info: PFMP_API.Controllers.TasksController[0]
       Retrieved 0 tasks for user 20
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+warn: PFMP_API.Services.MarketDataService[0]
+      Financial Modeling Prep API key not configured. Market data will use fallback values.
+info: PFMP_API.Services.AI.OpenAIService[0]
+      OpenAIService initialized with OpenAI API: endpoint=https://api.openai.com/v1/, model=gpt-4o
+info: PFMP_API.Services.AI.PrimaryBackupAIAdvisor[0]
+      Primary-Backup AI initialized: Primary=Gemini, Backup=Claude
+warn: PFMP_API.Services.AIService[0]
+      Azure OpenAI configuration not found. AI features will use fallback logic.
+info: PFMP_API.Controllers.TasksController[0]
+      Retrieved 0 tasks for user 20
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:14:49
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 49.4698ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 49.6139ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:14:49
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 49.104ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 49.2274ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:14:49
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 49.0793ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 49.2304ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:14:49
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 49.0446ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 49.1549ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:14:49
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 49.0692ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 49.1932ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:14:49
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 48.2036ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 48.3489ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Refreshing prices for symbols: ACHN, DBLTX, BTC, UNKNOWN, MIPTX, NHX105509, CAMYX, SBSI
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/quote/ACHN,DBLTX,BTC,UNKNOWN,MIPTX,NHX105509,CAMYX,SBSI?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/quote/ACHN,DBLTX,BTC,UNKNOWN,MIPTX,NHX105509,CAMYX,SBSI?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 48.2292ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 48.3417ms - 200
+info: PFMP_API.Services.MarketData.FmpMarketDataService[0]
+      Fetched 6 quotes from FMP API
+info: PFMP_API.Controllers.HoldingsController[0]
+      Received 6 quotes from market data service
+info: PFMP_API.Controllers.HoldingsController[0]
+      Quote symbols: ACHN, DBLTX, BTC, MIPTX, CAMYX, SBSI
+info: PFMP_API.Controllers.HoldingsController[0]
+      Updated price for ACHN: $0.79119 (real-time)
+info: PFMP_API.Controllers.HoldingsController[0]
+      Updated price for DBLTX: $8.91 (real-time)
+info: PFMP_API.Controllers.HoldingsController[0]
+      Updated price for BTC: $39.955 (real-time)
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/UNKNOWN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/UNKNOWN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 50.3698ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 50.4753ms - 200
+warn: PFMP_API.Controllers.HoldingsController[0]
+      Failed to get quote for UNKNOWN
+info: PFMP_API.Controllers.HoldingsController[0]
+      Updated price for MIPTX: $22.29 (real-time)
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/UNKNOWN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/UNKNOWN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 49.8974ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 50.017ms - 200
+warn: PFMP_API.Controllers.HoldingsController[0]
+      Failed to get quote for UNKNOWN
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/NHX105509?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/NHX105509?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 53.3963ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 53.5481ms - 200
+warn: PFMP_API.Controllers.HoldingsController[0]
+      Failed to get quote for NHX105509
+info: PFMP_API.Controllers.HoldingsController[0]
+      Updated price for CAMYX: $32.35 (real-time)
+info: PFMP_API.Controllers.HoldingsController[0]
+      Updated price for SBSI: $31.985 (real-time)
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/UNKNOWN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/UNKNOWN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 51.1089ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 51.2229ms - 200
+warn: PFMP_API.Controllers.HoldingsController[0]
+      Failed to get quote for UNKNOWN
+info: PFMP_API.Controllers.HoldingsController[0]
+      Updated account 108 balance: 23631.98 -> 24904.7909454602000000
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:15:05
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 48.5227ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 48.6282ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:15:05
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 54.2387ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 54.402ms - 200
 info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Fetching allocation for account 107, dimension assetClass
+      Fetching allocation for account 108, dimension assetClass
 info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Fetching allocation for account 107, dimension assetClass
+      Fetching allocation for account 108, dimension assetClass
 info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Fetching allocation for account 107, dimension assetClass
+      Fetching allocation for account 108, dimension sector
 info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Fetching allocation for account 107, dimension assetClass
+      Fetching allocation for account 108, dimension geography
 info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Fetching allocation for account 107, dimension sector
-info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Fetching allocation for account 107, dimension geography
-info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Fetching allocation for account 107, dimension marketCap
-info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Fetching risk metrics for account 107, period 1Y
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs NFLX180201C00355000
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs NFLX180201C00355000: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, NFLX180201C00355000=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs EWZ
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs EWZ: Found 0 and 20 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, EWZ=20
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, SPY=463
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: NFLX180201C00355000 vs EWZ
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation NFLX180201C00355000 vs EWZ: Found 0 and 20 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: NFLX180201C00355000=0, EWZ=20
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: NFLX180201C00355000 vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation NFLX180201C00355000 vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: NFLX180201C00355000=0, SPY=463
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: EWZ vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation EWZ vs SPY: Found 20 and 463 price points
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation EWZ vs SPY: 3 common dates
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation EWZ vs SPY: 2 return periods
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation EWZ vs SPY: stdDev1=0.00701450397110491, stdDev2=0.00511119756165796, cov=0.0000358525155933515272498016
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation EWZ vs SPY: 1.000000000000000941352324696
-info: Hangfire.Server.ServerWatchdog[0]
-      2 servers were removed due to timeout
-info: PFMP_API.Controllers.PortfolioAnalyticsController[0]
-      Fetching risk metrics for account 107, period 1Y
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs NFLX180201C00355000
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs NFLX180201C00355000: Found 0 and 0 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, NFLX180201C00355000=0
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs EWZ
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs EWZ: Found 0 and 20 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, EWZ=20
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: UNKNOWN vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation UNKNOWN vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: UNKNOWN=0, SPY=463
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: NFLX180201C00355000 vs EWZ
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation NFLX180201C00355000 vs EWZ: Found 0 and 20 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: NFLX180201C00355000=0, EWZ=20
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: NFLX180201C00355000 vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation NFLX180201C00355000 vs SPY: Found 0 and 463 price points
-warn: PFMP_API.Services.RiskAnalysisService[0]
-      Insufficient price data for correlation: NFLX180201C00355000=0, SPY=463
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Starting correlation calculation: EWZ vs SPY
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation EWZ vs SPY: Found 20 and 463 price points
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation EWZ vs SPY: 3 common dates
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation EWZ vs SPY: 2 return periods
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation EWZ vs SPY: stdDev1=0.00701450397110491, stdDev2=0.00511119756165796, cov=0.0000358525155933515272498016
-info: PFMP_API.Services.RiskAnalysisService[0]
-      Correlation EWZ vs SPY: 1.000000000000000941352324696
-warn: Hangfire.Server.BackgroundProcessingServer[0]
-      Stopping the server due to DomainUnload or ProcessExit event...
-info: Hangfire.Server.BackgroundServerProcess[0]
-      Server proart1:35380:0b47b87d caught stopping signal...
-info: Hangfire.Server.BackgroundServerProcess[0]
-      Server proart1:35380:0b47b87d caught stopped signal...
-warn: Hangfire.Server.BackgroundServerProcess[0]
+      Fetching allocation for account 108, dimension marketCap
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:15:30
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 195.5199ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 195.6597ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for ACHN from 11/14/2025 22:15:30
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/ACHN?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 47.1955ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 47.3383ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Fetching historical data from FMP for SBSI from 11/14/2025 22:15:32
+info: System.Net.Http.HttpClient.Default.LogicalHandler[100]
+      Start processing HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/SBSI?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[100]
+      Sending HTTP request GET https://financialmodelingprep.com/api/v3/historical-price-full/SBSI?*
+info: System.Net.Http.HttpClient.Default.ClientHandler[101]
+      Received HTTP response headers after 49.1298ms - 200
+info: System.Net.Http.HttpClient.Default.LogicalHandler[101]
+      End processing HTTP request after 49.3718ms - 200
+info: PFMP_API.Controllers.HoldingsController[0]
+      Stored 20 historical prices for SBSI

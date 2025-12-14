@@ -360,7 +360,11 @@ export function AccountDetailView() {
 
         {/* Transactions Tab */}
         <TabPanel value={tabValue} index={5}>
-          <InvestmentTransactionList accountId={Number(accountId)} />
+          <InvestmentTransactionList 
+            accountId={Number(accountId)} 
+            connectionId={account?.connectionId ?? undefined}
+            userId={account?.userId}
+          />
         </TabPanel>
 
         {/* Add/Edit Modal */}
