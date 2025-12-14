@@ -12,6 +12,7 @@ using System.Text.Json;
 using PfmpAccount = PFMP_API.Models.Account;
 using PfmpAccountType = PFMP_API.Models.AccountType;
 using PfmpHolding = PFMP_API.Models.Holding;
+using PfmpTransaction = PFMP_API.Models.Transaction;
 
 namespace PFMP_API.Services.Plaid
 {
@@ -25,6 +26,20 @@ namespace PFMP_API.Services.Plaid
         public int AccountsUpdated { get; set; }
         public int HoldingsUpdated { get; set; }
         public int SecuritiesUpdated { get; set; }
+        public int DurationMs { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+
+    /// <summary>
+    /// Result of an investment transactions sync operation.
+    /// </summary>
+    public class InvestmentTransactionsSyncResult
+    {
+        public bool Success { get; set; }
+        public DateTime SyncedAt { get; set; } = DateTime.UtcNow;
+        public int TransactionsCreated { get; set; }
+        public int TransactionsUpdated { get; set; }
+        public int TransactionsTotal { get; set; }
         public int DurationMs { get; set; }
         public string? ErrorMessage { get; set; }
     }
@@ -73,6 +88,16 @@ namespace PFMP_API.Services.Plaid
         /// Gets holdings for a specific investment account.
         /// </summary>
         Task<List<PfmpHolding>> GetAccountHoldingsAsync(int accountId);
+
+        /// <summary>
+        /// Fetches and syncs investment transactions from Plaid.
+        /// </summary>
+        Task<InvestmentTransactionsSyncResult> SyncInvestmentTransactionsAsync(Guid connectionId, DateOnly? startDate = null, DateOnly? endDate = null);
+
+        /// <summary>
+        /// Gets investment transactions for a specific account.
+        /// </summary>
+        Task<List<PfmpTransaction>> GetAccountInvestmentTransactionsAsync(int accountId, int limit = 50);
     }
 
     /// <summary>
@@ -507,6 +532,120 @@ namespace PFMP_API.Services.Plaid
                 .ToListAsync();
         }
 
+        public async Task<InvestmentTransactionsSyncResult> SyncInvestmentTransactionsAsync(
+            Guid connectionId, 
+            DateOnly? startDate = null, 
+            DateOnly? endDate = null)
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var result = new InvestmentTransactionsSyncResult();
+
+            var connection = await _db.AccountConnections.FindAsync(connectionId);
+            if (connection == null)
+            {
+                return new InvestmentTransactionsSyncResult
+                {
+                    Success = false,
+                    ErrorMessage = $"Connection {connectionId} not found"
+                };
+            }
+
+            try
+            {
+                _logger.LogInformation("Syncing investment transactions for connection {ConnectionId}", connectionId);
+
+                // Decrypt the access token
+                var accessToken = _encryption.Decrypt(connection.PlaidAccessToken!);
+
+                // Default to last 90 days if not specified
+                var end = endDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+                var start = startDate ?? end.AddDays(-90);
+
+                var request = new InvestmentsTransactionsGetRequest
+                {
+                    ClientId = _options.ClientId,
+                    Secret = _options.Secret,
+                    AccessToken = accessToken,
+                    StartDate = start,
+                    EndDate = end
+                };
+
+                var response = await _plaidClient.InvestmentsTransactionsGetAsync(request);
+
+                if (response.Error != null)
+                {
+                    _logger.LogError("Plaid investment transactions fetch failed: {ErrorCode} - {ErrorMessage}",
+                        response.Error.ErrorCode, response.Error.ErrorMessage);
+
+                    return new InvestmentTransactionsSyncResult
+                    {
+                        Success = false,
+                        ErrorMessage = response.Error.ErrorMessage,
+                        DurationMs = (int)stopwatch.ElapsedMilliseconds
+                    };
+                }
+
+                result.TransactionsTotal = response.TotalInvestmentTransactions;
+
+                // Build a map of Plaid account IDs to our account IDs
+                var accountMap = await _db.Accounts
+                    .Where(a => a.ConnectionId == connectionId)
+                    .ToDictionaryAsync(a => a.PlaidAccountId!, a => a.AccountId);
+
+                // Build a map of security IDs to ticker symbols for reference
+                var securityMap = response.Securities
+                    .ToDictionary(s => s.SecurityId, s => s.TickerSymbol ?? "UNKNOWN");
+
+                // Process each investment transaction
+                foreach (var plaidTx in response.InvestmentTransactions)
+                {
+                    if (!accountMap.TryGetValue(plaidTx.AccountId, out var accountId))
+                    {
+                        _logger.LogWarning("No matching account found for Plaid account {PlaidAccountId}", plaidTx.AccountId);
+                        continue;
+                    }
+
+                    var txResult = await UpsertInvestmentTransactionAsync(accountId, plaidTx, securityMap);
+                    if (txResult.Created)
+                        result.TransactionsCreated++;
+                    else
+                        result.TransactionsUpdated++;
+                }
+
+                await _db.SaveChangesAsync();
+
+                result.Success = true;
+                result.SyncedAt = DateTime.UtcNow;
+                result.DurationMs = (int)stopwatch.ElapsedMilliseconds;
+
+                _logger.LogInformation(
+                    "Investment transactions sync completed for connection {ConnectionId}: {Created} created, {Updated} updated, {Total} total in {Duration}ms",
+                    connectionId, result.TransactionsCreated, result.TransactionsUpdated, result.TransactionsTotal, result.DurationMs);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Investment transactions sync failed for connection {ConnectionId}", connectionId);
+
+                return new InvestmentTransactionsSyncResult
+                {
+                    Success = false,
+                    ErrorMessage = ex.Message,
+                    DurationMs = (int)stopwatch.ElapsedMilliseconds
+                };
+            }
+        }
+
+        public async Task<List<PfmpTransaction>> GetAccountInvestmentTransactionsAsync(int accountId, int limit = 50)
+        {
+            return await _db.Transactions
+                .Where(t => t.AccountId == accountId && t.Source == TransactionSource.PlaidInvestments)
+                .OrderByDescending(t => t.TransactionDate)
+                .Take(limit)
+                .ToListAsync();
+        }
+
         #region Private Helper Methods
 
         private async Task UpsertSecurityAsync(Security plaidSecurity)
@@ -634,6 +773,93 @@ namespace PFMP_API.Services.Plaid
                 };
                 _db.Holdings.Add(newHolding);
             }
+        }
+
+        private async Task<(bool Created, PfmpTransaction Tx)> UpsertInvestmentTransactionAsync(
+            int accountId,
+            Going.Plaid.Entity.InvestmentTransaction plaidTx,
+            Dictionary<string, string?> securityMap)
+        {
+            // Check if transaction already exists
+            var existing = await _db.Transactions
+                .FirstOrDefaultAsync(t => t.PlaidTransactionId == plaidTx.InvestmentTransactionId);
+
+            var symbol = plaidTx.SecurityId != null && securityMap.TryGetValue(plaidTx.SecurityId, out var sym)
+                ? sym
+                : null;
+
+            // Map Plaid type/subtype to our transaction type (convert enums to strings)
+            var typeStr = plaidTx.Type.ToString();
+            var subtypeStr = plaidTx.Subtype.ToString();
+            var txType = MapPlaidInvestmentType(typeStr, subtypeStr);
+
+            if (existing != null)
+            {
+                // Update existing transaction
+                existing.Amount = (decimal)plaidTx.Amount;
+                existing.Quantity = plaidTx.Quantity != 0 ? (decimal)plaidTx.Quantity : null;
+                existing.Price = plaidTx.Price != 0 ? (decimal)plaidTx.Price : null;
+                existing.Fee = plaidTx.Fees != 0 ? (decimal)plaidTx.Fees : null;
+                existing.Symbol = symbol;
+                existing.Description = plaidTx.Name;
+                existing.PlaidInvestmentType = typeStr;
+                existing.PlaidInvestmentSubtype = subtypeStr;
+                return (false, existing);
+            }
+            else
+            {
+                // Create new transaction
+                var txDate = plaidTx.Date.ToDateTime(TimeOnly.MinValue);
+                var transaction = new PfmpTransaction
+                {
+                    AccountId = accountId,
+                    TransactionType = txType,
+                    Symbol = symbol,
+                    Quantity = plaidTx.Quantity != 0 ? (decimal)plaidTx.Quantity : null,
+                    Price = plaidTx.Price != 0 ? (decimal)plaidTx.Price : null,
+                    Amount = (decimal)plaidTx.Amount,
+                    Fee = plaidTx.Fees != 0 ? (decimal)plaidTx.Fees : null,
+                    TransactionDate = DateTime.SpecifyKind(txDate, DateTimeKind.Utc),
+                    SettlementDate = DateTime.SpecifyKind(txDate, DateTimeKind.Utc),
+                    Source = TransactionSource.PlaidInvestments,
+                    ExternalTransactionId = plaidTx.InvestmentTransactionId,
+                    PlaidTransactionId = plaidTx.InvestmentTransactionId,
+                    PlaidSecurityId = plaidTx.SecurityId,
+                    PlaidInvestmentType = typeStr,
+                    PlaidInvestmentSubtype = subtypeStr,
+                    Description = plaidTx.Name,
+                    CreatedAt = DateTime.UtcNow,
+                    IsTaxable = true,
+                    IsDividendReinvestment = subtypeStr?.Contains("reinvest", StringComparison.OrdinalIgnoreCase) == true
+                };
+
+                _db.Transactions.Add(transaction);
+                return (true, transaction);
+            }
+        }
+
+        private static string MapPlaidInvestmentType(string? type, string? subtype)
+        {
+            // Plaid types: buy, sell, cash (for dividends, interest), cancel, fee, transfer
+            // Plaid subtypes: dividend, interest, contribution, withdrawal, etc.
+
+            var typeLower = type?.ToLowerInvariant() ?? "";
+            var subtypeLower = subtype?.ToLowerInvariant() ?? "";
+
+            return typeLower switch
+            {
+                "buy" => TransactionTypes.Buy,
+                "sell" => TransactionTypes.Sell,
+                "cash" when subtypeLower == "dividend" => TransactionTypes.Dividend,
+                "cash" when subtypeLower == "interest" => TransactionTypes.Interest,
+                "cash" when subtypeLower == "contribution" => TransactionTypes.Deposit,
+                "cash" when subtypeLower == "withdrawal" => TransactionTypes.Withdrawal,
+                "cash" => TransactionTypes.Other,
+                "fee" => TransactionTypes.Fee,
+                "transfer" => TransactionTypes.Transfer,
+                "cancel" => TransactionTypes.Other,
+                _ => TransactionTypes.Other
+            };
         }
 
         private object BuildSandboxConfig(SandboxInvestmentConfig config)

@@ -418,3 +418,68 @@ export async function createSandboxInvestmentUser(
   );
   return response.data;
 }
+
+// ============================================================================
+// Investment Transactions Types (Wave 12 Phase 2.5)
+// ============================================================================
+
+export interface InvestmentTransaction {
+  transactionId: number;
+  accountId: number;
+  transactionType: string;
+  symbol?: string;
+  quantity?: number;
+  price?: number;
+  amount: number;
+  fee?: number;
+  transactionDate: string;
+  description?: string;
+  plaidInvestmentType?: string;
+  plaidInvestmentSubtype?: string;
+}
+
+export interface InvestmentTransactionsSyncResult {
+  success: boolean;
+  syncedAt: string;
+  transactionsCreated: number;
+  transactionsUpdated: number;
+  transactionsTotal: number;
+  durationMs?: number;
+  errorMessage?: string;
+}
+
+// ============================================================================
+// Investment Transactions API Functions (Wave 12 Phase 2.5)
+// ============================================================================
+
+/**
+ * Sync investment transactions for a connection.
+ */
+export async function syncInvestmentTransactions(
+  connectionId: string,
+  userId: number,
+  startDate?: string,
+  endDate?: string
+): Promise<InvestmentTransactionsSyncResult> {
+  const response = await axios.post<InvestmentTransactionsSyncResult>(
+    `${API_BASE_URL}/plaid/investments/connections/${connectionId}/transactions/sync`,
+    {},
+    { params: { userId, startDate, endDate } }
+  );
+  return response.data;
+}
+
+/**
+ * Get investment transactions for an account.
+ */
+export async function getAccountInvestmentTransactions(
+  accountId: number,
+  userId: number,
+  limit = 50
+): Promise<InvestmentTransaction[]> {
+  const response = await axios.get<InvestmentTransaction[]>(
+    `${API_BASE_URL}/plaid/investments/accounts/${accountId}/transactions`,
+    { params: { userId, limit } }
+  );
+  return response.data;
+}

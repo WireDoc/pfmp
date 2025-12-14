@@ -31,10 +31,11 @@ import {
   TrendingUp as InvestmentsIcon,
   Refresh as RefreshIcon,
   Sync as SyncIcon,
+  Receipt as TransactionsIcon,
 } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
 import { PlaidInvestmentsLinkButton } from '../../components/plaid/PlaidInvestmentsLinkButton';
-import { getInvestmentAccounts, syncInvestmentHoldings, getConnections } from '../../services/plaidApi';
+import { getInvestmentAccounts, syncInvestmentHoldings, syncInvestmentTransactions, getConnections } from '../../services/plaidApi';
 import type { InvestmentAccount, PlaidConnection } from '../../services/plaidApi';
 import { useDevUserId } from '../../dev/devUserState';
 
@@ -46,6 +47,7 @@ export const InvestmentsSettingsView: React.FC = () => {
   const [connections, setConnections] = useState<PlaidConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState<string | null>(null);
+  const [syncingTransactions, setSyncingTransactions] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -87,6 +89,25 @@ export const InvestmentsSettingsView: React.FC = () => {
       setError('Failed to sync holdings. Please try again.');
     } finally {
       setSyncing(null);
+    }
+  };
+
+  const handleSyncTransactions = async (connectionId: string) => {
+    setSyncingTransactions(connectionId);
+    setError(null);
+    try {
+      const result = await syncInvestmentTransactions(connectionId, userId);
+      if (result.success) {
+        setSuccessMessage(
+          `Synced ${result.transactionsCreated} new transactions (${result.transactionsUpdated} updated, ${result.transactionsTotal} total)`
+        );
+      } else {
+        setError(result.errorMessage ?? 'Transaction sync failed');
+      }
+    } catch (err) {
+      setError('Failed to sync transactions. Please try again.');
+    } finally {
+      setSyncingTransactions(null);
     }
   };
 
@@ -255,22 +276,40 @@ export const InvestmentsSettingsView: React.FC = () => {
                     </TableCell>
                     <TableCell align="center">
                       {account.connectionId && (
-                        <Tooltip title="Sync Holdings">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleSync(account.connectionId!)}
-                            disabled={syncing === account.connectionId}
-                          >
-                            <SyncIcon 
-                              fontSize="small"
-                              sx={{ 
-                                animation: syncing === account.connectionId 
-                                  ? 'spin 1s linear infinite' 
-                                  : 'none'
-                              }}
-                            />
-                          </IconButton>
-                        </Tooltip>
+                        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                          <Tooltip title="Sync Holdings">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleSync(account.connectionId!)}
+                              disabled={syncing === account.connectionId}
+                            >
+                              <SyncIcon 
+                                fontSize="small"
+                                sx={{ 
+                                  animation: syncing === account.connectionId 
+                                    ? 'spin 1s linear infinite' 
+                                    : 'none'
+                                }}
+                              />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Sync Transactions">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleSyncTransactions(account.connectionId!)}
+                              disabled={syncingTransactions === account.connectionId}
+                            >
+                              <TransactionsIcon 
+                                fontSize="small"
+                                sx={{ 
+                                  animation: syncingTransactions === account.connectionId 
+                                    ? 'spin 1s linear infinite' 
+                                    : 'none'
+                                }}
+                              />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
                       )}
                     </TableCell>
                   </TableRow>

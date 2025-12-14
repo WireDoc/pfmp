@@ -76,6 +76,25 @@ namespace PFMP_API.Models
         [Column(TypeName = "decimal(8,4)")]
         public decimal? StakingAPY { get; set; }
 
+        // Plaid Investment Transaction Fields (Wave 12)
+        [MaxLength(100)]
+        public string? PlaidTransactionId { get; set; }
+
+        [MaxLength(50)]
+        public string? PlaidSecurityId { get; set; }
+
+        /// <summary>
+        /// Plaid investment transaction type (buy, sell, cash, etc.)
+        /// </summary>
+        [MaxLength(50)]
+        public string? PlaidInvestmentType { get; set; }
+
+        /// <summary>
+        /// Plaid investment transaction subtype (dividend, contribution, withdrawal, etc.)
+        /// </summary>
+        [MaxLength(50)]
+        public string? PlaidInvestmentSubtype { get; set; }
+
         // Metadata
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -101,6 +120,7 @@ namespace PFMP_API.Models
         Fidelity,
         TSPUpdate,
         BankAPI,
+        PlaidInvestments,
         Other
     }
 }

@@ -781,6 +781,94 @@ public class PlaidController : ControllerBase
     }
 
     /// <summary>
+    /// Sync investment transactions for a connection
+    /// </summary>
+    [HttpPost("investments/connections/{connectionId}/transactions/sync")]
+    [ProducesResponseType(typeof(InvestmentTransactionsSyncResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<InvestmentTransactionsSyncResultDto>> SyncInvestmentTransactions(
+        Guid connectionId,
+        [FromQuery] int userId,
+        [FromQuery] DateOnly? startDate,
+        [FromQuery] DateOnly? endDate,
+        [FromServices] IPlaidInvestmentsService investmentsService)
+    {
+        if (userId <= 0)
+        {
+            return BadRequest(new ErrorResponse { Error = "Valid user ID is required" });
+        }
+
+        try
+        {
+            _logger.LogInformation("Syncing investment transactions for connection {ConnectionId}, user {UserId}", 
+                connectionId, userId);
+
+            var result = await investmentsService.SyncInvestmentTransactionsAsync(connectionId, startDate, endDate);
+
+            return Ok(new InvestmentTransactionsSyncResultDto
+            {
+                Success = result.Success,
+                SyncedAt = result.SyncedAt,
+                TransactionsCreated = result.TransactionsCreated,
+                TransactionsUpdated = result.TransactionsUpdated,
+                TransactionsTotal = result.TransactionsTotal,
+                DurationMs = result.DurationMs,
+                ErrorMessage = result.ErrorMessage
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to sync investment transactions for connection {ConnectionId}", connectionId);
+            return StatusCode(500, new ErrorResponse { Error = "Failed to sync investment transactions", Details = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Get investment transactions for an account
+    /// </summary>
+    [HttpGet("investments/accounts/{accountId}/transactions")]
+    [ProducesResponseType(typeof(List<InvestmentTransactionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<List<InvestmentTransactionDto>>> GetAccountInvestmentTransactions(
+        int accountId,
+        [FromQuery] int userId,
+        [FromServices] IPlaidInvestmentsService investmentsService,
+        [FromQuery] int limit = 50)
+    {
+        if (userId <= 0)
+        {
+            return BadRequest(new ErrorResponse { Error = "Valid user ID is required" });
+        }
+
+        try
+        {
+            var transactions = await investmentsService.GetAccountInvestmentTransactionsAsync(accountId, limit);
+
+            return Ok(transactions.Select(t => new InvestmentTransactionDto
+            {
+                TransactionId = t.TransactionId,
+                AccountId = t.AccountId,
+                TransactionType = t.TransactionType,
+                Symbol = t.Symbol,
+                Quantity = t.Quantity,
+                Price = t.Price,
+                Amount = t.Amount,
+                Fee = t.Fee,
+                TransactionDate = t.TransactionDate,
+                Description = t.Description,
+                PlaidInvestmentType = t.PlaidInvestmentType,
+                PlaidInvestmentSubtype = t.PlaidInvestmentSubtype
+            }).ToList());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get investment transactions for account {AccountId}", accountId);
+            return StatusCode(500, new ErrorResponse { Error = "Failed to get investment transactions", Details = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// Create a sandbox investment user with custom holdings (sandbox only)
     /// </summary>
     [HttpPost("investments/sandbox/seed")]
@@ -1054,6 +1142,33 @@ public class SandboxSeedResultDto
     public int AccountsCreated { get; set; }
     public int HoldingsCreated { get; set; }
     public string? ErrorMessage { get; set; }
+}
+
+public class InvestmentTransactionsSyncResultDto
+{
+    public bool Success { get; set; }
+    public DateTime SyncedAt { get; set; }
+    public int TransactionsCreated { get; set; }
+    public int TransactionsUpdated { get; set; }
+    public int TransactionsTotal { get; set; }
+    public int DurationMs { get; set; }
+    public string? ErrorMessage { get; set; }
+}
+
+public class InvestmentTransactionDto
+{
+    public int TransactionId { get; set; }
+    public int AccountId { get; set; }
+    public string TransactionType { get; set; } = string.Empty;
+    public string? Symbol { get; set; }
+    public decimal? Quantity { get; set; }
+    public decimal? Price { get; set; }
+    public decimal Amount { get; set; }
+    public decimal? Fee { get; set; }
+    public DateTime TransactionDate { get; set; }
+    public string? Description { get; set; }
+    public string? PlaidInvestmentType { get; set; }
+    public string? PlaidInvestmentSubtype { get; set; }
 }
 
 #endregion
