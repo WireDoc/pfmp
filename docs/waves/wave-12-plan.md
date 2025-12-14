@@ -1,9 +1,28 @@
 # Wave 12: Brokerage & Investment Linking
 
-> **Status**: 📋 Planning  
+> **Status**: � In Progress (Phase 1 Complete)  
 > **Target**: Q1 2026  
 > **Priority**: High  
 > **Prerequisites**: Wave 11 Complete ✅
+
+---
+
+## Progress Summary
+
+### ✅ Phase 1: Backend Foundation (Complete - Dec 13, 2025)
+- PlaidInvestmentsService with sandbox seeding capability
+- PlaidSecurity model for securities reference data
+- Extended Account/Holding models with Plaid fields
+- Investment endpoints added to PlaidController
+- EF migration AddPlaidInvestmentsSupport applied
+- Sandbox seeding tested: 2 accounts, 13 holdings created
+
+### 🔄 Phase 2: Frontend Integration (Not Started)
+- Investments-specific PlaidLinkButton
+- Settings page investments section
+- Holdings display on portfolio
+
+### ⏳ Phase 3: Testing & Documentation (Not Started)
 
 ---
 

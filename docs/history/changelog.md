@@ -6,6 +6,34 @@ The format follows [Conventional Commits](https://www.conventionalcommits.org/).
 
 ---
 
+## [0.10.0-alpha] - 2025-12-13
+
+### Wave 12 Phase 1 - Plaid Investments Backend
+
+**Investment Account Linking Infrastructure**
+- PlaidInvestmentsService with full investment sync capability
+- PlaidSecurity model for securities reference data (stocks, ETFs, mutual funds, crypto, options)
+- Extended Account model with Source enum (Manual, PlaidBank, PlaidInvestments)
+- Extended Holding model with PlaidSecurityId, PlaidHoldingId, PlaidLastSyncedAt
+- EF migration AddPlaidInvestmentsSupport applied
+
+**New Investment Endpoints**
+- `POST /api/plaid/investments/link-token` - Create link token for investments product
+- `POST /api/plaid/investments/exchange-token` - Exchange token and create investment accounts
+- `POST /api/plaid/investments/connections/{id}/sync` - Sync holdings from Plaid
+- `POST /api/plaid/investments/sandbox/seed` - Create sandbox test user with investments
+
+**Developer Tooling**
+- External test runner scripts (run-tests.bat, scripts/run-tests.ps1)
+- Prevents VS Code freezing during test execution
+
+**Tested**
+- Sandbox seeding creates 2 investment accounts (401k, IRA)
+- 13 holdings synced (equities, ETFs, mutual funds, crypto, options, fixed income)
+- All 93 backend tests passing
+
+---
+
 ## [0.9.9-alpha] - 2025-12-13
 
 ### Wave 11 Phase 5 - Plaid Transaction Sync
