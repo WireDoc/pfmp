@@ -127,6 +127,34 @@ export interface RiskMetrics {
   drawdownHistory: DrawdownDataPoint[];
 }
 
+// Transaction history status for opening balance workflow
+export interface HoldingOpeningBalanceInfo {
+  holdingId: number;
+  symbol: string;
+  currentQuantity: number;
+  currentPrice: number;
+}
+
+export interface TransactionHistoryStatus {
+  isComplete: boolean;
+  isPlaidLinked: boolean;
+  hasInitialBalance: boolean;
+  firstTransactionDate: string | null;
+  message: string;
+  holdingsNeedingBalance: HoldingOpeningBalanceInfo[];
+}
+
+export interface OpeningBalanceEntry {
+  holdingId: number;
+  quantity: number;
+  pricePerShare: number;
+  date: string;
+}
+
+export interface AddOpeningBalancesRequest {
+  balances: OpeningBalanceEntry[];
+}
+
 // ============================================================================
 // Period Type
 // ============================================================================
@@ -191,4 +219,28 @@ export const fetchRiskMetrics = async (
     { params: { period } }
   );
   return response.data;
+};
+
+/**
+ * Fetch transaction history status for an account
+ * Used to detect if opening balances are needed for accurate performance calculations
+ */
+export const fetchTransactionHistoryStatus = async (
+  accountId: number
+): Promise<TransactionHistoryStatus> => {
+  const response = await http.get<TransactionHistoryStatus>(
+    `/portfolios/${accountId}/transaction-history-status`
+  );
+  return response.data;
+};
+
+/**
+ * Add opening balances for holdings in an account
+ * Creates INITIAL_BALANCE transactions to establish starting positions
+ */
+export const addOpeningBalances = async (
+  accountId: number,
+  request: AddOpeningBalancesRequest
+): Promise<void> => {
+  await http.post(`/portfolios/${accountId}/opening-balances`, request);
 };

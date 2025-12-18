@@ -21,6 +21,8 @@ export interface PlaidConnection {
   errorMessage?: string;
   connectedAt: string;
   lastSyncedAt?: string;
+  /** Source type: "Plaid" for bank accounts, "PlaidInvestments" for brokerage/retirement */
+  source?: 'Plaid' | 'PlaidInvestments';
 }
 
 export interface PlaidAccount {

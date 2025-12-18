@@ -208,7 +208,8 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>
         {isEditMode ? 'Edit Cash Account' : 'Add Cash Account'}
-        {isEditMode && onDelete && account && (
+        {/* Only show delete for manual accounts (source = 0 or undefined) */}
+        {isEditMode && onDelete && account && (!account.source || account.source === 0) && (
           <IconButton
             onClick={handleDelete}
             disabled={saving || deleting}

@@ -21,6 +21,7 @@ export interface CashAccountResponse {
   isEmergencyFund: boolean;
   createdAt: string;
   updatedAt: string;
+  source?: number; // 0 = Manual, 2 = Plaid
 }
 
 export interface CreateCashAccountRequest {

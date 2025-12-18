@@ -1,6 +1,6 @@
 # PFMP Documentation Map
 
-_Last updated: 2025-12-13_
+_Last updated: 2025-12-18_
 
 This index lists every active document under `docs/` following the subject-first taxonomy. Paths are relative to the repository root (`C:\pfmp`). Archive folders capture retired or historical material.
 

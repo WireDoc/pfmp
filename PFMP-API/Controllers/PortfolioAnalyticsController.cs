@@ -402,6 +402,234 @@ public class PortfolioAnalyticsController : ControllerBase
     }
 
     /// <summary>
+    /// Check if an account has incomplete transaction history for performance calculations
+    /// </summary>
+    [HttpGet("{accountId}/transaction-history-status")]
+    public async Task<ActionResult<TransactionHistoryStatus>> GetTransactionHistoryStatus(int accountId)
+    {
+        try
+        {
+            var account = await _context.Accounts.FindAsync(accountId);
+            if (account == null)
+            {
+                return NotFound(new { message = "Account not found" });
+            }
+
+            var holdings = await _context.Holdings
+                .Where(h => h.AccountId == accountId)
+                .ToListAsync();
+
+            if (!holdings.Any())
+            {
+                return Ok(new TransactionHistoryStatus
+                {
+                    IsComplete = true,
+                    Message = "No holdings in this account"
+                });
+            }
+
+            // Check for INITIAL_BALANCE transactions
+            var hasInitialBalance = await _context.Transactions
+                .AnyAsync(t => t.AccountId == accountId && 
+                              t.TransactionType.ToUpper() == "INITIAL_BALANCE");
+
+            // Get first transaction date
+            var firstTransaction = await _context.Transactions
+                .Where(t => t.AccountId == accountId)
+                .OrderBy(t => t.TransactionDate)
+                .FirstOrDefaultAsync();
+
+            // Check if account is Plaid-linked
+            var isPlaidLinked = account.PlaidAccountId != null;
+
+            // Check each holding for complete transaction history using quantity reconciliation
+            var holdingsNeedingBalance = new List<HoldingOpeningBalanceInfo>();
+            
+            foreach (var holding in holdings)
+            {
+                var holdingHasInitial = await _context.Transactions
+                    .AnyAsync(t => t.HoldingId == holding.HoldingId && 
+                                  t.TransactionType.ToUpper() == "INITIAL_BALANCE");
+                
+                if (holdingHasInitial)
+                {
+                    continue; // This holding is complete
+                }
+
+                // Calculate quantity from transactions
+                var holdingTransactions = await _context.Transactions
+                    .Where(t => t.HoldingId == holding.HoldingId)
+                    .ToListAsync();
+
+                if (!holdingTransactions.Any())
+                {
+                    // No transactions - needs opening balance
+                    holdingsNeedingBalance.Add(new HoldingOpeningBalanceInfo
+                    {
+                        HoldingId = holding.HoldingId,
+                        Symbol = holding.Symbol,
+                        CurrentQuantity = holding.Quantity,
+                        CurrentPrice = holding.CurrentPrice
+                    });
+                    continue;
+                }
+
+                decimal calculatedQuantity = 0;
+                foreach (var txn in holdingTransactions)
+                {
+                    var txType = txn.TransactionType?.ToUpperInvariant() ?? "";
+                    switch (txType)
+                    {
+                        case "BUY":
+                        case "TRANSFER_IN":
+                            calculatedQuantity += txn.Quantity ?? 0;
+                            break;
+                        case "SELL":
+                        case "TRANSFER_OUT":
+                            calculatedQuantity -= Math.Abs(txn.Quantity ?? 0);
+                            break;
+                        case "DIVIDEND":
+                            if (txn.IsDividendReinvestment)
+                            {
+                                calculatedQuantity += txn.Quantity ?? 0;
+                            }
+                            break;
+                    }
+                }
+
+                // Check if quantities reconcile (5% tolerance)
+                var currentQuantity = holding.Quantity;
+                bool isReconciled;
+                
+                if (currentQuantity == 0)
+                {
+                    isReconciled = Math.Abs(calculatedQuantity) < 0.01m;
+                }
+                else
+                {
+                    var difference = Math.Abs(calculatedQuantity - currentQuantity);
+                    var percentDifference = difference / currentQuantity;
+                    isReconciled = percentDifference <= 0.05m;
+                }
+
+                if (!isReconciled)
+                {
+                    holdingsNeedingBalance.Add(new HoldingOpeningBalanceInfo
+                    {
+                        HoldingId = holding.HoldingId,
+                        Symbol = holding.Symbol,
+                        CurrentQuantity = holding.Quantity,
+                        CurrentPrice = holding.CurrentPrice
+                    });
+                }
+            }
+
+            var isIncomplete = holdingsNeedingBalance.Any();
+
+            string message;
+            if (isIncomplete && isPlaidLinked)
+            {
+                message = "This account was synced from your bank but some holdings have incomplete transaction history. " +
+                         "For accurate performance tracking, please add opening balances.";
+            }
+            else if (isIncomplete)
+            {
+                message = "Some holdings are missing opening balance transactions. " +
+                         "Add opening balances to enable accurate performance calculations.";
+            }
+            else
+            {
+                message = "Transaction history is complete for performance calculations.";
+            }
+
+            return Ok(new TransactionHistoryStatus
+            {
+                IsComplete = !isIncomplete,
+                IsPlaidLinked = isPlaidLinked,
+                HasInitialBalance = hasInitialBalance,
+                FirstTransactionDate = firstTransaction?.TransactionDate,
+                Message = message,
+                HoldingsNeedingBalance = holdingsNeedingBalance
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking transaction history status for account {AccountId}", accountId);
+            return StatusCode(500, new { message = "Error checking transaction history", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Add opening balance transactions for holdings
+    /// </summary>
+    [HttpPost("{accountId}/opening-balances")]
+    public async Task<ActionResult> AddOpeningBalances(
+        int accountId, 
+        [FromBody] AddOpeningBalancesRequest request)
+    {
+        try
+        {
+            var account = await _context.Accounts.FindAsync(accountId);
+            if (account == null)
+            {
+                return NotFound(new { message = "Account not found" });
+            }
+
+            var addedCount = 0;
+
+            foreach (var balance in request.Balances)
+            {
+                var holding = await _context.Holdings.FindAsync(balance.HoldingId);
+                if (holding == null || holding.AccountId != accountId)
+                {
+                    continue; // Skip invalid holdings
+                }
+
+                // Check if INITIAL_BALANCE already exists for this holding
+                var exists = await _context.Transactions
+                    .AnyAsync(t => t.HoldingId == balance.HoldingId && 
+                                  t.TransactionType.ToUpper() == "INITIAL_BALANCE");
+                
+                if (exists)
+                {
+                    continue; // Skip if already has opening balance
+                }
+
+                var transaction = new Models.Transaction
+                {
+                    AccountId = accountId,
+                    HoldingId = balance.HoldingId,
+                    TransactionType = "INITIAL_BALANCE",
+                    TransactionDate = balance.Date,
+                    Quantity = balance.Quantity,
+                    Price = balance.PricePerShare,
+                    Amount = -(balance.Quantity * balance.PricePerShare), // Negative = money invested
+                    Symbol = holding.Symbol,
+                    Description = $"Opening balance for {holding.Symbol}"
+                };
+
+                _context.Transactions.Add(transaction);
+                addedCount++;
+            }
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Added {Count} opening balance transactions for account {AccountId}", 
+                addedCount, accountId);
+
+            return Ok(new { 
+                message = $"Added {addedCount} opening balance transaction(s)",
+                count = addedCount 
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding opening balances for account {AccountId}", accountId);
+            return StatusCode(500, new { message = "Error adding opening balances", error = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// Parse period string into date range
     /// </summary>
     private (DateTime startDate, DateTime endDate) ParsePeriod(string period)

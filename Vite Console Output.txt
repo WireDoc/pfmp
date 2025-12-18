@@ -1,5 +1,5 @@
 ========================================
-Session started: 12/14/2025 16:09:48
+Session started: 12/18/2025 03:23:37
 ========================================
 
 
@@ -7,18 +7,9 @@ Session started: 12/14/2025 16:09:48
 > vite
 
 
-  VITE v7.1.10  ready in 186 ms
+  VITE v7.1.10  ready in 301 ms
 
   GP£  Local:   http://localhost:3000/
   GP£  Network: use --host to expose
   GP£  press h + enter to show help
-4:17:38 PM [vite] (client) hmr update /src/views/dashboard/AccountsPanel.tsx, /src/views/dashboard/AccountDetailView.tsx, /src/components/accounts/SkeletonAccountView.tsx, /src/components/holdings/AccountSummaryHeader.tsx, /src/components/accounts/AccountSetupWizard.tsx
-4:17:38 PM [vite] (client) hmr update /src/components/investment-accounts/InvestmentTransactionList.tsx
-4:17:56 PM [vite] (client) hmr update /src/components/investment-accounts/InvestmentTransactionList.tsx
-4:18:12 PM [vite] (client) hmr update /src/components/investment-accounts/InvestmentTransactionList.tsx
-4:18:34 PM [vite] (client) hmr update /src/components/investment-accounts/InvestmentTransactionList.tsx
-4:18:40 PM [vite] (client) hmr update /src/components/investment-accounts/InvestmentTransactionList.tsx
-4:18:55 PM [vite] (client) hmr update /src/views/dashboard/AccountDetailView.tsx
-4:19:14 PM [vite] (client) hmr update /src/components/investment-accounts/InvestmentTransactionList.tsx
-4:19:14 PM [vite] (client) hmr update /src/views/dashboard/AccountsPanel.tsx, /src/views/dashboard/AccountDetailView.tsx, /src/components/accounts/SkeletonAccountView.tsx, /src/components/holdings/AccountSummaryHeader.tsx, /src/components/accounts/AccountSetupWizard.tsx
-4:19:14 PM [vite] (client) hmr update /src/views/dashboard/AccountDetailView.tsx
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`

@@ -25,10 +25,11 @@
 - AppRouter routes for investments settings
 - PlaidInvestmentsCTA dashboard component
 
-### Phase 2.5: Investment Transactions (In Progress - Dec 14, 2025)
-- Extend PlaidInvestmentsService with /investments/transactions/get endpoint
-- Store investment transactions (buy, sell, dividend, contribution, withdrawal)
-- Display transactions in investment account views
+### Phase 2.5: Investment Transactions (In Progress - Dec 14-18, 2025)
+- ✅ Unified ConnectionsSettingsView with Banks/Investments tabs
+- ✅ Fixed GetConnectionAccounts to return investment accounts from Accounts table
+- ✅ Delete protection: Hide delete buttons for synced accounts, holdings, and transactions
+- ⏳ Investment transactions sync (buy, sell, dividend, contribution, withdrawal)
 
 ### Phase 3: Testing & Documentation (Not Started)
 

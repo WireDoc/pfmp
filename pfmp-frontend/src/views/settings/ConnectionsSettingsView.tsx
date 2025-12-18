@@ -1,7 +1,7 @@
 /**
- * ConnectionsSettingsView (Wave 11)
+ * ConnectionsSettingsView (Wave 11 → Unified in Wave 12)
  * 
- * Settings page for managing connected bank accounts.
+ * Unified settings page for managing ALL connected accounts (banks + investments).
  * Route: /settings/connections
  */
 
@@ -16,18 +16,39 @@ import {
   Button,
   Skeleton,
   Alert,
-  Divider,
+  Tabs,
+  Tab,
+  Chip,
+  Stack,
 } from '@mui/material';
 import {
   Settings as SettingsIcon,
   AccountBalance as BankIcon,
+  TrendingUp as InvestmentsIcon,
   Refresh as RefreshIcon,
+  Link as LinkIcon,
 } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
 import { PlaidLinkButton, ConnectedBanksList } from '../../components/plaid';
+import { PlaidInvestmentsLinkButton } from '../../components/plaid/PlaidInvestmentsLinkButton';
 import { getConnections, syncAllConnections } from '../../services/plaidApi';
 import type { PlaidConnection } from '../../services/plaidApi';
 import { useDevUserId } from '../../dev/devUserState';
+
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props;
+  return (
+    <div role="tabpanel" hidden={value !== index} {...other}>
+      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
+    </div>
+  );
+}
 
 export const ConnectionsSettingsView: React.FC = () => {
   const devUserId = useDevUserId();
@@ -37,6 +58,12 @@ export const ConnectionsSettingsView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [tabValue, setTabValue] = useState(0);
+
+  // Separate connections by type
+  const bankConnections = connections.filter(c => c.source !== 'PlaidInvestments');
+  const investmentConnections = connections.filter(c => c.source === 'PlaidInvestments');
 
   const loadConnections = useCallback(async () => {
     try {
@@ -61,6 +88,7 @@ export const ConnectionsSettingsView: React.FC = () => {
     try {
       await syncAllConnections(userId);
       await loadConnections();
+      setSuccessMessage('All accounts synced successfully!');
     } catch (err) {
       setError('Failed to sync accounts. Please try again.');
     } finally {
@@ -69,13 +97,16 @@ export const ConnectionsSettingsView: React.FC = () => {
   };
 
   const handleLinkSuccess = () => {
-    // Refresh the connections list after linking a new bank
     loadConnections();
+    setSuccessMessage('Account linked successfully!');
   };
 
   const handleDisconnect = (connectionId: string) => {
-    // Remove the disconnected connection from state
     setConnections((prev) => prev.filter((c) => c.connectionId !== connectionId));
+  };
+
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
   };
 
   const hasConnections = connections.length > 0;
@@ -89,13 +120,12 @@ export const ConnectionsSettingsView: React.FC = () => {
           to="/dashboard"
           underline="hover"
           color="inherit"
-          sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
         >
           Dashboard
         </Link>
         <Link
           component={RouterLink}
-          to="/settings"
+          to="/dashboard/settings"
           underline="hover"
           color="inherit"
           sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
@@ -104,7 +134,7 @@ export const ConnectionsSettingsView: React.FC = () => {
           Settings
         </Link>
         <Typography color="text.primary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <BankIcon fontSize="small" />
+          <LinkIcon fontSize="small" />
           Connected Accounts
         </Typography>
       </Breadcrumbs>
@@ -116,11 +146,11 @@ export const ConnectionsSettingsView: React.FC = () => {
             Connected Accounts
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Link your bank accounts to automatically sync your balances.
+            Manage your linked bank and investment accounts
           </Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Stack direction="row" spacing={1}>
           {hasConnections && (
             <Button
               variant="outlined"
@@ -135,64 +165,153 @@ export const ConnectionsSettingsView: React.FC = () => {
             userId={userId}
             onSuccess={handleLinkSuccess}
             buttonText="Link Bank"
+            variant="outlined"
             size="medium"
           />
-        </Box>
+          <PlaidInvestmentsLinkButton
+            userId={userId}
+            onSuccess={handleLinkSuccess}
+            buttonText="Link Investments"
+            variant="contained"
+            color="success"
+            size="medium"
+          />
+        </Stack>
       </Box>
 
-      {/* Error Alert */}
+      {/* Alerts */}
       {error && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
+      {successMessage && (
+        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccessMessage(null)}>
+          {successMessage}
+        </Alert>
+      )}
+
+      {/* Summary Stats */}
+      {!loading && hasConnections && (
+        <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+          <Chip 
+            icon={<BankIcon />} 
+            label={`${bankConnections.length} Bank${bankConnections.length !== 1 ? 's' : ''}`}
+            color="primary"
+            variant="outlined"
+          />
+          <Chip 
+            icon={<InvestmentsIcon />} 
+            label={`${investmentConnections.length} Investment${investmentConnections.length !== 1 ? 's' : ''}`}
+            color="success"
+            variant="outlined"
+          />
+        </Stack>
+      )}
 
       {/* Main Content */}
-      <Paper sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-          <BankIcon color="primary" />
-          <Typography variant="h6">Your Connected Banks</Typography>
-        </Box>
-        <Divider sx={{ mb: 3 }} />
-
+      <Paper sx={{ p: 0 }}>
         {loading ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {[1, 2].map((i) => (
-              <Skeleton key={i} variant="rounded" height={80} />
-            ))}
+          <Box sx={{ p: 3 }}>
+            <Skeleton variant="text" width="40%" height={32} />
+            <Skeleton variant="rounded" height={80} sx={{ mt: 2 }} />
+            <Skeleton variant="rounded" height={80} sx={{ mt: 2 }} />
           </Box>
-        ) : (
-          <ConnectedBanksList
-            connections={connections}
-            userId={userId}
-            onRefresh={loadConnections}
-            onDisconnect={handleDisconnect}
-          />
-        )}
+        ) : hasConnections ? (
+          <>
+            <Tabs 
+              value={tabValue} 
+              onChange={handleTabChange}
+              sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}
+            >
+              <Tab 
+                icon={<BankIcon />} 
+                iconPosition="start" 
+                label={`Banks (${bankConnections.length})`}
+              />
+              <Tab 
+                icon={<InvestmentsIcon />} 
+                iconPosition="start" 
+                label={`Investments (${investmentConnections.length})`}
+              />
+            </Tabs>
 
-        {/* Empty State */}
-        {!loading && connections.length === 0 && (
-          <Box
-            sx={{
-              textAlign: 'center',
-              py: 6,
-              px: 3,
-            }}
-          >
-            <BankIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+            <TabPanel value={tabValue} index={0}>
+              <Box sx={{ px: 3, pb: 3 }}>
+                {bankConnections.length > 0 ? (
+                  <ConnectedBanksList
+                    connections={bankConnections}
+                    userId={userId}
+                    onRefresh={loadConnections}
+                    onDisconnect={handleDisconnect}
+                  />
+                ) : (
+                  <Box textAlign="center" py={4}>
+                    <BankIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+                    <Typography color="text.secondary" sx={{ mb: 2 }}>No bank accounts connected</Typography>
+                    <PlaidLinkButton
+                      userId={userId}
+                      onSuccess={handleLinkSuccess}
+                      buttonText="Link Bank Account"
+                      size="small"
+                    />
+                  </Box>
+                )}
+              </Box>
+            </TabPanel>
+
+            <TabPanel value={tabValue} index={1}>
+              <Box sx={{ px: 3, pb: 3 }}>
+                {investmentConnections.length > 0 ? (
+                  <ConnectedBanksList
+                    connections={investmentConnections}
+                    userId={userId}
+                    onRefresh={loadConnections}
+                    onDisconnect={handleDisconnect}
+                  />
+                ) : (
+                  <Box textAlign="center" py={4}>
+                    <InvestmentsIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+                    <Typography color="text.secondary" sx={{ mb: 2 }}>No investment accounts connected</Typography>
+                    <PlaidInvestmentsLinkButton
+                      userId={userId}
+                      onSuccess={handleLinkSuccess}
+                      buttonText="Link Investment Account"
+                      variant="outlined"
+                      color="success"
+                      size="small"
+                    />
+                  </Box>
+                )}
+              </Box>
+            </TabPanel>
+          </>
+        ) : (
+          // Empty State
+          <Box textAlign="center" py={6} px={3}>
+            <LinkIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
             <Typography variant="h6" gutterBottom>
-              No Banks Connected
+              No Accounts Connected
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 400, mx: 'auto' }}>
-              Link your bank accounts to automatically sync your checking, savings, 
-              and money market balances. We use bank-level encryption to keep your data secure.
+              Link your bank and investment accounts to automatically sync balances,
+              track holdings, and monitor your complete financial picture.
             </Typography>
-            <PlaidLinkButton
-              userId={userId}
-              onSuccess={handleLinkSuccess}
-              buttonText="Link Your First Bank"
-              size="large"
-            />
+            <Stack direction="row" spacing={2} justifyContent="center">
+              <PlaidLinkButton
+                userId={userId}
+                onSuccess={handleLinkSuccess}
+                buttonText="Link Bank"
+                variant="outlined"
+              />
+              <PlaidInvestmentsLinkButton
+                userId={userId}
+                onSuccess={handleLinkSuccess}
+                buttonText="Link Investments"
+                variant="contained"
+                color="success"
+              />
+            </Stack>
           </Box>
         )}
       </Paper>
@@ -201,7 +320,7 @@ export const ConnectionsSettingsView: React.FC = () => {
       <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
         <Typography variant="body2" color="text.secondary">
           <strong>🔒 Security Note:</strong> We use Plaid, a trusted financial services provider, 
-          to securely connect to your bank. We never store your bank login credentials, and 
+          to securely connect to your accounts. We never store your login credentials, and 
           you can disconnect your accounts at any time.
         </Typography>
       </Box>
@@ -211,8 +330,8 @@ export const ConnectionsSettingsView: React.FC = () => {
         <Box sx={{ mt: 2, p: 2, bgcolor: 'info.lighter', borderRadius: 1 }}>
           <Typography variant="body2" color="text.secondary">
             <strong>⏰ Automatic Sync:</strong> Your account balances are automatically 
-            updated every day at 10 PM Eastern Time. You can also manually sync at any time 
-            using the "Sync Now" button.
+            updated daily. Investment prices are refreshed from live market data.
+            You can also manually sync at any time using the "Sync All" button.
           </Typography>
         </Box>
       )}

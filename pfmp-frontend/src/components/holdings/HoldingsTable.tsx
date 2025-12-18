@@ -157,20 +157,30 @@ export function HoldingsTable({ holdings, selectedHoldingId, onSelect, onEdit, o
       type: 'actions',
       headerName: 'Actions',
       width: 100,
-      getActions: (params) => [
-        <GridActionsCellItem
-          icon={<EditIcon />}
-          label="Edit"
-          onClick={() => onEdit(params.row)}
-          showInMenu={false}
-        />,
-        <GridActionsCellItem
-          icon={<DeleteIcon />}
-          label="Delete"
-          onClick={() => onDelete(params.row.holdingId)}
-          showInMenu={false}
-        />,
-      ],
+      getActions: (params) => {
+        // Check if this is a synced holding (has plaidSecurityId)
+        const isSynced = !!params.row.plaidSecurityId;
+        const actions = [
+          <GridActionsCellItem
+            icon={<EditIcon />}
+            label="Edit"
+            onClick={() => onEdit(params.row)}
+            showInMenu={false}
+          />,
+        ];
+        // Only show delete for manual holdings
+        if (!isSynced) {
+          actions.push(
+            <GridActionsCellItem
+              icon={<DeleteIcon />}
+              label="Delete"
+              onClick={() => onDelete(params.row.holdingId)}
+              showInMenu={false}
+            />
+          );
+        }
+        return actions;
+      },
     },
   ];
 

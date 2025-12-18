@@ -169,7 +169,8 @@ export function AccountModal({ open, account, onClose, onSave, onDelete }: Props
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>
         Edit Account
-        {onDelete && account && (
+        {/* Only show delete for manual accounts (source = 0 or undefined) */}
+        {onDelete && account && (!account.source || account.source === 0) && (
           <IconButton
             aria-label="delete"
             onClick={handleDelete}

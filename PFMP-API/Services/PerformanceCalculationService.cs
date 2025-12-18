@@ -256,6 +256,13 @@ public class PerformanceCalculationService
 
         foreach (var holding in holdings)
         {
+            // Skip holdings without complete transaction history
+            // (e.g., Plaid synced accounts that only have partial history)
+            if (!await HasCompleteHistoryAsync(holding.HoldingId))
+            {
+                continue;
+            }
+
             // Get quantity held at this date by reconstructing transaction history
             var quantityAtDate = await GetQuantityAtDateAsync(holding.HoldingId, date);
 
@@ -280,6 +287,90 @@ public class PerformanceCalculationService
     }
 
     /// <summary>
+    /// Check if a holding has complete transaction history for performance calculations.
+    /// Returns true if:
+    /// - Has INITIAL_BALANCE transaction, OR
+    /// - Transaction quantities reconcile to current holding quantity (±5% tolerance)
+    /// </summary>
+    private async Task<bool> HasCompleteHistoryAsync(int holdingId)
+    {
+        // Check for INITIAL_BALANCE transaction - always valid
+        var hasInitialBalance = await _context.Transactions
+            .AnyAsync(t => t.HoldingId == holdingId && 
+                          t.TransactionType.ToUpper() == "INITIAL_BALANCE");
+        
+        if (hasInitialBalance)
+        {
+            return true;
+        }
+
+        // Get the holding
+        var holding = await _context.Holdings.FindAsync(holdingId);
+        if (holding == null)
+        {
+            return false;
+        }
+
+        // Get all transactions for this holding
+        var transactions = await _context.Transactions
+            .Where(t => t.HoldingId == holdingId)
+            .ToListAsync();
+
+        if (!transactions.Any())
+        {
+            // No transactions - can't verify history
+            return false;
+        }
+
+        // Calculate quantity from transactions
+        decimal calculatedQuantity = 0;
+        foreach (var txn in transactions)
+        {
+            var txType = txn.TransactionType?.ToUpperInvariant() ?? "";
+            switch (txType)
+            {
+                case "BUY":
+                case "TRANSFER_IN":
+                    calculatedQuantity += txn.Quantity ?? 0;
+                    break;
+                case "SELL":
+                case "TRANSFER_OUT":
+                    calculatedQuantity -= Math.Abs(txn.Quantity ?? 0);
+                    break;
+                case "DIVIDEND":
+                    if (txn.IsDividendReinvestment)
+                    {
+                        calculatedQuantity += txn.Quantity ?? 0;
+                    }
+                    break;
+            }
+        }
+
+        // Compare to current holding quantity with 5% tolerance
+        // (small discrepancies can occur due to rounding, stock splits, etc.)
+        var currentQuantity = holding.Quantity;
+        if (currentQuantity == 0)
+        {
+            // Position is closed - complete if calculated is also zero
+            return Math.Abs(calculatedQuantity) < 0.01m;
+        }
+
+        var difference = Math.Abs(calculatedQuantity - currentQuantity);
+        var percentDifference = difference / currentQuantity;
+        
+        var isReconciled = percentDifference <= 0.05m; // 5% tolerance
+        
+        if (!isReconciled)
+        {
+            _logger.LogDebug(
+                "Holding {HoldingId} ({Symbol}) has quantity mismatch: calculated={Calculated}, current={Current}, diff={Diff}%",
+                holdingId, holding.Symbol, calculatedQuantity, currentQuantity, percentDifference * 100);
+        }
+
+        return isReconciled;
+    }
+
+    /// <summary>
     /// Get quantity of a holding at a specific date by summing transactions up to that date
     /// </summary>
     private async Task<decimal> GetQuantityAtDateAsync(int holdingId, DateTime date)
@@ -292,27 +383,34 @@ public class PerformanceCalculationService
 
         foreach (var txn in transactions)
         {
-            switch (txn.TransactionType.ToLower())
+            // Use case-insensitive comparison
+            var txType = txn.TransactionType?.ToUpperInvariant() ?? "";
+            
+            switch (txType)
             {
-                case "buy":
-                case "deposit":
+                case "BUY":
+                case "INITIAL_BALANCE":
                     quantity += txn.Quantity ?? 0;
                     break;
-                case "sell":
-                case "withdrawal":
+                case "SELL":
+                    quantity -= Math.Abs(txn.Quantity ?? 0); // Plaid sends negative qty for sells
+                    break;
+                case "WITHDRAWAL":
                     quantity -= txn.Quantity ?? 0;
                     break;
                 // Dividends don't affect quantity unless reinvested
-                case "dividend":
+                case "DIVIDEND":
                     if (txn.IsDividendReinvestment)
                     {
                         quantity += txn.Quantity ?? 0;
                     }
                     break;
+                // DEPOSIT, FEE, INTEREST, STAKING_REWARD - don't affect share quantity for investments
+                // (DEPOSIT is cash, not shares)
             }
         }
 
-        return quantity;
+        return Math.Max(0, quantity);
     }
 
     /// <summary>
@@ -335,13 +433,17 @@ public class PerformanceCalculationService
     /// </summary>
     private decimal GetCashFlowAmount(Transaction transaction)
     {
-        return transaction.TransactionType.ToLower() switch
+        var txType = transaction.TransactionType?.ToUpperInvariant() ?? "";
+        var amount = Math.Abs(transaction.Amount);
+        
+        return txType switch
         {
-            "buy" => transaction.Amount,
-            "sell" => -transaction.Amount,
-            "dividend" => -transaction.Amount, // Dividend is cash inflow
-            "deposit" => transaction.Amount,
-            "withdrawal" => -transaction.Amount,
+            "BUY" => amount,
+            "INITIAL_BALANCE" => amount,
+            "SELL" => -amount,
+            "DIVIDEND" => -amount, // Dividend is cash inflow
+            "DEPOSIT" => amount,
+            "WITHDRAWAL" => -amount,
             _ => 0
         };
     }

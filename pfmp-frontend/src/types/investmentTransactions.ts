@@ -79,7 +79,8 @@ export const TransactionSource = {
   Fidelity: 6,
   TSPUpdate: 7,
   BankAPI: 8,
-  Other: 9,
+  PlaidInvestments: 9,
+  Other: 10,
 } as const;
 
 export type TransactionSource = typeof TransactionSource[keyof typeof TransactionSource];

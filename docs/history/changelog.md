@@ -6,6 +6,31 @@ The format follows [Conventional Commits](https://www.conventionalcommits.org/).
 
 ---
 
+## [0.10.2-alpha] - 2025-12-18
+
+### Wave 12 Phase 2.5 - Synced Data Protection
+
+**Delete Protection for Synced Data**
+- Hide delete button for Plaid-synced transactions (source !== Manual)
+- Hide delete button for Plaid-synced investment accounts (source = PlaidInvestments)
+- Hide delete button for Plaid-synced cash accounts (source = Plaid)
+- Hide delete button for Plaid-synced holdings (has plaidSecurityId)
+- Manual accounts/transactions remain fully editable and deletable
+
+**Backend Changes**
+- Added `Source` field to CashAccountResponse DTO
+- Include source in GetAccounts and GetAccount API responses
+
+**Frontend Changes**
+- Added `source` field to AccountResponse and CashAccountResponse types
+- Added `PlaidInvestments` to TransactionSource enum
+- Added `plaidSecurityId` to Holding interface
+- Updated InvestmentTransactionList to conditionally render delete button
+- Updated AccountModal and CashAccountModal to conditionally render delete button
+- Updated HoldingsTable to conditionally render delete button
+
+---
+
 ## [0.10.1-alpha] - 2025-12-14
 
 ### Wave 12 Phase 2 - Plaid Investments Frontend + Phase 2.5 Started

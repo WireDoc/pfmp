@@ -96,7 +96,7 @@ export const AllocationSunburstChart: React.FC<AllocationSunburstChartProps> = (
             Value: {formatCurrency(data.value)}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Percentage: {formatPercent(data.percentage / 100)}
+            Percentage: {formatPercent(data.percentage)}
           </Typography>
         </Paper>
       );

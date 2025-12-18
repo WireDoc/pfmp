@@ -90,9 +90,10 @@ export const formatCurrency = (value: number): string => {
 
 /**
  * Format percentage for display
+ * Note: value is expected to already be in percentage form (e.g., 9.37 means 9.37%)
  */
 export const formatPercent = (value: number): string => {
-  return `${(value * 100).toFixed(2)}%`;
+  return `${value.toFixed(2)}%`;
 };
 
 /**

@@ -25,6 +25,7 @@ import { AllocationTab } from '../../components/analytics/AllocationTab';
 import { InvestmentTransactionList } from '../../components/investment-accounts/InvestmentTransactionList';
 import { SkeletonAccountView } from '../../components/accounts/SkeletonAccountView';
 import { AccountSetupWizard } from '../../components/accounts/AccountSetupWizard';
+import { IncompleteHistoryBanner } from '../../components/accounts/IncompleteHistoryBanner';
 import { getAccount, type AccountResponse } from '../../services/accountsApi';
 import type { Holding } from '../../types/holdings';
 
@@ -249,6 +250,14 @@ export function AccountDetailView() {
         onRefreshPrices={handleRefreshPrices}
         refreshing={refreshing}
       />
+
+      {/* Incomplete History Banner - shows for investment accounts with incomplete transaction history */}
+      {isInvestmentAccount && !isSkeletonAccount && (
+        <IncompleteHistoryBanner 
+          accountId={Number(accountId)}
+          onBalancesAdded={fetchHoldings}
+        />
+      )}
 
       {/* SKELETON Account View - No Tabs */}
       {isInvestmentAccount && isSkeletonAccount && account && (

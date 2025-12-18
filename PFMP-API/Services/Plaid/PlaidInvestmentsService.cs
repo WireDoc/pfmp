@@ -13,6 +13,7 @@ using PfmpAccount = PFMP_API.Models.Account;
 using PfmpAccountType = PFMP_API.Models.AccountType;
 using PfmpHolding = PFMP_API.Models.Holding;
 using PfmpTransaction = PFMP_API.Models.Transaction;
+using PFMP_API.Services.MarketData;
 
 namespace PFMP_API.Services.Plaid
 {
@@ -167,16 +168,19 @@ namespace PFMP_API.Services.Plaid
         private readonly ICredentialEncryptionService _encryption;
         private readonly ILogger<PlaidInvestmentsService> _logger;
         private readonly PlaidOptions _options;
+        private readonly MarketData.IMarketDataService? _marketDataService;
 
         public PlaidInvestmentsService(
             ApplicationDbContext db,
             ICredentialEncryptionService encryption,
             IConfiguration configuration,
-            ILogger<PlaidInvestmentsService> logger)
+            ILogger<PlaidInvestmentsService> logger,
+            MarketData.IMarketDataService? marketDataService = null)
         {
             _db = db;
             _encryption = encryption;
             _logger = logger;
+            _marketDataService = marketDataService;
 
             // Load Plaid configuration
             _options = new PlaidOptions();
@@ -273,6 +277,22 @@ namespace PFMP_API.Services.Plaid
 
             // Immediately fetch and sync holdings
             await SyncInvestmentHoldingsAsync(connection.ConnectionId);
+
+            // Also sync transactions (last 2 years by default)
+            var startDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-2));
+            var endDate = DateOnly.FromDateTime(DateTime.UtcNow);
+            await SyncInvestmentTransactionsAsync(connection.ConnectionId, startDate, endDate);
+
+            // Refresh prices from FMP for real market data
+            var accountIds = await _db.Accounts
+                .Where(a => a.ConnectionId == connection.ConnectionId)
+                .Select(a => a.AccountId)
+                .ToListAsync();
+
+            foreach (var accountId in accountIds)
+            {
+                await RefreshHoldingPricesAsync(accountId);
+            }
 
             return connection;
         }
@@ -646,6 +666,105 @@ namespace PFMP_API.Services.Plaid
                 .ToListAsync();
         }
 
+        /// <summary>
+        /// Refreshes holding prices from FMP market data service.
+        /// </summary>
+        public async Task<(int Updated, int Failed)> RefreshHoldingPricesAsync(int accountId)
+        {
+            if (_marketDataService == null)
+            {
+                _logger.LogWarning("Market data service not available, skipping price refresh for account {AccountId}", accountId);
+                return (0, 0);
+            }
+
+            var holdings = await _db.Holdings
+                .Where(h => h.AccountId == accountId)
+                .ToListAsync();
+
+            if (!holdings.Any())
+            {
+                _logger.LogDebug("No holdings found for account {AccountId}, skipping price refresh", accountId);
+                return (0, 0);
+            }
+
+            // Get unique symbols
+            var symbols = holdings
+                .Where(h => !string.IsNullOrEmpty(h.Symbol))
+                .Select(h => h.Symbol.ToUpper())
+                .Distinct()
+                .ToList();
+
+            _logger.LogInformation("Refreshing prices for {Count} symbols in account {AccountId}: {Symbols}",
+                symbols.Count, accountId, string.Join(", ", symbols));
+
+            // Fetch quotes from FMP
+            var quotes = await _marketDataService.GetQuotesAsync(symbols);
+            var quoteDict = quotes.ToDictionary(q => q.Symbol.ToUpper(), q => q, StringComparer.OrdinalIgnoreCase);
+
+            int updated = 0;
+            int failed = 0;
+
+            foreach (var holding in holdings)
+            {
+                if (string.IsNullOrEmpty(holding.Symbol))
+                {
+                    failed++;
+                    continue;
+                }
+
+                if (quoteDict.TryGetValue(holding.Symbol.ToUpper(), out var quote))
+                {
+                    holding.CurrentPrice = quote.Price;
+                    holding.LastPriceUpdate = DateTime.UtcNow;
+                    updated++;
+                    _logger.LogDebug("Updated {Symbol} price to ${Price}", holding.Symbol, quote.Price);
+                }
+                else
+                {
+                    // Fallback: try historical data
+                    var historical = await _marketDataService.GetHistoricalPricesAsync(
+                        holding.Symbol.ToUpper(),
+                        DateTime.UtcNow.AddDays(-7),
+                        DateTime.UtcNow);
+
+                    var latest = historical.OrderByDescending(p => p.Date).FirstOrDefault();
+                    if (latest != null)
+                    {
+                        holding.CurrentPrice = latest.Close;
+                        holding.LastPriceUpdate = DateTime.UtcNow;
+                        updated++;
+                        _logger.LogDebug("Updated {Symbol} price to ${Price} (from historical)", holding.Symbol, latest.Close);
+                    }
+                    else
+                    {
+                        failed++;
+                        _logger.LogWarning("No quote found for {Symbol}", holding.Symbol);
+                    }
+                }
+            }
+
+            await _db.SaveChangesAsync();
+
+            // Update account balance for DETAILED accounts
+            var account = await _db.Accounts.FindAsync(accountId);
+            if (account != null && account.IsDetailed())
+            {
+                var newBalance = holdings.Sum(h => h.Quantity * h.CurrentPrice);
+                account.CurrentBalance = newBalance;
+                account.LastBalanceUpdate = DateTime.UtcNow;
+                account.UpdatedAt = DateTime.UtcNow;
+                await _db.SaveChangesAsync();
+
+                _logger.LogInformation("Updated account {AccountId} balance to ${Balance} after price refresh",
+                    accountId, newBalance);
+            }
+
+            _logger.LogInformation("Price refresh complete for account {AccountId}: {Updated} updated, {Failed} failed",
+                accountId, updated, failed);
+
+            return (updated, failed);
+        }
+
         #region Private Helper Methods
 
         private async Task UpsertSecurityAsync(Security plaidSecurity)
@@ -661,7 +780,7 @@ namespace PFMP_API.Services.Plaid
                 existing.Cusip = plaidSecurity.Cusip;
                 existing.Isin = plaidSecurity.Isin;
                 existing.ClosePrice = plaidSecurity.ClosePrice;
-                existing.ClosePriceAsOf = plaidSecurity.ClosePriceAsOf?.ToDateTime(TimeOnly.MinValue);
+                existing.ClosePriceAsOf = plaidSecurity.ClosePriceAsOf?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
                 existing.IsCashEquivalent = plaidSecurity.IsCashEquivalent ?? false;
                 existing.UpdatedAt = DateTime.UtcNow;
             }
@@ -676,7 +795,7 @@ namespace PFMP_API.Services.Plaid
                     Cusip = plaidSecurity.Cusip,
                     Isin = plaidSecurity.Isin,
                     ClosePrice = plaidSecurity.ClosePrice,
-                    ClosePriceAsOf = plaidSecurity.ClosePriceAsOf?.ToDateTime(TimeOnly.MinValue),
+                    ClosePriceAsOf = plaidSecurity.ClosePriceAsOf?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
                     IsCashEquivalent = plaidSecurity.IsCashEquivalent ?? false,
                     IsoCurrencyCode = plaidSecurity.IsoCurrencyCode,
                     UnofficialCurrencyCode = plaidSecurity.UnofficialCurrencyCode,
@@ -695,6 +814,7 @@ namespace PFMP_API.Services.Plaid
             if (existing != null)
             {
                 existing.CurrentBalance = (decimal)(plaidAccount.Balances.Current ?? 0);
+                existing.Institution = connection.PlaidInstitutionName;
                 existing.PlaidLastSyncedAt = DateTime.UtcNow;
                 existing.PlaidSyncStatus = 1; // Connected
                 existing.PlaidSyncErrorMessage = null;
@@ -709,6 +829,7 @@ namespace PFMP_API.Services.Plaid
                     UserId = connection.UserId,
                     AccountName = plaidAccount.Name,
                     AccountType = accountType,
+                    Institution = connection.PlaidInstitutionName,
                     CurrentBalance = (decimal)(plaidAccount.Balances.Current ?? 0),
                     Source = 3, // PlaidInvestments
                     PlaidItemId = connection.PlaidItemId,

@@ -20,6 +20,7 @@ export interface AccountResponse {
   updatedAt: string;
   lastBalanceUpdate?: string;
   connectionId?: string; // Plaid connection ID for linked accounts
+  source?: number; // 0 = Manual, 2 = Plaid, 3 = PlaidInvestments
 }
 
 export interface UpdateAccountRequest {

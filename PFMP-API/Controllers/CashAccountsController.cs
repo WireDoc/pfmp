@@ -46,7 +46,8 @@ public class CashAccountsController : ControllerBase
             Purpose = a.Purpose,
             IsEmergencyFund = a.IsEmergencyFund,
             CreatedAt = a.CreatedAt,
-            UpdatedAt = a.UpdatedAt
+            UpdatedAt = a.UpdatedAt,
+            Source = (int)a.Source
         }));
     }
 
@@ -81,7 +82,8 @@ public class CashAccountsController : ControllerBase
             Purpose = account.Purpose,
             IsEmergencyFund = account.IsEmergencyFund,
             CreatedAt = account.CreatedAt,
-            UpdatedAt = account.UpdatedAt
+            UpdatedAt = account.UpdatedAt,
+            Source = (int)account.Source
         });
     }
 
@@ -292,6 +294,7 @@ public class CashAccountResponse
     public bool IsEmergencyFund { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public int Source { get; set; } // 0 = Manual, 2 = Plaid
 }
 
 public class CreateCashAccountRequest

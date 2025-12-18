@@ -26,6 +26,7 @@ export interface Holding {
   updatedAt: string;
   lastPriceUpdate: string | null;
   notes: string | null;
+  plaidSecurityId?: string | null; // If set, this holding was synced from Plaid
 }
 
 export interface CreateHoldingRequest {

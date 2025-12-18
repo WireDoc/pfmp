@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models.Plaid;
 using PFMP_API.Services.Plaid;
 
@@ -13,11 +14,13 @@ public class PlaidController : ControllerBase
 {
     private readonly IPlaidService _plaidService;
     private readonly ILogger<PlaidController> _logger;
+    private readonly ApplicationDbContext _db;
 
-    public PlaidController(IPlaidService plaidService, ILogger<PlaidController> logger)
+    public PlaidController(IPlaidService plaidService, ILogger<PlaidController> logger, ApplicationDbContext db)
     {
         _plaidService = plaidService;
         _logger = logger;
+        _db = db;
     }
 
     /// <summary>
@@ -148,21 +151,50 @@ public class PlaidController : ControllerBase
         {
             // Verify connection belongs to user
             var connections = await _plaidService.GetUserConnectionsAsync(userId);
-            if (!connections.Any(c => c.ConnectionId == connectionId))
+            var connection = connections.FirstOrDefault(c => c.ConnectionId == connectionId);
+            if (connection == null)
             {
                 return NotFound(new ErrorResponse { Error = "Connection not found" });
             }
 
-            var accounts = await _plaidService.GetConnectionAccountsAsync(connectionId);
-            return Ok(accounts.Select(a => new AccountDto
+            var result = new List<AccountDto>();
+
+            // Check if this is an investment connection (PlaidInvestments source)
+            if (connection.Source == AccountSource.PlaidInvestments)
             {
-                CashAccountId = a.CashAccountId,
-                Name = a.Nickname,
-                Balance = a.Balance,
-                PlaidAccountId = a.PlaidAccountId,
-                SyncStatus = a.SyncStatus.ToString(),
-                LastSyncedAt = a.LastSyncedAt
-            }).ToList());
+                // Query investment accounts from the Accounts table
+                var investmentAccounts = await _db.Accounts
+                    .Where(a => a.ConnectionId == connectionId && a.UserId == userId)
+                    .OrderBy(a => a.AccountName)
+                    .ToListAsync();
+
+                result.AddRange(investmentAccounts.Select(a => new AccountDto
+                {
+                    CashAccountId = Guid.Empty, // Not a CashAccount
+                    AccountId = a.AccountId,
+                    Name = a.AccountName,
+                    Balance = a.CurrentBalance,
+                    PlaidAccountId = a.PlaidAccountId,
+                    SyncStatus = a.PlaidSyncStatus.ToString(),
+                    LastSyncedAt = a.PlaidLastSyncedAt
+                }));
+            }
+            else
+            {
+                // Query bank accounts from the CashAccounts table
+                var accounts = await _plaidService.GetConnectionAccountsAsync(connectionId);
+                result.AddRange(accounts.Select(a => new AccountDto
+                {
+                    CashAccountId = a.CashAccountId,
+                    Name = a.Nickname,
+                    Balance = a.Balance,
+                    PlaidAccountId = a.PlaidAccountId,
+                    SyncStatus = a.SyncStatus.ToString(),
+                    LastSyncedAt = a.LastSyncedAt
+                }));
+            }
+
+            return Ok(result);
         }
         catch (Exception ex)
         {
@@ -473,7 +505,8 @@ public class PlaidController : ControllerBase
             Status = connection.Status.ToString(),
             ErrorMessage = connection.ErrorMessage,
             ConnectedAt = connection.ConnectedAt,
-            LastSyncedAt = connection.LastSyncedAt
+            LastSyncedAt = connection.LastSyncedAt,
+            Source = connection.Source.ToString()
         };
     }
 
@@ -1005,11 +1038,16 @@ public class ConnectionDto
     public string? ErrorMessage { get; set; }
     public DateTime ConnectedAt { get; set; }
     public DateTime? LastSyncedAt { get; set; }
+    /// <summary>
+    /// Source type: "Plaid" for bank accounts, "PlaidInvestments" for brokerage/retirement
+    /// </summary>
+    public string Source { get; set; } = "Plaid";
 }
 
 public class AccountDto
 {
     public Guid CashAccountId { get; set; }
+    public int AccountId { get; set; }  // For investment accounts
     public string Name { get; set; } = string.Empty;
     public decimal Balance { get; set; }
     public string? PlaidAccountId { get; set; }
