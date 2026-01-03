@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
 using PFMP_API.Models.FinancialProfile;
 using PFMP_API.Services.FinancialProfile;
+using PFMP_API.Services.MarketData;
 
 namespace PFMP_API.Controllers;
 
@@ -12,13 +13,22 @@ public class DashboardController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<DashboardController> _logger;
+    private readonly IMarketDataService? _marketDataService;
+    
+    /// <summary>
+    /// Staleness threshold for automatic price refresh.
+    /// Holdings with LastPriceUpdate older than this will be refreshed on dashboard load.
+    /// </summary>
+    private static readonly TimeSpan PriceStalenessThreshold = TimeSpan.FromHours(4);
 
     public DashboardController(
         ApplicationDbContext context,
-        ILogger<DashboardController> logger)
+        ILogger<DashboardController> logger,
+        IMarketDataService? marketDataService = null)
     {
         _context = context;
         _logger = logger;
+        _marketDataService = marketDataService;
     }
 
     /// <summary>
@@ -52,6 +62,9 @@ public class DashboardController : ControllerBase
                            a.AccountType != AccountType.CertificateOfDeposit)
                 .Include(a => a.Holdings)
                 .ToListAsync();
+
+            // Auto-refresh stale prices for investment holdings
+            await RefreshStalePricesAsync(accounts);
 
             // Fetch cash accounts from separate CashAccounts table
             var cashAccounts = await _context.CashAccounts
@@ -318,5 +331,112 @@ public class DashboardController : ControllerBase
             "L2075" => cachedPrices.L2075FundPrice,
             _ => null
         };
+    }
+
+    /// <summary>
+    /// Check for stale prices and refresh from market data if needed.
+    /// A holding is considered stale if LastPriceUpdate is null or older than PriceStalenessThreshold.
+    /// </summary>
+    private async Task RefreshStalePricesAsync(List<Account> accounts)
+    {
+        if (_marketDataService == null)
+        {
+            _logger.LogDebug("Market data service not available, skipping staleness check");
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        var staleThreshold = now - PriceStalenessThreshold;
+
+        // Collect all stale holdings across all accounts
+        var staleHoldings = accounts
+            .SelectMany(a => a.Holdings ?? Enumerable.Empty<Holding>())
+            .Where(h => !string.IsNullOrWhiteSpace(h.Symbol))
+            .Where(h => !IsTspFund(h.Symbol)) // TSP funds use separate job
+            .Where(h => h.LastPriceUpdate == null || h.LastPriceUpdate < staleThreshold)
+            .ToList();
+
+        if (staleHoldings.Count == 0)
+        {
+            _logger.LogDebug("No stale holdings found, prices are fresh");
+            return;
+        }
+
+        // Get unique symbols to fetch
+        var symbols = staleHoldings
+            .Select(h => h.Symbol!.ToUpperInvariant())
+            .Distinct()
+            .ToList();
+
+        _logger.LogInformation(
+            "Found {StaleCount} stale holdings across {SymbolCount} symbols, refreshing prices",
+            staleHoldings.Count, symbols.Count);
+
+        try
+        {
+            // Batch fetch all prices
+            var quotes = await _marketDataService.GetQuotesAsync(symbols);
+            var priceMap = quotes
+                .Where(q => q.Price > 0)
+                .ToDictionary(q => q.Symbol.ToUpperInvariant(), q => q.Price, StringComparer.OrdinalIgnoreCase);
+
+            _logger.LogInformation("Fetched {PriceCount} prices from market data", priceMap.Count);
+
+            // Update holdings with new prices
+            int updatedCount = 0;
+            var accountsToUpdate = new HashSet<Account>();
+
+            foreach (var holding in staleHoldings)
+            {
+                var symbol = holding.Symbol!.ToUpperInvariant();
+                if (priceMap.TryGetValue(symbol, out var newPrice))
+                {
+                    holding.CurrentPrice = newPrice;
+                    holding.LastPriceUpdate = now;
+                    holding.UpdatedAt = now;
+                    updatedCount++;
+                    
+                    // Track parent account for balance recalculation
+                    var account = accounts.FirstOrDefault(a => a.Holdings?.Contains(holding) == true);
+                    if (account != null)
+                    {
+                        accountsToUpdate.Add(account);
+                    }
+                }
+            }
+
+            // Recalculate account balances
+            foreach (var account in accountsToUpdate)
+            {
+                var newBalance = account.Holdings?
+                    .Sum(h => h.Quantity * h.CurrentPrice) ?? 0;
+                account.CurrentBalance = newBalance;
+                account.UpdatedAt = now;
+            }
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Dashboard auto-refresh complete: {UpdatedCount} holdings updated, {AccountCount} account balances recalculated",
+                updatedCount, accountsToUpdate.Count);
+        }
+        catch (Exception ex)
+        {
+            // Log but don't fail the dashboard - stale data is better than no data
+            _logger.LogWarning(ex, "Failed to auto-refresh stale prices, continuing with cached data");
+        }
+    }
+
+    /// <summary>
+    /// Check if a symbol is a TSP fund (handled by separate TspPriceRefreshJob)
+    /// </summary>
+    private static bool IsTspFund(string? symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol)) return false;
+        var s = symbol.Trim().ToUpperInvariant();
+        return s is "G" or "F" or "C" or "S" or "I" 
+            or "L-INCOME" or "LINCOME"
+            or "L2030" or "L2035" or "L2040" or "L2045" or "L2050" 
+            or "L2055" or "L2060" or "L2065" or "L2070" or "L2075";
     }
 }

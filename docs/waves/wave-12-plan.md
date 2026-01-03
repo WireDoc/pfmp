@@ -1,6 +1,6 @@
 # Wave 12: Brokerage & Investment Linking
 
-> **Status**: In Progress (Phase 2.5 - Investment Transactions)
+> **Status**: Phase 3 - Testing & Documentation
 > **Target**: Q1 2026
 > **Priority**: High
 > **Prerequisites**: Wave 11 Complete
@@ -25,13 +25,20 @@
 - AppRouter routes for investments settings
 - PlaidInvestmentsCTA dashboard component
 
-### Phase 2.5: Investment Transactions (In Progress - Dec 14-18, 2025)
+### Phase 2.5: Investment Transactions (Complete - Dec 18, 2025)
 - ✅ Unified ConnectionsSettingsView with Banks/Investments tabs
 - ✅ Fixed GetConnectionAccounts to return investment accounts from Accounts table
 - ✅ Delete protection: Hide delete buttons for synced accounts, holdings, and transactions
-- ⏳ Investment transactions sync (buy, sell, dividend, contribution, withdrawal)
+- ✅ Investment transactions sync (buy, sell, dividend, contribution, withdrawal)
+- ✅ InvestmentTransactionList component with sync button
+- ✅ Transaction history status API (opening balance detection)
+- ✅ IncompleteHistoryBanner component with AddOpeningBalancesDialog
+- ✅ Frontend wiring in AccountDetailView
 
-### Phase 3: Testing & Documentation (Not Started)
+### Phase 3: Testing & Documentation (In Progress)
+- ⏳ Test all 5 custom Plaid sandbox users (see docs/testing/plaid-custom-users.md)
+- ⏳ Validate opening balance detection per scenario
+- ⏳ Update documentation and changelog
 
 ---
 

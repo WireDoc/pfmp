@@ -35,6 +35,11 @@ bld/
 wwwroot/dist/
 *.log
 
+# Development console output files (local troubleshooting only)
+*Console Output.txt
+PFMP-API Console Output.txt
+Vite Console Output.txt
+
 # Entity Framework
 *.edmx.diagram
 *.edmx.sql

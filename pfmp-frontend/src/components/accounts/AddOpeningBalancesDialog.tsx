@@ -18,7 +18,11 @@ import {
   Paper,
   InputAdornment,
   CircularProgress,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
 import {
   addOpeningBalances,
   type HoldingOpeningBalanceInfo,
@@ -34,14 +38,20 @@ interface AddOpeningBalancesDialogProps {
 }
 
 interface BalanceFormRow {
+  /** Unique row ID for tracking (not related to holdingId) */
+  rowId: string;
   holdingId: number;
   symbol: string;
   currentQuantity: number;
+  transactionsQuantity: number;
+  missingQuantity: number;
   currentPrice: number;
   quantity: string;
   pricePerShare: string;
   date: string;
   error?: string;
+  /** Whether this is an additional split row (not the first row for this holding) */
+  isSplitRow?: boolean;
 }
 
 /**
@@ -57,6 +67,7 @@ export function AddOpeningBalancesDialog({
   const [rows, setRows] = useState<BalanceFormRow[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [nextRowId, setNextRowId] = useState(1);
 
   // Initialize form rows when dialog opens
   useEffect(() => {
@@ -66,43 +77,85 @@ export function AddOpeningBalancesDialog({
       defaultDate.setDate(defaultDate.getDate() - 30);
       const dateStr = defaultDate.toISOString().split('T')[0];
 
+      let rowIdCounter = 1;
       setRows(
         holdings.map((h) => ({
+          rowId: `row-${rowIdCounter++}`,
           holdingId: h.holdingId,
           symbol: h.symbol,
           currentQuantity: h.currentQuantity,
+          transactionsQuantity: h.transactionsQuantity,
+          missingQuantity: h.missingQuantity,
           currentPrice: h.currentPrice,
-          quantity: h.currentQuantity.toString(),
+          // Pre-fill with missing quantity (what's NOT covered by transactions)
+          quantity: h.missingQuantity > 0 ? h.missingQuantity.toString() : h.currentQuantity.toString(),
           pricePerShare: '',
           date: dateStr,
+          isSplitRow: false,
         }))
       );
+      setNextRowId(rowIdCounter);
       setError(null);
     }
   }, [open, holdings]);
 
-  const handleQuantityChange = (index: number, value: string) => {
+  const handleQuantityChange = (rowId: string, value: string) => {
     setRows((prev) =>
-      prev.map((row, i) =>
-        i === index ? { ...row, quantity: value, error: undefined } : row
+      prev.map((row) =>
+        row.rowId === rowId ? { ...row, quantity: value, error: undefined } : row
       )
     );
   };
 
-  const handlePriceChange = (index: number, value: string) => {
+  const handlePriceChange = (rowId: string, value: string) => {
     setRows((prev) =>
-      prev.map((row, i) =>
-        i === index ? { ...row, pricePerShare: value, error: undefined } : row
+      prev.map((row) =>
+        row.rowId === rowId ? { ...row, pricePerShare: value, error: undefined } : row
       )
     );
   };
 
-  const handleDateChange = (index: number, value: string) => {
+  const handleDateChange = (rowId: string, value: string) => {
     setRows((prev) =>
-      prev.map((row, i) =>
-        i === index ? { ...row, date: value, error: undefined } : row
+      prev.map((row) =>
+        row.rowId === rowId ? { ...row, date: value, error: undefined } : row
       )
     );
+  };
+
+  /** Add a new row for the same holding to split the transaction */
+  const handleSplitRow = (rowId: string) => {
+    const rowIndex = rows.findIndex((r) => r.rowId === rowId);
+    if (rowIndex === -1) return;
+
+    const sourceRow = rows[rowIndex];
+    const newRowId = `row-${nextRowId}`;
+    setNextRowId((prev) => prev + 1);
+
+    // Create a new row for the same holding with zero quantity
+    const newRow: BalanceFormRow = {
+      rowId: newRowId,
+      holdingId: sourceRow.holdingId,
+      symbol: sourceRow.symbol,
+      currentQuantity: sourceRow.currentQuantity,
+      transactionsQuantity: sourceRow.transactionsQuantity,
+      missingQuantity: sourceRow.missingQuantity,
+      currentPrice: sourceRow.currentPrice,
+      quantity: '', // User needs to fill in
+      pricePerShare: '',
+      date: sourceRow.date, // Copy the date as a starting point
+      isSplitRow: true,
+    };
+
+    // Insert the new row after the source row
+    const newRows = [...rows];
+    newRows.splice(rowIndex + 1, 0, newRow);
+    setRows(newRows);
+  };
+
+  /** Delete a split row (only allowed for split rows, not original) */
+  const handleDeleteRow = (rowId: string) => {
+    setRows((prev) => prev.filter((row) => row.rowId !== rowId));
   };
 
   const handleSetAllDates = (date: string) => {
@@ -185,7 +238,8 @@ export function AddOpeningBalancesDialog({
           <strong>Tip:</strong> Set the date to when you first acquired these
           shares, or to the earliest date you want to track performance from.
           If you leave the price blank, the current price will be used as an
-          estimate.
+          estimate. Use the <strong>+</strong> button to split a holding into
+          multiple transactions if you bought shares on different dates.
         </Alert>
 
         {error && (
@@ -211,30 +265,47 @@ export function AddOpeningBalancesDialog({
               <TableRow>
                 <TableCell>Symbol</TableCell>
                 <TableCell align="right">Current Qty</TableCell>
+                <TableCell align="right">From Txns</TableCell>
                 <TableCell align="right">Opening Qty</TableCell>
                 <TableCell align="right">Price/Share</TableCell>
                 <TableCell>Date</TableCell>
+                <TableCell align="center" sx={{ width: 80 }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.map((row, index) => (
-                <TableRow key={row.holdingId}>
+              {rows.map((row) => (
+                <TableRow key={row.rowId}>
                   <TableCell>
-                    <Typography variant="body2" fontWeight="medium">
-                      {row.symbol}
-                    </Typography>
+                    {row.isSplitRow ? (
+                      <Typography variant="body2" color="text.secondary" sx={{ pl: 2 }}>
+                        └ {row.symbol}
+                      </Typography>
+                    ) : (
+                      <Typography variant="body2" fontWeight="medium">
+                        {row.symbol}
+                      </Typography>
+                    )}
                   </TableCell>
                   <TableCell align="right">
-                    <Typography variant="body2" color="text.secondary">
-                      {row.currentQuantity.toFixed(4)}
-                    </Typography>
+                    {!row.isSplitRow && (
+                      <Typography variant="body2" color="text.secondary">
+                        {row.currentQuantity.toFixed(4)}
+                      </Typography>
+                    )}
+                  </TableCell>
+                  <TableCell align="right">
+                    {!row.isSplitRow && (
+                      <Typography variant="body2" color="text.secondary">
+                        {row.transactionsQuantity.toFixed(4)}
+                      </Typography>
+                    )}
                   </TableCell>
                   <TableCell align="right">
                     <TextField
                       size="small"
                       type="number"
                       value={row.quantity}
-                      onChange={(e) => handleQuantityChange(index, e.target.value)}
+                      onChange={(e) => handleQuantityChange(row.rowId, e.target.value)}
                       error={!!row.error}
                       helperText={row.error}
                       inputProps={{ min: 0, step: 'any' }}
@@ -246,7 +317,7 @@ export function AddOpeningBalancesDialog({
                       size="small"
                       type="number"
                       value={row.pricePerShare}
-                      onChange={(e) => handlePriceChange(index, e.target.value)}
+                      onChange={(e) => handlePriceChange(row.rowId, e.target.value)}
                       placeholder={row.currentPrice.toFixed(2)}
                       InputProps={{
                         startAdornment: (
@@ -262,10 +333,34 @@ export function AddOpeningBalancesDialog({
                       size="small"
                       type="date"
                       value={row.date}
-                      onChange={(e) => handleDateChange(index, e.target.value)}
+                      onChange={(e) => handleDateChange(row.rowId, e.target.value)}
                       InputLabelProps={{ shrink: true }}
                       sx={{ width: 150 }}
                     />
+                  </TableCell>
+                  <TableCell align="center">
+                    <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                      <Tooltip title="Split into multiple transactions">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleSplitRow(row.rowId)}
+                          color="primary"
+                        >
+                          <AddIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      {row.isSplitRow && (
+                        <Tooltip title="Remove this row">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteRow(row.rowId)}
+                            color="error"
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </Box>
                   </TableCell>
                 </TableRow>
               ))}

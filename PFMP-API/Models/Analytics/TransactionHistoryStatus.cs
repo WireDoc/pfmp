@@ -45,6 +45,16 @@ public class HoldingOpeningBalanceInfo
     public string Symbol { get; set; } = string.Empty;
     public decimal CurrentQuantity { get; set; }
     public decimal CurrentPrice { get; set; }
+    
+    /// <summary>
+    /// Quantity accounted for by existing transactions (buys - sells)
+    /// </summary>
+    public decimal TransactionsQuantity { get; set; }
+    
+    /// <summary>
+    /// Quantity that needs opening balance (CurrentQuantity - TransactionsQuantity)
+    /// </summary>
+    public decimal MissingQuantity { get; set; }
 }
 
 /// <summary>

@@ -88,6 +88,7 @@ export function AccountDetailView() {
   const [editingHolding, setEditingHolding] = useState<Holding | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [transactionRefreshTrigger, setTransactionRefreshTrigger] = useState(0);
   
   const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api';
   
@@ -255,7 +256,10 @@ export function AccountDetailView() {
       {isInvestmentAccount && !isSkeletonAccount && (
         <IncompleteHistoryBanner 
           accountId={Number(accountId)}
-          onBalancesAdded={fetchHoldings}
+          onBalancesAdded={() => {
+            fetchHoldings();
+            setTransactionRefreshTrigger((prev) => prev + 1);
+          }}
         />
       )}
 
@@ -373,6 +377,7 @@ export function AccountDetailView() {
             accountId={Number(accountId)} 
             connectionId={account?.connectionId ?? undefined}
             userId={account?.userId}
+            refreshTrigger={transactionRefreshTrigger}
           />
         </TabPanel>
 

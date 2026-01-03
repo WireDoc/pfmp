@@ -62,6 +62,7 @@ This index lists every active document under `docs/` following the subject-first
 
 ## 🧪 testing
 - `docs/testing/README.md` – Testing index with backend/frontend guides
+- `docs/testing/plaid-custom-users.md` – Custom Plaid sandbox user configurations
 - `docs/testing/alerts-advice-testing.md` – Alert/advice flow testing
 - `docs/testing/advice-testing.md` – Advice generation testing
 - `docs/testing/dashboard-msw-handlers.md` – MSW mock handlers
@@ -79,6 +80,7 @@ This index lists every active document under `docs/` following the subject-first
 
 ### Active Wave Plans
 - `docs/waves/wave-12-plan.md` – **Wave 12: Brokerage & Investment Linking** (Q1 2026)
+- `docs/waves/wave-12-5-unified-plaid.md` – **Wave 12.5: Unified Plaid Account Linking** (Q1 2026)
 - `docs/waves/wave-11-account-linking-strategy.md` – Wave 11-13: Full account linking strategy reference
 - Wave 13: Crypto Integration – Documented in `docs/history/roadmap.md`
 - Wave 14: Spending Analysis – Documented in `docs/history/roadmap.md`

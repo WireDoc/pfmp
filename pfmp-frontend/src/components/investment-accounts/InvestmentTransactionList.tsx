@@ -30,6 +30,8 @@ interface InvestmentTransactionListProps {
   accountId: number;
   connectionId?: string;
   userId?: number;
+  /** Increment this value to force a data refresh */
+  refreshTrigger?: number;
   onAddTransaction?: () => void;
   onEditTransaction?: (transaction: InvestmentTransaction) => void;
 }
@@ -38,6 +40,7 @@ export const InvestmentTransactionList: React.FC<InvestmentTransactionListProps>
   accountId,
   connectionId,
   userId,
+  refreshTrigger,
   onEditTransaction,
 }) => {
   // Data state
@@ -107,7 +110,7 @@ export const InvestmentTransactionList: React.FC<InvestmentTransactionListProps>
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, refreshTrigger]);
 
   // Filter transactions client-side (for search and symbol)
   const filteredTransactions = React.useMemo(() => {

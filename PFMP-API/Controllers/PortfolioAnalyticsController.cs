@@ -463,13 +463,15 @@ public class PortfolioAnalyticsController : ControllerBase
 
                 if (!holdingTransactions.Any())
                 {
-                    // No transactions - needs opening balance
+                    // No transactions - needs opening balance for full quantity
                     holdingsNeedingBalance.Add(new HoldingOpeningBalanceInfo
                     {
                         HoldingId = holding.HoldingId,
                         Symbol = holding.Symbol,
                         CurrentQuantity = holding.Quantity,
-                        CurrentPrice = holding.CurrentPrice
+                        CurrentPrice = holding.CurrentPrice,
+                        TransactionsQuantity = 0,
+                        MissingQuantity = holding.Quantity
                     });
                     continue;
                 }
@@ -514,12 +516,15 @@ public class PortfolioAnalyticsController : ControllerBase
 
                 if (!isReconciled)
                 {
+                    var missingQty = holding.Quantity - calculatedQuantity;
                     holdingsNeedingBalance.Add(new HoldingOpeningBalanceInfo
                     {
                         HoldingId = holding.HoldingId,
                         Symbol = holding.Symbol,
                         CurrentQuantity = holding.Quantity,
-                        CurrentPrice = holding.CurrentPrice
+                        CurrentPrice = holding.CurrentPrice,
+                        TransactionsQuantity = calculatedQuantity,
+                        MissingQuantity = missingQty > 0 ? missingQty : 0
                     });
                 }
             }
@@ -595,15 +600,18 @@ public class PortfolioAnalyticsController : ControllerBase
                     continue; // Skip if already has opening balance
                 }
 
+                var transactionDate = DateTime.SpecifyKind(balance.Date.Date, DateTimeKind.Utc);
                 var transaction = new Models.Transaction
                 {
                     AccountId = accountId,
                     HoldingId = balance.HoldingId,
                     TransactionType = "INITIAL_BALANCE",
-                    TransactionDate = balance.Date,
+                    // Ensure UTC for PostgreSQL timestamptz compatibility
+                    TransactionDate = transactionDate,
+                    SettlementDate = transactionDate, // Same as transaction date for opening balance
                     Quantity = balance.Quantity,
                     Price = balance.PricePerShare,
-                    Amount = -(balance.Quantity * balance.PricePerShare), // Negative = money invested
+                    Amount = balance.Quantity * balance.PricePerShare, // Positive = value of shares brought in
                     Symbol = holding.Symbol,
                     Description = $"Opening balance for {holding.Symbol}"
                 };

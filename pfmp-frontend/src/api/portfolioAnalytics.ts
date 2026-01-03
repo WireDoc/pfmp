@@ -133,6 +133,10 @@ export interface HoldingOpeningBalanceInfo {
   symbol: string;
   currentQuantity: number;
   currentPrice: number;
+  /** Quantity accounted for by existing transactions (buys - sells) */
+  transactionsQuantity: number;
+  /** Quantity that needs opening balance (currentQuantity - transactionsQuantity) */
+  missingQuantity: number;
 }
 
 export interface TransactionHistoryStatus {
