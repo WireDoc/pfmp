@@ -19,13 +19,13 @@ public class FmpQuote
     public decimal Price { get; set; }
     public decimal Change { get; set; }
     public decimal ChangesPercentage { get; set; }
-    public decimal DayLow { get; set; }
-    public decimal DayHigh { get; set; }
-    public decimal YearHigh { get; set; }
-    public decimal YearLow { get; set; }
-    public decimal MarketCap { get; set; }
-    public long Volume { get; set; }
-    public long AvgVolume { get; set; }
+    public decimal? DayLow { get; set; }
+    public decimal? DayHigh { get; set; }
+    public decimal? YearHigh { get; set; }
+    public decimal? YearLow { get; set; }
+    public decimal? MarketCap { get; set; }
+    public long? Volume { get; set; }
+    public long? AvgVolume { get; set; }
     public string Exchange { get; set; } = string.Empty;
     public decimal? Open { get; set; }
     public decimal? PreviousClose { get; set; }

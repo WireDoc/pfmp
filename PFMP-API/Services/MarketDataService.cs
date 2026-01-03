@@ -64,13 +64,13 @@ namespace PFMP_API.Services
                 {
                     Symbol = quote.symbol ?? symbol,
                     Price = quote.price,
-                    Change = quote.change,
-                    ChangePercent = quote.changesPercentage,
-                    Volume = quote.volume,
-                    DayHigh = quote.dayHigh,
-                    DayLow = quote.dayLow,
-                    Open = quote.open,
-                    PreviousClose = quote.previousClose,
+                    Change = quote.change ?? 0,
+                    ChangePercent = quote.changesPercentage ?? 0,
+                    Volume = quote.volume ?? 0,
+                    DayHigh = quote.dayHigh ?? 0,
+                    DayLow = quote.dayLow ?? 0,
+                    Open = quote.open ?? 0,
+                    PreviousClose = quote.previousClose ?? 0,
                     LastUpdated = DateTime.UtcNow,
                     Exchange = quote.exchange ?? "",
                     CompanyName = quote.name ?? ""
@@ -131,13 +131,13 @@ namespace PFMP_API.Services
                             {
                                 Symbol = quote.symbol,
                                 Price = quote.price,
-                                Change = quote.change,
-                                ChangePercent = quote.changesPercentage,
-                                Volume = quote.volume,
-                                DayHigh = quote.dayHigh,
-                                DayLow = quote.dayLow,
-                                Open = quote.open,
-                                PreviousClose = quote.previousClose,
+                                Change = quote.change ?? 0,
+                                ChangePercent = quote.changesPercentage ?? 0,
+                                Volume = quote.volume ?? 0,
+                                DayHigh = quote.dayHigh ?? 0,
+                                DayLow = quote.dayLow ?? 0,
+                                Open = quote.open ?? 0,
+                                PreviousClose = quote.previousClose ?? 0,
                                 LastUpdated = DateTime.UtcNow,
                                 Exchange = quote.exchange ?? "",
                                 CompanyName = quote.name ?? ""
@@ -382,13 +382,14 @@ namespace PFMP_API.Services
     {
         public string? symbol { get; set; }
         public decimal price { get; set; }
-        public decimal change { get; set; }
-        public decimal changesPercentage { get; set; }
-        public decimal volume { get; set; }
-        public decimal dayHigh { get; set; }
-        public decimal dayLow { get; set; }
-        public decimal open { get; set; }
-        public decimal previousClose { get; set; }
+        public decimal? change { get; set; }
+        public decimal? changesPercentage { get; set; }
+        public decimal? volume { get; set; }
+        public decimal? dayHigh { get; set; }
+        public decimal? dayLow { get; set; }
+        public decimal? open { get; set; }
+        public decimal? previousClose { get; set; }
+        public decimal? marketCap { get; set; }
         public string? exchange { get; set; }
         public string? name { get; set; }
     }

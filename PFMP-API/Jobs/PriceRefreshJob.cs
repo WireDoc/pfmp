@@ -110,6 +110,11 @@ public class PriceRefreshJob
                         errorCount++;
                     }
                 }
+                
+                // Recalculate account balance based on updated holding prices
+                var newBalance = account.Holdings.Sum(h => h.Quantity * h.CurrentPrice);
+                account.CurrentBalance = newBalance;
+                account.UpdatedAt = now;
             }
 
             await _context.SaveChangesAsync(cancellationToken);
@@ -176,6 +181,9 @@ public class PriceRefreshJob
             }
         }
 
+        // Recalculate account balance based on updated holding prices
+        var newBalance = account.Holdings.Sum(h => h.Quantity * h.CurrentPrice);
+        account.CurrentBalance = newBalance;
         account.LastAPISync = now;
         account.UpdatedAt = now;
 

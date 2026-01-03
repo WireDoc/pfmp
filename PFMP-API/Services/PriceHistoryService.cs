@@ -31,14 +31,22 @@ public class PriceHistoryService
     /// </summary>
     public async Task<List<PriceHistory>> GetPriceHistoryAsync(string symbol, DateTime startDate, DateTime endDate)
     {
+        // Ensure dates are in UTC for PostgreSQL timestamp with time zone compatibility
+        var startDateUtc = startDate.Kind == DateTimeKind.Unspecified 
+            ? DateTime.SpecifyKind(startDate, DateTimeKind.Utc) 
+            : startDate.ToUniversalTime();
+        var endDateUtc = endDate.Kind == DateTimeKind.Unspecified 
+            ? DateTime.SpecifyKind(endDate, DateTimeKind.Utc) 
+            : endDate.ToUniversalTime();
+
         // First check database
         var existingData = await _context.PriceHistory
-            .Where(p => p.Symbol == symbol && p.Date >= startDate && p.Date <= endDate)
+            .Where(p => p.Symbol == symbol && p.Date >= startDateUtc && p.Date <= endDateUtc)
             .OrderBy(p => p.Date)
             .ToListAsync();
 
         // If we have data for the full range, return it
-        var expectedDays = (endDate - startDate).Days;
+        var expectedDays = (endDateUtc - startDateUtc).Days;
         if (existingData.Count >= expectedDays * 0.9) // 90% threshold - allows for weekends/holidays
         {
             _logger.LogInformation("Cache hit: Found {Count} price records for {Symbol} in database", existingData.Count, symbol);
@@ -50,7 +58,7 @@ public class PriceHistoryService
 
         // Otherwise fetch from API
         _logger.LogInformation("Fetching price history for {Symbol} from FMP API", symbol);
-        var apiData = await FetchFromApiAsync(symbol, startDate, endDate);
+        var apiData = await FetchFromApiAsync(symbol, startDateUtc, endDateUtc);
 
         if (apiData.Count > 0)
         {

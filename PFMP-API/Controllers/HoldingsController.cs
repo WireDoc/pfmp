@@ -98,22 +98,37 @@ public class HoldingsController : ControllerBase
         var priceHistory = await query.OrderBy(p => p.Date).ToListAsync();
 
         // Check if we need to fetch more data from FMP
-        // We need to fetch if: no data exists, OR if the oldest data we have is newer than fromDate
+        // We need to fetch if: no data exists, oldest data is newer than fromDate, OR newest data is stale
         bool needsMoreData = false;
         if (_marketDataService != null)
         {
             if (!priceHistory.Any())
             {
                 needsMoreData = true;
+                _logger.LogInformation("No price history for {Symbol}, will fetch from FMP", holding.Symbol);
             }
-            else if (fromDate.HasValue)
+            else
             {
-                var oldestDate = await _context.PriceHistory
-                    .Where(p => p.Symbol == holding.Symbol.ToUpper())
-                    .MinAsync(p => p.Date);
+                var oldestDate = priceHistory.Min(p => p.Date);
+                var newestDate = priceHistory.Max(p => p.Date);
                 
                 // If our oldest data is newer than what we need, fetch more
-                needsMoreData = oldestDate > fromDate.Value;
+                if (fromDate.HasValue && oldestDate > fromDate.Value)
+                {
+                    needsMoreData = true;
+                    _logger.LogInformation("Missing historical data for {Symbol}: oldest is {OldestDate}, need from {FromDate}", 
+                        holding.Symbol, oldestDate, fromDate.Value);
+                }
+                
+                // If our newest data is more than 2 days old, fetch more recent data
+                // (2 days allows for weekends, but ensures we get recent trading day data)
+                var staleThreshold = DateTime.UtcNow.AddDays(-2);
+                if (newestDate < staleThreshold)
+                {
+                    needsMoreData = true;
+                    _logger.LogInformation("Stale price history for {Symbol}: newest is {NewestDate}, threshold is {Threshold}", 
+                        holding.Symbol, newestDate, staleThreshold);
+                }
             }
         }
 
