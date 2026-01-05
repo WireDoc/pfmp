@@ -58,6 +58,17 @@ namespace PFMP_API.Models.Plaid
         /// </summary>
         public DateTime? TransactionsLastSyncedAt { get; set; }
 
+        /// <summary>
+        /// Plaid products enabled for this connection (e.g., ["transactions", "investments", "liabilities"]).
+        /// </summary>
+        [MaxLength(500)]
+        public string? Products { get; set; }
+
+        /// <summary>
+        /// Whether this connection was created via the unified linking flow.
+        /// </summary>
+        public bool IsUnified { get; set; } = false;
+
         // Navigation
         [ForeignKey("UserId")]
         public virtual User User { get; set; } = null!;
@@ -70,14 +81,16 @@ namespace PFMP_API.Models.Plaid
     {
         Manual = 0,
         CSV = 1,
-        Plaid = 2,
-        // Future: PlaidInvestments, TDAmeritrade, Coinbase, etc.
-        PlaidInvestments = 3,
-        TDAmeritrade = 4,
-        Schwab = 5,
-        ETrade = 6,
-        Coinbase = 7,
-        Binance = 8
+        Plaid = 2,              // transactions product (banks)
+        PlaidInvestments = 3,   // investments product
+        PlaidCreditCard = 4,    // liabilities product - credit cards
+        PlaidMortgage = 5,      // liabilities product - mortgages
+        PlaidStudentLoan = 6,   // liabilities product - student loans
+        TDAmeritrade = 7,
+        Schwab = 8,
+        ETrade = 9,
+        Coinbase = 10,
+        Binance = 11
     }
 
     /// <summary>

@@ -1008,6 +1008,191 @@ public class PlaidController : ControllerBase
     }
 
     #endregion
+
+    #region Unified Connection Endpoints (Wave 12.5)
+
+    /// <summary>
+    /// Generate a unified Plaid Link token that can request multiple products.
+    /// </summary>
+    [HttpPost("unified/link-token")]
+    [ProducesResponseType(typeof(LinkTokenResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<LinkTokenResponse>> CreateUnifiedLinkToken(
+        [FromQuery] int userId,
+        [FromBody] UnifiedLinkTokenRequest? request)
+    {
+        if (userId <= 0)
+            return BadRequest("Valid user ID is required");
+
+        try
+        {
+            var connectionService = HttpContext.RequestServices.GetRequiredService<IPlaidConnectionService>();
+            var linkToken = await connectionService.CreateUnifiedLinkTokenAsync(userId, request?.Products);
+            return Ok(new LinkTokenResponse { LinkToken = linkToken });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create unified link token for user {UserId}", userId);
+            return StatusCode(500, new ErrorResponse { Error = "Failed to create link token", Details = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Exchange a Plaid public token for a unified connection spanning multiple products.
+    /// </summary>
+    [HttpPost("unified/exchange-token")]
+    [ProducesResponseType(typeof(UnifiedConnectionResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<UnifiedConnectionResultDto>> ExchangeUnifiedToken(
+        [FromQuery] int userId,
+        [FromBody] UnifiedExchangeTokenRequest request)
+    {
+        if (userId <= 0)
+            return BadRequest("Valid user ID is required");
+
+        if (string.IsNullOrEmpty(request.PublicToken))
+            return BadRequest("Public token is required");
+
+        try
+        {
+            var connectionService = HttpContext.RequestServices.GetRequiredService<IPlaidConnectionService>();
+            var result = await connectionService.ExchangeUnifiedPublicTokenAsync(
+                userId,
+                request.PublicToken,
+                request.InstitutionId,
+                request.InstitutionName,
+                request.Products);
+
+            return Ok(new UnifiedConnectionResultDto
+            {
+                Success = result.Success,
+                ConnectionId = result.ConnectionId,
+                InstitutionName = result.InstitutionName,
+                EnabledProducts = result.EnabledProducts,
+                AccountsLinked = result.AccountsLinked,
+                ErrorMessage = result.ErrorMessage
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to exchange unified token for user {UserId}", userId);
+            return StatusCode(500, new ErrorResponse { Error = "Failed to exchange token", Details = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Sync all products for a unified connection.
+    /// </summary>
+    [HttpPost("unified/connections/{connectionId}/sync")]
+    [ProducesResponseType(typeof(UnifiedSyncResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<UnifiedSyncResultDto>> SyncUnifiedConnection([FromRoute] Guid connectionId)
+    {
+        try
+        {
+            var connectionService = HttpContext.RequestServices.GetRequiredService<IPlaidConnectionService>();
+            var result = await connectionService.SyncUnifiedConnectionAsync(connectionId);
+
+            return Ok(new UnifiedSyncResultDto
+            {
+                Success = result.Success,
+                SyncedAt = result.SyncedAt,
+                DurationMs = result.DurationMs,
+                TransactionsSynced = result.TransactionsSynced,
+                TransactionsCount = result.TransactionsCount,
+                InvestmentsSynced = result.InvestmentsSynced,
+                HoldingsCount = result.HoldingsCount,
+                LiabilitiesSynced = result.LiabilitiesSynced,
+                LiabilitiesCount = result.LiabilitiesCount,
+                Errors = result.Errors
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to sync unified connection {ConnectionId}", connectionId);
+            return StatusCode(500, new ErrorResponse { Error = "Sync failed", Details = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Get all connections for a user with product availability info.
+    /// </summary>
+    [HttpGet("unified/connections")]
+    [ProducesResponseType(typeof(List<ConnectionInfoDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<List<ConnectionInfoDto>>> GetUserConnections([FromQuery] int userId)
+    {
+        if (userId <= 0)
+            return BadRequest("Valid user ID is required");
+
+        try
+        {
+            var connectionService = HttpContext.RequestServices.GetRequiredService<IPlaidConnectionService>();
+            var connections = await connectionService.GetUserConnectionsAsync(userId);
+
+            return Ok(connections.Select(c => new ConnectionInfoDto
+            {
+                ConnectionId = c.ConnectionId,
+                InstitutionId = c.InstitutionId,
+                InstitutionName = c.InstitutionName,
+                Source = c.Source.ToString(),
+                Products = c.Products,
+                IsUnified = c.IsUnified,
+                Status = c.Status.ToString(),
+                LastSyncedAt = c.LastSyncedAt,
+                ConnectedAt = c.ConnectedAt
+            }).ToList());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get connections for user {UserId}", userId);
+            return StatusCode(500, new ErrorResponse { Error = "Failed to get connections", Details = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Update products for an existing connection (e.g., add liabilities to a bank connection).
+    /// </summary>
+    [HttpPut("unified/connections/{connectionId}/products")]
+    [ProducesResponseType(typeof(ConnectionInfoDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<ConnectionInfoDto>> UpdateConnectionProducts(
+        [FromRoute] Guid connectionId,
+        [FromBody] UpdateProductsRequest request)
+    {
+        if (request.Products == null || request.Products.Count == 0)
+            return BadRequest("At least one product is required");
+
+        try
+        {
+            var connectionService = HttpContext.RequestServices.GetRequiredService<IPlaidConnectionService>();
+            var connection = await connectionService.UpdateConnectionProductsAsync(connectionId, request.Products);
+
+            return Ok(new ConnectionInfoDto
+            {
+                ConnectionId = connection.ConnectionId,
+                InstitutionId = connection.PlaidInstitutionId,
+                InstitutionName = connection.PlaidInstitutionName,
+                Source = connection.Source.ToString(),
+                Products = request.Products,
+                IsUnified = connection.IsUnified,
+                Status = connection.Status.ToString(),
+                LastSyncedAt = connection.LastSyncedAt,
+                ConnectedAt = connection.ConnectedAt
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update products for connection {ConnectionId}", connectionId);
+            return StatusCode(500, new ErrorResponse { Error = "Failed to update products", Details = ex.Message });
+        }
+    }
+
+    #endregion
 }
 
 // DTOs
@@ -1207,6 +1392,65 @@ public class InvestmentTransactionDto
     public string? Description { get; set; }
     public string? PlaidInvestmentType { get; set; }
     public string? PlaidInvestmentSubtype { get; set; }
+}
+
+#endregion
+
+#region Unified Connection DTOs (Wave 12.5)
+
+public class UnifiedLinkTokenRequest
+{
+    public List<string>? Products { get; set; }
+}
+
+public class UnifiedExchangeTokenRequest
+{
+    public string PublicToken { get; set; } = string.Empty;
+    public string? InstitutionId { get; set; }
+    public string? InstitutionName { get; set; }
+    public List<string>? Products { get; set; }
+}
+
+public class UnifiedConnectionResultDto
+{
+    public bool Success { get; set; }
+    public Guid ConnectionId { get; set; }
+    public string? InstitutionName { get; set; }
+    public List<string> EnabledProducts { get; set; } = [];
+    public int AccountsLinked { get; set; }
+    public string? ErrorMessage { get; set; }
+}
+
+public class UnifiedSyncResultDto
+{
+    public bool Success { get; set; }
+    public DateTime SyncedAt { get; set; }
+    public int DurationMs { get; set; }
+    public bool TransactionsSynced { get; set; }
+    public int TransactionsCount { get; set; }
+    public bool InvestmentsSynced { get; set; }
+    public int HoldingsCount { get; set; }
+    public bool LiabilitiesSynced { get; set; }
+    public int LiabilitiesCount { get; set; }
+    public List<string> Errors { get; set; } = [];
+}
+
+public class ConnectionInfoDto
+{
+    public Guid ConnectionId { get; set; }
+    public string? InstitutionId { get; set; }
+    public string? InstitutionName { get; set; }
+    public string Source { get; set; } = string.Empty;
+    public List<string> Products { get; set; } = [];
+    public bool IsUnified { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public DateTime? LastSyncedAt { get; set; }
+    public DateTime ConnectedAt { get; set; }
+}
+
+public class UpdateProductsRequest
+{
+    public List<string> Products { get; set; } = [];
 }
 
 #endregion

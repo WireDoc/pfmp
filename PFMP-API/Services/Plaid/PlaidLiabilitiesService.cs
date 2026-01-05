@@ -1,0 +1,548 @@
+using Going.Plaid;
+using Going.Plaid.Entity;
+using Going.Plaid.Liabilities;
+using Going.Plaid.Link;
+using Microsoft.EntityFrameworkCore;
+using PFMP_API.Models.FinancialProfile;
+using PFMP_API.Models.Plaid;
+
+namespace PFMP_API.Services.Plaid
+{
+    /// <summary>
+    /// Result of a liabilities sync operation.
+    /// </summary>
+    public class LiabilitiesSyncResult
+    {
+        public bool Success { get; set; }
+        public DateTime SyncedAt { get; set; } = DateTime.UtcNow;
+        public int CreditCardsUpdated { get; set; }
+        public int MortgagesUpdated { get; set; }
+        public int StudentLoansUpdated { get; set; }
+        public int DurationMs { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+
+    /// <summary>
+    /// Service interface for Plaid Liabilities operations.
+    /// </summary>
+    public interface IPlaidLiabilitiesService
+    {
+        /// <summary>
+        /// Creates a Plaid Link token for liabilities product.
+        /// </summary>
+        Task<string> CreateLiabilitiesLinkTokenAsync(int userId);
+
+        /// <summary>
+        /// Exchanges a public token for an access token and creates a liabilities connection.
+        /// </summary>
+        Task<AccountConnection> ExchangeLiabilitiesPublicTokenAsync(
+            int userId,
+            string publicToken,
+            string? institutionId = null,
+            string? institutionName = null);
+
+        /// <summary>
+        /// Fetches and syncs liabilities from Plaid.
+        /// </summary>
+        Task<LiabilitiesSyncResult> SyncLiabilitiesAsync(Guid connectionId);
+
+        /// <summary>
+        /// Syncs all liability connections for a user.
+        /// </summary>
+        Task<LiabilitiesSyncResult> SyncAllUserLiabilitiesAsync(int userId);
+
+        /// <summary>
+        /// Gets all Plaid-linked liabilities for a user.
+        /// </summary>
+        Task<List<LiabilityAccount>> GetUserPlaidLiabilitiesAsync(int userId);
+    }
+
+    /// <summary>
+    /// Service for Plaid Liabilities product integration.
+    /// Handles credit cards, mortgages, and student loans.
+    /// </summary>
+    public class PlaidLiabilitiesService : IPlaidLiabilitiesService
+    {
+        private readonly PlaidClient _plaidClient;
+        private readonly ApplicationDbContext _dbContext;
+        private readonly ILogger<PlaidLiabilitiesService> _logger;
+        private readonly IConfiguration _configuration;
+
+        public PlaidLiabilitiesService(
+            PlaidClient plaidClient,
+            ApplicationDbContext dbContext,
+            ILogger<PlaidLiabilitiesService> logger,
+            IConfiguration configuration)
+        {
+            _plaidClient = plaidClient;
+            _dbContext = dbContext;
+            _logger = logger;
+            _configuration = configuration;
+        }
+
+        /// <inheritdoc />
+        public async Task<string> CreateLiabilitiesLinkTokenAsync(int userId)
+        {
+            _logger.LogInformation("Creating liabilities link token for user {UserId}", userId);
+
+            var request = new LinkTokenCreateRequest
+            {
+                User = new LinkTokenCreateRequestUser { ClientUserId = userId.ToString() },
+                ClientName = "PFMP",
+                Products = [Products.Liabilities],
+                CountryCodes = [CountryCode.Us],
+                Language = Language.English
+            };
+
+            var response = await _plaidClient.LinkTokenCreateAsync(request);
+
+            if (response.Error != null)
+            {
+                _logger.LogError("Plaid Link token creation failed: {ErrorCode} - {ErrorMessage}",
+                    response.Error.ErrorCode, response.Error.ErrorMessage);
+                throw new InvalidOperationException($"Plaid error: {response.Error.ErrorMessage}");
+            }
+
+            _logger.LogInformation("Link token created successfully for user {UserId}", userId);
+            return response.LinkToken;
+        }
+
+        /// <inheritdoc />
+        public async Task<AccountConnection> ExchangeLiabilitiesPublicTokenAsync(
+            int userId,
+            string publicToken,
+            string? institutionId = null,
+            string? institutionName = null)
+        {
+            _logger.LogInformation("Exchanging public token for user {UserId}", userId);
+
+            // Exchange public token for access token
+            var exchangeResponse = await _plaidClient.ItemPublicTokenExchangeAsync(
+                new Going.Plaid.Item.ItemPublicTokenExchangeRequest { PublicToken = publicToken });
+
+            if (exchangeResponse.Error != null)
+            {
+                _logger.LogError("Public token exchange failed: {ErrorCode} - {ErrorMessage}",
+                    exchangeResponse.Error.ErrorCode, exchangeResponse.Error.ErrorMessage);
+                throw new InvalidOperationException($"Plaid error: {exchangeResponse.Error.ErrorMessage}");
+            }
+
+            var accessToken = exchangeResponse.AccessToken;
+            var itemId = exchangeResponse.ItemId;
+
+            // Create account connection
+            var connection = new AccountConnection
+            {
+                UserId = userId,
+                PlaidInstitutionId = institutionId,
+                PlaidInstitutionName = institutionName ?? "Liabilities Institution",
+                PlaidAccessToken = accessToken,
+                PlaidItemId = itemId,
+                Source = AccountSource.PlaidCreditCard, // Default, will be updated based on account types
+                Products = "liabilities",
+                Status = SyncStatus.Connected,
+                ConnectedAt = DateTime.UtcNow,
+                LastSyncedAt = DateTime.UtcNow
+            };
+
+            _dbContext.AccountConnections.Add(connection);
+            await _dbContext.SaveChangesAsync();
+
+            _logger.LogInformation("Created liabilities connection {ConnectionId} for user {UserId}",
+                connection.ConnectionId, userId);
+
+            // Perform initial sync
+            await SyncLiabilitiesAsync(connection.ConnectionId);
+
+            return connection;
+        }
+
+        /// <inheritdoc />
+        public async Task<LiabilitiesSyncResult> SyncLiabilitiesAsync(Guid connectionId)
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var result = new LiabilitiesSyncResult();
+
+            try
+            {
+                var connection = await _dbContext.AccountConnections
+                    .FirstOrDefaultAsync(c => c.ConnectionId == connectionId);
+
+                if (connection == null)
+                {
+                    throw new InvalidOperationException($"Connection {connectionId} not found");
+                }
+
+                _logger.LogInformation("Syncing liabilities for connection {ConnectionId}", connectionId);
+
+                // Fetch liabilities from Plaid
+                var liabilitiesResponse = await _plaidClient.LiabilitiesGetAsync(
+                    new LiabilitiesGetRequest { AccessToken = connection.PlaidAccessToken! });
+
+                if (liabilitiesResponse.Error != null)
+                {
+                    throw new InvalidOperationException($"Plaid error: {liabilitiesResponse.Error.ErrorMessage}");
+                }
+
+                var accounts = liabilitiesResponse.Accounts;
+                var liabilities = liabilitiesResponse.Liabilities;
+
+                // Process credit cards
+                if (liabilities.Credit != null)
+                {
+                    foreach (var creditCard in liabilities.Credit)
+                    {
+                        await UpsertCreditCardAsync(connection.UserId, connection.PlaidItemId!, creditCard, accounts);
+                        result.CreditCardsUpdated++;
+                    }
+                }
+
+                // Process mortgages
+                if (liabilities.Mortgage != null)
+                {
+                    foreach (var mortgage in liabilities.Mortgage)
+                    {
+                        await UpsertMortgageAsync(connection.UserId, connection.PlaidItemId!, mortgage, accounts);
+                        result.MortgagesUpdated++;
+                    }
+                }
+
+                // Process student loans
+                if (liabilities.Student != null)
+                {
+                    foreach (var studentLoan in liabilities.Student)
+                    {
+                        await UpsertStudentLoanAsync(connection.UserId, connection.PlaidItemId!, studentLoan, accounts);
+                        result.StudentLoansUpdated++;
+                    }
+                }
+
+                // Update connection sync timestamp
+                connection.LastSyncedAt = DateTime.UtcNow;
+                await _dbContext.SaveChangesAsync();
+
+                result.Success = true;
+                _logger.LogInformation(
+                    "Liabilities sync complete: {CreditCards} credit cards, {Mortgages} mortgages, {StudentLoans} student loans",
+                    result.CreditCardsUpdated, result.MortgagesUpdated, result.StudentLoansUpdated);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error syncing liabilities for connection {ConnectionId}", connectionId);
+                result.Success = false;
+                result.ErrorMessage = ex.Message;
+            }
+
+            stopwatch.Stop();
+            result.DurationMs = (int)stopwatch.ElapsedMilliseconds;
+            return result;
+        }
+
+        /// <inheritdoc />
+        public async Task<LiabilitiesSyncResult> SyncAllUserLiabilitiesAsync(int userId)
+        {
+            var connections = await _dbContext.AccountConnections
+                .Where(c => c.UserId == userId &&
+                           c.Status == SyncStatus.Connected &&
+                           (c.Source == AccountSource.PlaidCreditCard ||
+                            c.Source == AccountSource.PlaidMortgage ||
+                            c.Source == AccountSource.PlaidStudentLoan ||
+                            (c.Products != null && c.Products.Contains("liabilities"))))
+                .ToListAsync();
+
+            var aggregateResult = new LiabilitiesSyncResult { Success = true };
+
+            foreach (var connection in connections)
+            {
+                var result = await SyncLiabilitiesAsync(connection.ConnectionId);
+                aggregateResult.CreditCardsUpdated += result.CreditCardsUpdated;
+                aggregateResult.MortgagesUpdated += result.MortgagesUpdated;
+                aggregateResult.StudentLoansUpdated += result.StudentLoansUpdated;
+                aggregateResult.DurationMs += result.DurationMs;
+
+                if (!result.Success)
+                {
+                    aggregateResult.Success = false;
+                    aggregateResult.ErrorMessage = result.ErrorMessage;
+                }
+            }
+
+            return aggregateResult;
+        }
+
+        /// <inheritdoc />
+        public async Task<List<LiabilityAccount>> GetUserPlaidLiabilitiesAsync(int userId)
+        {
+            return await _dbContext.LiabilityAccounts
+                .Where(l => l.UserId == userId &&
+                           (l.Source == AccountSource.PlaidCreditCard ||
+                            l.Source == AccountSource.PlaidMortgage ||
+                            l.Source == AccountSource.PlaidStudentLoan))
+                .OrderByDescending(l => l.CurrentBalance)
+                .ToListAsync();
+        }
+
+        #region Private Helper Methods
+
+        private async Task UpsertCreditCardAsync(
+            int userId,
+            string itemId,
+            CreditCardLiability creditCard,
+            IReadOnlyList<Account> accounts)
+        {
+            var accountId = creditCard.AccountId;
+            var account = accounts.FirstOrDefault(a => a.AccountId == accountId);
+
+            var existing = await _dbContext.LiabilityAccounts
+                .FirstOrDefaultAsync(l => l.PlaidAccountId == accountId && l.UserId == userId);
+
+            if (existing == null)
+            {
+                existing = new LiabilityAccount
+                {
+                    UserId = userId,
+                    LiabilityType = "credit_card",
+                    Source = AccountSource.PlaidCreditCard,
+                    PlaidItemId = itemId,
+                    PlaidAccountId = accountId,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _dbContext.LiabilityAccounts.Add(existing);
+            }
+
+            // Update fields from Plaid data
+            existing.Lender = account?.Name ?? account?.OfficialName ?? "Credit Card";
+            existing.CurrentBalance = (decimal)(account?.Balances?.Current ?? 0);
+            existing.CreditLimit = (decimal?)(account?.Balances?.Limit);
+            existing.StatementBalance = (decimal?)(creditCard.LastStatementBalance);
+            existing.MinimumPayment = (decimal?)(creditCard.MinimumPaymentAmount);
+            existing.LastPaymentAmount = (decimal?)(creditCard.LastPaymentAmount);
+
+            // APR - get the purchase APR (use string comparison for API compatibility)
+            var purchaseApr = creditCard.Aprs?.FirstOrDefault(a => 
+                a.AprType.ToString().Equals("purchase_apr", StringComparison.OrdinalIgnoreCase) ||
+                a.AprType.ToString().Equals("PurchaseApr", StringComparison.OrdinalIgnoreCase));
+            existing.InterestRateApr = (decimal?)(purchaseApr?.AprPercentage);
+
+            // Due dates
+            if (creditCard.NextPaymentDueDate.HasValue)
+            {
+                existing.NextPaymentDueDate = creditCard.NextPaymentDueDate.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+                existing.PaymentDueDate = existing.NextPaymentDueDate;
+                existing.DaysUntilDue = (int)(existing.NextPaymentDueDate.Value - DateTime.UtcNow).TotalDays;
+                existing.IsOverdue = existing.DaysUntilDue < 0;
+            }
+
+            if (creditCard.LastPaymentDate.HasValue)
+            {
+                existing.LastPaymentDate = creditCard.LastPaymentDate.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            }
+
+            if (creditCard.LastStatementIssueDate.HasValue)
+            {
+                existing.StatementDate = creditCard.LastStatementIssueDate.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            }
+
+            existing.SyncStatus = "synced";
+            existing.LastSyncedAt = DateTime.UtcNow;
+            existing.UpdatedAt = DateTime.UtcNow;
+
+            await _dbContext.SaveChangesAsync();
+        }
+
+        private async Task UpsertMortgageAsync(
+            int userId,
+            string itemId,
+            MortgageLiability mortgage,
+            IReadOnlyList<Account> accounts)
+        {
+            var accountId = mortgage.AccountId;
+            var account = accounts.FirstOrDefault(a => a.AccountId == accountId);
+
+            var existing = await _dbContext.LiabilityAccounts
+                .FirstOrDefaultAsync(l => l.PlaidAccountId == accountId && l.UserId == userId);
+
+            if (existing == null)
+            {
+                existing = new LiabilityAccount
+                {
+                    UserId = userId,
+                    LiabilityType = "mortgage",
+                    Source = AccountSource.PlaidMortgage,
+                    PlaidItemId = itemId,
+                    PlaidAccountId = accountId,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _dbContext.LiabilityAccounts.Add(existing);
+            }
+
+            // Update fields from Plaid data
+            existing.Lender = account?.Name ?? account?.OfficialName ?? "Mortgage";
+            existing.CurrentBalance = (decimal)(account?.Balances?.Current ?? 0);
+            existing.OriginalLoanAmount = (decimal?)(mortgage.OriginationPrincipalAmount);
+            existing.InterestRateApr = (decimal?)(mortgage.InterestRate?.Percentage);
+            existing.MinimumPayment = (decimal?)(mortgage.NextMonthlyPayment);
+            existing.LoanTermMonths = mortgage.LoanTerm != null ? int.Parse(mortgage.LoanTerm.Replace(" months", "").Replace(" years", "")) * (mortgage.LoanTerm.Contains("years") ? 12 : 1) : null;
+
+            if (mortgage.OriginationDate.HasValue)
+            {
+                existing.LoanStartDate = mortgage.OriginationDate.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            }
+
+            // Due dates
+            if (mortgage.NextPaymentDueDate.HasValue)
+            {
+                existing.NextPaymentDueDate = mortgage.NextPaymentDueDate.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+                existing.PaymentDueDate = existing.NextPaymentDueDate;
+                existing.DaysUntilDue = (int)(existing.NextPaymentDueDate.Value - DateTime.UtcNow).TotalDays;
+                existing.IsOverdue = existing.DaysUntilDue < 0;
+            }
+
+            if (mortgage.LastPaymentDate.HasValue)
+            {
+                existing.LastPaymentDate = mortgage.LastPaymentDate.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            }
+
+            existing.LastPaymentAmount = (decimal?)(mortgage.LastPaymentAmount);
+
+            // YTD amounts
+            existing.YtdInterestPaid = (decimal?)(mortgage.YtdInterestPaid);
+            existing.YtdPrincipalPaid = (decimal?)(mortgage.YtdPrincipalPaid);
+            existing.EscrowBalance = (decimal?)(mortgage.EscrowBalance);
+
+            existing.SyncStatus = "synced";
+            existing.LastSyncedAt = DateTime.UtcNow;
+            existing.UpdatedAt = DateTime.UtcNow;
+
+            await _dbContext.SaveChangesAsync();
+
+            // Create or update linked property if address available
+            if (mortgage.PropertyAddress != null)
+            {
+                await UpsertPropertyFromMortgageAsync(userId, existing.LiabilityAccountId, mortgage.PropertyAddress, existing.CurrentBalance);
+            }
+        }
+
+        private async Task UpsertStudentLoanAsync(
+            int userId,
+            string itemId,
+            StudentLoan studentLoan,
+            IReadOnlyList<Account> accounts)
+        {
+            var accountId = studentLoan.AccountId;
+            var account = accounts.FirstOrDefault(a => a.AccountId == accountId);
+
+            var existing = await _dbContext.LiabilityAccounts
+                .FirstOrDefaultAsync(l => l.PlaidAccountId == accountId && l.UserId == userId);
+
+            if (existing == null)
+            {
+                existing = new LiabilityAccount
+                {
+                    UserId = userId,
+                    LiabilityType = "student_loan",
+                    Source = AccountSource.PlaidStudentLoan,
+                    PlaidItemId = itemId,
+                    PlaidAccountId = accountId,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _dbContext.LiabilityAccounts.Add(existing);
+            }
+
+            // Update fields from Plaid data
+            existing.Lender = studentLoan.LoanName ?? account?.Name ?? account?.OfficialName ?? "Student Loan";
+            existing.CurrentBalance = (decimal)(account?.Balances?.Current ?? 0);
+            existing.OriginalLoanAmount = (decimal?)(studentLoan.OriginationPrincipalAmount);
+            existing.InterestRateApr = (decimal?)(studentLoan.InterestRatePercentage);
+            existing.MinimumPayment = (decimal?)(studentLoan.MinimumPaymentAmount);
+            existing.LoanTermMonths = studentLoan.ExpectedPayoffDate.HasValue && studentLoan.OriginationDate.HasValue
+                ? (int)((studentLoan.ExpectedPayoffDate.Value.ToDateTime(TimeOnly.MinValue) -
+                         studentLoan.OriginationDate.Value.ToDateTime(TimeOnly.MinValue)).TotalDays / 30.44)
+                : null;
+
+            if (studentLoan.OriginationDate.HasValue)
+            {
+                existing.LoanStartDate = studentLoan.OriginationDate.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            }
+
+            if (studentLoan.ExpectedPayoffDate.HasValue)
+            {
+                existing.PayoffTargetDate = studentLoan.ExpectedPayoffDate.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            }
+
+            // Due dates
+            if (studentLoan.NextPaymentDueDate.HasValue)
+            {
+                existing.NextPaymentDueDate = studentLoan.NextPaymentDueDate.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+                existing.PaymentDueDate = existing.NextPaymentDueDate;
+                existing.DaysUntilDue = (int)(existing.NextPaymentDueDate.Value - DateTime.UtcNow).TotalDays;
+                existing.IsOverdue = existing.DaysUntilDue < 0;
+            }
+
+            if (studentLoan.LastPaymentDate.HasValue)
+            {
+                existing.LastPaymentDate = studentLoan.LastPaymentDate.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            }
+
+            existing.LastPaymentAmount = (decimal?)(studentLoan.LastPaymentAmount);
+            existing.YtdInterestPaid = (decimal?)(studentLoan.YtdInterestPaid);
+            existing.YtdPrincipalPaid = (decimal?)(studentLoan.YtdPrincipalPaid);
+
+            existing.SyncStatus = "synced";
+            existing.LastSyncedAt = DateTime.UtcNow;
+            existing.UpdatedAt = DateTime.UtcNow;
+
+            await _dbContext.SaveChangesAsync();
+        }
+
+        private async Task UpsertPropertyFromMortgageAsync(
+            int userId,
+            int liabilityAccountId,
+            MortgagePropertyAddress address,
+            decimal mortgageBalance)
+        {
+            // Look for existing property linked to this mortgage
+            var existing = await _dbContext.Properties
+                .FirstOrDefaultAsync(p => p.LinkedMortgageLiabilityId == liabilityAccountId && p.UserId == userId);
+
+            if (existing == null)
+            {
+                // Also check by address match
+                existing = await _dbContext.Properties
+                    .FirstOrDefaultAsync(p => p.UserId == userId &&
+                                             p.Street == address.Street &&
+                                             p.City == address.City &&
+                                             p.PostalCode == address.PostalCode);
+            }
+
+            if (existing == null)
+            {
+                existing = new PropertyProfile
+                {
+                    UserId = userId,
+                    PropertyName = $"{address.Street ?? "Property"}, {address.City ?? ""}".Trim(',', ' '),
+                    PropertyType = "primary",
+                    Source = AccountSource.PlaidMortgage,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _dbContext.Properties.Add(existing);
+            }
+
+            // Update from Plaid data
+            existing.LinkedMortgageLiabilityId = liabilityAccountId;
+            existing.Street = address.Street;
+            existing.City = address.City;
+            existing.State = address.Region;
+            existing.PostalCode = address.PostalCode;
+            existing.MortgageBalance = mortgageBalance;
+            existing.Source = AccountSource.PlaidMortgage;
+            existing.SyncStatus = "synced";
+            existing.LastSyncedAt = DateTime.UtcNow;
+            existing.UpdatedAt = DateTime.UtcNow;
+
+            await _dbContext.SaveChangesAsync();
+        }
+
+        #endregion
+    }
+}

@@ -146,6 +146,12 @@ namespace PFMP_API
             // Plaid Investments Services (Wave 12)
             builder.Services.AddScoped<PFMP_API.Services.Plaid.IPlaidInvestmentsService, PFMP_API.Services.Plaid.PlaidInvestmentsService>();
 
+            // Plaid Liabilities Services (Wave 12.5)
+            builder.Services.AddScoped<PFMP_API.Services.Plaid.IPlaidLiabilitiesService, PFMP_API.Services.Plaid.PlaidLiabilitiesService>();
+
+            // Plaid Unified Connection Service (Wave 12.5)
+            builder.Services.AddScoped<PFMP_API.Services.Plaid.IPlaidConnectionService, PFMP_API.Services.Plaid.PlaidConnectionService>();
+
             // Add Authentication Services
             builder.Services.AddScoped<IPasswordHashService, PasswordHashService>();
             builder.Services.AddHttpClient<IAuthenticationService, AuthenticationService>();

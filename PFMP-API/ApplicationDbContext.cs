@@ -58,6 +58,7 @@ namespace PFMP_API
     public DbSet<CashTransaction> CashTransactions { get; set; }
     public DbSet<InvestmentAccount> InvestmentAccounts { get; set; }
     public DbSet<PropertyProfile> Properties { get; set; }
+    public DbSet<PropertyValueHistory> PropertyValueHistories { get; set; }
     public DbSet<LiabilityAccount> LiabilityAccounts { get; set; }
     public DbSet<ExpenseBudget> ExpenseBudgets { get; set; }
     public DbSet<TaxProfile> TaxProfiles { get; set; }

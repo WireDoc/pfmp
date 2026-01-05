@@ -1,9 +1,35 @@
 # Wave 12.5: Unified Plaid Account Linking
 
-> **Status**: Ready to Start
+> **Status**: Phase 1 Complete - Phase 2 Ready
 > **Target**: Q1 2026
 > **Priority**: High
 > **Prerequisites**: Wave 12 Complete ✅
+
+---
+
+## Phase 1 Completion Summary (Jan 2026)
+
+### ✅ Completed Tasks
+1. **Extended AccountSource enum** - Added `PlaidCreditCard`, `PlaidMortgage`, `PlaidStudentLoan`
+2. **Extended AccountConnection** - Added `Products` (JSON string) and `IsUnified` flag
+3. **Extended LiabilityAccount** - Added Plaid integration fields (Source, PlaidItemId, PlaidAccountId, LastSyncedAt, SyncStatus, IsOverdue, DaysUntilDue, payment tracking, YTD amounts, escrow)
+4. **Extended PropertyProfile** - Added Source, LinkedMortgageLiabilityId, address fields, sync tracking
+5. **Created PropertyValueHistory** - New model for tracking property equity over time
+6. **Created PlaidLiabilitiesService** - Full implementation for credit cards, mortgages, student loans
+7. **Created PlaidConnectionService** - Unified orchestrator for all Plaid products
+8. **Added unified API endpoints** - `/api/plaid/unified/*` routes
+
+### Migration Applied
+- `AddUnifiedPlaidSupport` - All schema changes deployed to database
+
+### New API Endpoints
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/plaid/unified/link-token` | Create unified Link token for multiple products |
+| POST | `/api/plaid/unified/exchange-token` | Exchange token and create unified connection |
+| POST | `/api/plaid/unified/connections/{id}/sync` | Sync all products for a connection |
+| GET | `/api/plaid/unified/connections` | List user connections with product info |
+| PUT | `/api/plaid/unified/connections/{id}/products` | Update products for a connection |
 
 ---
 

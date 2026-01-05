@@ -1212,11 +1212,29 @@ namespace PFMP_API.Migrations
                     b.Property<decimal>("CurrentBalance")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int?>("DaysUntilDue")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("EscrowBalance")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<decimal?>("InterestRateApr")
                         .HasColumnType("decimal(8,4)");
 
+                    b.Property<bool>("IsOverdue")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsPriorityToEliminate")
                         .HasColumnType("boolean");
+
+                    b.Property<decimal?>("LastPaymentAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("LastPaymentDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastSyncedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Lender")
                         .HasMaxLength(150)
@@ -1236,6 +1254,9 @@ namespace PFMP_API.Migrations
                     b.Property<decimal?>("MinimumPayment")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<DateTime?>("NextPaymentDueDate")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<decimal?>("OriginalLoanAmount")
                         .HasColumnType("decimal(18,2)");
 
@@ -1245,17 +1266,38 @@ namespace PFMP_API.Migrations
                     b.Property<DateTime?>("PayoffTargetDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("PlaidAccountId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PlaidItemId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("integer");
+
                     b.Property<decimal?>("StatementBalance")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("StatementDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("SyncStatus")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
+
+                    b.Property<decimal?>("YtdInterestPaid")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("YtdPrincipalPaid")
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("LiabilityAccountId");
 
@@ -1324,6 +1366,10 @@ namespace PFMP_API.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1332,6 +1378,12 @@ namespace PFMP_API.Migrations
 
                     b.Property<bool>("HasHeloc")
                         .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastSyncedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("LinkedMortgageLiabilityId")
+                        .HasColumnType("integer");
 
                     b.Property<decimal?>("MonthlyExpenses")
                         .HasColumnType("decimal(18,2)");
@@ -1350,6 +1402,10 @@ namespace PFMP_API.Migrations
                         .HasMaxLength(60)
                         .HasColumnType("character varying(60)");
 
+                    b.Property<string>("PostalCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("PropertyName")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1359,6 +1415,21 @@ namespace PFMP_API.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("State")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Street")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("SyncStatus")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -1371,6 +1442,40 @@ namespace PFMP_API.Migrations
                     b.HasIndex("UserId", "PropertyName");
 
                     b.ToTable("Properties");
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.FinancialProfile.PropertyValueHistory", b =>
+                {
+                    b.Property<int>("PropertyValueHistoryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("PropertyValueHistoryId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("EstimatedValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("MortgageBalance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ValueDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ValueSource")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("PropertyValueHistoryId");
+
+                    b.HasIndex("PropertyId");
+
+                    b.ToTable("PropertyValueHistory");
                 });
 
             modelBuilder.Entity("PFMP_API.Models.FinancialProfile.TaxProfile", b =>
@@ -2204,6 +2309,9 @@ namespace PFMP_API.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<bool>("IsUnified")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime?>("LastSyncedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -2222,6 +2330,10 @@ namespace PFMP_API.Migrations
                     b.Property<string>("PlaidItemId")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Products")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<int>("Source")
                         .HasColumnType("integer");
@@ -3255,6 +3367,17 @@ namespace PFMP_API.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("PFMP_API.Models.FinancialProfile.PropertyValueHistory", b =>
+                {
+                    b.HasOne("PFMP_API.Models.FinancialProfile.PropertyProfile", "Property")
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Property");
                 });
 
             modelBuilder.Entity("PFMP_API.Models.FinancialProfile.TaxProfile", b =>

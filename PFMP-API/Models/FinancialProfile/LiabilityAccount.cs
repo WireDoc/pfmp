@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using PFMP_API.Models.Plaid;
 
 namespace PFMP_API.Models.FinancialProfile
 {
@@ -18,6 +19,78 @@ namespace PFMP_API.Models.FinancialProfile
 
         [MaxLength(150)]
         public string? Lender { get; set; }
+
+        // --- Plaid Integration Fields ---
+        public AccountSource Source { get; set; } = AccountSource.Manual;
+
+        /// <summary>
+        /// The Plaid Item ID for linked accounts.
+        /// </summary>
+        [MaxLength(100)]
+        public string? PlaidItemId { get; set; }
+
+        /// <summary>
+        /// The Plaid Account ID for linked accounts.
+        /// </summary>
+        [MaxLength(100)]
+        public string? PlaidAccountId { get; set; }
+
+        /// <summary>
+        /// When this liability was last synced from Plaid.
+        /// </summary>
+        public DateTime? LastSyncedAt { get; set; }
+
+        /// <summary>
+        /// Sync status: "synced", "error", "pending".
+        /// </summary>
+        [MaxLength(20)]
+        public string? SyncStatus { get; set; }
+
+        /// <summary>
+        /// Whether a payment is past the due date.
+        /// </summary>
+        public bool IsOverdue { get; set; } = false;
+
+        /// <summary>
+        /// Days until payment is due (null if no due date).
+        /// </summary>
+        public int? DaysUntilDue { get; set; }
+
+        /// <summary>
+        /// Last payment amount received from Plaid.
+        /// </summary>
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? LastPaymentAmount { get; set; }
+
+        /// <summary>
+        /// Last payment date from Plaid.
+        /// </summary>
+        public DateTime? LastPaymentDate { get; set; }
+
+        /// <summary>
+        /// Next payment due date from Plaid.
+        /// </summary>
+        public DateTime? NextPaymentDueDate { get; set; }
+
+        /// <summary>
+        /// Year-to-date interest paid (mortgages/loans).
+        /// </summary>
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? YtdInterestPaid { get; set; }
+
+        /// <summary>
+        /// Year-to-date principal paid (mortgages/loans).
+        /// </summary>
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? YtdPrincipalPaid { get; set; }
+
+        /// <summary>
+        /// Escrow balance for mortgages.
+        /// </summary>
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? EscrowBalance { get; set; }
+
+        // --- End Plaid Integration Fields ---
 
         [Column(TypeName = "decimal(18,2)")]
         public decimal CurrentBalance { get; set; }
