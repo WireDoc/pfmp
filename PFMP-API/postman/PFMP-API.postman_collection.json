@@ -2,8 +2,8 @@
   "info": {
     "name": "PFMP API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "1.5.0",
-    "description": "PFMP API endpoints grouped for development and testing. Adjust {{baseUrl}} as needed. v1.5.0: Added Plaid transaction sync endpoints (Phase 5)."
+    "version": "1.6.0",
+    "description": "PFMP API endpoints grouped for development and testing. Adjust {{baseUrl}} as needed. v1.6.0: Added Plaid Unified endpoints for multi-product linking (Wave 12.5)."
   },
   "item": [
     {
@@ -313,6 +313,83 @@
             "method": "GET",
             "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
             "url": "{{baseUrl}}/api/plaid/connections/{{connectionId}}/transactions?limit=100"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Plaid Unified",
+      "description": "Unified Plaid endpoints for multi-product linking (Wave 12.5). Supports linking transactions, investments, and liabilities (credit cards, mortgages, student loans) in a single flow. Test with Plaid Sandbox: user_good / pass_good / MFA: 1234",
+      "item": [
+        {
+          "name": "Create Unified Link Token",
+          "description": "Creates a Plaid Link token for multiple products. Products can include: transactions, investments, liabilities.",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"products\": [\"transactions\", \"investments\", \"liabilities\"]\n}"
+            },
+            "url": "{{baseUrl}}/api/plaid/unified/link-token"
+          },
+          "response": []
+        },
+        {
+          "name": "Exchange Unified Token",
+          "description": "Exchanges a public token from Plaid Link for unified connection. Creates AccountConnection with multiple products enabled.",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"publicToken\": \"public-sandbox-xxxxxxxx\",\n  \"institutionId\": \"ins_109508\",\n  \"institutionName\": \"First Platypus Bank\",\n  \"products\": [\"transactions\", \"investments\", \"liabilities\"]\n}"
+            },
+            "url": "{{baseUrl}}/api/plaid/unified/exchange-token"
+          },
+          "response": []
+        },
+        {
+          "name": "Sync Unified Connection",
+          "description": "Syncs all enabled products for a connection: transactions, investments (holdings), and liabilities (credit cards, mortgages, student loans).",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "{{baseUrl}}/api/plaid/unified/connections/{{connectionId}}/sync"
+          },
+          "response": []
+        },
+        {
+          "name": "List Unified Connections",
+          "description": "Lists all Plaid connections for the current user with product information.",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "{{baseUrl}}/api/plaid/unified/connections"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Connection Products",
+          "description": "Updates the enabled products for an existing connection. Use to add liabilities to a transactions-only connection.",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"products\": [\"transactions\", \"investments\", \"liabilities\"]\n}"
+            },
+            "url": "{{baseUrl}}/api/plaid/unified/connections/{{connectionId}}/products"
           },
           "response": []
         }
