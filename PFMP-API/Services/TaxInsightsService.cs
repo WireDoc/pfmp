@@ -43,7 +43,7 @@ public class TaxInsightsService
 
             foreach (var holding in holdings)
             {
-                var detail = CalculateHoldingTaxDetail(holding);
+                var detail = await CalculateHoldingTaxDetailAsync(holding);
                 holdingTaxDetails.Add(detail);
 
                 if (detail.TaxType == "shortTerm")
@@ -96,30 +96,49 @@ public class TaxInsightsService
     /// <summary>
     /// Calculate tax details for a single holding
     /// </summary>
-    private HoldingTaxDetail CalculateHoldingTaxDetail(Holding holding)
+    private async Task<HoldingTaxDetail> CalculateHoldingTaxDetailAsync(Holding holding)
     {
         var costBasis = holding.TotalCostBasis;
         var currentValue = holding.CurrentValue;
         var gainLoss = holding.UnrealizedGainLoss;
         var percentGain = holding.UnrealizedGainLossPercentage;
 
-        // Determine holding period
-        var purchaseDate = holding.PurchaseDate ?? holding.CreatedAt;
+        // Determine holding period - prioritize:
+        // 1. Explicit PurchaseDate on holding
+        // 2. Earliest buy transaction date
+        // 3. Holding CreatedAt as fallback
+        DateTime purchaseDate;
+        if (holding.PurchaseDate.HasValue)
+        {
+            purchaseDate = holding.PurchaseDate.Value;
+        }
+        else
+        {
+            // Look up earliest buy transaction for this holding
+            var earliestBuyTransaction = await _context.Transactions
+                .Where(t => t.HoldingId == holding.HoldingId && 
+                           (t.TransactionType == "BUY" || t.TransactionType == "Buy"))
+                .OrderBy(t => t.TransactionDate)
+                .FirstOrDefaultAsync();
+            
+            purchaseDate = earliestBuyTransaction?.TransactionDate ?? holding.CreatedAt;
+        }
         var holdingPeriodDays = (DateTime.UtcNow - purchaseDate).Days;
         var holdingPeriodYears = holdingPeriodDays / 365.25;
 
         string holdingPeriod;
+        var months = holdingPeriodDays / 30;
         if (holdingPeriodYears >= 1)
         {
-            holdingPeriod = $"{holdingPeriodYears:F1} years";
+            holdingPeriod = holdingPeriodYears < 1.05 ? "1.0 year" : $"{holdingPeriodYears:F1} years";
         }
         else if (holdingPeriodDays >= 30)
         {
-            holdingPeriod = $"{holdingPeriodDays / 30} months";
+            holdingPeriod = months == 1 ? "1 month" : $"{months} months";
         }
         else
         {
-            holdingPeriod = $"{holdingPeriodDays} days";
+            holdingPeriod = holdingPeriodDays == 1 ? "1 day" : $"{holdingPeriodDays} days";
         }
 
         // Tax type: short-term (<1 year) or long-term (>=1 year)

@@ -120,9 +120,8 @@ public class HoldingsController : ControllerBase
                         holding.Symbol, oldestDate, fromDate.Value);
                 }
                 
-                // If our newest data is more than 2 days old, fetch more recent data
-                // (2 days allows for weekends, but ensures we get recent trading day data)
-                var staleThreshold = DateTime.UtcNow.AddDays(-2);
+                // If our newest data is more than 1 day old, fetch more recent data
+                var staleThreshold = DateTime.UtcNow.AddDays(-1);
                 if (newestDate < staleThreshold)
                 {
                     needsMoreData = true;
