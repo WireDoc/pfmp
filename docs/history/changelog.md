@@ -6,6 +6,36 @@ The format follows [Conventional Commits](https://www.conventionalcommits.org/).
 
 ---
 
+## [0.11.0-alpha] - 2026-01-05
+
+### Wave 12 Complete - Brokerage & Investment Linking
+
+**Plaid Investments Integration**
+- Full investment account linking via Plaid (1,600+ brokerages)
+- Holdings sync with automatic price refresh
+- Investment transactions: buy, sell, dividend, contribution, withdrawal
+- Opening balance detection with dialog for adding historical cost basis
+- 5 custom Plaid sandbox users for comprehensive testing
+
+**Price Refresh & Market Data**
+- Fixed FMP API nullable fields (MarketCap, Volume, etc.) for options/mutual funds
+- Added automatic price refresh on dashboard load (>4 hours stale threshold)
+- Fixed account balance recalculation after price updates
+- Fixed stale historical price data detection (>1 day threshold)
+- Fixed PriceHistoryService DateTime UTC conversion for PostgreSQL
+
+**Tax Insights Improvements**
+- Fixed holding period calculation to use earliest buy transaction date
+- Proper singular/plural grammar for days, months, years
+- Short-term vs long-term classification based on actual purchase dates
+
+**Delete Protection**
+- Hide delete button for Plaid-synced transactions
+- Hide delete button for Plaid-synced investment accounts
+- Hide delete button for Plaid-synced holdings
+
+---
+
 ## [0.10.2-alpha] - 2025-12-18
 
 ### Wave 12 Phase 2.5 - Synced Data Protection

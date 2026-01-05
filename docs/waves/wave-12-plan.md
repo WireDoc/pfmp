@@ -1,7 +1,7 @@
 # Wave 12: Brokerage & Investment Linking
 
-> **Status**: Phase 3 - Testing & Documentation
-> **Target**: Q1 2026
+> **Status**: ✅ Complete
+> **Completed**: January 5, 2026
 > **Priority**: High
 > **Prerequisites**: Wave 11 Complete
 
@@ -35,10 +35,14 @@
 - ✅ IncompleteHistoryBanner component with AddOpeningBalancesDialog
 - ✅ Frontend wiring in AccountDetailView
 
-### Phase 3: Testing & Documentation (In Progress)
-- ⏳ Test all 5 custom Plaid sandbox users (see docs/testing/plaid-custom-users.md)
-- ⏳ Validate opening balance detection per scenario
-- ⏳ Update documentation and changelog
+### Phase 3: Testing & Documentation (Complete - Jan 5, 2026)
+- ✅ Tested all 5 custom Plaid sandbox users (see docs/testing/plaid-custom-users.md)
+- ✅ Validated opening balance detection per scenario
+- ✅ Fixed FMP API nullable fields for price refresh
+- ✅ Fixed account balance recalculation after price updates
+- ✅ Fixed stale historical price data detection (>1 day threshold)
+- ✅ Fixed tax lot holding period to use transaction dates
+- ✅ Updated documentation and changelog
 
 ---
 

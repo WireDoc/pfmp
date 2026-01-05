@@ -11,6 +11,11 @@ PFMP is an AI-assisted financial planning platform for government employees and 
 - **Authentication**: Azure Entra ID with local bypass mode for development
 - **AI Architecture**: Dual-model pipeline planned (Azure OpenAI + Anthropic) with consensus scoring - See Phase 3 in roadmap
 - **Current Highlights**: 
+  - **Wave 12 Complete** - Plaid investment account linking with holdings sync (January 2026)
+  - Investment transactions: buy, sell, dividend, contribution, withdrawal tracking
+  - Opening balance detection with dialog for adding historical cost basis
+  - Automatic price refresh with FMP API integration
+  - Tax insights: Short/long-term gains, holding period tracking, tax-loss harvesting
   - **Wave 11 Complete** - Plaid bank account linking with transaction sync (December 2025)
   - Automatic balance + transaction sync for 12,000+ financial institutions
   - Connection lifecycle: connect, reconnect, disconnect, delete
