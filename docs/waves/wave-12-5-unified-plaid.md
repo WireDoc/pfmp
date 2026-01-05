@@ -1,9 +1,9 @@
 # Wave 12.5: Unified Plaid Account Linking
 
-> **Status**: Planning
+> **Status**: Ready to Start
 > **Target**: Q1 2026
 > **Priority**: High
-> **Prerequisites**: Wave 12 Phase 2.5 Complete (investment transactions sync)
+> **Prerequisites**: Wave 12 Complete ✅
 
 ---
 
@@ -353,17 +353,20 @@ SELECT DISTINCT UserId FROM "AccountConnections" WHERE "PlaidItemId" IS NOT NULL
 
 ---
 
-## Wave 12 Remaining Items (To Complete First)
+## Wave 12 Prerequisites (All Complete)
 
-Before starting Wave 12.5, complete these Wave 12 tasks:
+Wave 12 has been completed (January 5, 2026):
 
-1. ✅ Unified ConnectionsSettingsView (done)
-2. ✅ Delete protection for synced data (done)
-3. ⏳ **Investment transactions sync** - display buy/sell/dividend/contribution in account views
-4. ⏳ **Opening balance detection** - banner for holdings without complete transaction history
-5. ⏳ **Test custom Plaid sandbox users** - validate all 5 user scenarios
+1. ✅ Unified ConnectionsSettingsView
+2. ✅ Delete protection for synced data
+3. ✅ Investment transactions sync - buy/sell/dividend/contribution
+4. ✅ Opening balance detection - banner with dialog for adding cost basis
+5. ✅ Test custom Plaid sandbox users - all 5 user scenarios validated
+6. ✅ Fixed FMP API nullable fields for price refresh
+7. ✅ Fixed account balance recalculation after price updates
+8. ✅ Fixed tax lot holding period calculation
 
-**Recommendation**: Complete items 3-5 before starting Wave 12.5. The investment transaction patterns will inform credit card transaction handling.
+**Ready to proceed with Wave 12.5**
 
 ---
 
