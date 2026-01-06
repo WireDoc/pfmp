@@ -1,8 +1,10 @@
 /**
- * ConnectionsSettingsView (Wave 11 → Unified in Wave 12)
+ * ConnectionsSettingsView (Wave 11 → Unified in Wave 12.5)
  * 
- * Unified settings page for managing ALL connected accounts (banks + investments).
+ * Unified settings page for managing ALL connected accounts.
  * Route: /settings/connections
+ * 
+ * Wave 12.5: Added unified linking, credit cards, and mortgages tabs.
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -27,11 +29,17 @@ import {
   TrendingUp as InvestmentsIcon,
   Refresh as RefreshIcon,
   Link as LinkIcon,
+  CreditCard as CreditCardIcon,
+  Home as HomeIcon,
 } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
-import { PlaidLinkButton, ConnectedBanksList } from '../../components/plaid';
-import { PlaidInvestmentsLinkButton } from '../../components/plaid/PlaidInvestmentsLinkButton';
-import { getConnections, syncAllConnections } from '../../services/plaidApi';
+import { PlaidUnifiedLinkButton, ConnectedBanksList } from '../../components/plaid';
+import { 
+  getConnections, 
+  syncAllConnections,
+  getUnifiedConnections,
+  type UnifiedConnectionInfo,
+} from '../../services/plaidApi';
 import type { PlaidConnection } from '../../services/plaidApi';
 import { useDevUserId } from '../../dev/devUserState';
 
@@ -50,11 +58,81 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
+// Credit Cards List Component (Wave 12.5)
+interface CreditCardsListProps {
+  connections: UnifiedConnectionInfo[];
+  userId: number;
+  onRefresh: () => void;
+}
+
+const CreditCardsList: React.FC<CreditCardsListProps> = ({ connections }) => {
+  return (
+    <Stack spacing={2}>
+      {connections.map((conn) => (
+        <Paper key={conn.connectionId} variant="outlined" sx={{ p: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <CreditCardIcon color="warning" />
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="subtitle1" fontWeight="medium">
+                {conn.institutionName}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {conn.creditCardCount} credit card{conn.creditCardCount !== 1 ? 's' : ''} linked
+              </Typography>
+            </Box>
+            <Chip 
+              label={conn.status} 
+              size="small" 
+              color={conn.status === 'Connected' ? 'success' : 'default'}
+            />
+          </Box>
+        </Paper>
+      ))}
+    </Stack>
+  );
+};
+
+// Mortgages List Component (Wave 12.5)
+interface MortgagesListProps {
+  connections: UnifiedConnectionInfo[];
+  userId: number;
+  onRefresh: () => void;
+}
+
+const MortgagesList: React.FC<MortgagesListProps> = ({ connections }) => {
+  return (
+    <Stack spacing={2}>
+      {connections.map((conn) => (
+        <Paper key={conn.connectionId} variant="outlined" sx={{ p: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <HomeIcon color="info" />
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="subtitle1" fontWeight="medium">
+                {conn.institutionName}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {conn.mortgageCount} mortgage{conn.mortgageCount !== 1 ? 's' : ''} linked
+              </Typography>
+            </Box>
+            <Chip 
+              label={conn.status} 
+              size="small" 
+              color={conn.status === 'Connected' ? 'success' : 'default'}
+            />
+          </Box>
+        </Paper>
+      ))}
+    </Stack>
+  );
+};
+
+
 export const ConnectionsSettingsView: React.FC = () => {
   const devUserId = useDevUserId();
   const userId = devUserId ?? Number(import.meta.env.VITE_PFMP_DASHBOARD_USER_ID || '1');
   
   const [connections, setConnections] = useState<PlaidConnection[]>([]);
+  const [unifiedConnections, setUnifiedConnections] = useState<UnifiedConnectionInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,12 +142,20 @@ export const ConnectionsSettingsView: React.FC = () => {
   // Separate connections by type
   const bankConnections = connections.filter(c => c.source !== 'PlaidInvestments');
   const investmentConnections = connections.filter(c => c.source === 'PlaidInvestments');
+  
+  // Calculate unified stats
+  const totalCreditCards = unifiedConnections.reduce((sum, c) => sum + (c.creditCardCount || 0), 0);
+  const totalMortgages = unifiedConnections.reduce((sum, c) => sum + (c.mortgageCount || 0), 0);
 
   const loadConnections = useCallback(async () => {
     try {
       setError(null);
-      const data = await getConnections(userId);
-      setConnections(data);
+      const [legacyData, unifiedData] = await Promise.all([
+        getConnections(userId),
+        getUnifiedConnections(userId).catch(() => [] as UnifiedConnectionInfo[]), // Graceful fallback
+      ]);
+      setConnections(legacyData);
+      setUnifiedConnections(unifiedData);
     } catch (err) {
       setError('Failed to load connected accounts. Please try again.');
       console.error('Error loading connections:', err);
@@ -161,19 +247,11 @@ export const ConnectionsSettingsView: React.FC = () => {
               {syncing ? 'Syncing...' : 'Sync All'}
             </Button>
           )}
-          <PlaidLinkButton
+          <PlaidUnifiedLinkButton
             userId={userId}
             onSuccess={handleLinkSuccess}
-            buttonText="Link Bank"
-            variant="outlined"
-            size="medium"
-          />
-          <PlaidInvestmentsLinkButton
-            userId={userId}
-            onSuccess={handleLinkSuccess}
-            buttonText="Link Investments"
+            buttonText="Link Account"
             variant="contained"
-            color="success"
             size="medium"
           />
         </Stack>
@@ -193,7 +271,7 @@ export const ConnectionsSettingsView: React.FC = () => {
 
       {/* Summary Stats */}
       {!loading && hasConnections && (
-        <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+        <Stack direction="row" spacing={2} sx={{ mb: 3 }} flexWrap="wrap" useFlexGap>
           <Chip 
             icon={<BankIcon />} 
             label={`${bankConnections.length} Bank${bankConnections.length !== 1 ? 's' : ''}`}
@@ -206,6 +284,22 @@ export const ConnectionsSettingsView: React.FC = () => {
             color="success"
             variant="outlined"
           />
+          {totalCreditCards > 0 && (
+            <Chip 
+              icon={<CreditCardIcon />} 
+              label={`${totalCreditCards} Credit Card${totalCreditCards !== 1 ? 's' : ''}`}
+              color="warning"
+              variant="outlined"
+            />
+          )}
+          {totalMortgages > 0 && (
+            <Chip 
+              icon={<HomeIcon />} 
+              label={`${totalMortgages} Mortgage${totalMortgages !== 1 ? 's' : ''}`}
+              color="info"
+              variant="outlined"
+            />
+          )}
         </Stack>
       )}
 
@@ -223,6 +317,8 @@ export const ConnectionsSettingsView: React.FC = () => {
               value={tabValue} 
               onChange={handleTabChange}
               sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}
+              variant="scrollable"
+              scrollButtons="auto"
             >
               <Tab 
                 icon={<BankIcon />} 
@@ -233,6 +329,16 @@ export const ConnectionsSettingsView: React.FC = () => {
                 icon={<InvestmentsIcon />} 
                 iconPosition="start" 
                 label={`Investments (${investmentConnections.length})`}
+              />
+              <Tab 
+                icon={<CreditCardIcon />} 
+                iconPosition="start" 
+                label={`Credit Cards (${totalCreditCards})`}
+              />
+              <Tab 
+                icon={<HomeIcon />} 
+                iconPosition="start" 
+                label={`Mortgages (${totalMortgages})`}
               />
             </Tabs>
 
@@ -249,11 +355,13 @@ export const ConnectionsSettingsView: React.FC = () => {
                   <Box textAlign="center" py={4}>
                     <BankIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
                     <Typography color="text.secondary" sx={{ mb: 2 }}>No bank accounts connected</Typography>
-                    <PlaidLinkButton
+                    <PlaidUnifiedLinkButton
                       userId={userId}
                       onSuccess={handleLinkSuccess}
                       buttonText="Link Bank Account"
                       size="small"
+                      defaultProducts={['transactions']}
+                      skipProductSelection
                     />
                   </Box>
                 )}
@@ -273,13 +381,69 @@ export const ConnectionsSettingsView: React.FC = () => {
                   <Box textAlign="center" py={4}>
                     <InvestmentsIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
                     <Typography color="text.secondary" sx={{ mb: 2 }}>No investment accounts connected</Typography>
-                    <PlaidInvestmentsLinkButton
+                    <PlaidUnifiedLinkButton
                       userId={userId}
                       onSuccess={handleLinkSuccess}
                       buttonText="Link Investment Account"
                       variant="outlined"
                       color="success"
                       size="small"
+                      defaultProducts={['investments']}
+                      skipProductSelection
+                    />
+                  </Box>
+                )}
+              </Box>
+            </TabPanel>
+
+            <TabPanel value={tabValue} index={2}>
+              <Box sx={{ px: 3, pb: 3 }}>
+                {totalCreditCards > 0 ? (
+                  <CreditCardsList 
+                    connections={unifiedConnections.filter(c => c.creditCardCount > 0)}
+                    userId={userId}
+                    onRefresh={loadConnections}
+                  />
+                ) : (
+                  <Box textAlign="center" py={4}>
+                    <CreditCardIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+                    <Typography color="text.secondary" sx={{ mb: 2 }}>No credit cards connected</Typography>
+                    <PlaidUnifiedLinkButton
+                      userId={userId}
+                      onSuccess={handleLinkSuccess}
+                      buttonText="Link Credit Card"
+                      variant="outlined"
+                      color="warning"
+                      size="small"
+                      defaultProducts={['liabilities']}
+                      skipProductSelection
+                    />
+                  </Box>
+                )}
+              </Box>
+            </TabPanel>
+
+            <TabPanel value={tabValue} index={3}>
+              <Box sx={{ px: 3, pb: 3 }}>
+                {totalMortgages > 0 ? (
+                  <MortgagesList 
+                    connections={unifiedConnections.filter(c => c.mortgageCount > 0)}
+                    userId={userId}
+                    onRefresh={loadConnections}
+                  />
+                ) : (
+                  <Box textAlign="center" py={4}>
+                    <HomeIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+                    <Typography color="text.secondary" sx={{ mb: 2 }}>No mortgages connected</Typography>
+                    <PlaidUnifiedLinkButton
+                      userId={userId}
+                      onSuccess={handleLinkSuccess}
+                      buttonText="Link Mortgage"
+                      variant="outlined"
+                      color="info"
+                      size="small"
+                      defaultProducts={['liabilities']}
+                      skipProductSelection
                     />
                   </Box>
                 )}
@@ -294,24 +458,15 @@ export const ConnectionsSettingsView: React.FC = () => {
               No Accounts Connected
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 400, mx: 'auto' }}>
-              Link your bank and investment accounts to automatically sync balances,
-              track holdings, and monitor your complete financial picture.
+              Link your bank accounts, investments, credit cards, and mortgages to automatically 
+              sync balances, track holdings, and monitor your complete financial picture.
             </Typography>
-            <Stack direction="row" spacing={2} justifyContent="center">
-              <PlaidLinkButton
-                userId={userId}
-                onSuccess={handleLinkSuccess}
-                buttonText="Link Bank"
-                variant="outlined"
-              />
-              <PlaidInvestmentsLinkButton
-                userId={userId}
-                onSuccess={handleLinkSuccess}
-                buttonText="Link Investments"
-                variant="contained"
-                color="success"
-              />
-            </Stack>
+            <PlaidUnifiedLinkButton
+              userId={userId}
+              onSuccess={handleLinkSuccess}
+              buttonText="Link Account"
+              variant="contained"
+            />
           </Box>
         )}
       </Paper>

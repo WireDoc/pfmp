@@ -1,8 +1,10 @@
 /**
- * Plaid API Service (Wave 11)
+ * Plaid API Service (Wave 11 → Wave 12.5)
  * 
  * Handles communication with the backend PlaidController for bank account linking.
  * All Plaid API calls go through our backend - NEVER call Plaid directly from frontend.
+ * 
+ * Wave 12.5: Added unified endpoints for multi-product linking (transactions, investments, liabilities)
  */
 
 import axios from 'axios';
@@ -12,6 +14,9 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052
 // ============================================================================
 // Types
 // ============================================================================
+
+/** Plaid products supported by unified linking */
+export type PlaidProduct = 'transactions' | 'investments' | 'liabilities';
 
 export interface PlaidConnection {
   connectionId: string;
@@ -23,6 +28,10 @@ export interface PlaidConnection {
   lastSyncedAt?: string;
   /** Source type: "Plaid" for bank accounts, "PlaidInvestments" for brokerage/retirement */
   source?: 'Plaid' | 'PlaidInvestments';
+  /** Products enabled for this connection (Wave 12.5) */
+  products?: PlaidProduct[];
+  /** Whether this connection was created via unified flow */
+  isUnified?: boolean;
 }
 
 export interface PlaidAccount {
@@ -484,4 +493,124 @@ export async function getAccountInvestmentTransactions(
     { params: { userId, limit } }
   );
   return response.data;
+}
+
+// ============================================================================
+// Unified Plaid Types (Wave 12.5)
+// ============================================================================
+
+export interface UnifiedConnectionInfo {
+  connectionId: string;
+  institutionName: string;
+  institutionId?: string;
+  status: ConnectionStatus;
+  connectedAt: string;
+  lastSyncedAt?: string;
+  products: PlaidProduct[];
+  isUnified: boolean;
+  bankAccountCount: number;
+  investmentAccountCount: number;
+  creditCardCount: number;
+  mortgageCount: number;
+  studentLoanCount: number;
+}
+
+export interface UnifiedSyncResult {
+  success: boolean;
+  transactionsSynced: number;
+  holdingsSynced: number;
+  creditCardsSynced: number;
+  mortgagesSynced: number;
+  studentLoansSynced: number;
+  propertiesCreated: number;
+  errorMessage?: string;
+}
+
+export interface UnifiedExchangeResult {
+  connectionId: string;
+  institutionName: string;
+  products: PlaidProduct[];
+  accountsLinked: number;
+}
+
+// ============================================================================
+// Unified Plaid API Functions (Wave 12.5)
+// ============================================================================
+
+/**
+ * Create a unified Plaid Link token for multiple products.
+ * Allows linking transactions, investments, and liabilities in one flow.
+ */
+export async function createUnifiedLinkToken(
+  userId: number,
+  products: PlaidProduct[]
+): Promise<string> {
+  const response = await axios.post<{ linkToken: string }>(
+    `${API_BASE_URL}/plaid/unified/link-token`,
+    { products },
+    { params: { userId } }
+  );
+  return response.data.linkToken;
+}
+
+/**
+ * Exchange a public token for a unified connection.
+ * Creates connection with multiple products enabled.
+ */
+export async function exchangeUnifiedPublicToken(
+  publicToken: string,
+  userId: number,
+  products: PlaidProduct[],
+  institutionId?: string,
+  institutionName?: string
+): Promise<UnifiedExchangeResult> {
+  const response = await axios.post<UnifiedExchangeResult>(
+    `${API_BASE_URL}/plaid/unified/exchange-token`,
+    { publicToken, products, institutionId, institutionName },
+    { params: { userId } }
+  );
+  return response.data;
+}
+
+/**
+ * Sync all products for a unified connection.
+ * Syncs transactions, investments, and liabilities based on enabled products.
+ */
+export async function syncUnifiedConnection(
+  connectionId: string,
+  userId: number
+): Promise<UnifiedSyncResult> {
+  const response = await axios.post<UnifiedSyncResult>(
+    `${API_BASE_URL}/plaid/unified/connections/${connectionId}/sync`,
+    {},
+    { params: { userId } }
+  );
+  return response.data;
+}
+
+/**
+ * Get all unified connections for a user with product information.
+ */
+export async function getUnifiedConnections(userId: number): Promise<UnifiedConnectionInfo[]> {
+  const response = await axios.get<UnifiedConnectionInfo[]>(
+    `${API_BASE_URL}/plaid/unified/connections`,
+    { params: { userId } }
+  );
+  return response.data;
+}
+
+/**
+ * Update the products enabled for a connection.
+ * Use to add liabilities to an existing transactions-only connection.
+ */
+export async function updateConnectionProducts(
+  connectionId: string,
+  userId: number,
+  products: PlaidProduct[]
+): Promise<void> {
+  await axios.put(
+    `${API_BASE_URL}/plaid/unified/connections/${connectionId}/products`,
+    { products },
+    { params: { userId } }
+  );
 }

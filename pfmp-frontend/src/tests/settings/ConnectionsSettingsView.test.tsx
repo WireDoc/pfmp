@@ -21,6 +21,7 @@ const mockConnections: PlaidConnection[] = [
 vi.mock('../../services/plaidApi', () => ({
   getConnections: vi.fn().mockResolvedValue([]),
   syncAllConnections: vi.fn().mockResolvedValue({}),
+  getUnifiedConnections: vi.fn().mockResolvedValue([]),
   getStatusLabel: (status: string) => status,
   getStatusColor: (status: string) => 'success',
   formatSyncTime: (date: string) => 'Just now',
@@ -30,6 +31,9 @@ vi.mock('../../services/plaidApi', () => ({
 vi.mock('../../components/plaid', () => ({
   PlaidLinkButton: ({ onSuccess }: { onSuccess: () => void }) => (
     <button onClick={onSuccess} data-testid="plaid-link-button">Link Bank Account</button>
+  ),
+  PlaidUnifiedLinkButton: ({ onSuccess }: { onSuccess: () => void }) => (
+    <button onClick={onSuccess} data-testid="plaid-unified-link-button">Link New Account</button>
   ),
   ConnectedBanksList: ({ connections }: { connections: PlaidConnection[] }) => (
     <div data-testid="connected-banks-list">
@@ -76,7 +80,7 @@ describe('ConnectionsSettingsView', () => {
     it('should render Link Bank Account button', async () => {
       renderConnectionsSettingsView();
       await waitFor(() => {
-        expect(screen.getByTestId('plaid-link-button')).toBeInTheDocument();
+        expect(screen.getByTestId('plaid-unified-link-button')).toBeInTheDocument();
       });
     });
   });
@@ -98,7 +102,7 @@ describe('ConnectionsSettingsView', () => {
       renderConnectionsSettingsView();
       
       await waitFor(() => {
-        expect(screen.getByTestId('connected-banks-list')).toBeInTheDocument();
+        expect(screen.getByText(/No Accounts Connected/)).toBeInTheDocument();
       });
     });
   });
@@ -191,14 +195,14 @@ describe('ConnectionsSettingsView', () => {
       renderConnectionsSettingsView();
       
       await waitFor(() => {
-        expect(screen.getAllByTestId('plaid-link-button')).toHaveLength(2);
+        expect(screen.getAllByTestId('plaid-unified-link-button')).toHaveLength(2);
       });
       
       // Initial load
       expect(getConnections).toHaveBeenCalledTimes(1);
       
       // Simulate link success - use the first button (header)
-      const linkButtons = screen.getAllByTestId('plaid-link-button');
+      const linkButtons = screen.getAllByTestId('plaid-unified-link-button');
       await user.click(linkButtons[0]);
       
       // Should refresh connections
