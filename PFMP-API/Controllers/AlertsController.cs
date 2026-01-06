@@ -12,12 +12,18 @@ namespace PFMP_API.Controllers
         private readonly ApplicationDbContext _context;
         private readonly ILogger<AlertsController> _logger;
         private readonly IAIService _aiService;
+        private readonly ICreditAlertService _creditAlertService;
 
-        public AlertsController(ApplicationDbContext context, ILogger<AlertsController> logger, IAIService aiService)
+        public AlertsController(
+            ApplicationDbContext context, 
+            ILogger<AlertsController> logger, 
+            IAIService aiService,
+            ICreditAlertService creditAlertService)
         {
             _context = context;
             _logger = logger;
             _aiService = aiService;
+            _creditAlertService = creditAlertService;
         }
 
         /// <summary>
@@ -122,6 +128,33 @@ namespace PFMP_API.Controllers
             {
                 _logger.LogError(ex, "Error creating alert for user {UserId}", alert?.UserId);
                 return StatusCode(500, "An error occurred while creating the alert");
+            }
+        }
+
+        /// <summary>
+        /// Generates credit-related alerts for a user (high utilization, payment due dates).
+        /// </summary>
+        /// <param name="userId">User ID</param>
+        /// <returns>List of generated/updated alerts</returns>
+        [HttpPost("credit/generate")]
+        [ProducesResponseType(typeof(List<Alert>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<List<Alert>>> GenerateCreditAlerts([FromQuery] int userId)
+        {
+            try
+            {
+                if (userId <= 0)
+                {
+                    return BadRequest("Valid userId is required");
+                }
+
+                var alerts = await _creditAlertService.GenerateCreditAlertsAsync(userId);
+                return Ok(alerts);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating credit alerts for user {UserId}", userId);
+                return StatusCode(500, "An error occurred while generating credit alerts");
             }
         }
 

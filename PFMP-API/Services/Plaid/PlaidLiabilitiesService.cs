@@ -2,7 +2,9 @@ using Going.Plaid;
 using Going.Plaid.Entity;
 using Going.Plaid.Liabilities;
 using Going.Plaid.Link;
+using Going.Plaid.Transactions;
 using Microsoft.EntityFrameworkCore;
+using PFMP_API.Models;
 using PFMP_API.Models.FinancialProfile;
 using PFMP_API.Models.Plaid;
 
@@ -18,6 +20,7 @@ namespace PFMP_API.Services.Plaid
         public int CreditCardsUpdated { get; set; }
         public int MortgagesUpdated { get; set; }
         public int StudentLoansUpdated { get; set; }
+        public int TransactionsSynced { get; set; }
         public int DurationMs { get; set; }
         public string? ErrorMessage { get; set; }
     }
@@ -47,6 +50,11 @@ namespace PFMP_API.Services.Plaid
         Task<LiabilitiesSyncResult> SyncLiabilitiesAsync(Guid connectionId);
 
         /// <summary>
+        /// Syncs credit card transactions for a connection.
+        /// </summary>
+        Task<int> SyncCreditCardTransactionsAsync(Guid connectionId);
+
+        /// <summary>
         /// Syncs all liability connections for a user.
         /// </summary>
         Task<LiabilitiesSyncResult> SyncAllUserLiabilitiesAsync(int userId);
@@ -55,6 +63,11 @@ namespace PFMP_API.Services.Plaid
         /// Gets all Plaid-linked liabilities for a user.
         /// </summary>
         Task<List<LiabilityAccount>> GetUserPlaidLiabilitiesAsync(int userId);
+
+        /// <summary>
+        /// Gets transactions for a liability account (credit card).
+        /// </summary>
+        Task<List<CashTransaction>> GetLiabilityTransactionsAsync(int liabilityAccountId, DateTime? startDate = null, DateTime? endDate = null, int? limit = null);
     }
 
     /// <summary>
@@ -282,13 +295,192 @@ namespace PFMP_API.Services.Plaid
                 .ToListAsync();
         }
 
+        /// <inheritdoc />
+        public async Task<int> SyncCreditCardTransactionsAsync(Guid connectionId)
+        {
+            var connection = await _dbContext.AccountConnections
+                .FirstOrDefaultAsync(c => c.ConnectionId == connectionId);
+
+            if (connection == null)
+            {
+                throw new InvalidOperationException($"Connection {connectionId} not found");
+            }
+
+            // Get credit card accounts linked to this connection
+            var creditCards = await _dbContext.LiabilityAccounts
+                .Where(l => l.PlaidItemId == connection.PlaidItemId &&
+                           l.IsCreditCard &&
+                           l.UserId == connection.UserId)
+                .ToListAsync();
+
+            if (!creditCards.Any())
+            {
+                _logger.LogInformation("No credit cards found for connection {ConnectionId}", connectionId);
+                return 0;
+            }
+
+            // Build a map of Plaid Account ID to LiabilityAccountId
+            var accountIdMap = creditCards
+                .Where(c => !string.IsNullOrEmpty(c.PlaidAccountId))
+                .ToDictionary(c => c.PlaidAccountId!, c => c.LiabilityAccountId);
+
+            _logger.LogInformation("Syncing transactions for {Count} credit cards on connection {ConnectionId}",
+                creditCards.Count, connectionId);
+
+            int totalSynced = 0;
+
+            // Use Plaid Transactions Sync API
+            var request = new Going.Plaid.Transactions.TransactionsSyncRequest
+            {
+                AccessToken = connection.PlaidAccessToken!,
+                Cursor = connection.TransactionsCursor
+            };
+
+            var response = await _plaidClient.TransactionsSyncAsync(request);
+
+            if (response.Error != null)
+            {
+                throw new InvalidOperationException($"Plaid error: {response.Error.ErrorMessage}");
+            }
+
+            // Process added transactions
+            foreach (var txn in response.Added)
+            {
+                if (!accountIdMap.TryGetValue(txn.AccountId, out var liabilityAccountId))
+                {
+                    continue; // Not a credit card account we're tracking
+                }
+
+                // Check if transaction already exists
+                var existing = await _dbContext.CashTransactions
+                    .FirstOrDefaultAsync(t => t.PlaidTransactionId == txn.TransactionId);
+
+                if (existing != null)
+                {
+                    // Update existing transaction
+                    MapPlaidTransactionToLiabilityEntity(txn, existing, liabilityAccountId);
+                }
+                else
+                {
+                    // Create new transaction
+                    var newTxn = new CashTransaction
+                    {
+                        LiabilityAccountId = liabilityAccountId,
+                        PlaidTransactionId = txn.TransactionId,
+                        Source = "Plaid"
+                    };
+                    MapPlaidTransactionToLiabilityEntity(txn, newTxn, liabilityAccountId);
+                    _dbContext.CashTransactions.Add(newTxn);
+                    totalSynced++;
+                }
+            }
+
+            // Process modified transactions
+            foreach (var txn in response.Modified)
+            {
+                if (!accountIdMap.TryGetValue(txn.AccountId, out var liabilityAccountId))
+                {
+                    continue;
+                }
+
+                var existing = await _dbContext.CashTransactions
+                    .FirstOrDefaultAsync(t => t.PlaidTransactionId == txn.TransactionId);
+
+                if (existing != null)
+                {
+                    MapPlaidTransactionToLiabilityEntity(txn, existing, liabilityAccountId);
+                }
+            }
+
+            // Process removed transactions
+            foreach (var removed in response.Removed)
+            {
+                var existing = await _dbContext.CashTransactions
+                    .FirstOrDefaultAsync(t => t.PlaidTransactionId == removed.TransactionId);
+
+                if (existing != null && existing.LiabilityAccountId.HasValue)
+                {
+                    _dbContext.CashTransactions.Remove(existing);
+                }
+            }
+
+            await _dbContext.SaveChangesAsync();
+
+            _logger.LogInformation("Synced {Count} credit card transactions for connection {ConnectionId}",
+                totalSynced, connectionId);
+
+            return totalSynced;
+        }
+
+        /// <inheritdoc />
+        public async Task<List<CashTransaction>> GetLiabilityTransactionsAsync(
+            int liabilityAccountId,
+            DateTime? startDate = null,
+            DateTime? endDate = null,
+            int? limit = null)
+        {
+            var query = _dbContext.CashTransactions
+                .Where(t => t.LiabilityAccountId == liabilityAccountId);
+
+            if (startDate.HasValue)
+                query = query.Where(t => t.TransactionDate >= startDate.Value);
+
+            if (endDate.HasValue)
+                query = query.Where(t => t.TransactionDate <= endDate.Value);
+
+            query = query.OrderByDescending(t => t.TransactionDate);
+
+            if (limit.HasValue)
+                query = query.Take(limit.Value);
+
+            return await query.ToListAsync();
+        }
+
+        private static void MapPlaidTransactionToLiabilityEntity(
+            Going.Plaid.Entity.Transaction plaidTxn,
+            CashTransaction entity,
+            int liabilityAccountId)
+        {
+            entity.LiabilityAccountId = liabilityAccountId;
+            entity.CashAccountId = null;
+
+            // Plaid amounts: positive = money out, negative = money in
+            // For credit cards: positive = purchase, negative = payment/refund
+            entity.Amount = -(plaidTxn.Amount ?? 0);
+            entity.TransactionDate = plaidTxn.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.UtcNow;
+            entity.Description = plaidTxn.MerchantName ?? plaidTxn.Name ?? "Transaction";
+            entity.Merchant = plaidTxn.MerchantName;
+            entity.MerchantLogoUrl = plaidTxn.LogoUrl;
+            entity.IsPending = plaidTxn.Pending ?? false;
+            entity.PaymentChannel = plaidTxn.PaymentChannel?.ToString();
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            // Map Plaid category
+            if (plaidTxn.PersonalFinanceCategory != null)
+            {
+                entity.PlaidCategory = plaidTxn.PersonalFinanceCategory.Primary?.ToString();
+                entity.PlaidCategoryDetailed = plaidTxn.PersonalFinanceCategory.Detailed?.ToString();
+                entity.Category = plaidTxn.PersonalFinanceCategory.Primary?.ToString()?.Replace("_", " ");
+            }
+
+            // Determine transaction type based on amount
+            if (entity.Amount > 0)
+            {
+                entity.TransactionType = "Payment"; // Money coming in (payment or refund)
+            }
+            else
+            {
+                entity.TransactionType = "Purchase"; // Money going out
+            }
+        }
+
         #region Private Helper Methods
 
         private async Task UpsertCreditCardAsync(
             int userId,
             string itemId,
             CreditCardLiability creditCard,
-            IReadOnlyList<Account> accounts)
+            IReadOnlyList<Going.Plaid.Entity.Account> accounts)
         {
             var accountId = creditCard.AccountId;
             var account = accounts.FirstOrDefault(a => a.AccountId == accountId);
@@ -354,7 +546,7 @@ namespace PFMP_API.Services.Plaid
             int userId,
             string itemId,
             MortgageLiability mortgage,
-            IReadOnlyList<Account> accounts)
+            IReadOnlyList<Going.Plaid.Entity.Account> accounts)
         {
             var accountId = mortgage.AccountId;
             var account = accounts.FirstOrDefault(a => a.AccountId == accountId);
@@ -427,7 +619,7 @@ namespace PFMP_API.Services.Plaid
             int userId,
             string itemId,
             StudentLoan studentLoan,
-            IReadOnlyList<Account> accounts)
+            IReadOnlyList<Going.Plaid.Entity.Account> accounts)
         {
             var accountId = studentLoan.AccountId;
             var account = accounts.FirstOrDefault(a => a.AccountId == accountId);

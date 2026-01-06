@@ -807,7 +807,7 @@ namespace PFMP_API.Services.Plaid
                 .ToListAsync();
 
             var query = _db.CashTransactions
-                .Where(t => accountIds.Contains(t.CashAccountId));
+                .Where(t => t.CashAccountId.HasValue && accountIds.Contains(t.CashAccountId.Value));
 
             if (startDate.HasValue)
                 query = query.Where(t => t.TransactionDate >= startDate.Value);

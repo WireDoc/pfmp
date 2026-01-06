@@ -72,6 +72,7 @@ namespace PFMP_API.Services.Plaid
         public int HoldingsCount { get; set; }
         public bool LiabilitiesSynced { get; set; }
         public int LiabilitiesCount { get; set; }
+        public int CreditCardTransactionsSynced { get; set; }
         public List<string> Errors { get; set; } = [];
     }
 
@@ -310,6 +311,13 @@ namespace PFMP_API.Services.Plaid
                         var liabResult = await _liabilitiesService.SyncLiabilitiesAsync(connectionId);
                         result.LiabilitiesSynced = liabResult.Success;
                         result.LiabilitiesCount = liabResult.CreditCardsUpdated + liabResult.MortgagesUpdated + liabResult.StudentLoansUpdated;
+
+                        // Also sync credit card transactions
+                        if (liabResult.CreditCardsUpdated > 0)
+                        {
+                            var ccTxnCount = await _liabilitiesService.SyncCreditCardTransactionsAsync(connectionId);
+                            result.CreditCardTransactionsSynced = ccTxnCount;
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -324,8 +332,8 @@ namespace PFMP_API.Services.Plaid
                 result.Success = result.Errors.Count == 0;
 
                 _logger.LogInformation(
-                    "Unified sync complete for {ConnectionId}: Tx={TxCount}, Holdings={Holdings}, Liabilities={Liab}",
-                    connectionId, result.TransactionsCount, result.HoldingsCount, result.LiabilitiesCount);
+                    "Unified sync complete for {ConnectionId}: Tx={TxCount}, Holdings={Holdings}, Liabilities={Liab}, CreditCardTx={CcTx}",
+                    connectionId, result.TransactionsCount, result.HoldingsCount, result.LiabilitiesCount, result.CreditCardTransactionsSynced);
             }
             catch (Exception ex)
             {

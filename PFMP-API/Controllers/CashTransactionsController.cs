@@ -214,7 +214,8 @@ public class CashTransactionsController : ControllerBase
 public class CashTransactionDto
 {
     public int CashTransactionId { get; set; }
-    public Guid CashAccountId { get; set; }
+    public Guid? CashAccountId { get; set; }
+    public int? LiabilityAccountId { get; set; }
     public string TransactionType { get; set; } = string.Empty;
     public decimal Amount { get; set; }
     public DateTime TransactionDate { get; set; }

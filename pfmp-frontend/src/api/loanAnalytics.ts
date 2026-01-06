@@ -239,3 +239,34 @@ export const fetchDebtPayoffStrategies = async (
   );
   return response.data;
 };
+
+// ============================================================================
+// Credit Dashboard Summary (Wave 12.5)
+// ============================================================================
+
+export interface CreditDashboardSummary {
+  hasCreditCards: boolean;
+  cardCount: number;
+  totalCreditLimit: number;
+  totalCurrentBalance: number;
+  totalAvailableCredit: number;
+  utilizationPercent: number;
+  utilizationStatus: string;
+  utilizationColor: string;
+  nextPaymentDueDate: string | null;
+  nextPaymentDueAmount: number | null;
+  nextPaymentDueLender: string | null;
+  recommendations: string[];
+}
+
+/**
+ * Fetch credit dashboard summary for a user
+ */
+export const fetchCreditDashboardSummary = async (
+  userId: number
+): Promise<CreditDashboardSummary> => {
+  const response = await http.get<CreditDashboardSummary>(
+    `/loan-analytics/users/${userId}/credit-summary`
+  );
+  return response.data;
+};

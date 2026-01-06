@@ -20,7 +20,8 @@ namespace PFMP_API.Models
         Performance = 4,
         Security = 5,
         Tax = 6,
-        Rebalancing = 7
+        Rebalancing = 7,
+        Credit = 8
     }
 
     public class Alert

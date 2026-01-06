@@ -264,4 +264,74 @@ public class LoanAnalyticsController : ControllerBase
 
         return Ok(utilizations);
     }
+
+    /// <summary>
+    /// Get credit card dashboard summary for a user.
+    /// Returns aggregate utilization, total credit, next payment due, and card count.
+    /// </summary>
+    /// <param name="userId">The user ID</param>
+    [HttpGet("users/{userId}/credit-summary")]
+    [ProducesResponseType(typeof(CreditDashboardSummary), StatusCodes.Status200OK)]
+    public async Task<ActionResult<CreditDashboardSummary>> GetCreditDashboardSummary(int userId)
+    {
+        var creditCards = await _context.LiabilityAccounts
+            .Where(l => l.UserId == userId && l.LiabilityType == "credit_card")
+            .ToListAsync();
+
+        if (!creditCards.Any())
+        {
+            return Ok(new CreditDashboardSummary
+            {
+                HasCreditCards = false,
+                CardCount = 0,
+                UtilizationStatus = "N/A",
+                UtilizationColor = "gray"
+            });
+        }
+
+        var aggregate = _creditUtilizationService.CalculateAggregateUtilization(creditCards);
+        
+        // Find next payment due
+        var nextPaymentDue = creditCards
+            .Where(c => c.PaymentDueDate != null && c.PaymentDueDate >= DateTime.UtcNow)
+            .OrderBy(c => c.PaymentDueDate)
+            .FirstOrDefault();
+
+        var recommendations = _creditUtilizationService.GetUtilizationRecommendations(aggregate.UtilizationPercent);
+
+        return Ok(new CreditDashboardSummary
+        {
+            HasCreditCards = true,
+            CardCount = creditCards.Count,
+            TotalCreditLimit = aggregate.CreditLimit,
+            TotalCurrentBalance = aggregate.CurrentBalance,
+            TotalAvailableCredit = aggregate.AvailableCredit,
+            UtilizationPercent = aggregate.UtilizationPercent,
+            UtilizationStatus = aggregate.UtilizationStatus,
+            UtilizationColor = aggregate.UtilizationColor,
+            NextPaymentDueDate = nextPaymentDue?.PaymentDueDate,
+            NextPaymentDueAmount = nextPaymentDue?.MinimumPayment,
+            NextPaymentDueLender = nextPaymentDue?.Lender,
+            Recommendations = recommendations
+        });
+    }
+}
+
+/// <summary>
+/// Credit card dashboard summary for displaying in a widget
+/// </summary>
+public class CreditDashboardSummary
+{
+    public bool HasCreditCards { get; set; }
+    public int CardCount { get; set; }
+    public decimal TotalCreditLimit { get; set; }
+    public decimal TotalCurrentBalance { get; set; }
+    public decimal TotalAvailableCredit { get; set; }
+    public decimal UtilizationPercent { get; set; }
+    public string UtilizationStatus { get; set; } = string.Empty;
+    public string UtilizationColor { get; set; } = string.Empty;
+    public DateTime? NextPaymentDueDate { get; set; }
+    public decimal? NextPaymentDueAmount { get; set; }
+    public string? NextPaymentDueLender { get; set; }
+    public List<string> Recommendations { get; set; } = [];
 }

@@ -1107,6 +1107,7 @@ public class PlaidController : ControllerBase
                 HoldingsCount = result.HoldingsCount,
                 LiabilitiesSynced = result.LiabilitiesSynced,
                 LiabilitiesCount = result.LiabilitiesCount,
+                CreditCardTransactionsSynced = result.CreditCardTransactionsSynced,
                 Errors = result.Errors
             });
         }
@@ -1277,7 +1278,8 @@ public class TransactionSyncResultDto
 public class TransactionDto
 {
     public int TransactionId { get; set; }
-    public Guid CashAccountId { get; set; }
+    public Guid? CashAccountId { get; set; }
+    public int? LiabilityAccountId { get; set; }
     public decimal Amount { get; set; }
     public DateTime TransactionDate { get; set; }
     public string? Description { get; set; }
@@ -1432,6 +1434,7 @@ public class UnifiedSyncResultDto
     public int HoldingsCount { get; set; }
     public bool LiabilitiesSynced { get; set; }
     public int LiabilitiesCount { get; set; }
+    public int CreditCardTransactionsSynced { get; set; }
     public List<string> Errors { get; set; } = [];
 }
 

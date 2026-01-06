@@ -5,8 +5,9 @@ using PFMP_API.Models.FinancialProfile;
 namespace PFMP_API.Models;
 
 /// <summary>
-/// Represents a transaction for a cash account (checking, savings, money market).
-/// Separate from investment Transactions table to keep concerns separated.
+/// Represents a transaction for a cash account or credit card.
+/// Supports both CashAccounts (checking, savings) and LiabilityAccounts (credit cards).
+/// One of CashAccountId or LiabilityAccountId must be set.
 /// </summary>
 public class CashTransaction
 {
@@ -14,13 +15,19 @@ public class CashTransaction
     public int CashTransactionId { get; set; }
 
     /// <summary>
-    /// Links to the CashAccounts table (UUID-based)
+    /// Links to the CashAccounts table (UUID-based).
+    /// Nullable for credit card transactions.
     /// </summary>
-    [Required]
-    public Guid CashAccountId { get; set; }
+    public Guid? CashAccountId { get; set; }
 
     /// <summary>
-    /// Type of transaction: Deposit, Withdrawal, Transfer, Fee, Interest, Refund
+    /// Links to the LiabilityAccounts table (int-based).
+    /// Used for credit card transactions.
+    /// </summary>
+    public int? LiabilityAccountId { get; set; }
+
+    /// <summary>
+    /// Type of transaction: Deposit, Withdrawal, Transfer, Fee, Interest, Refund, Purchase, Payment
     /// </summary>
     [Required]
     [MaxLength(50)]
@@ -143,7 +150,10 @@ public class CashTransaction
     /// </summary>
     public DateTime? UpdatedAt { get; set; }
 
-    // Navigation property
+    // Navigation properties
     [ForeignKey(nameof(CashAccountId))]
     public CashAccount? CashAccount { get; set; }
+
+    [ForeignKey(nameof(LiabilityAccountId))]
+    public LiabilityAccount? LiabilityAccount { get; set; }
 }

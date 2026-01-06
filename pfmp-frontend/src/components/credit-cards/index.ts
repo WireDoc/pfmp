@@ -5,3 +5,4 @@
 
 export { UtilizationGauge } from './UtilizationGauge';
 export { CreditCardSummary } from './CreditCardSummary';
+export { CreditDashboardWidget } from './CreditDashboardWidget';
