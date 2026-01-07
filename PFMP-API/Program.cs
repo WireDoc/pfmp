@@ -116,6 +116,9 @@ namespace PFMP_API
             // Credit Alert Service (Wave 12.5)
             builder.Services.AddScoped<ICreditAlertService, CreditAlertService>();
 
+            // Property Task Service (Wave 12.5)
+            builder.Services.AddScoped<IPropertyTaskService, PropertyTaskService>();
+
             // Background Jobs - Hangfire (Wave 10)
             // Skip Hangfire in Testing environment to allow WebApplicationFactory tests to work
             var isTestingEnvironment = builder.Environment.EnvironmentName == "Testing";

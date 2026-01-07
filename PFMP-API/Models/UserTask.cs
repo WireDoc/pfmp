@@ -13,7 +13,8 @@ namespace PFMP_API.Models
         GoalAdjustment = 5,
         InsuranceReview = 6,
         EmergencyFundContribution = 7,
-        TSPAllocationChange = 8
+        TSPAllocationChange = 8,
+        PropertyValueUpdate = 9
     }
 
     public enum TaskStatus

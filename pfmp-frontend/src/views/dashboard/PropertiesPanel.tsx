@@ -1,4 +1,5 @@
 import { Box, Card, CardContent, Typography, Stack } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import HomeIcon from '@mui/icons-material/Home';
 import type { PropertySnapshot } from '../../services/dashboard/types';
 
@@ -8,6 +9,8 @@ interface PropertiesPanelProps {
 }
 
 export default function PropertiesPanel({ properties = [], loading = false }: PropertiesPanelProps) {
+  const navigate = useNavigate();
+
   if (loading) {
     return (
       <Card>
@@ -56,7 +59,16 @@ export default function PropertiesPanel({ properties = [], loading = false }: Pr
               : 0;
 
             return (
-              <Card key={property.id} variant="outlined" sx={{ bgcolor: 'background.default' }}>
+              <Card
+                key={property.id}
+                variant="outlined"
+                sx={{
+                  bgcolor: 'background.default',
+                  cursor: 'pointer',
+                  '&:hover': { bgcolor: 'action.hover' },
+                }}
+                onClick={() => navigate(`/dashboard/properties/${property.id}`)}
+              >
                 <CardContent sx={{ py: 1.5 }}>
                   <Box display="flex" alignItems="center" gap={1.5}>
                     <HomeIcon color="action" />

@@ -2,8 +2,8 @@
   "info": {
     "name": "PFMP API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "1.6.0",
-    "description": "PFMP API endpoints grouped for development and testing. Adjust {{baseUrl}} as needed. v1.6.0: Added Plaid Unified endpoints for multi-product linking (Wave 12.5)."
+    "version": "1.7.0",
+    "description": "PFMP API endpoints grouped for development and testing. Adjust {{baseUrl}} as needed. v1.7.0: Added Properties endpoints for real estate management (Wave 12.5 Phase 4)."
   },
   "item": [
     {
@@ -390,6 +390,114 @@
               "raw": "{\n  \"products\": [\"transactions\", \"investments\", \"liabilities\"]\n}"
             },
             "url": "{{baseUrl}}/api/plaid/unified/connections/{{connectionId}}/products"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Properties",
+      "description": "Property management endpoints for real estate tracking (Wave 12.5 Phase 4). Properties can be manually created or auto-created from Plaid mortgage data.",
+      "item": [
+        {
+          "name": "List Properties",
+          "description": "Lists all properties for a user with equity calculations.",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/api/properties?userId={{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "properties"],
+              "query": [{"key": "userId", "value": "{{userId}}"}]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Property Detail",
+          "description": "Gets full property detail including linked mortgage and value history.",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "{{baseUrl}}/api/properties/{{propertyId}}"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Property",
+          "description": "Creates a new property (manual entry). Initial value is recorded in history.",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{userId}},\n  \"propertyName\": \"Primary Residence\",\n  \"propertyType\": \"SingleFamily\",\n  \"occupancy\": \"Primary\",\n  \"estimatedValue\": 450000,\n  \"mortgageBalance\": 320000,\n  \"monthlyMortgagePayment\": 2100,\n  \"street\": \"123 Main St\",\n  \"city\": \"Springfield\",\n  \"state\": \"VA\",\n  \"postalCode\": \"22150\"\n}"
+            },
+            "url": "{{baseUrl}}/api/properties"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Property",
+          "description": "Updates an existing property. Value changes are tracked in history.",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estimatedValue\": 475000,\n  \"mortgageBalance\": 315000\n}"
+            },
+            "url": "{{baseUrl}}/api/properties/{{propertyId}}"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Property",
+          "description": "Deletes a property. Plaid-synced properties cannot be deleted.",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "{{baseUrl}}/api/properties/{{propertyId}}"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Property Value History",
+          "description": "Gets the value history for a property, ordered newest first.",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/api/properties/{{propertyId}}/history?limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "properties", "{{propertyId}}", "history"],
+              "query": [{"key": "limit", "value": "20"}]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Property Update Tasks",
+          "description": "Generates tasks for properties not updated in X months (default 3).",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/api/properties/tasks/generate?userId={{userId}}&monthsThreshold=3",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "properties", "tasks", "generate"],
+              "query": [
+                {"key": "userId", "value": "{{userId}}"},
+                {"key": "monthsThreshold", "value": "3"}
+              ]
+            }
           },
           "response": []
         }
@@ -1050,6 +1158,7 @@
     { "key": "incomeSourceId", "value": "1" },
     { "key": "loanId", "value": "1" },
     { "key": "liabilityId", "value": "00000000-0000-0000-0000-000000000000" },
+    { "key": "propertyId", "value": "00000000-0000-0000-0000-000000000000" },
     { "key": "guid", "value": "00000000000000000000000000000000" },
     { "key": "refreshToken", "value": "" },
     { "key": "accessToken", "value": "" },

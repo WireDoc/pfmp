@@ -28,6 +28,7 @@ const SettingsView = lazy(() => import('./views/dashboard/SettingsView').then(m 
 const HelpView = lazy(() => import('./views/dashboard/HelpView').then(m => ({ default: m.HelpView })));
 const TspDetailView = lazy(() => import('./views/dashboard/TspDetailView').then(m => ({ default: m.TspDetailView })));
 const NetWorthTimelineView = lazy(() => import('./views/dashboard/NetWorthTimelineView').then(m => ({ default: m.NetWorthTimelineView })));
+const PropertyDetailView = lazy(() => import('./views/dashboard/PropertyDetailView').then(m => ({ default: m.PropertyDetailView })));
 const ConnectionsSettingsView = lazy(() => import('./views/settings/ConnectionsSettingsView').then(m => ({ default: m.ConnectionsSettingsView })));
 const InvestmentsSettingsView = lazy(() => import('./views/settings/InvestmentsSettingsView').then(m => ({ default: m.InvestmentsSettingsView })));
 const SchedulerAdminView = lazy(() => import('./views/admin/SchedulerAdminView'));
@@ -131,6 +132,10 @@ export function AppRouter(props: AppRouterProps) {
         {
           path: 'debt-payoff',
           element: <Suspense fallback={<PageSpinner />}><DebtPayoffDashboard /></Suspense>,
+        },
+        {
+          path: 'properties/:propertyId',
+          element: <Suspense fallback={<PageSpinner />}><PropertyDetailView /></Suspense>,
         },
         {
           path: 'insights',
