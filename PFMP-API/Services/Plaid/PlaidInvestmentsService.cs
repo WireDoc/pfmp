@@ -612,9 +612,10 @@ namespace PFMP_API.Services.Plaid
                     .Where(a => a.ConnectionId == connectionId)
                     .ToDictionaryAsync(a => a.PlaidAccountId!, a => a.AccountId);
 
-                // Build a map of security IDs to ticker symbols for reference
+                // Build a map of security IDs to securities for transaction symbol lookup
+                var securityLookup = response.Securities.ToDictionary(s => s.SecurityId, s => s);
                 var securityMap = response.Securities
-                    .ToDictionary(s => s.SecurityId, s => s.TickerSymbol ?? "UNKNOWN");
+                    .ToDictionary(s => s.SecurityId, s => GetFallbackSymbol(s));
 
                 // Process each investment transaction
                 foreach (var plaidTx in response.InvestmentTransactions)
@@ -767,6 +768,37 @@ namespace PFMP_API.Services.Plaid
 
         #region Private Helper Methods
 
+        /// <summary>
+        /// Get a fallback symbol for securities without ticker symbols.
+        /// Returns descriptive placeholder based on security type.
+        /// </summary>
+        private static string GetFallbackSymbol(Security? security)
+        {
+            if (security == null)
+                return "UNKNOWN";
+            
+            // Return ticker if available
+            if (!string.IsNullOrWhiteSpace(security.TickerSymbol))
+                return security.TickerSymbol;
+            
+            // For cash equivalents, use a recognizable placeholder
+            if (security.IsCashEquivalent == true)
+                return "CASH-SWEEP";
+            
+            // Use type-based fallbacks for better categorization
+            var securityType = security.Type?.ToLowerInvariant();
+            return securityType switch
+            {
+                "cash" => "CASH-SWEEP",
+                "mutual fund" => security.Cusip != null ? $"MF:{security.Cusip}" : "MF-UNLISTED",
+                "derivative" => "DERIVATIVE",
+                "fixed income" => security.Cusip != null ? $"FI:{security.Cusip}" : "FIXED-INCOME",
+                "etf" => security.Cusip != null ? $"ETF:{security.Cusip}" : "ETF-UNLISTED",
+                "equity" => security.Cusip != null ? $"EQ:{security.Cusip}" : "EQUITY-UNLISTED",
+                _ => "UNLISTED"
+            };
+        }
+
         private async Task UpsertSecurityAsync(Security plaidSecurity)
         {
             var existing = await _db.PlaidSecurities
@@ -863,10 +895,11 @@ namespace PFMP_API.Services.Plaid
             var costBasis = plaidHolding.CostBasis ?? 0m;
             var avgCostBasis = quantity != 0m ? costBasis / quantity : 0m;
             var currentPrice = plaidHolding.InstitutionPrice;
+            var symbol = GetFallbackSymbol(security);
 
             if (existing != null)
             {
-                existing.Symbol = security?.TickerSymbol ?? "UNKNOWN";
+                existing.Symbol = symbol;
                 existing.Quantity = quantity;
                 existing.AverageCostBasis = avgCostBasis;
                 existing.CurrentPrice = currentPrice;
@@ -880,7 +913,7 @@ namespace PFMP_API.Services.Plaid
                 var newHolding = new PfmpHolding
                 {
                     AccountId = account.AccountId,
-                    Symbol = security?.TickerSymbol ?? "UNKNOWN",
+                    Symbol = symbol,
                     Quantity = quantity,
                     AverageCostBasis = avgCostBasis,
                     CurrentPrice = currentPrice,

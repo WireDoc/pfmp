@@ -46,9 +46,29 @@ public class AmortizationService
         var annualRate = loan.InterestRateApr ?? 0;
         var termMonths = loan.LoanTermMonths.Value;
         var startDate = loan.LoanStartDate.Value;
+        var currentBalance = loan.CurrentBalance;
         
-        var monthlyPayment = loan.MinimumPayment ?? CalculateMonthlyPayment(principal, annualRate, termMonths);
+        // Use the calculated amortized payment for the schedule rather than
+        // the minimum payment from Plaid.  Plaid sometimes reports a very low
+        // minimum (e.g. $25) for income-driven repayment plans that would make
+        // the schedule diverge (payment < monthly interest).  We still show the
+        // actual minimum payment on the detail card via loan.MinimumPayment.
+        var calculatedPayment = CalculateMonthlyPayment(principal, annualRate, termMonths);
+        var monthlyPayment = loan.MinimumPayment ?? calculatedPayment;
+
+        // If the minimum payment doesn't cover monthly interest on the current
+        // balance, use the calculated amortizing payment for the schedule so
+        // we produce a meaningful table.  The detail card will still surface
+        // the real minimum so the user can compare.
         var monthlyRate = annualRate / 100 / 12;
+        var monthlyInterestOnCurrent = currentBalance * monthlyRate;
+        if (monthlyPayment <= monthlyInterestOnCurrent && calculatedPayment > monthlyPayment)
+        {
+            _logger.LogWarning(
+                "Loan {Id}: min payment ${Min}/mo < monthly interest ${Interest}/mo on current balance. Using calculated payment ${Calc}/mo for schedule.",
+                loan.LiabilityAccountId, monthlyPayment, Math.Round(monthlyInterestOnCurrent, 2), calculatedPayment);
+            monthlyPayment = calculatedPayment;
+        }
 
         var schedule = new List<AmortizationPayment>();
         var balance = principal;
@@ -64,6 +84,14 @@ public class AmortizationService
             if (balance < monthlyPayment)
             {
                 principalPaid = balance;
+            }
+
+            // Safety: if payment still doesn't cover interest, stop to avoid infinite growth
+            if (principalPaid <= 0 && balance > 0)
+            {
+                _logger.LogWarning("Loan {Id}: schedule diverging at payment {Num}, stopping",
+                    loan.LiabilityAccountId, i);
+                break;
             }
 
             balance -= principalPaid;
@@ -85,6 +113,13 @@ public class AmortizationService
             if (balance <= 0) break;
         }
 
+        // --- Percent Paid Off ---
+        // Use actual current balance vs original amount for an accurate real-world figure.
+        // This handles negative-amortization / income-driven plans where the balance
+        // may exceed the original amount (clamp to 0).
+        var amountPaid = principal - currentBalance;
+        var percentPaid = principal > 0 ? Math.Max(0, (amountPaid / principal) * 100) : 0;
+
         // Calculate where we are in the schedule
         var today = DateTime.UtcNow;
         var monthsElapsed = (int)Math.Floor((today - startDate).TotalDays / 30.44);
@@ -94,8 +129,18 @@ public class AmortizationService
         // Calculate totals
         var totalPayments = schedule.Sum(p => p.Payment);
         var totalInterest = schedule.Sum(p => p.Interest);
-        var paidSoFar = schedule.Take(paymentsMade).Sum(p => p.Principal);
-        var percentPaid = principal > 0 ? (paidSoFar / principal) * 100 : 0;
+
+        // Interest already paid: use the schedule for payments made so far
+        var interestPaidSoFar = schedule.Take(paymentsMade).Sum(p => p.Interest);
+        var interestRemaining = schedule.Skip(paymentsMade).Sum(p => p.Interest);
+
+        // If current balance exceeds original (negative amortisation), the schedule
+        // interest may understate reality.  Adjust by adding the shortfall.
+        if (currentBalance > principal)
+        {
+            var excessBalance = currentBalance - principal;
+            interestPaidSoFar += excessBalance; // extra interest that accrued
+        }
 
         var estimatedPayoffDate = schedule.LastOrDefault()?.Date;
 
@@ -108,16 +153,17 @@ public class AmortizationService
                 LiabilityType = loan.LiabilityType,
                 Lender = loan.Lender,
                 OriginalAmount = principal,
-                CurrentBalance = loan.CurrentBalance,
+                CurrentBalance = currentBalance,
                 InterestRate = annualRate,
                 MonthlyPayment = monthlyPayment,
+                ActualMinimumPayment = loan.MinimumPayment,
                 TermMonths = termMonths,
                 StartDate = startDate,
                 EstimatedPayoffDate = estimatedPayoffDate,
                 PaymentsRemaining = paymentsRemaining,
                 PercentPaidOff = Math.Round(percentPaid, 1),
-                TotalInterestPaid = schedule.Take(paymentsMade).Sum(p => p.Interest),
-                TotalInterestRemaining = schedule.Skip(paymentsMade).Sum(p => p.Interest)
+                TotalInterestPaid = Math.Round(interestPaidSoFar, 2),
+                TotalInterestRemaining = Math.Round(interestRemaining, 2)
             },
             Schedule = schedule,
             Summary = new AmortizationSummary

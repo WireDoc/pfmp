@@ -24,8 +24,8 @@ public class FmpQuote
     public decimal? YearHigh { get; set; }
     public decimal? YearLow { get; set; }
     public decimal? MarketCap { get; set; }
-    public long? Volume { get; set; }
-    public long? AvgVolume { get; set; }
+    public decimal? Volume { get; set; }
+    public decimal? AvgVolume { get; set; }
     public string Exchange { get; set; } = string.Empty;
     public decimal? Open { get; set; }
     public decimal? PreviousClose { get; set; }

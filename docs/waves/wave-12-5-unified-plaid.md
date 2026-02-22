@@ -1,6 +1,6 @@
 # Wave 12.5: Unified Plaid Account Linking
 
-> **Status**: Phase 1 Complete - Phase 2 Ready
+> **Status**: Phase 4 Complete - Phase 5 In Progress
 > **Target**: Q1 2026
 > **Priority**: High
 > **Prerequisites**: Wave 12 Complete ✅
@@ -362,19 +362,19 @@ SELECT DISTINCT UserId FROM "AccountConnections" WHERE "PlaidItemId" IS NOT NULL
 - [ ] 3.4 Create PaymentDueSoon alert
 - [ ] 3.5 Credit card summary on dashboard
 
-### Phase 4: Property Integration (Est. 2-3 days)
-- [ ] 4.1 Auto-create property from mortgage
-- [ ] 4.2 Link existing property to mortgage
-- [ ] 4.3 Property value history tracking
-- [ ] 4.4 Create property value update task
-- [ ] 4.5 Property detail page (if not exists)
+### Phase 4: Property Integration (Est. 2-3 days) ✅ COMPLETE
+- [x] 4.1 Auto-create property from mortgage (pre-existing UpsertPropertyFromMortgageAsync)
+- [x] 4.2 Link existing property to mortgage (pre-existing address matching)
+- [x] 4.3 Property value history tracking (pre-existing PropertyValueHistory model)
+- [x] 4.4 Create property value update task (PropertyTaskService created)
+- [x] 4.5 Property detail page (PropertyDetailView + routing added)
 
-### Phase 5: Testing & Documentation (Est. 2 days)
-- [ ] 5.1 Create custom Plaid sandbox users for liabilities
+### Phase 5: Testing & Documentation (Est. 2 days) 🔄 IN PROGRESS
+- [x] 5.1 Create custom Plaid sandbox users for liabilities (added to plaid-custom-users.md)
 - [ ] 5.2 Test unified flow end-to-end
 - [ ] 5.3 Test credit card sync + alerts
 - [ ] 5.4 Test mortgage → property linking
-- [ ] 5.5 Update documentation
+- [x] 5.5 Update documentation (wave-12-5-testing-guide.md created)
 - [ ] 5.6 Clean up test data, final validation
 
 ---

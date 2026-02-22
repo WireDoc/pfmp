@@ -78,19 +78,38 @@ namespace PFMP_API.Services.Plaid
     {
         private readonly PlaidClient _plaidClient;
         private readonly ApplicationDbContext _dbContext;
+        private readonly ICredentialEncryptionService _encryption;
         private readonly ILogger<PlaidLiabilitiesService> _logger;
         private readonly IConfiguration _configuration;
+        private readonly string _clientId;
+        private readonly string _secret;
 
         public PlaidLiabilitiesService(
-            PlaidClient plaidClient,
             ApplicationDbContext dbContext,
+            ICredentialEncryptionService encryption,
             ILogger<PlaidLiabilitiesService> logger,
             IConfiguration configuration)
         {
-            _plaidClient = plaidClient;
             _dbContext = dbContext;
+            _encryption = encryption;
             _logger = logger;
             _configuration = configuration;
+
+            // Load Plaid configuration
+            _clientId = configuration["Plaid:ClientId"] ?? throw new InvalidOperationException("Plaid:ClientId not configured");
+            _secret = configuration["Plaid:Secret"] ?? throw new InvalidOperationException("Plaid:Secret not configured");
+            var envString = configuration["Plaid:Environment"] ?? "sandbox";
+
+            // Determine environment
+            var environment = envString.ToLower() switch
+            {
+                "production" => Going.Plaid.Environment.Production,
+                "development" => Going.Plaid.Environment.Development,
+                _ => Going.Plaid.Environment.Sandbox
+            };
+
+            // Initialize Plaid client
+            _plaidClient = new PlaidClient(environment);
         }
 
         /// <inheritdoc />
@@ -100,6 +119,8 @@ namespace PFMP_API.Services.Plaid
 
             var request = new LinkTokenCreateRequest
             {
+                ClientId = _clientId,
+                Secret = _secret,
                 User = new LinkTokenCreateRequestUser { ClientUserId = userId.ToString() },
                 ClientName = "PFMP",
                 Products = [Products.Liabilities],
@@ -131,7 +152,12 @@ namespace PFMP_API.Services.Plaid
 
             // Exchange public token for access token
             var exchangeResponse = await _plaidClient.ItemPublicTokenExchangeAsync(
-                new Going.Plaid.Item.ItemPublicTokenExchangeRequest { PublicToken = publicToken });
+                new Going.Plaid.Item.ItemPublicTokenExchangeRequest 
+                { 
+                    ClientId = _clientId,
+                    Secret = _secret,
+                    PublicToken = publicToken 
+                });
 
             if (exchangeResponse.Error != null)
             {
@@ -143,13 +169,16 @@ namespace PFMP_API.Services.Plaid
             var accessToken = exchangeResponse.AccessToken;
             var itemId = exchangeResponse.ItemId;
 
+            // Encrypt the access token before storage
+            var encryptedToken = _encryption.Encrypt(accessToken);
+
             // Create account connection
             var connection = new AccountConnection
             {
                 UserId = userId,
                 PlaidInstitutionId = institutionId,
                 PlaidInstitutionName = institutionName ?? "Liabilities Institution",
-                PlaidAccessToken = accessToken,
+                PlaidAccessToken = encryptedToken,
                 PlaidItemId = itemId,
                 Source = AccountSource.PlaidCreditCard, // Default, will be updated based on account types
                 Products = "liabilities",
@@ -188,9 +217,17 @@ namespace PFMP_API.Services.Plaid
 
                 _logger.LogInformation("Syncing liabilities for connection {ConnectionId}", connectionId);
 
+                // Decrypt the access token
+                var accessToken = _encryption.Decrypt(connection.PlaidAccessToken!);
+
                 // Fetch liabilities from Plaid
                 var liabilitiesResponse = await _plaidClient.LiabilitiesGetAsync(
-                    new LiabilitiesGetRequest { AccessToken = connection.PlaidAccessToken! });
+                    new LiabilitiesGetRequest 
+                    { 
+                        ClientId = _clientId,
+                        Secret = _secret,
+                        AccessToken = accessToken 
+                    });
 
                 if (liabilitiesResponse.Error != null)
                 {
@@ -307,9 +344,11 @@ namespace PFMP_API.Services.Plaid
             }
 
             // Get credit card accounts linked to this connection
+            // IsCreditCard is a computed property so we must inline the check for EF translation
+            var creditCardTypes = new[] { "credit_card", "creditcard", "credit-card" };
             var creditCards = await _dbContext.LiabilityAccounts
                 .Where(l => l.PlaidItemId == connection.PlaidItemId &&
-                           l.IsCreditCard &&
+                           l.LiabilityType != null && creditCardTypes.Contains(l.LiabilityType.ToLower()) &&
                            l.UserId == connection.UserId)
                 .ToListAsync();
 
@@ -329,10 +368,15 @@ namespace PFMP_API.Services.Plaid
 
             int totalSynced = 0;
 
+            // Decrypt the access token
+            var accessToken = _encryption.Decrypt(connection.PlaidAccessToken!);
+
             // Use Plaid Transactions Sync API
             var request = new Going.Plaid.Transactions.TransactionsSyncRequest
             {
-                AccessToken = connection.PlaidAccessToken!,
+                ClientId = _clientId,
+                Secret = _secret,
+                AccessToken = accessToken,
                 Cursor = connection.TransactionsCursor
             };
 
@@ -447,7 +491,7 @@ namespace PFMP_API.Services.Plaid
             // Plaid amounts: positive = money out, negative = money in
             // For credit cards: positive = purchase, negative = payment/refund
             entity.Amount = -(plaidTxn.Amount ?? 0);
-            entity.TransactionDate = plaidTxn.Date?.ToDateTime(TimeOnly.MinValue) ?? DateTime.UtcNow;
+            entity.TransactionDate = plaidTxn.Date?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc) ?? DateTime.UtcNow;
             entity.Description = plaidTxn.MerchantName ?? plaidTxn.Name ?? "Transaction";
             entity.Merchant = plaidTxn.MerchantName;
             entity.MerchantLogoUrl = plaidTxn.LogoUrl;
@@ -574,7 +618,7 @@ namespace PFMP_API.Services.Plaid
             existing.OriginalLoanAmount = (decimal?)(mortgage.OriginationPrincipalAmount);
             existing.InterestRateApr = (decimal?)(mortgage.InterestRate?.Percentage);
             existing.MinimumPayment = (decimal?)(mortgage.NextMonthlyPayment);
-            existing.LoanTermMonths = mortgage.LoanTerm != null ? int.Parse(mortgage.LoanTerm.Replace(" months", "").Replace(" years", "")) * (mortgage.LoanTerm.Contains("years") ? 12 : 1) : null;
+            existing.LoanTermMonths = ParseLoanTermToMonths(mortgage.LoanTerm);
 
             if (mortgage.OriginationDate.HasValue)
             {
@@ -648,8 +692,8 @@ namespace PFMP_API.Services.Plaid
             existing.InterestRateApr = (decimal?)(studentLoan.InterestRatePercentage);
             existing.MinimumPayment = (decimal?)(studentLoan.MinimumPaymentAmount);
             existing.LoanTermMonths = studentLoan.ExpectedPayoffDate.HasValue && studentLoan.OriginationDate.HasValue
-                ? (int)((studentLoan.ExpectedPayoffDate.Value.ToDateTime(TimeOnly.MinValue) -
-                         studentLoan.OriginationDate.Value.ToDateTime(TimeOnly.MinValue)).TotalDays / 30.44)
+                ? (int)((studentLoan.ExpectedPayoffDate.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc) -
+                         studentLoan.OriginationDate.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)).TotalDays / 30.44)
                 : null;
 
             if (studentLoan.OriginationDate.HasValue)
@@ -733,6 +777,33 @@ namespace PFMP_API.Services.Plaid
             existing.UpdatedAt = DateTime.UtcNow;
 
             await _dbContext.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Parses loan term strings like "30 year", "15 years", "360 months" to months.
+        /// </summary>
+        private static int? ParseLoanTermToMonths(string? loanTerm)
+        {
+            if (string.IsNullOrWhiteSpace(loanTerm))
+                return null;
+
+            var term = loanTerm.Trim().ToLowerInvariant();
+            
+            // Extract numeric value
+            var numericPart = new string(term.TakeWhile(c => char.IsDigit(c)).ToArray());
+            if (!int.TryParse(numericPart, out var value))
+                return null;
+
+            // Check for year/years variants and convert to months
+            if (term.Contains("year"))
+                return value * 12;
+
+            // Check for month/months
+            if (term.Contains("month"))
+                return value;
+
+            // Assume raw number is months if no unit specified
+            return value;
         }
 
         #endregion

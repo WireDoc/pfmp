@@ -2,6 +2,7 @@ using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
 using PFMP_API.Services.MarketData;
+using System.Text.RegularExpressions;
 
 namespace PFMP_API.Jobs;
 
@@ -14,15 +15,38 @@ public class PriceRefreshJob
     private readonly ApplicationDbContext _context;
     private readonly IMarketDataService _marketDataService;
     private readonly ILogger<PriceRefreshJob> _logger;
+    private readonly HashSet<string> _excludedSymbols;
+    private readonly List<Regex> _excludedPatterns;
 
     public PriceRefreshJob(
         ApplicationDbContext context,
         IMarketDataService marketDataService,
-        ILogger<PriceRefreshJob> logger)
+        ILogger<PriceRefreshJob> logger,
+        IConfiguration configuration)
     {
         _context = context;
         _marketDataService = marketDataService;
         _logger = logger;
+        
+        // Load excluded symbols from configuration
+        _excludedSymbols = configuration.GetSection("MarketData:ExcludedSymbols")
+            .Get<string[]>()
+            ?.ToHashSet(StringComparer.OrdinalIgnoreCase)
+            ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        
+        // Load excluded patterns from configuration
+        var patterns = configuration.GetSection("MarketData:ExcludedSymbolPatterns")
+            .Get<string[]>() ?? Array.Empty<string>();
+        _excludedPatterns = patterns
+            .Select(p => new Regex(p, RegexOptions.Compiled | RegexOptions.IgnoreCase))
+            .ToList();
+        
+        if (_excludedSymbols.Count > 0 || _excludedPatterns.Count > 0)
+        {
+            _logger.LogInformation(
+                "Loaded {SymbolCount} excluded symbols and {PatternCount} excluded patterns from configuration",
+                _excludedSymbols.Count, _excludedPatterns.Count);
+        }
     }
 
     /// <summary>
@@ -61,6 +85,7 @@ public class PriceRefreshJob
                 .SelectMany(a => a.Holdings)
                 .Where(h => !string.IsNullOrWhiteSpace(h.Symbol))
                 .Where(h => !IsTspFund(h.Symbol)) // TSP funds use separate DailyTspService
+                .Where(h => !IsExcludedSymbol(h.Symbol)) // Filter excluded symbols from config
                 .Select(h => h.Symbol.ToUpperInvariant())
                 .Distinct()
                 .ToList();
@@ -93,7 +118,7 @@ public class PriceRefreshJob
             {
                 foreach (var holding in account.Holdings)
                 {
-                    if (string.IsNullOrWhiteSpace(holding.Symbol) || IsTspFund(holding.Symbol))
+                    if (string.IsNullOrWhiteSpace(holding.Symbol) || IsTspFund(holding.Symbol) || IsExcludedSymbol(holding.Symbol))
                         continue;
 
                     var symbol = holding.Symbol.ToUpperInvariant();
@@ -106,6 +131,7 @@ public class PriceRefreshJob
                     }
                     else
                     {
+                        // Only log warning for unexpected missing prices (not excluded symbols)
                         _logger.LogWarning("No price found for symbol {Symbol}", symbol);
                         errorCount++;
                     }
@@ -150,7 +176,7 @@ public class PriceRefreshJob
         }
 
         var symbols = account.Holdings
-            .Where(h => !string.IsNullOrWhiteSpace(h.Symbol) && !IsTspFund(h.Symbol))
+            .Where(h => !string.IsNullOrWhiteSpace(h.Symbol) && !IsTspFund(h.Symbol) && !IsExcludedSymbol(h.Symbol))
             .Select(h => h.Symbol.ToUpperInvariant())
             .Distinct()
             .ToList();
@@ -198,5 +224,30 @@ public class PriceRefreshJob
         var tspSymbols = new[] { "GFUND", "FFUND", "CFUND", "SFUND", "IFUND", "LINCOME", 
             "L2025", "L2030", "L2035", "L2040", "L2045", "L2050", "L2055", "L2060", "L2065", "L2070", "L2075" };
         return tspSymbols.Any(t => symbol.Contains(t, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Check if a symbol should be excluded from price lookup based on configuration.
+    /// Symbols can be excluded by exact match or regex pattern.
+    /// </summary>
+    private bool IsExcludedSymbol(string symbol)
+    {
+        if (string.IsNullOrWhiteSpace(symbol))
+            return true;
+        
+        var upperSymbol = symbol.ToUpperInvariant();
+        
+        // Check exact match
+        if (_excludedSymbols.Contains(upperSymbol))
+            return true;
+        
+        // Check patterns
+        foreach (var pattern in _excludedPatterns)
+        {
+            if (pattern.IsMatch(upperSymbol))
+                return true;
+        }
+        
+        return false;
     }
 }

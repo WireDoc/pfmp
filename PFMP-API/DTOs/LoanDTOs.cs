@@ -12,6 +12,11 @@ public class LoanDetailsResponse
     public decimal CurrentBalance { get; set; }
     public decimal InterestRate { get; set; }
     public decimal MonthlyPayment { get; set; }
+    /// <summary>
+    /// The actual minimum payment reported by Plaid/user, which may differ from
+    /// the amortized MonthlyPayment when the minimum is insufficient to cover interest.
+    /// </summary>
+    public decimal? ActualMinimumPayment { get; set; }
     public int TermMonths { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime? EstimatedPayoffDate { get; set; }

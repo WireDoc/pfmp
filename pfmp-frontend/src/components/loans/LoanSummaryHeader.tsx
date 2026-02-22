@@ -59,7 +59,7 @@ export function LoanSummaryHeader({ loan }: LoanSummaryHeaderProps) {
             {formatCurrency(loan.currentBalance)}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            of {formatCurrency(loan.originalAmount)} remaining
+            of {formatCurrency(loan.originalAmount)} original
           </Typography>
         </Box>
       </Box>
@@ -68,7 +68,7 @@ export function LoanSummaryHeader({ loan }: LoanSummaryHeaderProps) {
       <Box sx={{ mt: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
           <Typography variant="body2" color="text.secondary">
-            {loan.percentPaidOff.toFixed(1)}% paid off
+            {Math.max(0, loan.percentPaidOff).toFixed(1)}% paid off
           </Typography>
           <Typography variant="body2" color="text.secondary">
             {loan.paymentsRemaining} payments remaining
@@ -76,22 +76,30 @@ export function LoanSummaryHeader({ loan }: LoanSummaryHeaderProps) {
         </Box>
         <LinearProgress
           variant="determinate"
-          value={loan.percentPaidOff}
+          value={Math.max(0, Math.min(100, loan.percentPaidOff))}
           sx={{
             height: 10,
             borderRadius: 5,
             bgcolor: 'grey.200',
             '& .MuiLinearProgress-bar': {
               borderRadius: 5,
-              bgcolor: 'success.main',
+              bgcolor: loan.currentBalance > loan.originalAmount ? 'warning.main' : 'success.main',
             },
           }}
         />
+        {loan.currentBalance > loan.originalAmount && (
+          <Typography variant="caption" color="warning.main" sx={{ mt: 0.5, display: 'block' }}>
+            Balance exceeds original loan amount — income-driven or deferred interest plan detected
+          </Typography>
+        )}
       </Box>
 
       {/* Quick Stats */}
       <Box sx={{ display: 'flex', gap: 4, mt: 3, pt: 2, borderTop: 1, borderColor: 'divider' }}>
         <QuickStat label="Monthly Payment" value={formatCurrency(loan.monthlyPayment)} />
+        {loan.actualMinimumPayment != null && loan.actualMinimumPayment !== loan.monthlyPayment && (
+          <QuickStat label="Reported Minimum" value={formatCurrency(loan.actualMinimumPayment)} color="warning.main" />
+        )}
         <QuickStat label="Interest Paid" value={formatCurrency(loan.totalInterestPaid)} color="warning.main" />
         <QuickStat label="Interest Remaining" value={formatCurrency(loan.totalInterestRemaining)} />
         <QuickStat label="Payoff Date" value={formatDate(loan.estimatedPayoffDate)} />

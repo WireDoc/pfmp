@@ -17,6 +17,7 @@ export interface LoanDetailsResponse {
   currentBalance: number;
   interestRate: number;
   monthlyPayment: number;
+  actualMinimumPayment?: number;
   termMonths: number;
   startDate: string;
   estimatedPayoffDate: string;

@@ -102,25 +102,45 @@ namespace PFMP_API.Services.Plaid
         private readonly IPlaidService _plaidService;
         private readonly IPlaidInvestmentsService _investmentsService;
         private readonly IPlaidLiabilitiesService _liabilitiesService;
+        private readonly ICredentialEncryptionService _encryption;
         private readonly ILogger<PlaidConnectionService> _logger;
+        private readonly string _clientId;
+        private readonly string _secret;
 
         // Supported products for unified linking
         private static readonly List<string> AllProducts = ["transactions", "investments", "liabilities"];
 
         public PlaidConnectionService(
-            PlaidClient plaidClient,
             ApplicationDbContext dbContext,
             IPlaidService plaidService,
             IPlaidInvestmentsService investmentsService,
             IPlaidLiabilitiesService liabilitiesService,
-            ILogger<PlaidConnectionService> logger)
+            ICredentialEncryptionService encryption,
+            ILogger<PlaidConnectionService> logger,
+            IConfiguration configuration)
         {
-            _plaidClient = plaidClient;
             _dbContext = dbContext;
             _plaidService = plaidService;
             _investmentsService = investmentsService;
             _liabilitiesService = liabilitiesService;
+            _encryption = encryption;
             _logger = logger;
+
+            // Load Plaid configuration
+            _clientId = configuration["Plaid:ClientId"] ?? throw new InvalidOperationException("Plaid:ClientId not configured");
+            _secret = configuration["Plaid:Secret"] ?? throw new InvalidOperationException("Plaid:Secret not configured");
+            var envString = configuration["Plaid:Environment"] ?? "sandbox";
+
+            // Determine environment
+            var environment = envString.ToLower() switch
+            {
+                "production" => Going.Plaid.Environment.Production,
+                "development" => Going.Plaid.Environment.Development,
+                _ => Going.Plaid.Environment.Sandbox
+            };
+
+            // Initialize Plaid client
+            _plaidClient = new PlaidClient(environment);
         }
 
         /// <inheritdoc />
@@ -156,6 +176,8 @@ namespace PFMP_API.Services.Plaid
 
             var request = new LinkTokenCreateRequest
             {
+                ClientId = _clientId,
+                Secret = _secret,
                 User = new LinkTokenCreateRequestUser { ClientUserId = userId.ToString() },
                 ClientName = "PFMP",
                 Products = plaidProducts,
@@ -192,7 +214,12 @@ namespace PFMP_API.Services.Plaid
 
                 // Exchange public token for access token
                 var exchangeResponse = await _plaidClient.ItemPublicTokenExchangeAsync(
-                    new Going.Plaid.Item.ItemPublicTokenExchangeRequest { PublicToken = publicToken });
+                    new Going.Plaid.Item.ItemPublicTokenExchangeRequest 
+                    { 
+                        ClientId = _clientId,
+                        Secret = _secret,
+                        PublicToken = publicToken 
+                    });
 
                 if (exchangeResponse.Error != null)
                 {
@@ -201,6 +228,9 @@ namespace PFMP_API.Services.Plaid
 
                 var accessToken = exchangeResponse.AccessToken;
                 var itemId = exchangeResponse.ItemId;
+
+                // Encrypt the access token before storage
+                var encryptedToken = _encryption.Encrypt(accessToken);
 
                 // Determine account source based on primary product
                 var source = DetermineAccountSource(requestedProducts);
@@ -212,7 +242,7 @@ namespace PFMP_API.Services.Plaid
                     UserId = userId,
                     PlaidInstitutionId = institutionId,
                     PlaidInstitutionName = institutionName ?? "Financial Institution",
-                    PlaidAccessToken = accessToken,
+                    PlaidAccessToken = encryptedToken,
                     PlaidItemId = itemId,
                     Source = source,
                     Products = productsJson,

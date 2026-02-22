@@ -13,8 +13,16 @@ interface LoanProgressChartProps {
 
 export function LoanProgressChart({ percentPaidOff, originalAmount, currentBalance }: LoanProgressChartProps) {
   const paidAmount = originalAmount - currentBalance;
+  // Clamp to [0, 100] for display — backend already clamps but guard against edge cases
+  const clampedPercent = Math.max(0, Math.min(100, percentPaidOff));
   const circumference = 2 * Math.PI * 80;
-  const offset = circumference - (percentPaidOff / 100) * circumference;
+  const offset = circumference - (clampedPercent / 100) * circumference;
+
+  // If the current balance exceeds the original (negative amortization / income-driven plan),
+  // show a warning color instead of the normal success color.
+  const isNegativeProgress = currentBalance > originalAmount;
+  const progressColor = isNegativeProgress ? '#ff9800' : '#4caf50';
+  const percentColor = isNegativeProgress ? 'warning.main' : 'success.main';
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -36,7 +44,7 @@ export function LoanProgressChart({ percentPaidOff, originalAmount, currentBalan
             cy="100"
             r="80"
             fill="none"
-            stroke="#4caf50"
+            stroke={progressColor}
             strokeWidth="16"
             strokeLinecap="round"
             strokeDasharray={circumference}
@@ -56,8 +64,8 @@ export function LoanProgressChart({ percentPaidOff, originalAmount, currentBalan
             textAlign: 'center',
           }}
         >
-          <Typography variant="h3" fontWeight={700} color="success.main">
-            {percentPaidOff.toFixed(1)}%
+          <Typography variant="h3" fontWeight={700} color={percentColor}>
+            {clampedPercent.toFixed(1)}%
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Paid Off

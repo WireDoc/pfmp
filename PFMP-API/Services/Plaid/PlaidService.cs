@@ -448,15 +448,36 @@ namespace PFMP_API.Services.Plaid
 
             // Don't remove from Plaid - keep the access token for potential reconnection
 
-            // Update linked accounts to disconnected status
-            var linkedAccounts = await _db.CashAccounts
+            // Update linked CashAccounts to disconnected status
+            var linkedCashAccounts = await _db.CashAccounts
                 .Where(a => a.PlaidItemId == connection.PlaidItemId)
                 .ToListAsync();
 
-            foreach (var account in linkedAccounts)
+            foreach (var account in linkedCashAccounts)
             {
                 account.SyncStatus = SyncStatus.Disconnected;
                 account.SyncErrorMessage = "Connection paused by user";
+            }
+
+            // Update linked investment Accounts to disconnected status
+            var linkedInvestmentAccounts = await _db.Accounts
+                .Where(a => a.ConnectionId == connectionId)
+                .ToListAsync();
+
+            foreach (var account in linkedInvestmentAccounts)
+            {
+                account.PlaidSyncStatus = (int)SyncStatus.Disconnected;
+                account.PlaidSyncErrorMessage = "Connection paused by user";
+            }
+
+            // Update linked liability accounts to disconnected status
+            var linkedLiabilities = await _db.LiabilityAccounts
+                .Where(l => l.PlaidItemId == connection.PlaidItemId && l.UserId == connection.UserId)
+                .ToListAsync();
+
+            foreach (var liability in linkedLiabilities)
+            {
+                liability.SyncStatus = "disconnected";
             }
 
             // Mark connection as disconnected (keep access token for reconnection)
@@ -578,21 +599,21 @@ namespace PFMP_API.Services.Plaid
                 }
             }
 
-            // Handle linked accounts
-            var linkedAccounts = await _db.CashAccounts
+            // Handle linked CashAccounts (banking)
+            var linkedCashAccounts = await _db.CashAccounts
                 .Where(a => a.PlaidItemId == connection.PlaidItemId)
                 .ToListAsync();
 
             if (deleteAccounts)
             {
-                // Delete the accounts entirely
-                _db.CashAccounts.RemoveRange(linkedAccounts);
-                _logger.LogInformation("Deleted {Count} linked accounts", linkedAccounts.Count);
+                // Delete the CashAccounts entirely
+                _db.CashAccounts.RemoveRange(linkedCashAccounts);
+                _logger.LogInformation("Deleted {Count} linked cash accounts", linkedCashAccounts.Count);
             }
             else
             {
-                // Keep accounts but unlink them (convert to manual accounts)
-                foreach (var account in linkedAccounts)
+                // Keep CashAccounts but unlink them (convert to manual accounts)
+                foreach (var account in linkedCashAccounts)
                 {
                     account.Source = AccountSource.Manual;
                     account.PlaidItemId = null;
@@ -601,7 +622,89 @@ namespace PFMP_API.Services.Plaid
                     account.SyncErrorMessage = null;
                     account.LastSyncedAt = null;
                 }
-                _logger.LogInformation("Unlinked {Count} accounts (converted to manual)", linkedAccounts.Count);
+                _logger.LogInformation("Unlinked {Count} cash accounts (converted to manual)", linkedCashAccounts.Count);
+            }
+
+            // Handle linked investment Accounts (unified connection or investments-only)
+            var linkedInvestmentAccounts = await _db.Accounts
+                .Where(a => a.ConnectionId == connectionId)
+                .ToListAsync();
+
+            if (deleteAccounts)
+            {
+                // First delete holdings for these accounts
+                var accountIds = linkedInvestmentAccounts.Select(a => a.AccountId).ToList();
+                var holdings = await _db.Holdings
+                    .Where(h => accountIds.Contains(h.AccountId))
+                    .ToListAsync();
+                _db.Holdings.RemoveRange(holdings);
+                _logger.LogInformation("Deleted {Count} holdings from investment accounts", holdings.Count);
+
+                // Delete investment transactions for these accounts
+                var transactions = await _db.Transactions
+                    .Where(t => accountIds.Contains(t.AccountId))
+                    .ToListAsync();
+                _db.Transactions.RemoveRange(transactions);
+                _logger.LogInformation("Deleted {Count} investment transactions", transactions.Count);
+
+                // Delete the investment accounts
+                _db.Accounts.RemoveRange(linkedInvestmentAccounts);
+                _logger.LogInformation("Deleted {Count} linked investment accounts", linkedInvestmentAccounts.Count);
+            }
+            else
+            {
+                // Keep investment accounts but unlink them (convert to manual)
+                foreach (var account in linkedInvestmentAccounts)
+                {
+                    account.Source = (int)AccountSource.Manual;
+                    account.ConnectionId = null;
+                    account.PlaidItemId = null;
+                    account.PlaidAccountId = null;
+                    account.PlaidSyncStatus = (int)SyncStatus.NotConnected;
+                    account.PlaidSyncErrorMessage = null;
+                    account.PlaidLastSyncedAt = null;
+                }
+                _logger.LogInformation("Unlinked {Count} investment accounts (converted to manual)", linkedInvestmentAccounts.Count);
+            }
+
+            // Handle linked LiabilityAccounts (credit cards, mortgages, student loans)
+            var linkedLiabilities = await _db.LiabilityAccounts
+                .Where(l => l.PlaidItemId == connection.PlaidItemId && l.UserId == connection.UserId)
+                .ToListAsync();
+
+            if (deleteAccounts)
+            {
+                // Delete credit card transactions for these liability accounts
+                var liabilityIds = linkedLiabilities.Select(l => l.LiabilityAccountId).ToList();
+                var ccTransactions = await _db.CashTransactions
+                    .Where(t => t.LiabilityAccountId.HasValue && liabilityIds.Contains(t.LiabilityAccountId.Value))
+                    .ToListAsync();
+                _db.CashTransactions.RemoveRange(ccTransactions);
+                _logger.LogInformation("Deleted {Count} credit card transactions", ccTransactions.Count);
+
+                // Delete linked properties (mortgage-linked)
+                var linkedProperties = await _db.Properties
+                    .Where(p => p.LinkedMortgageLiabilityId.HasValue && liabilityIds.Contains(p.LinkedMortgageLiabilityId.Value))
+                    .ToListAsync();
+                _db.Properties.RemoveRange(linkedProperties);
+                _logger.LogInformation("Deleted {Count} mortgage-linked properties", linkedProperties.Count);
+
+                // Delete the liability accounts
+                _db.LiabilityAccounts.RemoveRange(linkedLiabilities);
+                _logger.LogInformation("Deleted {Count} linked liability accounts", linkedLiabilities.Count);
+            }
+            else
+            {
+                // Keep liability accounts but unlink them (convert to manual)
+                foreach (var liability in linkedLiabilities)
+                {
+                    liability.Source = AccountSource.Manual;
+                    liability.PlaidItemId = null;
+                    liability.PlaidAccountId = null;
+                    liability.SyncStatus = null;
+                    liability.LastSyncedAt = null;
+                }
+                _logger.LogInformation("Unlinked {Count} liability accounts (converted to manual)", linkedLiabilities.Count);
             }
 
             // Delete sync history for this connection
