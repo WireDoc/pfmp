@@ -1,16 +1,21 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import PropertiesPanel from '../views/dashboard/PropertiesPanel';
 import type { PropertySnapshot } from '../services/dashboard/types';
 
+function renderWithRouter(ui: React.ReactElement) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+}
+
 describe('PropertiesPanel', () => {
   it('renders loading state', () => {
-    render(<PropertiesPanel properties={[]} loading={true} />);
+    renderWithRouter(<PropertiesPanel properties={[]} loading={true} />);
     expect(screen.getByText(/Loading.../i)).toBeInTheDocument();
   });
 
   it('renders empty state when no properties provided', () => {
-    render(<PropertiesPanel properties={[]} loading={false} />);
+    renderWithRouter(<PropertiesPanel properties={[]} loading={false} />);
     expect(screen.getByText(/No properties to display/i)).toBeInTheDocument();
   });
 
@@ -25,7 +30,7 @@ describe('PropertiesPanel', () => {
         lastUpdated: '2025-01-01T00:00:00Z',
       },
     ];
-    render(<PropertiesPanel properties={properties} loading={false} />);
+    renderWithRouter(<PropertiesPanel properties={properties} loading={false} />);
     
     expect(screen.getByText('123 Main St')).toBeInTheDocument();
     expect(screen.getByText('Primary Residence')).toBeInTheDocument();
@@ -54,7 +59,7 @@ describe('PropertiesPanel', () => {
         lastUpdated: '2025-01-01T00:00:00Z',
       },
     ];
-    render(<PropertiesPanel properties={properties} loading={false} />);
+    renderWithRouter(<PropertiesPanel properties={properties} loading={false} />);
     
     // Total equity: (500k - 200k) + (300k - 100k) = 300k + 200k = 500k
     expect(screen.getByText('Net Equity')).toBeInTheDocument();
@@ -73,7 +78,7 @@ describe('PropertiesPanel', () => {
         lastUpdated: '2025-01-01T00:00:00Z',
       },
     ];
-    render(<PropertiesPanel properties={properties} loading={false} />);
+    renderWithRouter(<PropertiesPanel properties={properties} loading={false} />);
     
     expect(screen.getByText('Paid Off House')).toBeInTheDocument();
     // Full value as equity (appears in multiple places)

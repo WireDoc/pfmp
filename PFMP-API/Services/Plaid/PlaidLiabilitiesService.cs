@@ -237,14 +237,30 @@ namespace PFMP_API.Services.Plaid
                 var accounts = liabilitiesResponse.Accounts;
                 var liabilities = liabilitiesResponse.Liabilities;
 
-                // Process credit cards
+                // Process credit cards from detailed liability data
+                var processedCreditAccountIds = new HashSet<string>();
                 if (liabilities.Credit != null)
                 {
                     foreach (var creditCard in liabilities.Credit)
                     {
                         await UpsertCreditCardAsync(connection.UserId, connection.PlaidItemId!, creditCard, accounts);
+                        if (creditCard.AccountId != null)
+                            processedCreditAccountIds.Add(creditCard.AccountId);
                         result.CreditCardsUpdated++;
                     }
+                }
+
+                // Also create records for credit-type accounts that Plaid returned
+                // but didn't include in the detailed liabilities.Credit array
+                var creditAccounts = accounts
+                    .Where(a => a.Type == Going.Plaid.Entity.AccountType.Credit
+                                && !processedCreditAccountIds.Contains(a.AccountId))
+                    .ToList();
+
+                foreach (var creditAccount in creditAccounts)
+                {
+                    await UpsertCreditCardFromAccountAsync(connection.UserId, connection.PlaidItemId!, creditAccount);
+                    result.CreditCardsUpdated++;
                 }
 
                 // Process mortgages
@@ -582,6 +598,48 @@ namespace PFMP_API.Services.Plaid
             existing.SyncStatus = "synced";
             existing.LastSyncedAt = DateTime.UtcNow;
             existing.UpdatedAt = DateTime.UtcNow;
+
+            await _dbContext.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Creates/updates a credit card liability from account-level data only,
+        /// when Plaid doesn't return detailed liability info for the account.
+        /// </summary>
+        private async Task UpsertCreditCardFromAccountAsync(
+            int userId,
+            string itemId,
+            Going.Plaid.Entity.Account account)
+        {
+            var accountId = account.AccountId;
+
+            var existing = await _dbContext.LiabilityAccounts
+                .FirstOrDefaultAsync(l => l.PlaidAccountId == accountId && l.UserId == userId);
+
+            if (existing == null)
+            {
+                existing = new LiabilityAccount
+                {
+                    UserId = userId,
+                    LiabilityType = "credit_card",
+                    Source = AccountSource.PlaidCreditCard,
+                    PlaidItemId = itemId,
+                    PlaidAccountId = accountId,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _dbContext.LiabilityAccounts.Add(existing);
+            }
+
+            existing.Lender = account.Name ?? account.OfficialName ?? "Credit Card";
+            existing.CurrentBalance = (decimal)(account.Balances?.Current ?? 0);
+            existing.CreditLimit = (decimal?)(account.Balances?.Limit);
+            existing.SyncStatus = "synced";
+            existing.LastSyncedAt = DateTime.UtcNow;
+            existing.UpdatedAt = DateTime.UtcNow;
+
+            _logger.LogInformation(
+                "Upserted credit card from account data: {AccountName} (balance: {Balance})",
+                existing.Lender, existing.CurrentBalance);
 
             await _dbContext.SaveChangesAsync();
         }

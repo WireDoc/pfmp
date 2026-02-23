@@ -11,6 +11,11 @@ PFMP is an AI-assisted financial planning platform for government employees and 
 - **Authentication**: Azure Entra ID with local bypass mode for development
 - **AI Architecture**: Dual-model pipeline planned (Azure OpenAI + Anthropic) with consensus scoring - See Phase 3 in roadmap
 - **Current Highlights**: 
+  - **Wave 12.5 In Progress** - Unified Plaid linking with liabilities sync (February 2026)
+  - Single "Link Account" button connects banks, investments, credit cards, and mortgages
+  - Credit card, mortgage, and student loan sync via Plaid Liabilities
+  - Mortgage-to-property auto-linking with equity tracking
+  - Synced field protection: Plaid-managed fields are read-only in edit dialogs
   - **Wave 12 Complete** - Plaid investment account linking with holdings sync (January 2026)
   - Investment transactions: buy, sell, dividend, contribution, withdrawal tracking
   - Opening balance detection with dialog for adding historical cost basis
@@ -35,7 +40,7 @@ PFMP is an AI-assisted financial planning platform for government employees and 
   - Dashboard with net worth aggregation, accounts summary, insights, and task management
   - Review status persistence - onboarding completion survives page refreshes
   - TSP summary and daily snapshots with lifecycle funds (L2030–L2075)
-  - All 88 tests passing (100% coverage of onboarding and dashboard flows)
+  - All 93 backend + 289 frontend tests passing
 - **Planning Frames**: Wave 0–6 rebuild plan (tactical) aligned with roadmap Phases 1–5 (product milestones)
 
 The platform is currently in the Wave rebuild effort. Implementation details, historical notes, and migration guidance now live inside the reorganized `docs/` directory.
@@ -127,10 +132,10 @@ See `docs/api/postman.md` for details.
 
 ## Status & roadmap
 
-- Active version: **v0.9.8-alpha** (Wave 11 Complete - December 12, 2025)
-- **Milestone**: Wave 11 complete - Plaid Bank Account Linking fully operational
-- **Achievement**: Plaid integration with 12,000+ banks, connection lifecycle, 39 new tests
-- **Next Phase**: Wave 12 (Brokerage & Investment Linking)
+- Active version: **v0.11.1-alpha** (Wave 12.5 Phase 5 - February 2026)
+- **Milestone**: Wave 12.5 bug fixes and UX improvements complete
+- **Achievement**: Unified Plaid linking, synced field protection, 382 total tests passing
+- **Next Phase**: Wave 12.5 testing guide completion and validation
 - Roadmap Phase 2 (Data Aggregation) complete; Phase 3 (AI Advisory) on deck
 
 ### Upcoming Waves

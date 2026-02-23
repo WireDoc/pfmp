@@ -354,15 +354,8 @@ export const ConnectionsSettingsView: React.FC = () => {
                 ) : (
                   <Box textAlign="center" py={4}>
                     <BankIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
-                    <Typography color="text.secondary" sx={{ mb: 2 }}>No bank accounts connected</Typography>
-                    <PlaidUnifiedLinkButton
-                      userId={userId}
-                      onSuccess={handleLinkSuccess}
-                      buttonText="Link Bank Account"
-                      size="small"
-                      defaultProducts={['transactions']}
-                      skipProductSelection
-                    />
+                    <Typography color="text.secondary">No bank accounts connected</Typography>
+                    <Typography variant="body2" color="text.secondary">Use the "Link Account" button above to connect a bank.</Typography>
                   </Box>
                 )}
               </Box>
@@ -380,17 +373,8 @@ export const ConnectionsSettingsView: React.FC = () => {
                 ) : (
                   <Box textAlign="center" py={4}>
                     <InvestmentsIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
-                    <Typography color="text.secondary" sx={{ mb: 2 }}>No investment accounts connected</Typography>
-                    <PlaidUnifiedLinkButton
-                      userId={userId}
-                      onSuccess={handleLinkSuccess}
-                      buttonText="Link Investment Account"
-                      variant="outlined"
-                      color="success"
-                      size="small"
-                      defaultProducts={['investments']}
-                      skipProductSelection
-                    />
+                    <Typography color="text.secondary">No investment accounts connected</Typography>
+                    <Typography variant="body2" color="text.secondary">Use the "Link Account" button above to connect an investment account.</Typography>
                   </Box>
                 )}
               </Box>
@@ -407,17 +391,8 @@ export const ConnectionsSettingsView: React.FC = () => {
                 ) : (
                   <Box textAlign="center" py={4}>
                     <CreditCardIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
-                    <Typography color="text.secondary" sx={{ mb: 2 }}>No credit cards connected</Typography>
-                    <PlaidUnifiedLinkButton
-                      userId={userId}
-                      onSuccess={handleLinkSuccess}
-                      buttonText="Link Credit Card"
-                      variant="outlined"
-                      color="warning"
-                      size="small"
-                      defaultProducts={['liabilities']}
-                      skipProductSelection
-                    />
+                    <Typography color="text.secondary">No credit cards connected</Typography>
+                    <Typography variant="body2" color="text.secondary">Use the "Link Account" button above to connect credit cards.</Typography>
                   </Box>
                 )}
               </Box>
@@ -434,17 +409,8 @@ export const ConnectionsSettingsView: React.FC = () => {
                 ) : (
                   <Box textAlign="center" py={4}>
                     <HomeIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
-                    <Typography color="text.secondary" sx={{ mb: 2 }}>No mortgages connected</Typography>
-                    <PlaidUnifiedLinkButton
-                      userId={userId}
-                      onSuccess={handleLinkSuccess}
-                      buttonText="Link Mortgage"
-                      variant="outlined"
-                      color="info"
-                      size="small"
-                      defaultProducts={['liabilities']}
-                      skipProductSelection
-                    />
+                    <Typography color="text.secondary">No mortgages connected</Typography>
+                    <Typography variant="body2" color="text.secondary">Use the "Link Account" button above to connect a mortgage.</Typography>
                   </Box>
                 )}
               </Box>

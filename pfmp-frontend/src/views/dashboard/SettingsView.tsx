@@ -1,7 +1,6 @@
 import { Box, Typography, Paper, List, ListItem, ListItemIcon, ListItemText, ListItemButton, Divider, Chip } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import LinkIcon from '@mui/icons-material/Link';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import ColorLensIcon from '@mui/icons-material/ColorLens';
 import SecurityIcon from '@mui/icons-material/Security';
@@ -30,26 +29,12 @@ export function SettingsView() {
           <ListItem disablePadding>
             <ListItemButton onClick={() => navigate('/dashboard/settings/connections')}>
               <ListItemIcon>
-                <AccountBalanceIcon color="primary" />
+                <LinkIcon color="primary" />
               </ListItemIcon>
               <ListItemText 
-                primary="Bank Accounts" 
-                secondary="Manage connected bank accounts via Plaid"
+                primary="Connected Accounts" 
+                secondary="Manage all linked bank, investment, credit card, and loan accounts"
               />
-              <ChevronRightIcon color="action" />
-            </ListItemButton>
-          </ListItem>
-          <Divider variant="inset" component="li" />
-          <ListItem disablePadding>
-            <ListItemButton onClick={() => navigate('/dashboard/settings/investments')}>
-              <ListItemIcon>
-                <TrendingUpIcon color="success" />
-              </ListItemIcon>
-              <ListItemText 
-                primary="Investment Accounts" 
-                secondary="Link brokerage accounts and track holdings"
-              />
-              <Chip label="New" color="success" size="small" sx={{ mr: 1 }} />
               <ChevronRightIcon color="action" />
             </ListItemButton>
           </ListItem>

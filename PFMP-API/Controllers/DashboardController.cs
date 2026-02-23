@@ -125,8 +125,12 @@ public class DashboardController : ControllerBase
             
             var totalAssets = totalCash + totalInvestments + totalTsp + totalProperties;
 
-            var totalLiabilities = liabilities.Sum(l => l.CurrentBalance) + 
-                                 properties.Sum(p => p.MortgageBalance ?? 0);
+            // Avoid double-counting: only add property mortgage balances when the property
+            // is NOT already linked to a LiabilityAccount record.
+            var unlinkedPropertyMortgages = properties
+                .Where(p => p.MortgageBalance.HasValue && p.MortgageBalance > 0 && !p.LinkedMortgageLiabilityId.HasValue)
+                .Sum(p => p.MortgageBalance!.Value);
+            var totalLiabilities = liabilities.Sum(l => l.CurrentBalance) + unlinkedPropertyMortgages;
             
             var netWorth = totalAssets - totalLiabilities;
 
@@ -251,10 +255,11 @@ public class DashboardController : ControllerBase
                 propertyId = (Guid?)null  // Not a property mortgage
             }).ToList();
 
-            // Add mortgages from properties as liabilities if they have balances
+            // Add mortgages from properties as liabilities ONLY if the property is NOT already
+            // linked to a LiabilityAccount (which would already appear in the list above).
             var mortgageIdOffset = 100000; // Use large offset to avoid ID collision
             var mortgageIndex = 0;
-            foreach (var property in properties.Where(p => p.MortgageBalance.HasValue && p.MortgageBalance > 0))
+            foreach (var property in properties.Where(p => p.MortgageBalance.HasValue && p.MortgageBalance > 0 && !p.LinkedMortgageLiabilityId.HasValue))
             {
                 liabilitiesList.Add(new
                 {

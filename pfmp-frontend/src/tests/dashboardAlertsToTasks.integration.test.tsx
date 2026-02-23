@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AccountInfo } from '@azure/msal-browser';
-import DashboardWave4 from '../views/DashboardWave4';
+import Dashboard from '../views/Dashboard';
+import { MemoryRouter } from 'react-router-dom';
 import { AuthContext } from '../contexts/auth/AuthContextObject';
 import type { AuthContextType } from '../contexts/auth/types';
 import { OnboardingContext } from '../onboarding/OnboardingContext.shared';
@@ -67,11 +68,13 @@ function renderDashboard() {
   const onboardingContext = createOnboardingContext();
 
   return render(
+    <MemoryRouter>
     <AuthContext.Provider value={authContext}>
       <OnboardingContext.Provider value={onboardingContext}>
-        <DashboardWave4 />
+        <Dashboard />
       </OnboardingContext.Provider>
-    </AuthContext.Provider>,
+    </AuthContext.Provider>
+    </MemoryRouter>
   );
 }
 

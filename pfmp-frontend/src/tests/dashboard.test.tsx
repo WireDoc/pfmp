@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import { render, screen, act, fireEvent, waitFor, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { OnboardingProvider } from '../onboarding/OnboardingContext';
 import { AuthProvider } from '../contexts/AuthContext';
 import Dashboard from '../views/Dashboard';
@@ -23,11 +24,13 @@ function renderDashboard() {
     updateFlags({ enableDashboardWave4: true, onboarding_persistence_enabled: false, dashboard_wave4_real_data: false });
   });
   return render(
+    <MemoryRouter>
     <AuthProvider>
       <OnboardingProvider testCompleteAll skipAutoHydrate>
         <Dashboard />
       </OnboardingProvider>
     </AuthProvider>
+    </MemoryRouter>
   );
 }
 
@@ -85,11 +88,13 @@ function renderDashboardWithRealData({ summary, alerts, advice, tasks }: ApiFixt
     return Promise.reject(new Error('No fetch available'));
   });
   return render(
+    <MemoryRouter>
     <AuthProvider>
       <OnboardingProvider testCompleteAll skipAutoHydrate>
         <Dashboard />
       </OnboardingProvider>
     </AuthProvider>
+    </MemoryRouter>
   );
 }
 
@@ -302,11 +307,13 @@ describe('Dashboard direct component render', () => {
     );
 
     render(
+      <MemoryRouter>
       <AuthProvider>
         <OnboardingProvider testCompleteAll skipAutoHydrate>
           <Dashboard />
         </OnboardingProvider>
       </AuthProvider>
+      </MemoryRouter>
     );
 
     expect(await screen.findByText('Failed to load dashboard data')).toBeInTheDocument();

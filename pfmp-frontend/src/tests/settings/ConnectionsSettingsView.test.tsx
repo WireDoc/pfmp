@@ -29,9 +29,6 @@ vi.mock('../../services/plaidApi', () => ({
 
 // Mock Plaid components
 vi.mock('../../components/plaid', () => ({
-  PlaidLinkButton: ({ onSuccess }: { onSuccess: () => void }) => (
-    <button onClick={onSuccess} data-testid="plaid-link-button">Link Bank Account</button>
-  ),
   PlaidUnifiedLinkButton: ({ onSuccess }: { onSuccess: () => void }) => (
     <button onClick={onSuccess} data-testid="plaid-unified-link-button">Link New Account</button>
   ),

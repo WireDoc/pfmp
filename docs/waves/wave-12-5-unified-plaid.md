@@ -1,6 +1,6 @@
 # Wave 12.5: Unified Plaid Account Linking
 
-> **Status**: Phase 4 Complete - Phase 5 In Progress
+> **Status**: Phase 5 In Progress - Bug Fixes Complete
 > **Target**: Q1 2026
 > **Priority**: High
 > **Prerequisites**: Wave 12 Complete ✅
@@ -376,6 +376,14 @@ SELECT DISTINCT UserId FROM "AccountConnections" WHERE "PlaidItemId" IS NOT NULL
 - [ ] 5.4 Test mortgage → property linking
 - [x] 5.5 Update documentation (wave-12-5-testing-guide.md created)
 - [ ] 5.6 Clean up test data, final validation
+
+### Phase 5 Bug Fixes & Improvements (Feb 2026)
+- [x] **BUG: Unified linker skipped bank account creation** — `SyncUnifiedConnectionAsync` called `SyncTransactionsAsync` but never `FetchAndSyncAccountsAsync`, so CashAccount records were never created for depository accounts. Fixed by adding `FetchAndSyncAccountsAsync` before transaction sync.
+- [x] **BUG: Duplicate mortgage in Liabilities panel** — `DashboardController` built liabilities from both `LiabilityAccounts` and `Properties` with `MortgageBalance > 0`. When Plaid synced a mortgage, it created both a LiabilityAccount and a linked Property, causing double-count. Fixed by filtering `!LinkedMortgageLiabilityId.HasValue` in the property-mortgage query.
+- [x] **BUG: Missing credit card (Plaid Business Credit Card)** — Plaid's `/liabilities/get` only returns detailed liability data for some credit cards. Accounts that appear in the accounts list but not in `liabilities.Credit` were silently dropped. Fixed by adding a fallback in `SyncLiabilitiesAsync` that creates `LiabilityAccount` records from account-level data for any credit-type accounts without detailed liability entries.
+- [x] **Simplification: Removed per-type Plaid link buttons** — Replaced all `PlaidLinkButton` and `PlaidInvestmentsLinkButton` usages with `PlaidUnifiedLinkButton`. Removed per-type link buttons from ConnectionsSettingsView tab empty states. Merged "Bank Accounts" and "Investment Accounts" settings nav into single "Connected Accounts" link. Removed `/settings/investments` route. Cleaned up barrel exports.
+- [x] **UX: Read-only synced fields in edit dialogs** — For Plaid-linked accounts, synced fields (balance, institution, account type, account number) are disabled with helper text indicating they are managed by Plaid sync. Local-only fields (nickname, purpose, emergency fund flag, interest rate) remain editable. Prevents user confusion when manual edits get overwritten on next sync.
+- [x] **Test infrastructure: Fixed stale test imports** — 3 test files referenced removed `DashboardWave4` component; updated to use `Dashboard`. Added `MemoryRouter` wrappers to `dashboard.test.tsx`, `propertiesPanel.test.tsx`, and `dashboardAlertsToTasks.integration.test.tsx`. Added MSW handler for `/api/dashboard/net-worth/sparkline` endpoint. All 54 frontend test files (289 tests) now pass.
 
 ---
 

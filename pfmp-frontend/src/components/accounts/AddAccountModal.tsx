@@ -13,7 +13,7 @@ import {
   Divider,
 } from '@mui/material';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
-import { PlaidLinkButton } from '../plaid';
+import { PlaidUnifiedLinkButton } from '../plaid';
 
 interface Props {
   open: boolean;
@@ -181,7 +181,7 @@ export function AddAccountModal({ open, userId, onClose, onSave, onLinkSuccess }
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
               <AccountBalanceIcon color="primary" />
               <Typography variant="subtitle1" fontWeight="medium">
-                Link Your Bank
+                Link Your Accounts
               </Typography>
               <Typography
                 variant="caption"
@@ -198,13 +198,13 @@ export function AddAccountModal({ open, userId, onClose, onSave, onLinkSuccess }
               </Typography>
             </Box>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Automatically sync your checking, savings, and money market account balances.
+              Automatically sync bank accounts, investments, credit cards, and loans via Plaid.
             </Typography>
-            <PlaidLinkButton
+            <PlaidUnifiedLinkButton
               userId={userId}
               variant="contained"
               size="medium"
-              buttonText="Link Bank Account"
+              buttonText="Link Account"
               fullWidth
               onSuccess={() => {
                 onLinkSuccess?.();

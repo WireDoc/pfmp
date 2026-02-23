@@ -42,6 +42,7 @@ const accountTypes = [
 
 export function CashAccountModal({ open, userId, account, onClose, onSave, onDelete }: Props) {
   const isEditMode = !!account;
+  const isLinked = isEditMode && !!account?.source && account.source > 0;
 
   const [formData, setFormData] = useState({
     institution: account?.institution || '',
@@ -223,6 +224,11 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
       </DialogTitle>
       <DialogContent>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+          {isLinked && (
+            <Alert severity="info" variant="outlined">
+              This account is linked via Plaid. Synced fields are read-only and updated automatically.
+            </Alert>
+          )}
           {saveError && (
             <Alert severity="error" onClose={() => setSaveError(null)}>
               {saveError}
@@ -234,10 +240,10 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
             value={formData.institution}
             onChange={(e) => handleChange('institution', e.target.value)}
             error={!!errors.institution}
-            helperText={errors.institution || 'e.g., "Chase", "Navy Federal", "Ally Bank"'}
+            helperText={isLinked ? 'Managed by Plaid sync' : (errors.institution || 'e.g., "Chase", "Navy Federal", "Ally Bank"')}
             required
             fullWidth
-            disabled={saving}
+            disabled={saving || isLinked}
           />
 
           <TextField
@@ -255,10 +261,10 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
             value={formData.accountType}
             onChange={(e) => handleChange('accountType', e.target.value)}
             error={!!errors.accountType}
-            helperText={errors.accountType}
+            helperText={isLinked ? 'Managed by Plaid sync' : errors.accountType}
             required
             fullWidth
-            disabled={saving}
+            disabled={saving || isLinked}
           >
             {accountTypes.map((type) => (
               <MenuItem key={type.value} value={type.value}>
@@ -271,18 +277,18 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
             label="Account Number (Optional)"
             value={formData.accountNumber}
             onChange={(e) => handleChange('accountNumber', e.target.value)}
-            helperText="Last 4 digits or full account number"
+            helperText={isLinked ? 'Managed by Plaid sync' : 'Last 4 digits or full account number'}
             fullWidth
-            disabled={saving}
+            disabled={saving || isLinked}
           />
 
           <TextField
             label="Routing Number (Optional)"
             value={formData.routingNumber}
             onChange={(e) => handleChange('routingNumber', e.target.value)}
-            helperText="9-digit bank routing number"
+            helperText={isLinked ? 'Managed by Plaid sync' : '9-digit bank routing number'}
             fullWidth
-            disabled={saving}
+            disabled={saving || isLinked}
             inputProps={{ maxLength: 9 }}
           />
 
@@ -292,10 +298,10 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
             value={formData.balance}
             onChange={(e) => handleChange('balance', parseFloat(e.target.value) || 0)}
             error={!!errors.balance}
-            helperText={errors.balance}
+            helperText={isLinked ? 'Updated automatically by Plaid sync' : errors.balance}
             required
             fullWidth
-            disabled={saving}
+            disabled={saving || isLinked}
             inputProps={{ min: 0, step: 0.01 }}
           />
 

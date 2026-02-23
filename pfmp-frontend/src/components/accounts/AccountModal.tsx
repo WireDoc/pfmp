@@ -55,6 +55,7 @@ const accountTypes = [
 ];
 
 export function AccountModal({ open, account, onClose, onSave, onDelete }: Props) {
+  const isLinked = !!account?.source && account.source > 0;
   const [formData, setFormData] = useState({
     name: account?.accountName || '',
     institution: account?.institution || '',
@@ -184,6 +185,11 @@ export function AccountModal({ open, account, onClose, onSave, onDelete }: Props
       </DialogTitle>
 
       <DialogContent>
+        {isLinked && (
+          <Alert severity="info" variant="outlined" sx={{ mb: 2 }}>
+            This account is linked via Plaid. Synced fields are read-only and updated automatically.
+          </Alert>
+        )}
         {saveError && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {saveError}
@@ -196,10 +202,10 @@ export function AccountModal({ open, account, onClose, onSave, onDelete }: Props
             value={formData.name}
             onChange={(e) => handleChange('name', e.target.value)}
             error={!!errors.name}
-            helperText={errors.name || 'e.g., "Taxable Brokerage", "Roth IRA"'}
+            helperText={isLinked ? 'Managed by Plaid sync' : (errors.name || 'e.g., "Taxable Brokerage", "Roth IRA"')}
             required
             fullWidth
-            disabled={saving}
+            disabled={saving || isLinked}
           />
 
           <TextField
@@ -207,10 +213,10 @@ export function AccountModal({ open, account, onClose, onSave, onDelete }: Props
             value={formData.institution}
             onChange={(e) => handleChange('institution', e.target.value)}
             error={!!errors.institution}
-            helperText={errors.institution || 'e.g., "Vanguard", "Fidelity", "Charles Schwab"'}
+            helperText={isLinked ? 'Managed by Plaid sync' : (errors.institution || 'e.g., "Vanguard", "Fidelity", "Charles Schwab"')}
             required
             fullWidth
-            disabled={saving}
+            disabled={saving || isLinked}
           />
 
           <TextField
@@ -219,10 +225,10 @@ export function AccountModal({ open, account, onClose, onSave, onDelete }: Props
             value={formData.type}
             onChange={(e) => handleChange('type', e.target.value)}
             error={!!errors.type}
-            helperText={errors.type}
+            helperText={isLinked ? 'Managed by Plaid sync' : errors.type}
             required
             fullWidth
-            disabled={saving}
+            disabled={saving || isLinked}
           >
             {accountTypes.map((option) => (
               <MenuItem key={option.value} value={option.value}>
@@ -237,10 +243,10 @@ export function AccountModal({ open, account, onClose, onSave, onDelete }: Props
             value={formData.balance}
             onChange={(e) => handleChange('balance', parseFloat(e.target.value) || 0)}
             error={!!errors.balance}
-            helperText={errors.balance || 'Current account balance'}
+            helperText={isLinked ? 'Updated automatically by Plaid sync' : (errors.balance || 'Current account balance')}
             required
             fullWidth
-            disabled={saving}
+            disabled={saving || isLinked}
             inputProps={{ min: 0, step: 0.01 }}
           />
 
@@ -248,9 +254,9 @@ export function AccountModal({ open, account, onClose, onSave, onDelete }: Props
             label="Account Number (Optional)"
             value={formData.accountNumber}
             onChange={(e) => handleChange('accountNumber', e.target.value)}
-            helperText="Last 4 digits only (e.g., 1234)"
+            helperText={isLinked ? 'Managed by Plaid sync' : 'Last 4 digits only (e.g., 1234)'}
             fullWidth
-            disabled={saving}
+            disabled={saving || isLinked}
           />
 
           <TextField

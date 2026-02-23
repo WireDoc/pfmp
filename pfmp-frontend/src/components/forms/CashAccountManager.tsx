@@ -36,7 +36,7 @@ import {
   TrendingDown,
 } from '@mui/icons-material';
 import type { Account } from '../../services/api';
-import { PlaidLinkButton } from '../plaid';
+import { PlaidUnifiedLinkButton } from '../plaid';
 import { AccountType, AccountCategory, accountService } from '../../services/api';
 
 interface CashAccountManagerProps {
@@ -287,11 +287,11 @@ export const CashAccountManager: React.FC<CashAccountManagerProps> = ({ userId, 
         subheader={`${cashAccounts.length} accounts | Total: $${optimizationData?.totalCash?.toLocaleString() || '0'}`}
         action={
           <Box display="flex" gap={1} alignItems="center">
-            <PlaidLinkButton 
+            <PlaidUnifiedLinkButton 
               userId={userId}
               variant="outlined"
               size="medium"
-              buttonText="Link Bank"
+              buttonText="Link Account"
               onSuccess={() => {
                 loadCashAccounts();
                 if (onUpdate) onUpdate();

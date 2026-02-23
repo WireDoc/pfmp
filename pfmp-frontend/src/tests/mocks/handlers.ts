@@ -61,6 +61,7 @@ const financialProfileInsuranceMatcher = /\/financial-profile\/\d+\/insurance(?:
 const financialProfileBenefitsMatcher = /\/financial-profile\/\d+\/benefits(?:\?.*)?$/;
 const financialProfileIncomeMatcher = /\/financial-profile\/\d+\/income(?:\?.*)?$/;
 const financialProfileEquityMatcher = /\/financial-profile\/\d+\/equity(?:\?.*)?$/;
+const netWorthSparklineMatcher = /\/api\/dashboard\/net-worth\/sparkline(?:\?.*)?$/i;
 
 const createDashboardSummaryHandlers = (
   resolver: Parameters<typeof http.get>[1],
@@ -163,6 +164,8 @@ export const defaultHandlers = [
   ...createSectionHandlers(financialProfileBenefitsMatcher, { benefits: [] }),
   ...createSectionHandlers(financialProfileIncomeMatcher, { streams: [] }),
   ...createSectionHandlers(financialProfileEquityMatcher),
+  http.get(netWorthSparklineMatcher, () => HttpResponse.json([], { status: 200 })),
+  http.options(netWorthSparklineMatcher, () => new HttpResponse(null, { status: 204 })),
 ];
 
 export const mockDashboardSummary = (data: JsonValue, init?: ResponseInit) =>

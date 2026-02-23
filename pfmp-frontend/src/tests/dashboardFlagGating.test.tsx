@@ -5,12 +5,12 @@ import { render, screen, act } from '@testing-library/react';
 import { OnboardingProvider } from '../onboarding/OnboardingContext';
 import { updateFlags, getFeatureFlags } from '../flags/featureFlags';
 import { AuthProvider } from '../contexts/AuthContext';
-import DashboardWave4 from '../views/DashboardWave4';
+import Dashboard from '../views/Dashboard';
 import DashboardPage from '../views/DashboardPage';
 
 function DashboardRoute() {
   const flags = getFeatureFlags();
-  return flags.enableDashboardWave4 ? <DashboardWave4 /> : <Navigate to="/" replace />;
+  return flags.enableDashboardWave4 ? <Dashboard /> : <Navigate to="/" replace />;
 }
 
 function Harness({ initialPath }: { initialPath: string }) {

@@ -308,6 +308,11 @@ namespace PFMP_API.Services.Plaid
                 {
                     try
                     {
+                        // Ensure bank accounts (CashAccounts) exist before syncing transactions.
+                        // FetchAndSyncAccountsAsync creates/updates CashAccount records from Plaid;
+                        // SyncTransactionsAsync only processes transactions for existing accounts.
+                        await _plaidService.FetchAndSyncAccountsAsync(connectionId);
+
                         var txResult = await _plaidService.SyncTransactionsAsync(connectionId);
                         result.TransactionsSynced = txResult.Success;
                         result.TransactionsCount = txResult.TransactionsAdded;

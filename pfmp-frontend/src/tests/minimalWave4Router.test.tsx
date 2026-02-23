@@ -5,7 +5,7 @@ import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from '../contexts/AuthContext';
 import { OnboardingProvider } from '../onboarding/OnboardingContext';
 import { updateFlags } from '../flags/featureFlags';
-import DashboardWave4 from '../views/DashboardWave4';
+import Dashboard from '../views/Dashboard';
 
 const futureConfig = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
 
@@ -15,7 +15,7 @@ function renderMinimal(path: string) {
       <OnboardingProvider testCompleteAll skipAutoHydrate>
         <MemoryRouter initialEntries={[path]} future={futureConfig}>
           <Routes>
-            <Route path="/dashboard" element={<DashboardWave4 />} />
+            <Route path="/dashboard" element={<Dashboard />} />
           </Routes>
         </MemoryRouter>
       </OnboardingProvider>
