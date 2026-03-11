@@ -263,24 +263,59 @@ namespace PFMP_API.Services.Plaid
                     result.CreditCardsUpdated++;
                 }
 
-                // Process mortgages
+                // Process mortgages from detailed liability data
+                var processedMortgageAccountIds = new HashSet<string>();
                 if (liabilities.Mortgage != null)
                 {
                     foreach (var mortgage in liabilities.Mortgage)
                     {
                         await UpsertMortgageAsync(connection.UserId, connection.PlaidItemId!, mortgage, accounts);
+                        if (mortgage.AccountId != null)
+                            processedMortgageAccountIds.Add(mortgage.AccountId);
                         result.MortgagesUpdated++;
                     }
                 }
 
-                // Process student loans
+                // Also create records for mortgage-type accounts that Plaid returned
+                // but didn't include in the detailed liabilities.Mortgage array
+                // (common with custom sandbox users)
+                var mortgageAccounts = accounts
+                    .Where(a => a.Type == Going.Plaid.Entity.AccountType.Loan
+                                && a.Subtype == Going.Plaid.Entity.AccountSubtype.Mortgage
+                                && !processedMortgageAccountIds.Contains(a.AccountId))
+                    .ToList();
+
+                foreach (var mortgageAccount in mortgageAccounts)
+                {
+                    await UpsertMortgageFromAccountAsync(connection.UserId, connection.PlaidItemId!, mortgageAccount);
+                    result.MortgagesUpdated++;
+                }
+
+                // Process student loans from detailed liability data
+                var processedStudentLoanAccountIds = new HashSet<string>();
                 if (liabilities.Student != null)
                 {
                     foreach (var studentLoan in liabilities.Student)
                     {
                         await UpsertStudentLoanAsync(connection.UserId, connection.PlaidItemId!, studentLoan, accounts);
+                        if (studentLoan.AccountId != null)
+                            processedStudentLoanAccountIds.Add(studentLoan.AccountId);
                         result.StudentLoansUpdated++;
                     }
+                }
+
+                // Also create records for student-loan-type accounts that Plaid returned
+                // but didn't include in the detailed liabilities.Student array
+                var studentLoanAccounts = accounts
+                    .Where(a => a.Type == Going.Plaid.Entity.AccountType.Loan
+                                && a.Subtype == Going.Plaid.Entity.AccountSubtype.Student
+                                && !processedStudentLoanAccountIds.Contains(a.AccountId))
+                    .ToList();
+
+                foreach (var studentLoanAccount in studentLoanAccounts)
+                {
+                    await UpsertStudentLoanFromAccountAsync(connection.UserId, connection.PlaidItemId!, studentLoanAccount);
+                    result.StudentLoansUpdated++;
                 }
 
                 // Update connection sync timestamp
@@ -639,6 +674,88 @@ namespace PFMP_API.Services.Plaid
 
             _logger.LogInformation(
                 "Upserted credit card from account data: {AccountName} (balance: {Balance})",
+                existing.Lender, existing.CurrentBalance);
+
+            await _dbContext.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Creates/updates a mortgage liability from account-level data only,
+        /// when Plaid doesn't return detailed liability info for the account.
+        /// </summary>
+        private async Task UpsertMortgageFromAccountAsync(
+            int userId,
+            string itemId,
+            Going.Plaid.Entity.Account account)
+        {
+            var accountId = account.AccountId;
+
+            var existing = await _dbContext.LiabilityAccounts
+                .FirstOrDefaultAsync(l => l.PlaidAccountId == accountId && l.UserId == userId);
+
+            if (existing == null)
+            {
+                existing = new LiabilityAccount
+                {
+                    UserId = userId,
+                    LiabilityType = "mortgage",
+                    Source = AccountSource.PlaidMortgage,
+                    PlaidItemId = itemId,
+                    PlaidAccountId = accountId,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _dbContext.LiabilityAccounts.Add(existing);
+            }
+
+            existing.Lender = account.Name ?? account.OfficialName ?? "Mortgage";
+            existing.CurrentBalance = (decimal)(account.Balances?.Current ?? 0);
+            existing.SyncStatus = "synced";
+            existing.LastSyncedAt = DateTime.UtcNow;
+            existing.UpdatedAt = DateTime.UtcNow;
+
+            _logger.LogInformation(
+                "Upserted mortgage from account data: {AccountName} (balance: {Balance})",
+                existing.Lender, existing.CurrentBalance);
+
+            await _dbContext.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Creates/updates a student loan liability from account-level data only,
+        /// when Plaid doesn't return detailed liability info for the account.
+        /// </summary>
+        private async Task UpsertStudentLoanFromAccountAsync(
+            int userId,
+            string itemId,
+            Going.Plaid.Entity.Account account)
+        {
+            var accountId = account.AccountId;
+
+            var existing = await _dbContext.LiabilityAccounts
+                .FirstOrDefaultAsync(l => l.PlaidAccountId == accountId && l.UserId == userId);
+
+            if (existing == null)
+            {
+                existing = new LiabilityAccount
+                {
+                    UserId = userId,
+                    LiabilityType = "student_loan",
+                    Source = AccountSource.PlaidStudentLoan,
+                    PlaidItemId = itemId,
+                    PlaidAccountId = accountId,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _dbContext.LiabilityAccounts.Add(existing);
+            }
+
+            existing.Lender = account.Name ?? account.OfficialName ?? "Student Loan";
+            existing.CurrentBalance = (decimal)(account.Balances?.Current ?? 0);
+            existing.SyncStatus = "synced";
+            existing.LastSyncedAt = DateTime.UtcNow;
+            existing.UpdatedAt = DateTime.UtcNow;
+
+            _logger.LogInformation(
+                "Upserted student loan from account data: {AccountName} (balance: {Balance})",
                 existing.Lender, existing.CurrentBalance);
 
             await _dbContext.SaveChangesAsync();

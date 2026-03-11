@@ -23,33 +23,29 @@ public class DevUsersController : ControllerBase
         if (!_env.IsDevelopment()) return NotFound();
         var reg = DevUserRegistry.GetAll();
 
-        // DB fallback: if registry is empty (fresh server boot without seeding), populate from Users
-        if (reg.Count == 0)
-        {
-            // Pull a small set of clearly dev/test users
-            var candidates = _db.Users
-                .AsNoTracking()
-                .Where(u => u.IsTestAccount || u.BypassAuthentication)
-                .OrderBy(u => u.UserId)
-                .Select(u => new { u.UserId, u.Email })
-                .Take(20)
-                .ToList();
+        // Merge any DB test users not yet in the in-memory registry (e.g. created via admin endpoint or direct DB insert)
+        var candidates = _db.Users
+            .AsNoTracking()
+            .Where(u => u.IsTestAccount || u.BypassAuthentication)
+            .OrderBy(u => u.UserId)
+            .Select(u => new { u.UserId, u.Email })
+            .Take(50)
+            .ToList();
 
-            foreach (var c in candidates)
-            {
-                DevUserRegistry.Register(c.UserId, c.Email);
-            }
-            if (candidates.Count > 0)
-            {
-                // If default points to a non-registered id, set it to the lowest candidate
-                var currentDefault = DevUserRegistry.DefaultTestUserId;
-                if (!DevUserRegistry.GetAll().ContainsKey(currentDefault))
-                {
-                    DevUserRegistry.SetDefault(candidates.First().UserId);
-                }
-            }
-            reg = DevUserRegistry.GetAll();
+        foreach (var c in candidates)
+        {
+            DevUserRegistry.Register(c.UserId, c.Email);
         }
+        if (reg.Count == 0 && candidates.Count > 0)
+        {
+            // If default points to a non-registered id, set it to the lowest candidate
+            var currentDefault = DevUserRegistry.DefaultTestUserId;
+            if (!DevUserRegistry.GetAll().ContainsKey(currentDefault))
+            {
+                DevUserRegistry.SetDefault(candidates.First().UserId);
+            }
+        }
+        reg = DevUserRegistry.GetAll();
 
         var users = reg.Select(kv => new { userId = kv.Key, email = kv.Value, isDefault = kv.Key == DevUserRegistry.DefaultTestUserId });
         return Ok(new { defaultUserId = DevUserRegistry.DefaultTestUserId, users });
