@@ -34,16 +34,16 @@ export interface NewAccountData {
 }
 
 const accountTypes = [
-  'Checking',
-  'Savings',
-  'Credit Card',
-  'Investment',
-  'IRA',
-  '401k',
-  'TSP',
-  'Brokerage',
-  'Real Estate',
-  'Other',
+  { label: 'Checking', value: 'Checking' },
+  { label: 'Savings', value: 'Savings' },
+  { label: 'Brokerage', value: 'Brokerage' },
+  { label: 'IRA', value: 'RetirementAccountIRA' },
+  { label: 'Roth IRA', value: 'RetirementAccountRoth' },
+  { label: '401k', value: 'RetirementAccount401k' },
+  { label: 'TSP', value: 'TSP' },
+  { label: 'HSA', value: 'HSA' },
+  { label: 'Real Estate', value: 'RealEstate' },
+  { label: 'Other', value: 'Other' },
 ];
 
 /**
@@ -253,8 +253,8 @@ export function AddAccountModal({ open, userId, onClose, onSave, onLinkSuccess }
             disabled={saving}
           >
             {accountTypes.map((type) => (
-              <MenuItem key={type} value={type}>
-                {type}
+              <MenuItem key={type.value} value={type.value}>
+                {type.label}
               </MenuItem>
             ))}
           </TextField>

@@ -41,10 +41,25 @@ export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefres
     setAddAccountModalOpen(true);
   };
 
+  const cashAccountTypes = ['Checking', 'Savings', 'Money Market', 'Certificate of Deposit'];
+
   const handleCreateAccount = async (accountData: NewAccountData) => {
     try {
-      const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api';
-      await axios.post(`${apiBase}/accounts`, accountData);
+      if (cashAccountTypes.includes(accountData.type)) {
+        // Cash-type accounts go to CashAccounts table
+        await createCashAccount({
+          userId: accountData.userId,
+          institution: accountData.institution,
+          nickname: accountData.name,
+          accountType: accountData.type.toLowerCase().replace(/ /g, '_'),
+          balance: accountData.balance,
+          purpose: accountData.purpose,
+        });
+      } else {
+        // Investment/other accounts go to Accounts table
+        const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api';
+        await axios.post(`${apiBase}/accounts`, accountData);
+      }
       setAddAccountModalOpen(false);
       if (onRefresh) {
         onRefresh();

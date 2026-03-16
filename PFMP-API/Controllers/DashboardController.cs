@@ -358,6 +358,7 @@ public class DashboardController : ControllerBase
             .SelectMany(a => a.Holdings ?? Enumerable.Empty<Holding>())
             .Where(h => !string.IsNullOrWhiteSpace(h.Symbol))
             .Where(h => !IsTspFund(h.Symbol)) // TSP funds use separate job
+            .Where(h => h.Symbol != "$CASH") // Cash is always $1.00, no FMP lookup needed
             .Where(h => h.LastPriceUpdate == null || h.LastPriceUpdate < staleThreshold)
             .ToList();
 
