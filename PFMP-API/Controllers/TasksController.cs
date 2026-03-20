@@ -254,6 +254,17 @@ namespace PFMP_API.Controllers
                     task.CompletionNotes = request.CompletionNotes;
                 }
 
+                // Auto-dismiss the source alert when follow-up task is completed
+                if (task.SourceAlertId.HasValue)
+                {
+                    var sourceAlert = await _context.Alerts.FindAsync(task.SourceAlertId.Value);
+                    if (sourceAlert != null && !sourceAlert.IsDismissed)
+                    {
+                        sourceAlert.IsDismissed = true;
+                        _logger.LogInformation("Auto-dismissed alert {AlertId} after task {TaskId} completed", sourceAlert.AlertId, id);
+                    }
+                }
+
                 await _context.SaveChangesAsync();
 
                 // Return the updated task with navigation properties

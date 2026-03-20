@@ -15,11 +15,12 @@ import {
   TaskAlt as TaskIcon,
   CheckCircleOutline as SuccessIcon,
 } from '@mui/icons-material';
-import type { AlertCard } from '../../services/dashboard';
+import type { AlertCard, TaskItem } from '../../services/dashboard';
 
 interface AlertsPanelProps {
   alerts: AlertCard[];
   loading: boolean;
+  tasks?: TaskItem[];
   onCreateTask?: (alert: AlertCard) => void;
 }
 
@@ -32,7 +33,7 @@ const severityMeta = {
   Critical: { color: 'error', Icon: ErrorIcon },
 } satisfies Record<AlertCard['severity'], { color: ChipColor; Icon: typeof SuccessIcon }>;
 
-export function AlertsPanel({ alerts, loading, onCreateTask }: AlertsPanelProps) {
+export function AlertsPanel({ alerts, loading, tasks = [], onCreateTask }: AlertsPanelProps) {
   if (loading && alerts.length === 0) {
     return <Typography variant="body2">Loading alerts…</Typography>;
   }
@@ -87,18 +88,42 @@ export function AlertsPanel({ alerts, loading, onCreateTask }: AlertsPanelProps)
                 <Typography variant="caption" color="text.disabled">
                   {new Date(alert.createdAt).toLocaleString()}
                 </Typography>
-                {actionable && onCreateTask && (
-                  <Tooltip title="Create a follow-up task to track this alert">
-                    <Button
-                      size="small"
-                      variant="contained"
-                      endIcon={<TaskIcon fontSize="small" />}
-                      onClick={() => onCreateTask(alert)}
-                    >
-                      Create follow-up task
-                    </Button>
-                  </Tooltip>
-                )}
+                {(() => {
+                  const linkedTask = tasks.find(t => t.sourceAlertId === alert.alertId);
+                  if (linkedTask) {
+                    const statusLabel =
+                      linkedTask.status === 'Completed' ? 'Follow-up task completed' :
+                      linkedTask.status === 'InProgress' ? 'Follow-up task in progress' :
+                      linkedTask.status === 'Dismissed' ? 'Follow-up task dismissed' :
+                      'Follow-up task created';
+                    return (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color={linkedTask.status === 'Completed' ? 'success' : 'info'}
+                        disabled
+                        endIcon={<TaskIcon fontSize="small" />}
+                      >
+                        {statusLabel}
+                      </Button>
+                    );
+                  }
+                  if (actionable && onCreateTask) {
+                    return (
+                      <Tooltip title="Create a follow-up task to track this alert">
+                        <Button
+                          size="small"
+                          variant="contained"
+                          endIcon={<TaskIcon fontSize="small" />}
+                          onClick={() => onCreateTask(alert)}
+                        >
+                          Create follow-up task
+                        </Button>
+                      </Tooltip>
+                    );
+                  }
+                  return null;
+                })()}
               </Box>
             </Box>
             {idx < Math.min(alerts.length, 5) - 1 && <Divider flexItem light />}

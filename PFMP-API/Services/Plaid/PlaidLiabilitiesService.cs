@@ -81,6 +81,7 @@ namespace PFMP_API.Services.Plaid
         private readonly ICredentialEncryptionService _encryption;
         private readonly ILogger<PlaidLiabilitiesService> _logger;
         private readonly IConfiguration _configuration;
+        private readonly ICreditAlertService _creditAlertService;
         private readonly string _clientId;
         private readonly string _secret;
 
@@ -88,12 +89,14 @@ namespace PFMP_API.Services.Plaid
             ApplicationDbContext dbContext,
             ICredentialEncryptionService encryption,
             ILogger<PlaidLiabilitiesService> logger,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            ICreditAlertService creditAlertService)
         {
             _dbContext = dbContext;
             _encryption = encryption;
             _logger = logger;
             _configuration = configuration;
+            _creditAlertService = creditAlertService;
 
             // Load Plaid configuration
             _clientId = configuration["Plaid:ClientId"] ?? throw new InvalidOperationException("Plaid:ClientId not configured");
@@ -326,6 +329,20 @@ namespace PFMP_API.Services.Plaid
                 _logger.LogInformation(
                     "Liabilities sync complete: {CreditCards} credit cards, {Mortgages} mortgages, {StudentLoans} student loans",
                     result.CreditCardsUpdated, result.MortgagesUpdated, result.StudentLoansUpdated);
+
+                // Auto-generate credit alerts after successful sync
+                if (result.CreditCardsUpdated > 0)
+                {
+                    try
+                    {
+                        var alerts = await _creditAlertService.GenerateCreditAlertsAsync(connection.UserId);
+                        _logger.LogInformation("Generated {AlertCount} credit alerts for user {UserId}", alerts.Count, connection.UserId);
+                    }
+                    catch (Exception alertEx)
+                    {
+                        _logger.LogWarning(alertEx, "Failed to generate credit alerts for user {UserId} (non-fatal)", connection.UserId);
+                    }
+                }
             }
             catch (Exception ex)
             {

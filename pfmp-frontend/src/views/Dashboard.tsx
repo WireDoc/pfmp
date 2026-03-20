@@ -779,7 +779,7 @@ export const Dashboard: React.FC = () => {
             {loading ? (
               <Skeleton variant="rectangular" height={140} />
             ) : (
-              <AlertsPanel alerts={alerts} loading={loading} onCreateTask={handleCreateTaskFromAlert} />
+              <AlertsPanel alerts={alerts} loading={loading} tasks={tasks} onCreateTask={handleCreateTaskFromAlert} />
             )}
           </Paper>
         </Grid>

@@ -129,7 +129,7 @@ function generateData(): DashboardData {
         createdDate: now,
         dueDate: null,
         sourceAdviceId: 101,
-        sourceAlertId: 42,
+        sourceAlertId: null,
         progressPercentage: 0,
         confidenceScore: 70,
       },

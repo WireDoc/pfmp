@@ -66,9 +66,11 @@ public class CreditAlertService : ICreditAlertService
     {
         var alerts = new List<Alert>();
 
-        var creditCards = await _context.LiabilityAccounts
-            .Where(la => la.UserId == userId && la.LiabilityType == "credit")
+        var allLiabilities = await _context.LiabilityAccounts
+            .Where(la => la.UserId == userId)
             .ToListAsync();
+
+        var creditCards = allLiabilities.Where(la => la.IsCreditCard).ToList();
 
         if (!creditCards.Any())
             return alerts;

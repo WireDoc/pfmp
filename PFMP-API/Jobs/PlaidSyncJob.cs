@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Hangfire;
 using PFMP_API.Services.Plaid;
 using Microsoft.EntityFrameworkCore;
@@ -6,8 +7,9 @@ using PFMP_API.Models.Plaid;
 namespace PFMP_API.Jobs
 {
     /// <summary>
-    /// Hangfire background job for syncing Plaid account balances and investments.
+    /// Hangfire background job for syncing Plaid account balances, investments, and liabilities.
     /// Scheduled to run daily at 10 PM ET to capture end-of-day balances.
+    /// Liabilities sync also triggers credit alert generation (overdue, high utilization).
     /// </summary>
     public class PlaidSyncJob
     {
@@ -34,6 +36,7 @@ namespace PFMP_API.Jobs
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var plaidService = scope.ServiceProvider.GetRequiredService<IPlaidService>();
             var investmentsService = scope.ServiceProvider.GetRequiredService<IPlaidInvestmentsService>();
+            var liabilitiesService = scope.ServiceProvider.GetRequiredService<IPlaidLiabilitiesService>();
 
             // Get all active connections
             var connections = await db.AccountConnections
@@ -46,6 +49,8 @@ namespace PFMP_API.Jobs
             int failureCount = 0;
             int investmentSuccessCount = 0;
             int investmentFailureCount = 0;
+            int liabilitiesSuccessCount = 0;
+            int liabilitiesFailureCount = 0;
 
             foreach (var connection in connections)
             {
@@ -116,6 +121,36 @@ namespace PFMP_API.Jobs
                                 connection.ConnectionId, result.ErrorMessage);
                         }
                     }
+
+                    // Sync liabilities if the connection has the liabilities product enabled
+                    // (runs independently of cash/investment sync — a connection can have multiple products)
+                    var products = ParseProducts(connection.Products);
+                    if (products.Contains("liabilities"))
+                    {
+                        try
+                        {
+                            var liabResult = await liabilitiesService.SyncLiabilitiesAsync(connection.ConnectionId);
+                            if (liabResult.Success)
+                            {
+                                liabilitiesSuccessCount++;
+                                _logger.LogDebug(
+                                    "Synced liabilities for {ConnectionId}: CC={CreditCards}, Mortgage={Mortgages}, StudentLoan={StudentLoans}",
+                                    connection.ConnectionId, liabResult.CreditCardsUpdated,
+                                    liabResult.MortgagesUpdated, liabResult.StudentLoansUpdated);
+                            }
+                            else
+                            {
+                                liabilitiesFailureCount++;
+                                _logger.LogWarning("Liabilities sync failed for {ConnectionId}: {Error}",
+                                    connection.ConnectionId, liabResult.ErrorMessage);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            liabilitiesFailureCount++;
+                            _logger.LogError(ex, "Exception syncing liabilities for {ConnectionId}", connection.ConnectionId);
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -126,8 +161,9 @@ namespace PFMP_API.Jobs
 
             var duration = DateTime.UtcNow - startTime;
             _logger.LogInformation(
-                "Plaid sync job completed in {Duration}ms. Cash: {CashSuccess}/{CashFailed}, Investments: {InvSuccess}/{InvFailed}",
-                duration.TotalMilliseconds, successCount, failureCount, investmentSuccessCount, investmentFailureCount);
+                "Plaid sync job completed in {Duration}ms. Cash: {CashSuccess}/{CashFailed}, Investments: {InvSuccess}/{InvFailed}, Liabilities: {LiabSuccess}/{LiabFailed}",
+                duration.TotalMilliseconds, successCount, failureCount, investmentSuccessCount, investmentFailureCount,
+                liabilitiesSuccessCount, liabilitiesFailureCount);
         }
 
         /// <summary>
@@ -178,6 +214,23 @@ namespace PFMP_API.Jobs
             {
                 _logger.LogWarning("Some connections failed to sync for user {UserId}: {Error}",
                     userId, result.ErrorMessage);
+            }
+        }
+
+        private static List<string> ParseProducts(string? productsJson)
+        {
+            if (string.IsNullOrEmpty(productsJson))
+                return ["transactions"];
+
+            try
+            {
+                return JsonSerializer.Deserialize<List<string>>(productsJson) ?? ["transactions"];
+            }
+            catch
+            {
+                return productsJson.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(p => p.Trim())
+                    .ToList();
             }
         }
 

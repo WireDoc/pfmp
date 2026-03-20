@@ -77,7 +77,7 @@ function getAdviceUrl(): string {
 }
 
 function getTasksUrl(): string {
-  return `${API_ORIGIN}/api/Tasks?userId=${encodeURIComponent(getEffectiveUserId())}&status=Pending`;
+  return `${API_ORIGIN}/api/Tasks?userId=${encodeURIComponent(getEffectiveUserId())}`;
 }
 const TASKS_CREATE_URL = `${API_ORIGIN}/api/Tasks`;
 const TASK_STATUS_URL = (taskId: number | string) => `${API_ORIGIN}/api/Tasks/${encodeURIComponent(taskId)}/status`;
@@ -323,7 +323,7 @@ export function createApiDashboardService(): DashboardService {
         longTermObligations: obligations,
         alerts,
         advice,
-        tasks: tasks.map(normalizeTaskPayload),
+        tasks: tasks.map(normalizeTaskPayload).filter(t => t.status !== 'Completed' && t.status !== 'Dismissed'),
       } satisfies DashboardData;
     },
     subscribeToLongTermObligations(listener: LongTermObligationListener) {
