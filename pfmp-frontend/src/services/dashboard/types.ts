@@ -129,6 +129,7 @@ export interface LiabilitySnapshot {
 }
 
 export interface DashboardData {
+  userName?: string;
   netWorth: NetWorthSummary;
   accounts: AccountSnapshot[];
   properties?: PropertySnapshot[];

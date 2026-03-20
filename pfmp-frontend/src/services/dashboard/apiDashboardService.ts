@@ -35,6 +35,7 @@ function isTaskCreateResponseDto(payload: unknown): payload is TaskCreateRespons
 }
 
 interface ApiDashboardSummaryResponse {
+  userName?: string;
   netWorth: DashboardData['netWorth'];
   accounts?: DashboardData['accounts'];
   properties?: DashboardData['properties'];
@@ -315,6 +316,7 @@ export function createApiDashboardService(): DashboardService {
       const obligations = extractObligations(dto);
       lastKnownObligations = obligations;
       return {
+        userName: dto.userName ?? undefined,
         netWorth: dto.netWorth,
         accounts: dto.accounts ?? [],
         properties: dto.properties ?? [],

@@ -75,7 +75,6 @@ export const Dashboard: React.FC = () => {
   const onboardingComplete = onboarding ? completedCount >= totalSteps : true;
   const nextStepTitle = onboardingSteps.find(step => !completedSteps.has(step.id))?.title ?? null;
 
-  const displayName = user?.name ?? user?.username ?? 'Client';
   const stepsSummaryText = onboardingHydrated
     ? onboardingComplete
       ? 'Your financial profile is complete. Review insights and recommendations below.'
@@ -100,6 +99,7 @@ export const Dashboard: React.FC = () => {
   const [pendingTaskIds, setPendingTaskIds] = useState<Set<number>>(new Set());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const displayData = viewData ?? data ?? null;
+  const displayName = viewData?.userName ?? data?.userName ?? user?.name ?? user?.username ?? 'Client';
 
   // Data refresh functionality
   const { lastRefreshed, isRefreshing, refresh, timeSinceRefresh } = useDataRefresh({

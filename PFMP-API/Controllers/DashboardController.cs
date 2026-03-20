@@ -281,6 +281,7 @@ public class DashboardController : ControllerBase
 
             var summary = new
             {
+                userName = $"{user.FirstName} {user.LastName}".Trim(),
                 netWorth = new
                 {
                     totalAssets = new { amount = totalAssets, currency = "USD" },
