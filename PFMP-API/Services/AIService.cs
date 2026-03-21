@@ -2,6 +2,7 @@ using Azure.AI.OpenAI;
 using Azure;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
+using PFMP_API.Services.MarketData;
 using OpenAI.Chat;
 
 namespace PFMP_API.Services
@@ -16,10 +17,10 @@ namespace PFMP_API.Services
         private readonly AzureOpenAIClient? _openAIClient;
         private readonly ChatClient? _chatClient;
         private readonly IConfiguration _configuration;
-        private readonly IMarketDataService _marketDataService;
+        private readonly PFMP_API.Services.MarketData.IMarketDataService _marketDataService;
         private readonly TSPService _tspService;
 
-        public AIService(ApplicationDbContext context, ILogger<AIService> logger, IConfiguration configuration, IMarketDataService marketDataService, TSPService tspService)
+        public AIService(ApplicationDbContext context, ILogger<AIService> logger, IConfiguration configuration, PFMP_API.Services.MarketData.IMarketDataService marketDataService, TSPService tspService)
         {
             _context = context;
             _logger = logger;

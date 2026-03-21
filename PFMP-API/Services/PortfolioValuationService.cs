@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
+using PFMP_API.Services.MarketData;
 
 namespace PFMP_API.Services
 {
@@ -40,13 +41,13 @@ namespace PFMP_API.Services
     public class PortfolioValuationService : IPortfolioValuationService
     {
         private readonly ApplicationDbContext _context;
-        private readonly IMarketDataService _marketDataService;
+        private readonly PFMP_API.Services.MarketData.IMarketDataService _marketDataService;
         private readonly TSPService _tspService;
         private readonly ILogger<PortfolioValuationService> _logger;
 
         public PortfolioValuationService(
             ApplicationDbContext context,
-            IMarketDataService marketDataService,
+            PFMP_API.Services.MarketData.IMarketDataService marketDataService,
             TSPService tspService,
             ILogger<PortfolioValuationService> logger)
         {

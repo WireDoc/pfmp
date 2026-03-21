@@ -2,8 +2,8 @@
   "info": {
     "name": "PFMP API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "1.7.0",
-    "description": "PFMP API endpoints grouped for development and testing. Adjust {{baseUrl}} as needed. v1.7.0: Added Properties endpoints for real estate management (Wave 12.5 Phase 4)."
+    "version": "1.8.0",
+    "description": "PFMP API endpoints grouped for development and testing. Adjust {{baseUrl}} as needed. v1.8.0: Consolidated Market Data endpoints under unified /api/market-data route (legacy /api/market removed)."
   },
   "item": [
     {
@@ -624,6 +624,55 @@
             "method": "GET",
             "url": "{{baseUrl}}/api/market-data/company/AAPL"
           }
+        },
+        {
+          "name": "Stock Price (one)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/market-data/price/MSFT"
+          }
+        },
+        {
+          "name": "Stock Prices (batch)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/market-data/prices?symbols=AAPL,MSFT,GOOGL"
+          }
+        },
+        {
+          "name": "Market Indices",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/market-data/indices"
+          }
+        },
+        {
+          "name": "TSP Fund Prices",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/market-data/tsp"
+          }
+        },
+        {
+          "name": "Economic Indicators",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/market-data/economic"
+          }
+        },
+        {
+          "name": "Market Overview",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/market-data/overview"
+          }
+        },
+        {
+          "name": "Market Health",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/market-data/health"
+          }
         }
       ]
     },
@@ -872,18 +921,6 @@
         { "name": "Trigger Snapshot", "request": { "method": "POST", "url": "{{baseUrl}}/api/accounts/{{accountId}}/snapshot" } },
         { "name": "Queue Refresh All (async)", "request": { "method": "POST", "url": "{{baseUrl}}/api/accounts/refresh-all/async?userId={{userId}}" } },
         { "name": "Queue Snapshot All (async)", "request": { "method": "POST", "url": "{{baseUrl}}/api/accounts/snapshot-all/async?userId={{userId}}" } }
-      ]
-    },
-    {
-      "name": "Market Data",
-      "item": [
-        { "name": "Stock Price (one)", "request": { "method": "GET", "url": "{{baseUrl}}/api/market/price/MSFT" } },
-        { "name": "Stock Prices (batch)", "request": { "method": "GET", "url": "{{baseUrl}}/api/market/prices?symbols=AAPL,MSFT,GOOGL" } },
-        { "name": "Market Indices", "request": { "method": "GET", "url": "{{baseUrl}}/api/market/indices" } },
-        { "name": "TSP Fund Prices", "request": { "method": "GET", "url": "{{baseUrl}}/api/market/tsp" } },
-        { "name": "Economic Indicators", "request": { "method": "GET", "url": "{{baseUrl}}/api/market/economic" } },
-        { "name": "Market Overview", "request": { "method": "GET", "url": "{{baseUrl}}/api/market/overview" } },
-        { "name": "Market Health", "request": { "method": "GET", "url": "{{baseUrl}}/api/market/health" } }
       ]
     },
     {

@@ -236,4 +236,179 @@ public class FmpMarketDataService : IMarketDataService
         public string? Symbol { get; set; }
         public List<FmpHistoricalPrice>? Historical { get; set; }
     }
+
+    /// <summary>
+    /// Get major market indices (S&P 500, NASDAQ, DOW, Russell 2000, VIX)
+    /// </summary>
+    public async Task<MarketIndices> GetMarketIndicesAsync()
+    {
+        try
+        {
+            var indices = new MarketIndices
+            {
+                LastUpdated = DateTime.UtcNow,
+                MarketStatus = GetMarketStatus()
+            };
+
+            var symbols = new List<string> { "^GSPC", "^IXIC", "^DJI", "^RUT", "^VIX" };
+            var quotes = await GetQuotesAsync(symbols);
+            var lookup = quotes.ToDictionary(q => q.Symbol, q => q);
+
+            indices.SP500 = QuoteToMarketPrice(lookup.GetValueOrDefault("^GSPC"), "^GSPC", "S&P 500");
+            indices.NASDAQ = QuoteToMarketPrice(lookup.GetValueOrDefault("^IXIC"), "^IXIC", "NASDAQ Composite");
+            indices.DowJones = QuoteToMarketPrice(lookup.GetValueOrDefault("^DJI"), "^DJI", "Dow Jones Industrial");
+            indices.Russell2000 = QuoteToMarketPrice(lookup.GetValueOrDefault("^RUT"), "^RUT", "Russell 2000");
+            indices.VIX = QuoteToMarketPrice(lookup.GetValueOrDefault("^VIX"), "^VIX", "CBOE Volatility Index");
+
+            return indices;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting market indices");
+            return new MarketIndices
+            {
+                SP500 = new MarketPrice { Symbol = "^GSPC", Price = 4200.00m, CompanyName = "S&P 500" },
+                NASDAQ = new MarketPrice { Symbol = "^IXIC", Price = 13000.00m, CompanyName = "NASDAQ Composite" },
+                DowJones = new MarketPrice { Symbol = "^DJI", Price = 34000.00m, CompanyName = "Dow Jones Industrial" },
+                Russell2000 = new MarketPrice { Symbol = "^RUT", Price = 1900.00m, CompanyName = "Russell 2000" },
+                VIX = new MarketPrice { Symbol = "^VIX", Price = 20.00m, CompanyName = "CBOE Volatility Index" },
+                LastUpdated = DateTime.UtcNow,
+                MarketStatus = GetMarketStatus()
+            };
+        }
+    }
+
+    /// <summary>
+    /// Get economic indicators (Treasury yields, commodities, crypto)
+    /// </summary>
+    public async Task<EconomicIndicators> GetEconomicIndicatorsAsync()
+    {
+        try
+        {
+            var symbols = new List<string> { "^TNX", "^FVX", "DX-Y.NYB", "CL=F", "GC=F", "BTC-USD" };
+            var quotes = await GetQuotesAsync(symbols);
+            var lookup = quotes.ToDictionary(q => q.Symbol, q => q);
+
+            return new EconomicIndicators
+            {
+                TreasuryYield10Year = lookup.GetValueOrDefault("^TNX")?.Price ?? 4.25m,
+                TreasuryYield2Year = lookup.GetValueOrDefault("^FVX")?.Price ?? 4.50m,
+                DollarIndex = lookup.GetValueOrDefault("DX-Y.NYB")?.Price ?? 103.50m,
+                CrudeOilPrice = lookup.GetValueOrDefault("CL=F")?.Price ?? 75.00m,
+                GoldPrice = lookup.GetValueOrDefault("GC=F")?.Price ?? 1950.00m,
+                BitcoinPrice = lookup.GetValueOrDefault("BTC-USD")?.Price ?? 43000.00m,
+                FedFundsRate = "5.25-5.50%",
+                LastUpdated = DateTime.UtcNow
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting economic indicators");
+            return new EconomicIndicators
+            {
+                TreasuryYield10Year = 4.25m,
+                TreasuryYield2Year = 4.50m,
+                DollarIndex = 103.50m,
+                CrudeOilPrice = 75.00m,
+                GoldPrice = 1950.00m,
+                BitcoinPrice = 43000.00m,
+                FedFundsRate = "5.25-5.50%",
+                LastUpdated = DateTime.UtcNow
+            };
+        }
+    }
+
+    /// <summary>
+    /// Check if market data service is available
+    /// </summary>
+    public async Task<bool> IsServiceAvailableAsync()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(_options.ApiKey))
+            {
+                _logger.LogInformation("Market data service available in fallback mode (no API key)");
+                return true;
+            }
+
+            var url = $"{_options.BaseUrl}/quote/AAPL?apikey={_options.ApiKey}";
+            using var response = await _httpClient.GetAsync(url);
+
+            var isAvailable = response.IsSuccessStatusCode;
+            _logger.LogInformation("Market data service availability check: {Status}",
+                isAvailable ? "Available" : "Unavailable");
+
+            return isAvailable;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking market data service availability");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Get stock prices as a dictionary (adapter for consumers needing MarketPrice objects)
+    /// </summary>
+    public async Task<Dictionary<string, MarketPrice>> GetStockPricesAsync(IEnumerable<string> symbols)
+    {
+        var symbolList = symbols.ToList();
+        if (!symbolList.Any())
+            return new Dictionary<string, MarketPrice>();
+
+        var quotes = await GetQuotesAsync(symbolList);
+        return quotes.ToDictionary(
+            q => q.Symbol,
+            q => QuoteToMarketPrice(q, q.Symbol, q.Name)
+        );
+    }
+
+    private static MarketPrice QuoteToMarketPrice(FmpQuote? quote, string symbol, string fallbackName = "")
+    {
+        if (quote == null)
+        {
+            return new MarketPrice
+            {
+                Symbol = symbol,
+                CompanyName = fallbackName,
+                LastUpdated = DateTime.UtcNow
+            };
+        }
+
+        return new MarketPrice
+        {
+            Symbol = quote.Symbol,
+            Price = quote.Price,
+            Change = quote.Change,
+            ChangePercent = quote.ChangesPercentage,
+            Volume = quote.Volume ?? 0,
+            DayHigh = quote.DayHigh ?? 0,
+            DayLow = quote.DayLow ?? 0,
+            Open = quote.Open ?? 0,
+            PreviousClose = quote.PreviousClose ?? 0,
+            LastUpdated = DateTime.UtcNow,
+            Exchange = quote.Exchange,
+            CompanyName = quote.Name
+        };
+    }
+
+    private static string GetMarketStatus()
+    {
+        var now = DateTime.Now;
+        var easternTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(now, "Eastern Standard Time");
+
+        if (easternTime.DayOfWeek == DayOfWeek.Saturday || easternTime.DayOfWeek == DayOfWeek.Sunday)
+            return "CLOSED";
+
+        var marketOpen = new TimeSpan(9, 30, 0);
+        var marketClose = new TimeSpan(16, 0, 0);
+        var currentTime = easternTime.TimeOfDay;
+
+        if (currentTime >= marketOpen && currentTime <= marketClose)
+            return "OPEN";
+        else if (currentTime < marketOpen)
+            return "PRE_MARKET";
+        else
+            return "AFTER_HOURS";
+    }
 }

@@ -62,11 +62,7 @@ namespace PFMP_API
             builder.Services.AddScoped<PFMP_API.Services.AI.IAIMemoryService, PFMP_API.Services.AI.AIMemoryService>();
             builder.Services.AddScoped<PFMP_API.Services.AI.IAIIntelligenceService, PFMP_API.Services.AI.AIIntelligenceService>();
 
-            // Add Market Data Services
-            builder.Services.AddHttpClient<IMarketDataService, MarketDataService>();
-            builder.Services.AddScoped<IMarketDataService, MarketDataService>();
-            
-            // Add FMP Market Data Service (Wave 9.2)
+            // Add Market Data Service (FMP - Financial Modeling Prep)
             builder.Services.Configure<PFMP_API.Services.MarketData.FmpOptions>(
                 builder.Configuration.GetSection("FMP"));
             builder.Services.AddHttpClient<PFMP_API.Services.MarketData.FmpMarketDataService>();

@@ -72,6 +72,76 @@ public class FmpCompanyProfile
 }
 
 /// <summary>
+/// Market price data model (adapter for API responses)
+/// </summary>
+public class MarketPrice
+{
+    public string Symbol { get; set; } = string.Empty;
+    public decimal Price { get; set; }
+    public decimal Change { get; set; }
+    public decimal ChangePercent { get; set; }
+    public decimal Volume { get; set; }
+    public decimal DayHigh { get; set; }
+    public decimal DayLow { get; set; }
+    public decimal Open { get; set; }
+    public decimal PreviousClose { get; set; }
+    public DateTime LastUpdated { get; set; }
+    public string Exchange { get; set; } = string.Empty;
+    public string CompanyName { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Major market indices data
+/// </summary>
+public class MarketIndices
+{
+    public MarketPrice SP500 { get; set; } = new();
+    public MarketPrice NASDAQ { get; set; } = new();
+    public MarketPrice DowJones { get; set; } = new();
+    public MarketPrice Russell2000 { get; set; } = new();
+    public MarketPrice VIX { get; set; } = new();
+    public DateTime LastUpdated { get; set; }
+    public string MarketStatus { get; set; } = "UNKNOWN";
+}
+
+/// <summary>
+/// Economic indicators data
+/// </summary>
+public class EconomicIndicators
+{
+    public decimal TreasuryYield10Year { get; set; }
+    public decimal TreasuryYield2Year { get; set; }
+    public decimal DollarIndex { get; set; }
+    public decimal CrudeOilPrice { get; set; }
+    public decimal GoldPrice { get; set; }
+    public decimal BitcoinPrice { get; set; }
+    public string FedFundsRate { get; set; } = string.Empty;
+    public DateTime LastUpdated { get; set; }
+}
+
+/// <summary>
+/// Comprehensive market overview response
+/// </summary>
+public class MarketOverview
+{
+    public MarketIndices Indices { get; set; } = new();
+    public Dictionary<string, MarketPrice> TSPFunds { get; set; } = new();
+    public EconomicIndicators EconomicIndicators { get; set; } = new();
+    public DateTime LastUpdated { get; set; }
+}
+
+/// <summary>
+/// Market data service health status
+/// </summary>
+public class ServiceHealth
+{
+    public bool IsAvailable { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public DateTime LastChecked { get; set; }
+    public string Message { get; set; } = string.Empty;
+}
+
+/// <summary>
 /// Service interface for market data operations
 /// </summary>
 public interface IMarketDataService
@@ -80,4 +150,12 @@ public interface IMarketDataService
     Task<List<FmpQuote>> GetQuotesAsync(List<string> symbols);
     Task<List<FmpHistoricalPrice>> GetHistoricalPricesAsync(string symbol, DateTime? from = null, DateTime? to = null);
     Task<FmpCompanyProfile?> GetCompanyProfileAsync(string symbol);
+    Task<MarketIndices> GetMarketIndicesAsync();
+    Task<EconomicIndicators> GetEconomicIndicatorsAsync();
+    Task<bool> IsServiceAvailableAsync();
+
+    /// <summary>
+    /// Get stock prices as a dictionary (adapter for legacy consumers)
+    /// </summary>
+    Task<Dictionary<string, MarketPrice>> GetStockPricesAsync(IEnumerable<string> symbols);
 }
