@@ -95,6 +95,11 @@ namespace PFMP_API.Models
         [MaxLength(50)]
         public string? PlaidInvestmentSubtype { get; set; }
 
+        // Cross-Account Transfer Fields (Phase 5A)
+        public int? SourceAccountId { get; set; }        // For transfers: where money came from
+        public int? LinkedTransactionId { get; set; }     // Paired transaction (debit ↔ credit)
+        public FundingSource? FundingSource { get; set; }  // How the holding was funded
+
         // Metadata
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -107,6 +112,12 @@ namespace PFMP_API.Models
 
         [ForeignKey("HoldingId")]
         public virtual Holding? Holding { get; set; }
+
+        [ForeignKey("SourceAccountId")]
+        public virtual Account? SourceAccount { get; set; }
+
+        [ForeignKey("LinkedTransactionId")]
+        public virtual Transaction? LinkedTransaction { get; set; }
     }
 
     public enum TransactionSource
@@ -121,6 +132,15 @@ namespace PFMP_API.Models
         TSPUpdate,
         BankAPI,
         PlaidInvestments,
+        Other
+    }
+
+    public enum FundingSource
+    {
+        CashBalance,       // Debit from $CASH holding in same account
+        InternalTransfer,  // Transfer from another PFMP account
+        ExternalDeposit,   // ACH, wire, check deposit from outside PFMP
+        ExistingPosition,  // No cash movement (initial balance only)
         Other
     }
 }

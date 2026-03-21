@@ -2730,6 +2730,9 @@ namespace PFMP_API.Migrations
                     b.Property<decimal?>("Fee")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<int?>("FundingSource")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("HoldingId")
                         .HasColumnType("integer");
 
@@ -2744,6 +2747,9 @@ namespace PFMP_API.Migrations
 
                     b.Property<bool>("IsTaxable")
                         .HasColumnType("boolean");
+
+                    b.Property<int?>("LinkedTransactionId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Notes")
                         .HasColumnType("text");
@@ -2776,6 +2782,9 @@ namespace PFMP_API.Migrations
                     b.Property<int>("Source")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("SourceAccountId")
+                        .HasColumnType("integer");
+
                     b.Property<decimal?>("StakingAPY")
                         .HasColumnType("decimal(8,4)");
 
@@ -2802,6 +2811,10 @@ namespace PFMP_API.Migrations
                     b.HasIndex("AccountId");
 
                     b.HasIndex("HoldingId");
+
+                    b.HasIndex("LinkedTransactionId");
+
+                    b.HasIndex("SourceAccountId");
 
                     b.HasIndex("TransactionDate");
 
@@ -3556,9 +3569,21 @@ namespace PFMP_API.Migrations
                         .HasForeignKey("HoldingId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("PFMP_API.Models.Transaction", "LinkedTransaction")
+                        .WithMany()
+                        .HasForeignKey("LinkedTransactionId");
+
+                    b.HasOne("PFMP_API.Models.Account", "SourceAccount")
+                        .WithMany()
+                        .HasForeignKey("SourceAccountId");
+
                     b.Navigation("Account");
 
                     b.Navigation("Holding");
+
+                    b.Navigation("LinkedTransaction");
+
+                    b.Navigation("SourceAccount");
                 });
 
             modelBuilder.Entity("PFMP_API.Models.UserTask", b =>
