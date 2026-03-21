@@ -252,6 +252,66 @@ public class HoldingsController : ControllerBase
         _context.Holdings.Add(holding);
         await _context.SaveChangesAsync();
 
+        // Auto-create INITIAL_BALANCE transaction so the holding is reconciled from the start
+        // (Skip for Plaid-linked accounts where transactions flow in separately)
+        if (account.Source == 0 && holding.Symbol != "$CASH" && holding.Quantity > 0)
+        {
+            var transaction = new Transaction
+            {
+                AccountId = holding.AccountId,
+                HoldingId = holding.HoldingId,
+                TransactionType = TransactionTypes.InitialBalance,
+                Symbol = holding.Symbol,
+                Quantity = holding.Quantity,
+                Price = holding.AverageCostBasis,
+                Amount = holding.Quantity * holding.AverageCostBasis,
+                TransactionDate = holding.PurchaseDate ?? DateTime.UtcNow,
+                SettlementDate = holding.PurchaseDate ?? DateTime.UtcNow,
+                Source = TransactionSource.Manual,
+                Description = $"Opening balance for {holding.Symbol}",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Transactions.Add(transaction);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Auto-created INITIAL_BALANCE transaction {TxId} for holding {HoldingId} ({Symbol})",
+                transaction.TransactionId, holding.HoldingId, holding.Symbol);
+
+            // Auto-debit $CASH holding if one exists in the same account
+            var purchaseAmount = holding.Quantity * holding.AverageCostBasis;
+            var cashHolding = await _context.Holdings
+                .FirstOrDefaultAsync(h => h.AccountId == holding.AccountId && h.Symbol == "$CASH");
+
+            if (cashHolding != null && purchaseAmount > 0)
+            {
+                cashHolding.Quantity -= purchaseAmount;
+                cashHolding.UpdatedAt = DateTime.UtcNow;
+
+                var cashDebitTx = new Transaction
+                {
+                    AccountId = holding.AccountId,
+                    HoldingId = cashHolding.HoldingId,
+                    TransactionType = TransactionTypes.Buy,
+                    Symbol = "$CASH",
+                    Quantity = -purchaseAmount,
+                    Price = 1,
+                    Amount = -purchaseAmount,
+                    TransactionDate = holding.PurchaseDate ?? DateTime.UtcNow,
+                    SettlementDate = holding.PurchaseDate ?? DateTime.UtcNow,
+                    Source = TransactionSource.Manual,
+                    Description = $"Cash used to purchase {holding.Quantity} shares of {holding.Symbol}",
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Transactions.Add(cashDebitTx);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Auto-debited ${Amount} from $CASH for {Symbol} purchase in account {AccountId}",
+                    purchaseAmount, holding.Symbol, holding.AccountId);
+            }
+        }
+
         _logger.LogInformation("Created holding {HoldingId} ({Symbol}) for account {AccountId}", 
             holding.HoldingId, holding.Symbol, holding.AccountId);
 
@@ -315,7 +375,7 @@ public class HoldingsController : ControllerBase
     }
 
     /// <summary>
-    /// Delete a holding
+    /// Delete a holding and its associated transactions
     /// </summary>
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteHolding(int id)
@@ -324,6 +384,30 @@ public class HoldingsController : ControllerBase
         if (holding == null)
         {
             return NotFound();
+        }
+
+        // Remove associated price history first (FK constraint)
+        var priceHistory = await _context.PriceHistory
+            .Where(p => p.HoldingId == id)
+            .ToListAsync();
+
+        if (priceHistory.Any())
+        {
+            _context.PriceHistory.RemoveRange(priceHistory);
+            _logger.LogInformation("Removing {Count} price history records for holding {HoldingId} ({Symbol})",
+                priceHistory.Count, holding.HoldingId, holding.Symbol);
+        }
+
+        // Remove associated transactions (FK constraint)
+        var transactions = await _context.Transactions
+            .Where(t => t.HoldingId == id)
+            .ToListAsync();
+
+        if (transactions.Any())
+        {
+            _context.Transactions.RemoveRange(transactions);
+            _logger.LogInformation("Removing {Count} transactions for holding {HoldingId} ({Symbol})",
+                transactions.Count, holding.HoldingId, holding.Symbol);
         }
 
         _context.Holdings.Remove(holding);

@@ -10,10 +10,11 @@
 - **Phase 1: Infrastructure** - Complete (Nov 10-12)
 - **Phase 2: Cash Account Detail Views** - Complete (Nov 10-12)
 - **Option C: Polish Cash Account UX** - Complete (Nov 13-14)
+- **Options A-D: Investment, Loan, Credit views** - Complete (Nov-Dec 2025)
 
 ### 👉 Next Up
-- **Option A: Enhanced Investment Metrics** - Ready to begin (2-3 weeks)
-- **Option B: Loan & Credit Card Views** - Planned (3-4 weeks after A)
+- **Phase 5: Investment Transaction Money Trail** - Planned (March 2026)
+  - Auto-transaction on CreateHolding, $CASH debit/credit, funding sources, cross-account transfers
 
 See `wave-9.3-option-c-complete.md` for Option C completion details.  
 See `wave-9.3-next-steps.md` for implementation roadmap.
@@ -440,12 +441,13 @@ public class Account
 
 | Phase | Duration | Target Completion |
 |-------|----------|-------------------|
-| Phase 1: Infrastructure | 1 week | Wave 9.2 (current) |
-| Phase 2: Cash Accounts | 2 weeks | Wave 9.3 |
-| Phase 3: Investment Enhancements | 2-3 weeks | Wave 9.4 |
+| Phase 1: Infrastructure | 1 week | Wave 9.2 ✅ |
+| Phase 2: Cash Accounts | 2 weeks | Wave 9.3 ✅ |
+| Phase 3: Investment Enhancements | 2-3 weeks | Wave 9.4 ✅ |
 | Phase 4: Loans & Credit | 3-4 weeks | Wave 9.5 |
+| Phase 5: Transaction Money Trail | 2-3 weeks | Wave 9.3.5 (March 2026) |
 
-**Total Estimated Time:** 8-10 weeks for complete implementation
+**Total Estimated Time:** 10-13 weeks for complete implementation
 
 ## Priority Recommendations
 
@@ -464,7 +466,13 @@ public class Account
 2. Tax insights
 3. Risk analysis
 
-### Future (3+ Months - Phase 4)
+### High Priority (Current - Phase 5)
+1. CreateHolding auto-generates INITIAL_BALANCE transaction
+2. $CASH auto-debit on BUY, auto-credit on SELL
+3. Funding source selector in Add Holding dialog
+4. Cross-account TRANSFER with paired transactions
+
+### Future (Phase 4)
 1. Loan account support
 2. Credit card support
 3. Property account details
@@ -491,7 +499,7 @@ public class Account
    - Check register view needed
 
 5. **Account Linking:** Do accounts link to each other?
-   - Transfers between accounts?
+   - Transfers between accounts? → **Yes, Phase 5 adds `SourceAccountId` + `LinkedTransactionId` to Transaction model**
    - Shared liability accounts?
    - Joint accounts?
 
@@ -502,6 +510,219 @@ public class Account
 - **Holdings Model:** `PFMP-API/Models/Holding.cs`
 - **Dashboard API:** `PFMP-API/Controllers/DashboardController.cs`
 - **Wave 9.2 Complete:** `docs/waves/wave-9.2-complete.md`
+
+---
+
+### Phase 5: Investment Transaction Money Trail (Wave 9.3.5)
+
+**Status:** 📋 Planned (March 2026)
+**Priority:** High (blocks accurate portfolio tracking and manual account management)
+**Triggered by:** User testing revealed that manually adding holdings creates orphaned records with no transaction history, and there's no way to document inter-account transfers.
+
+#### Problem Statement
+
+The current investment account UX has several gaps that prevent users from maintaining an accurate money trail:
+
+1. **"Add Holding" creates orphaned holdings.** The `CreateHolding` endpoint ([HoldingsController.cs#L217](../PFMP-API/Controllers/HoldingsController.cs)) creates a Holding record but **no** corresponding `INITIAL_BALANCE` or `BUY` transaction. This triggers the reconciliation warning ("opening balance needed") because `PortfolioAnalyticsController.GetTransactionHistoryStatus` compares holding quantity against transaction-derived quantity and finds a 100% discrepancy.
+
+2. **No funding source concept.** When buying a holding, there's no way to specify where the money came from (another PFMP account, external bank, credit card ACH, etc.). The `$CASH` holding is not debited on BUY transactions.
+
+3. **Cross-account transfers are incomplete.** `TransactionTypes.Transfer` ("TRANSFER") exists as a constant but there's no `SourceAccountId`/`LinkedTransactionId` field on the Transaction model, so transfers only create a one-sided record — no corresponding debit in the source account.
+
+4. **$CASH not updated on purchases.** When a user creates a BUY transaction, the target holding's quantity is recalculated via `HoldingsSyncService`, but the `$CASH` holding quantity remains unchanged. The money trail is broken.
+
+#### Current Architecture (What Exists)
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Transaction model | ✅ 19 types defined | Missing: `SourceAccountId`, `LinkedTransactionId` fields |
+| TransactionsController CRUD | ✅ Full (POST/GET/PUT/DELETE) | PUT allows editing all fields |
+| HoldingsSyncService | ✅ Recalcs on BUY/SELL/etc. | Does NOT touch $CASH; TRANSFER handling incomplete |
+| Frontend InvestmentTransactionForm | ✅ Type selector, symbol, qty, price | No funding source, no source account for TRANSFER |
+| Frontend HoldingFormModal | ✅ Add/Edit holdings | No transaction auto-creation, no funding source |
+| $CASH creation | ✅ On account setup | Not debited on BUY; not credited on SELL |
+| Transaction editing | ✅ Backend + frontend | Working correctly |
+
+#### Implementation Plan
+
+##### Sub-phase 5A: Backend — Transaction Model & Cross-Account Transfers
+
+**Goal:** Enable proper money trail tracking between accounts.
+
+**1. Add fields to Transaction model:**
+```csharp
+// New fields on Transaction entity
+public int? SourceAccountId { get; set; }        // For transfers: where money came from
+public int? LinkedTransactionId { get; set; }     // Paired transaction (debit ↔ credit)
+
+// Navigation
+[ForeignKey("SourceAccountId")]
+public virtual Account? SourceAccount { get; set; }
+
+[ForeignKey("LinkedTransactionId")]
+public virtual Transaction? LinkedTransaction { get; set; }
+```
+
+**2. EF Migration:** `AddTransactionMoneyTrailFields`
+
+**3. Add `FundingSource` enum:**
+```csharp
+public enum FundingSource
+{
+    CashBalance,       // Debit from $CASH holding in same account
+    InternalTransfer,  // Transfer from another PFMP account
+    ExternalDeposit,   // ACH, wire, check deposit from outside PFMP
+    CreditCard,        // Credit card purchase
+    Other
+}
+```
+
+**Files changed:**
+- `PFMP-API/Models/Transaction.cs` — Add `SourceAccountId`, `LinkedTransactionId`, `FundingSource` fields
+- New migration file
+
+##### Sub-phase 5B: Backend — CreateHolding Auto-Transaction
+
+**Goal:** When a user manually adds a holding, automatically create the corresponding `INITIAL_BALANCE` transaction so holdings are always backed by transactions.
+
+**Logic (HoldingsController.CreateHolding):**
+```
+IF account is NOT Plaid-linked:
+  1. Create holding (existing behavior)
+  2. Create INITIAL_BALANCE transaction:
+     - Symbol = holding.Symbol
+     - Quantity = holding.Quantity
+     - Price = holding.AverageCostBasis
+     - Amount = Quantity × AverageCostBasis
+     - TransactionDate = holding.PurchaseDate ?? DateTime.UtcNow
+  3. IF funding source is CashBalance:
+     - Debit $CASH holding (reduce quantity by Amount)
+     - Create matching TRANSFER transaction on $CASH
+```
+
+**Files changed:**
+- `PFMP-API/Controllers/HoldingsController.cs` — Modify `CreateHolding` to auto-generate transaction
+- `PFMP-API/DTOs/CreateHoldingRequest` — Add optional `FundingSource`, `SourceAccountId` fields
+
+##### Sub-phase 5C: Backend — $CASH Auto-Debit on BUY
+
+**Goal:** When a BUY transaction is created, automatically debit the $CASH holding if funding source is CashBalance.
+
+**Logic (TransactionsController.CreateTransaction):**
+```
+IF transactionType == BUY AND (fundingSource == CashBalance OR fundingSource is null):
+  1. Find $CASH holding for the account
+  2. IF $CASH.Quantity >= transaction.Amount:
+     - Reduce $CASH.Quantity by transaction.Amount
+     - Create linked TRANSFER transaction: $CASH → holding
+  3. ELSE:
+     - Proceed without $CASH debit (allow overdraft with warning)
+     - Set a flag: NeedsFundingReconciliation = true
+
+IF transactionType == SELL:
+  1. Credit $CASH holding: increase Quantity by sale proceeds
+  2. Create linked TRANSFER transaction: holding → $CASH
+
+IF transactionType == TRANSFER AND SourceAccountId is set:
+  1. Create debit transaction in source account (linked via LinkedTransactionId)
+  2. Create credit transaction in destination account
+  3. Update both account balances
+```
+
+**Files changed:**
+- `PFMP-API/Controllers/TransactionsController.cs` — Add $CASH debit/credit logic
+- `PFMP-API/Services/HoldingsSyncService.cs` — Handle TRANSFER with $CASH awareness
+
+##### Sub-phase 5D: Frontend — Funding Source in Add Holding Dialog
+
+**Goal:** Add a "Funding Source" selector to HoldingFormModal so users can document where the money came from.
+
+**UI changes to HoldingFormModal:**
+```
+[Existing fields: Symbol, Name, Asset Type, Quantity, Cost Basis, Price...]
+
+NEW SECTION: "Funding"
+┌─────────────────────────────────────────────┐
+│ How was this holding acquired?              │
+│ ○ Purchase from account cash balance        │
+│ ○ Transfer from another account  [▼ Select] │
+│ ○ External deposit (ACH, wire, etc.)        │
+│ ○ Existing position (no cash movement)      │
+└─────────────────────────────────────────────┘
+```
+
+- "Purchase from account cash balance" → Sets `FundingSource: CashBalance`, auto-debits $CASH
+- "Transfer from another account" → Shows account picker, sets `SourceAccountId`, creates paired transactions
+- "External deposit" → Sets `FundingSource: ExternalDeposit`, creates DEPOSIT + BUY transactions
+- "Existing position" → Current behavior (INITIAL_BALANCE only, no cash movement)
+
+**Files changed:**
+- `pfmp-frontend/src/components/holdings/HoldingFormModal.tsx` — Add funding source UI
+- `pfmp-frontend/src/services/holdingsApi.ts` (or inline fetch) — Update request payload
+
+##### Sub-phase 5E: Frontend — Transfer Transaction UX
+
+**Goal:** When creating a TRANSFER transaction, show source/destination account pickers.
+
+**UI changes to InvestmentTransactionForm:**
+```
+When TransactionType == "TRANSFER":
+┌──────────────────────────────────┐
+│ From Account: [▼ Select account] │
+│ To Account:   [▼ Select account] │
+│ Amount: $____________            │
+│ Date:   [date picker]            │
+│ Notes:  ________________________ │
+└──────────────────────────────────┘
+```
+
+- Fetches user's accounts via `/api/accounts/user/{userId}`
+- Creates paired transactions (debit in source, credit in destination)
+- Updates account balances accordingly
+
+**Files changed:**
+- `pfmp-frontend/src/components/investment-accounts/InvestmentTransactionForm.tsx` — Add transfer fields
+- Backend already has PUT for editing, so editable transfers work automatically
+
+##### Sub-phase 5F: Tests
+
+**Backend tests:**
+- `HoldingsControllerTests.cs` — Test that CreateHolding now creates INITIAL_BALANCE transaction
+- `TransactionsControllerTests.cs` — Test $CASH debit on BUY, credit on SELL
+- `TransactionsControllerTests.cs` — Test cross-account TRANSFER creates paired transactions
+- `HoldingsSyncServiceTests.cs` — Test TRANSFER handling with $CASH
+
+**Frontend tests:**
+- `HoldingFormModal.test.tsx` — Test funding source selector rendering and submission
+- `InvestmentTransactionForm.test.tsx` — Test transfer account picker fields
+
+#### Acceptance Criteria
+
+1. ✅ Adding a holding via "Add Holding" automatically creates an `INITIAL_BALANCE` transaction (no more orphaned holdings)
+2. ✅ BUY transactions debit the `$CASH` holding; SELL transactions credit it
+3. ✅ Users can specify a funding source when adding holdings (cash balance, transfer, external, existing)
+4. ✅ Cross-account transfers create paired transactions with `LinkedTransactionId`
+5. ✅ The reconciliation warning ("opening balance needed") no longer triggers for newly created manual holdings
+6. ✅ All transactions remain editable via the existing PUT endpoint
+7. ✅ Existing Plaid-synced holdings/transactions are not affected
+
+#### Migration Notes
+
+- Existing holdings without transactions (like User 20's XLU and $CASH) can be fixed via the existing "Add Opening Balances" dialog — no data migration needed
+- New `SourceAccountId` and `LinkedTransactionId` columns are nullable, so existing transactions are unaffected
+- The `FundingSource` field defaults to `null` for pre-existing transactions
+
+#### Estimated Effort
+
+| Sub-phase | Scope | Estimate |
+|-----------|-------|----------|
+| 5A: Transaction model fields | Backend | 2-3 hours |
+| 5B: CreateHolding auto-transaction | Backend | 3-4 hours |
+| 5C: $CASH auto-debit on BUY/SELL | Backend | 4-5 hours |
+| 5D: Funding source in Add Holding | Frontend | 3-4 hours |
+| 5E: Transfer transaction UX | Frontend | 3-4 hours |
+| 5F: Tests | Both | 4-5 hours |
+| **Total** | | **19-25 hours** |
 
 ---
 
