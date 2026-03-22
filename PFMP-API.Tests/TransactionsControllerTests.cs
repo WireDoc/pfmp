@@ -133,8 +133,10 @@ public class TransactionsControllerTests : IClassFixture<TestingWebAppFactory>
         // Transfer $2000 from account 1 to account 2
         var transferResp = await client.PostAsJsonAsync("/api/Transactions/transfer", new
         {
-            FromAccountId = acct1!.AccountId,
-            ToAccountId = acct2!.AccountId,
+            FromAccountId = acct1!.AccountId.ToString(),
+            FromAccountType = "investment",
+            ToAccountId = acct2!.AccountId.ToString(),
+            ToAccountType = "investment",
             Amount = 2000m,
             Description = "Test transfer"
         });
@@ -166,8 +168,10 @@ public class TransactionsControllerTests : IClassFixture<TestingWebAppFactory>
         // Transfer to same account should fail
         var transferResp = await client.PostAsJsonAsync("/api/Transactions/transfer", new
         {
-            FromAccountId = acct!.AccountId,
-            ToAccountId = acct.AccountId,
+            FromAccountId = acct!.AccountId.ToString(),
+            FromAccountType = "investment",
+            ToAccountId = acct.AccountId.ToString(),
+            ToAccountType = "investment",
             Amount = 1000m
         });
         Assert.Equal(HttpStatusCode.BadRequest, transferResp.StatusCode);

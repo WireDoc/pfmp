@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
+using PFMP_API.Models.FinancialProfile;
 using PFMP_API.Services;
 using System.ComponentModel.DataAnnotations;
 
@@ -251,8 +252,8 @@ public class TransactionsController : ControllerBase
     }
 
     /// <summary>
-    /// Transfer funds between two accounts. Creates paired WITHDRAWAL/DEPOSIT transactions
-    /// and adjusts CurrentBalance on both accounts.
+    /// Transfer funds between two accounts (investment or cash). Creates paired transactions
+    /// for investment account sides, and adjusts balances on both accounts.
     /// </summary>
     [HttpPost("transfer")]
     public async Task<ActionResult<object>> TransferFunds([FromBody] TransferFundsRequest request)
@@ -260,91 +261,174 @@ public class TransactionsController : ControllerBase
         if (request.Amount <= 0)
             return BadRequest("Transfer amount must be greater than zero");
 
-        if (request.FromAccountId == request.ToAccountId)
+        // Validate account types
+        var validTypes = new[] { "investment", "cash" };
+        if (!validTypes.Contains(request.FromAccountType))
+            return BadRequest($"Invalid fromAccountType: {request.FromAccountType}");
+        if (!validTypes.Contains(request.ToAccountType))
+            return BadRequest($"Invalid toAccountType: {request.ToAccountType}");
+
+        // Prevent same-account transfer
+        if (request.FromAccountId == request.ToAccountId && request.FromAccountType == request.ToAccountType)
             return BadRequest("Cannot transfer funds to the same account");
 
-        var fromAccount = await _context.Accounts.FindAsync(request.FromAccountId);
-        if (fromAccount == null)
-            return NotFound($"Source account {request.FromAccountId} not found");
+        // Resolve source account
+        Account? fromInvestment = null;
+        CashAccount? fromCash = null;
+        int fromUserId;
+        string fromName;
 
-        var toAccount = await _context.Accounts.FindAsync(request.ToAccountId);
-        if (toAccount == null)
-            return NotFound($"Destination account {request.ToAccountId} not found");
+        if (request.FromAccountType == "investment")
+        {
+            if (!int.TryParse(request.FromAccountId, out var fromId))
+                return BadRequest("Invalid investment account ID");
+            fromInvestment = await _context.Accounts.FindAsync(fromId);
+            if (fromInvestment == null)
+                return NotFound($"Source investment account {fromId} not found");
+            fromUserId = fromInvestment.UserId;
+            fromName = fromInvestment.AccountName;
+        }
+        else
+        {
+            if (!Guid.TryParse(request.FromAccountId, out var fromGuid))
+                return BadRequest("Invalid cash account ID");
+            fromCash = await _context.CashAccounts.FindAsync(fromGuid);
+            if (fromCash == null)
+                return NotFound($"Source cash account {fromGuid} not found");
+            fromUserId = fromCash.UserId;
+            fromName = fromCash.Nickname;
+        }
+
+        // Resolve destination account
+        Account? toInvestment = null;
+        CashAccount? toCash = null;
+        int toUserId;
+        string toName;
+
+        if (request.ToAccountType == "investment")
+        {
+            if (!int.TryParse(request.ToAccountId, out var toId))
+                return BadRequest("Invalid investment account ID");
+            toInvestment = await _context.Accounts.FindAsync(toId);
+            if (toInvestment == null)
+                return NotFound($"Destination investment account {toId} not found");
+            toUserId = toInvestment.UserId;
+            toName = toInvestment.AccountName;
+        }
+        else
+        {
+            if (!Guid.TryParse(request.ToAccountId, out var toGuid))
+                return BadRequest("Invalid cash account ID");
+            toCash = await _context.CashAccounts.FindAsync(toGuid);
+            if (toCash == null)
+                return NotFound($"Destination cash account {toGuid} not found");
+            toUserId = toCash.UserId;
+            toName = toCash.Nickname;
+        }
 
         // Verify same user owns both accounts
-        if (fromAccount.UserId != toAccount.UserId)
+        if (fromUserId != toUserId)
             return BadRequest("Cannot transfer between accounts owned by different users");
 
         var txDate = request.Date ?? DateTime.UtcNow;
+        int? withdrawalTxId = null;
+        int? depositTxId = null;
 
-        // Create WITHDRAWAL transaction on source account
-        var withdrawalTx = new Transaction
+        // Create Transaction records only for investment account sides
+        if (fromInvestment != null)
         {
-            AccountId = fromAccount.AccountId,
-            TransactionType = TransactionTypes.Withdrawal,
-            Quantity = request.Amount,
-            Price = 1,
-            Amount = -request.Amount,
-            TransactionDate = txDate,
-            SettlementDate = txDate,
-            Source = TransactionSource.Manual,
-            FundingSource = FundingSource.InternalTransfer,
-            SourceAccountId = toAccount.AccountId,
-            Description = request.Description ?? $"Transfer to {toAccount.AccountName}",
-            CreatedAt = DateTime.UtcNow
-        };
+            var withdrawalTx = new Transaction
+            {
+                AccountId = fromInvestment.AccountId,
+                TransactionType = TransactionTypes.Withdrawal,
+                Quantity = request.Amount,
+                Price = 1,
+                Amount = -request.Amount,
+                TransactionDate = txDate,
+                SettlementDate = txDate,
+                Source = TransactionSource.Manual,
+                FundingSource = FundingSource.InternalTransfer,
+                SourceAccountId = toInvestment?.AccountId,
+                Description = request.Description ?? $"Transfer to {toName}",
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.Transactions.Add(withdrawalTx);
+            await _context.SaveChangesAsync();
+            withdrawalTxId = withdrawalTx.TransactionId;
+        }
 
-        _context.Transactions.Add(withdrawalTx);
-        await _context.SaveChangesAsync();
-
-        // Create DEPOSIT transaction on destination account
-        var depositTx = new Transaction
+        if (toInvestment != null)
         {
-            AccountId = toAccount.AccountId,
-            TransactionType = TransactionTypes.Deposit,
-            Quantity = request.Amount,
-            Price = 1,
-            Amount = request.Amount,
-            TransactionDate = txDate,
-            SettlementDate = txDate,
-            Source = TransactionSource.Manual,
-            FundingSource = FundingSource.InternalTransfer,
-            SourceAccountId = fromAccount.AccountId,
-            LinkedTransactionId = withdrawalTx.TransactionId,
-            Description = request.Description ?? $"Transfer from {fromAccount.AccountName}",
-            CreatedAt = DateTime.UtcNow
-        };
+            var depositTx = new Transaction
+            {
+                AccountId = toInvestment.AccountId,
+                TransactionType = TransactionTypes.Deposit,
+                Quantity = request.Amount,
+                Price = 1,
+                Amount = request.Amount,
+                TransactionDate = txDate,
+                SettlementDate = txDate,
+                Source = TransactionSource.Manual,
+                FundingSource = FundingSource.InternalTransfer,
+                SourceAccountId = fromInvestment?.AccountId,
+                LinkedTransactionId = withdrawalTxId,
+                Description = request.Description ?? $"Transfer from {fromName}",
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.Transactions.Add(depositTx);
+            await _context.SaveChangesAsync();
+            depositTxId = depositTx.TransactionId;
 
-        _context.Transactions.Add(depositTx);
-        await _context.SaveChangesAsync();
-
-        // Link the withdrawal to the deposit
-        withdrawalTx.LinkedTransactionId = depositTx.TransactionId;
+            // Link withdrawal to deposit if both investment
+            if (withdrawalTxId.HasValue)
+            {
+                var withdrawalTx = await _context.Transactions.FindAsync(withdrawalTxId.Value);
+                if (withdrawalTx != null)
+                    withdrawalTx.LinkedTransactionId = depositTxId;
+            }
+        }
 
         // Adjust balances
-        fromAccount.CurrentBalance -= request.Amount;
-        fromAccount.UpdatedAt = DateTime.UtcNow;
+        if (fromInvestment != null)
+        {
+            fromInvestment.CurrentBalance -= request.Amount;
+            fromInvestment.UpdatedAt = DateTime.UtcNow;
+        }
+        else if (fromCash != null)
+        {
+            fromCash.Balance -= request.Amount;
+            fromCash.UpdatedAt = DateTime.UtcNow;
+        }
 
-        toAccount.CurrentBalance += request.Amount;
-        toAccount.UpdatedAt = DateTime.UtcNow;
+        if (toInvestment != null)
+        {
+            toInvestment.CurrentBalance += request.Amount;
+            toInvestment.UpdatedAt = DateTime.UtcNow;
+        }
+        else if (toCash != null)
+        {
+            toCash.Balance += request.Amount;
+            toCash.UpdatedAt = DateTime.UtcNow;
+        }
 
         await _context.SaveChangesAsync();
 
         _logger.LogInformation(
-            "Transfer: ${Amount} from account {FromId} ({FromName}) to account {ToId} ({ToName}), txIds: {WithdrawalTxId}/{DepositTxId}",
-            request.Amount, fromAccount.AccountId, fromAccount.AccountName,
-            toAccount.AccountId, toAccount.AccountName,
-            withdrawalTx.TransactionId, depositTx.TransactionId);
+            "Transfer: ${Amount} from {FromType} account {FromId} ({FromName}) to {ToType} account {ToId} ({ToName})",
+            request.Amount, request.FromAccountType, request.FromAccountId, fromName,
+            request.ToAccountType, request.ToAccountId, toName);
 
         return Ok(new
         {
-            withdrawalTransactionId = withdrawalTx.TransactionId,
-            depositTransactionId = depositTx.TransactionId,
-            fromAccountId = fromAccount.AccountId,
-            toAccountId = toAccount.AccountId,
+            withdrawalTransactionId = withdrawalTxId,
+            depositTransactionId = depositTxId,
+            fromAccountId = request.FromAccountId,
+            fromAccountType = request.FromAccountType,
+            toAccountId = request.ToAccountId,
+            toAccountType = request.ToAccountType,
             amount = request.Amount,
-            fromNewBalance = fromAccount.CurrentBalance,
-            toNewBalance = toAccount.CurrentBalance
+            fromNewBalance = fromInvestment?.CurrentBalance ?? fromCash?.Balance ?? 0,
+            toNewBalance = toInvestment?.CurrentBalance ?? toCash?.Balance ?? 0
         });
     }
 
@@ -502,10 +586,16 @@ public class UpdateTransactionRequest
 public class TransferFundsRequest
 {
     [Required]
-    public int FromAccountId { get; set; }
+    public string FromAccountId { get; set; } = string.Empty;
 
     [Required]
-    public int ToAccountId { get; set; }
+    public string FromAccountType { get; set; } = string.Empty; // "investment" or "cash"
+
+    [Required]
+    public string ToAccountId { get; set; } = string.Empty;
+
+    [Required]
+    public string ToAccountType { get; set; } = string.Empty; // "investment" or "cash"
 
     [Required]
     [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than zero")]

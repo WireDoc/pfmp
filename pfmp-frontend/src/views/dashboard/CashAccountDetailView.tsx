@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Paper, Tabs, Tab, Typography, CircularProgress, Breadcrumbs, Link } from '@mui/material';
-import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
+import { Box, Paper, Tabs, Tab, Typography, CircularProgress, Breadcrumbs, Link, Button } from '@mui/material';
+import { ArrowBack as ArrowBackIcon, SwapHoriz as SwapHorizIcon } from '@mui/icons-material';
 import { TransactionList } from '../../components/cash-accounts/TransactionList';
 import { BalanceTrendChart } from '../../components/cash-accounts/BalanceTrendChart';
 import { AccountDetailsCard } from '../../components/cash-accounts/AccountDetailsCard';
 import { getCashAccount, type CashAccountResponse } from '../../services/cashAccountsApi';
+import { TransferFundsDialog } from '../../components/transfers/TransferFundsDialog';
 
 const CashAccountDetailView: React.FC = () => {
   const { cashAccountId } = useParams<{ cashAccountId: string }>();
@@ -14,6 +15,7 @@ const CashAccountDetailView: React.FC = () => {
   const [account, setAccount] = useState<CashAccountResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
 
   // Fetch cash account details
   useEffect(() => {
@@ -109,13 +111,22 @@ const CashAccountDetailView: React.FC = () => {
       </Breadcrumbs>
 
       {/* Account Header */}
-      <Box mb={3}>
-        <Typography variant="h4" gutterBottom>
-          {account.nickname}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {account.institution} • {account.accountType}
-        </Typography>
+      <Box mb={3} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <Box>
+          <Typography variant="h4" gutterBottom>
+            {account.nickname}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {account.institution} • {account.accountType}
+          </Typography>
+        </Box>
+        <Button
+          variant="outlined"
+          startIcon={<SwapHorizIcon />}
+          onClick={() => setTransferDialogOpen(true)}
+        >
+          Transfer Funds
+        </Button>
       </Box>
 
       {/* Account Details Card */}
@@ -148,6 +159,21 @@ const CashAccountDetailView: React.FC = () => {
           )}
         </Box>
       </Paper>
+
+      {/* Transfer Funds Dialog */}
+      {cashAccountId && (
+        <TransferFundsDialog
+          open={transferDialogOpen}
+          onClose={() => setTransferDialogOpen(false)}
+          onComplete={() => {
+            // Re-fetch account to get updated balance
+            getCashAccount(cashAccountId).then(setAccount).catch(() => {});
+          }}
+          userId={account.userId}
+          currentAccountId={cashAccountId}
+          currentAccountType="cash"
+        />
+      )}
     </Box>
   );
 };

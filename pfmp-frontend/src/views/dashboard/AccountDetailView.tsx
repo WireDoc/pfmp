@@ -410,7 +410,8 @@ export function AccountDetailView() {
             setTransactionRefreshTrigger(prev => prev + 1);
           }}
           userId={account?.userId}
-          currentAccountId={Number(accountId)}
+          currentAccountId={String(accountId)}
+          currentAccountType="investment"
         />
         </>
       )}
