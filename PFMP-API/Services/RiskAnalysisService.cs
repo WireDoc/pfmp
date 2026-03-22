@@ -161,7 +161,8 @@ public class RiskAnalysisService
 
             var holdings = await _context.Holdings
                 .Where(h => h.AccountId == accountId)
-                .Take(10) // Limit to top 10 holdings for performance
+                .OrderByDescending(h => h.Quantity * h.CurrentPrice)
+                .Take(10) // Limit to top 10 holdings by value
                 .ToListAsync();
 
             // Calculate correlations between major holdings

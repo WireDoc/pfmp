@@ -51,6 +51,7 @@ namespace PFMP_API.Controllers
                     .Include(u => u.InsurancePolicies)
                     .Include(u => u.RealEstateProperties)
                     .Include(u => u.Alerts)
+                    .AsSplitQuery()
                     .FirstOrDefaultAsync(u => u.UserId == id);
 
                 if (user == null)

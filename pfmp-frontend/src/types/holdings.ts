@@ -29,6 +29,24 @@ export interface Holding {
   plaidSecurityId?: string | null; // If set, this holding was synced from Plaid
 }
 
+export const FundingSource = {
+  CashBalance: 0,       // Debit from Account.CurrentBalance
+  InternalTransfer: 1,  // Transfer from another PFMP account
+  ExternalDeposit: 2,   // ACH, wire, check deposit from outside PFMP
+  ExistingPosition: 3,  // No cash movement (initial balance only)
+  Other: 4,
+} as const;
+
+export type FundingSource = typeof FundingSource[keyof typeof FundingSource];
+
+export const FundingSourceLabels: Record<FundingSource, string> = {
+  [FundingSource.CashBalance]: 'Purchase from account cash balance',
+  [FundingSource.InternalTransfer]: 'Transfer from another account',
+  [FundingSource.ExternalDeposit]: 'External deposit (ACH, wire, etc.)',
+  [FundingSource.ExistingPosition]: 'Existing position (no cash movement)',
+  [FundingSource.Other]: 'Other',
+};
+
 export interface CreateHoldingRequest {
   accountId: number;
   symbol: string;
@@ -49,6 +67,8 @@ export interface CreateHoldingRequest {
   purchaseDate?: string;
   isLongTermCapitalGains?: boolean;
   notes?: string;
+  fundingSource?: FundingSource;
+  sourceAccountId?: number;
 }
 
 export interface UpdateHoldingRequest {

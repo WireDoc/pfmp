@@ -9,13 +9,20 @@ import {
   MenuItem,
   Alert,
   CircularProgress,
+  FormControl,
+  FormLabel,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  Typography,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import Grid from '@mui/material/Grid';
 import type { Holding, CreateHoldingRequest, UpdateHoldingRequest } from '../../types/holdings';
-import { AssetTypeEnum, AssetTypeLabels, AssetTypeNameToValue } from '../../types/holdings';
+import { AssetTypeEnum, AssetTypeLabels, AssetTypeNameToValue, FundingSource, FundingSourceLabels } from '../../types/holdings';
+import { listUserAccounts, type AccountResponse } from '../../services/accountsApi';
 
 interface HoldingFormModalProps {
   open: boolean;
@@ -23,6 +30,7 @@ interface HoldingFormModalProps {
   onSave: () => void;
   holding: Holding | null;
   accountId: number;
+  userId?: number;
 }
 
 interface FormData {
@@ -37,6 +45,8 @@ interface FormData {
   sectorAllocation: string;
   notes: string;
   purchaseDate: Date | null;
+  fundingSource: FundingSource;
+  sourceAccountId: number | null;
 }
 
 const initialFormData: FormData = {
@@ -51,12 +61,15 @@ const initialFormData: FormData = {
   sectorAllocation: '',
   notes: '',
   purchaseDate: null,
+  fundingSource: FundingSource.CashBalance,
+  sourceAccountId: null,
 };
 
-export function HoldingFormModal({ open, onClose, onSave, holding, accountId }: HoldingFormModalProps) {
+export function HoldingFormModal({ open, onClose, onSave, holding, accountId, userId }: HoldingFormModalProps) {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [otherAccounts, setOtherAccounts] = useState<AccountResponse[]>([]);
 
   // Populate form when editing
   useEffect(() => {
@@ -83,12 +96,25 @@ export function HoldingFormModal({ open, onClose, onSave, holding, accountId }: 
         sectorAllocation: holding.sectorAllocation || '',
         notes: holding.notes || '',
         purchaseDate: holding.purchaseDate ? new Date(holding.purchaseDate) : null,
+        fundingSource: FundingSource.CashBalance,
+        sourceAccountId: null,
       });
     } else {
-      setFormData(initialFormData);
+      setFormData({ ...initialFormData, fundingSource: FundingSource.CashBalance });
     }
     setError(null);
   }, [holding, open]);
+
+  // Fetch other investment accounts when InternalTransfer is selected
+  useEffect(() => {
+    if (formData.fundingSource === FundingSource.InternalTransfer && userId && !holding) {
+      listUserAccounts(userId).then((accounts) => {
+        // Only show investment-type accounts for transfers
+        const investmentTypes = ['Brokerage', 'RetirementAccount401k', 'RetirementAccountIRA', 'RetirementAccountRoth', 'TSP', 'HSA', 'CryptocurrencyExchange'];
+        setOtherAccounts(accounts.filter((a) => a.accountId !== accountId && investmentTypes.includes(a.accountType)));
+      }).catch(() => setOtherAccounts([]));
+    }
+  }, [formData.fundingSource, userId, accountId, holding]);
 
   const handleChange = (field: keyof FormData) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
@@ -112,6 +138,10 @@ export function HoldingFormModal({ open, onClose, onSave, holding, accountId }: 
     }
     if (!formData.currentPrice || parseFloat(formData.currentPrice) < 0) {
       setError('Current price must be 0 or greater');
+      return false;
+    }
+    if (!holding && formData.fundingSource === FundingSource.InternalTransfer && !formData.sourceAccountId) {
+      setError('Please select the source account for the transfer');
       return false;
     }
     return true;
@@ -159,6 +189,8 @@ export function HoldingFormModal({ open, onClose, onSave, holding, accountId }: 
             sectorAllocation: formData.sectorAllocation || undefined,
             notes: formData.notes || undefined,
             purchaseDate: formData.purchaseDate ? formData.purchaseDate.toISOString() : undefined,
+            fundingSource: formData.fundingSource,
+            sourceAccountId: formData.fundingSource === FundingSource.InternalTransfer ? formData.sourceAccountId ?? undefined : undefined,
           };
 
       const response = await fetch(url, {
@@ -325,6 +357,48 @@ export function HoldingFormModal({ open, onClose, onSave, holding, accountId }: 
               placeholder="e.g., Technology"
             />
           </Grid>
+          {!holding && (
+            <Grid size={12}>
+              <FormControl component="fieldset" disabled={loading}>
+                <FormLabel component="legend">
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>How was this holding acquired?</Typography>
+                </FormLabel>
+                <RadioGroup
+                  value={formData.fundingSource.toString()}
+                  onChange={(e) => setFormData(prev => ({ ...prev, fundingSource: Number(e.target.value) as FundingSource }))}
+                >
+                  {Object.entries(FundingSourceLabels).map(([value, label]) => (
+                    <FormControlLabel
+                      key={value}
+                      value={value}
+                      control={<Radio size="small" />}
+                      label={label}
+                    />
+                  ))}
+                </RadioGroup>
+              </FormControl>
+            </Grid>
+          )}
+          {!holding && formData.fundingSource === FundingSource.InternalTransfer && (
+            <Grid size={12}>
+              <TextField
+                select
+                label="Source Account"
+                value={formData.sourceAccountId ?? ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, sourceAccountId: e.target.value ? Number(e.target.value) : null }))}
+                fullWidth
+                required
+                disabled={loading}
+                helperText="Select the account to transfer funds from"
+              >
+                {otherAccounts.map((acct) => (
+                  <MenuItem key={acct.accountId} value={acct.accountId}>
+                    {acct.accountName} — {acct.institution} (${acct.currentBalance.toLocaleString()})
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Grid>
+          )}
           <Grid size={12}>
             <TextField
               label="Notes"

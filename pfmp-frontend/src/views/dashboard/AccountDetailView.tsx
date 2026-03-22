@@ -12,7 +12,7 @@ import {
   CircularProgress,
   Alert,
 } from '@mui/material';
-import { Add as AddIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material';
+import { Add as AddIcon, ArrowBack as ArrowBackIcon, SwapHoriz as SwapHorizIcon } from '@mui/icons-material';
 import { HoldingsTable } from '../../components/holdings/HoldingsTable';
 import { HoldingFormModal } from '../../components/holdings/HoldingFormModal';
 import { AccountSummaryHeader } from '../../components/holdings/AccountSummaryHeader';
@@ -26,6 +26,7 @@ import { InvestmentTransactionList } from '../../components/investment-accounts/
 import { SkeletonAccountView } from '../../components/accounts/SkeletonAccountView';
 import { AccountSetupWizard } from '../../components/accounts/AccountSetupWizard';
 import { IncompleteHistoryBanner } from '../../components/accounts/IncompleteHistoryBanner';
+import { TransferFundsDialog } from '../../components/transfers/TransferFundsDialog';
 import { getAccount, type AccountResponse } from '../../services/accountsApi';
 import type { Holding } from '../../types/holdings';
 
@@ -89,6 +90,7 @@ export function AccountDetailView() {
   const [refreshing, setRefreshing] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [transactionRefreshTrigger, setTransactionRefreshTrigger] = useState(0);
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   
   const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api';
   
@@ -119,10 +121,9 @@ export function AccountDetailView() {
       const holdingsData = await holdingsResponse.json();
       setHoldings(holdingsData);
       
-      // Set first non-$CASH holding as selected by default if available
+      // Set first holding as selected by default
       if (holdingsData.length > 0 && !selectedHolding) {
-        const nonCashHoldings = holdingsData.filter((h: Holding) => h.symbol !== '$CASH');
-        setSelectedHolding(nonCashHoldings.length > 0 ? nonCashHoldings[0] : holdingsData[0]);
+        setSelectedHolding(holdingsData[0]);
       }
     } catch (err) {
       console.error('Error fetching account data:', err);
@@ -289,13 +290,22 @@ export function AccountDetailView() {
             </Tabs>
             
             {tabValue === 0 && (
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={handleAddHolding}
-              >
-                Add Holding
-              </Button>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<SwapHorizIcon />}
+                  onClick={() => setTransferDialogOpen(true)}
+                >
+                  Transfer Funds
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddHolding}
+                >
+                  Add Holding
+                </Button>
+              </Box>
             )}
           </Box>
 
@@ -386,8 +396,21 @@ export function AccountDetailView() {
           open={modalOpen}
           holding={editingHolding}
           accountId={Number(accountId)}
+          userId={account?.userId}
           onClose={handleModalClose}
           onSave={handleModalSave}
+        />
+
+        {/* Transfer Funds Dialog */}
+        <TransferFundsDialog
+          open={transferDialogOpen}
+          onClose={() => setTransferDialogOpen(false)}
+          onComplete={() => {
+            fetchHoldings();
+            setTransactionRefreshTrigger(prev => prev + 1);
+          }}
+          userId={account?.userId}
+          currentAccountId={Number(accountId)}
         />
         </>
       )}
@@ -433,10 +456,8 @@ export function AccountDetailView() {
               if (holdingsResponse.ok) {
                 const freshHoldings = await holdingsResponse.json();
                 setHoldings(freshHoldings);
-                // Select first non-$CASH holding to avoid 404 on price lookup
-                const nonCashHoldings = freshHoldings.filter((h: Holding) => h.symbol !== '$CASH');
-                if (nonCashHoldings.length > 0) {
-                  setSelectedHolding(nonCashHoldings[0]);
+                if (freshHoldings.length > 0) {
+                  setSelectedHolding(freshHoldings[0]);
                 } else {
                   setSelectedHolding(null);
                 }

@@ -25,6 +25,9 @@ export interface InvestmentTransaction {
   isQualifiedDividend: boolean;
   stakingReward: number | null;
   stakingAPY: number | null;
+  sourceAccountId: number | null;
+  linkedTransactionId: number | null;
+  fundingSource: string | null;
   createdAt: string;
   notes: string | null;
   // Navigation properties (from includes)

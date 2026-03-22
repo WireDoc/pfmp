@@ -370,10 +370,35 @@ namespace PFMP_API.Services.Plaid
                         .Where(h => h.AccountId == plaidAccount.AccountId)
                         .ToList();
 
+                    var cashValue = 0m;
                     foreach (var plaidHolding in accountHoldings)
                     {
+                        var security = response.Securities.FirstOrDefault(s => s.SecurityId == plaidHolding.SecurityId);
+                        if (security?.IsCashEquivalent == true)
+                        {
+                            // Cash equivalents go to CurrentBalance, not as holdings
+                            cashValue += plaidHolding.Quantity * plaidHolding.InstitutionPrice;
+                            continue;
+                        }
                         await UpsertHoldingAsync(account, plaidHolding, response.Securities);
                         result.HoldingsUpdated++;
+                    }
+
+                    // Set CurrentBalance to cash portion only (uninvested cash)
+                    // If no holdings at all, keep Plaid total (set in UpsertInvestmentAccountAsync)
+                    if (accountHoldings.Count > 0)
+                    {
+                        account.CurrentBalance = cashValue;
+                    }
+
+                    // Remove any existing cash-equivalent holdings from prior syncs
+                    var staleCashHoldings = await _db.Holdings
+                        .Where(h => h.AccountId == account.AccountId && 
+                               (h.Symbol == "CASH-SWEEP" || h.Symbol == "$CASH"))
+                        .ToListAsync();
+                    if (staleCashHoldings.Any())
+                    {
+                        _db.Holdings.RemoveRange(staleCashHoldings);
                     }
                 }
 

@@ -137,7 +137,7 @@ namespace PFMP_API.Models
 
     public enum FundingSource
     {
-        CashBalance,       // Debit from $CASH holding in same account
+        CashBalance,       // Debit from Account.CurrentBalance
         InternalTransfer,  // Transfer from another PFMP account
         ExternalDeposit,   // ACH, wire, check deposit from outside PFMP
         ExistingPosition,  // No cash movement (initial balance only)

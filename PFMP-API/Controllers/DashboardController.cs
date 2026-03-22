@@ -98,7 +98,8 @@ public class DashboardController : ControllerBase
                 a.AccountType == AccountType.HSA).ToList();
             
             var totalCash = cashAccounts.Sum(a => a.Balance);
-            var totalInvestments = investmentAccounts.Sum(a => a.CurrentBalance);
+            var totalInvestments = investmentAccounts.Sum(a => 
+                a.CurrentBalance + (a.Holdings?.Sum(h => h.Quantity * h.CurrentPrice) ?? 0));
             
             // Calculate TSP with cached prices from TSPFundPrices table (updated by Hangfire job)
             decimal totalTsp = 0;
@@ -157,7 +158,8 @@ public class DashboardController : ControllerBase
                     institution = acct.Institution ?? "Unknown",
                     type = displayType,
                     accountType = acct.AccountType.ToString(),  // Include specific type
-                    balance = new { amount = acct.CurrentBalance, currency = "USD" },
+                    balance = new { amount = acct.CurrentBalance + (acct.Holdings?.Sum(h => h.Quantity * h.CurrentPrice) ?? 0), currency = "USD" },
+                    cashBalance = acct.CurrentBalance,
                     holdingsCount = acct.Holdings?.Count ?? 0,
                     syncStatus = "ok",
                     lastSync = acct.UpdatedAt
@@ -359,7 +361,6 @@ public class DashboardController : ControllerBase
             .SelectMany(a => a.Holdings ?? Enumerable.Empty<Holding>())
             .Where(h => !string.IsNullOrWhiteSpace(h.Symbol))
             .Where(h => !IsTspFund(h.Symbol)) // TSP funds use separate job
-            .Where(h => h.Symbol != "$CASH") // Cash is always $1.00, no FMP lookup needed
             .Where(h => h.LastPriceUpdate == null || h.LastPriceUpdate < staleThreshold)
             .ToList();
 
@@ -412,12 +413,10 @@ public class DashboardController : ControllerBase
                 }
             }
 
-            // Recalculate account balances
+            // Phase 6: Don't overwrite CurrentBalance (it's uninvested cash).
+            // Just update timestamps on accounts whose holdings were refreshed.
             foreach (var account in accountsToUpdate)
             {
-                var newBalance = account.Holdings?
-                    .Sum(h => h.Quantity * h.CurrentPrice) ?? 0;
-                account.CurrentBalance = newBalance;
                 account.UpdatedAt = now;
             }
 

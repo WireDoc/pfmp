@@ -57,6 +57,13 @@ public class HoldingsControllerTests : IClassFixture<TestingWebAppFactory>
         string Name
     );
 
+    private record AccountDetailDto(
+        int AccountId,
+        int UserId,
+        string AccountName,
+        decimal CurrentBalance
+    );
+
     private record TransactionDto(
         int TransactionId,
         int AccountId,
@@ -176,7 +183,7 @@ public class HoldingsControllerTests : IClassFixture<TestingWebAppFactory>
         Assert.Equal(HttpStatusCode.Created, acctResp.StatusCode);
         var account = await acctResp.Content.ReadFromJsonAsync<AccountResponseDto>();
 
-        // Add a non-$CASH holding
+        // Add a holding
         var holdingResp = await client.PostAsJsonAsync("/api/Holdings", new
         {
             AccountId = account!.AccountId,
@@ -206,10 +213,10 @@ public class HoldingsControllerTests : IClassFixture<TestingWebAppFactory>
     }
 
     /// <summary>
-    /// Phase 5C: CreateHolding auto-debits $CASH holding when purchasing shares
+    /// Phase 6: CreateHolding debits Account.CurrentBalance when purchasing shares (no more $CASH holdings)
     /// </summary>
     [Fact]
-    public async Task CreateHolding_ManualAccount_DebitsCashHolding()
+    public async Task CreateHolding_ManualAccount_DebitsCurrentBalance()
     {
         var client = _factory.CreateClient();
 
@@ -217,18 +224,16 @@ public class HoldingsControllerTests : IClassFixture<TestingWebAppFactory>
         var userResp = await client.PostAsync("/api/admin/users/test?scenario=done", null);
         var user = await userResp.Content.ReadFromJsonAsync<UserAdminControllerTests.UserDto>();
 
-        // Create a manual investment account (this also creates a $CASH holding)
+        // Create a manual investment account with $10,000 balance
         var acctResp = await client.PostAsJsonAsync("/api/Accounts", new AccountCreateDto(
             user!.UserId, "Test Brokerage 2", "TestBroker", "Brokerage", 10000m));
         Assert.Equal(HttpStatusCode.Created, acctResp.StatusCode);
         var account = await acctResp.Content.ReadFromJsonAsync<AccountResponseDto>();
 
-        // Get $CASH holding and note its initial quantity
+        // Verify no $CASH holding exists (Phase 6: cash is tracked at account level)
         var holdingsResp = await client.GetAsync($"/api/Holdings?accountId={account!.AccountId}");
         var holdings = await holdingsResp.Content.ReadFromJsonAsync<List<HoldingResponseDto>>();
-        var cashBefore = holdings!.FirstOrDefault(h => h.Symbol == "$CASH");
-        Assert.NotNull(cashBefore);
-        var cashQtyBefore = cashBefore!.Quantity;
+        Assert.DoesNotContain(holdings!, h => h.Symbol == "$CASH");
 
         // Add a stock holding: 10 shares at $150 = $1500 purchase
         var holdingResp = await client.PostAsJsonAsync("/api/Holdings", new
@@ -244,21 +249,11 @@ public class HoldingsControllerTests : IClassFixture<TestingWebAppFactory>
         });
         Assert.Equal(HttpStatusCode.Created, holdingResp.StatusCode);
 
-        // Verify $CASH was debited by the purchase amount
-        holdingsResp = await client.GetAsync($"/api/Holdings?accountId={account.AccountId}");
-        holdings = await holdingsResp.Content.ReadFromJsonAsync<List<HoldingResponseDto>>();
-        var cashAfter = holdings!.First(h => h.Symbol == "$CASH");
-
-        var expectedCash = cashQtyBefore - (10m * 150m);
-        Assert.Equal(expectedCash, cashAfter.Quantity);
-
-        // Verify a $CASH debit transaction was created
-        var txResp = await client.GetAsync($"/api/Transactions?accountId={account.AccountId}");
-        var transactions = await txResp.Content.ReadFromJsonAsync<List<TransactionDto>>();
-        var cashDebitTx = transactions!.FirstOrDefault(t => t.Symbol == "$CASH" && t.Amount < 0);
-        Assert.NotNull(cashDebitTx);
-        Assert.Equal(-1500m, cashDebitTx!.Amount);
-        Assert.Contains("MSFT", cashDebitTx.Description ?? "");
+        // Verify CurrentBalance was debited by the purchase amount (10000 - 1500 = 8500)
+        var acctCheckResp = await client.GetAsync($"/api/Accounts/{account.AccountId}");
+        Assert.Equal(HttpStatusCode.OK, acctCheckResp.StatusCode);
+        var updatedAccount = await acctCheckResp.Content.ReadFromJsonAsync<AccountDetailDto>();
+        Assert.Equal(8500m, updatedAccount!.CurrentBalance);
     }
 
     /// <summary>
@@ -314,10 +309,10 @@ public class HoldingsControllerTests : IClassFixture<TestingWebAppFactory>
     }
 
     /// <summary>
-    /// $CASH holding itself should NOT trigger auto-transaction or $CASH debit
+    /// Phase 6: Account creation does not create $CASH holdings; balance is tracked on Account.CurrentBalance
     /// </summary>
     [Fact]
-    public async Task CreateHolding_CashSymbol_NoAutoTransaction()
+    public async Task CreateAccount_NoCashHolding()
     {
         var client = _factory.CreateClient();
 
@@ -325,35 +320,22 @@ public class HoldingsControllerTests : IClassFixture<TestingWebAppFactory>
         var userResp = await client.PostAsync("/api/admin/users/test?scenario=done", null);
         var user = await userResp.Content.ReadFromJsonAsync<UserAdminControllerTests.UserDto>();
 
-        // Create a manual investment account
+        // Create a manual investment account with $8000 balance
         var acctResp = await client.PostAsJsonAsync("/api/Accounts", new AccountCreateDto(
-            user!.UserId, "Test Brokerage 4", "TestBroker", "Brokerage", 8000m));
+            user!.UserId, "Test Brokerage NoCash", "TestBroker", "Brokerage", 8000m));
         Assert.Equal(HttpStatusCode.Created, acctResp.StatusCode);
         var account = await acctResp.Content.ReadFromJsonAsync<AccountResponseDto>();
 
-        // PostAccount creates $CASH with its own INITIAL_BALANCE. Count those.
-        var txResp = await client.GetAsync($"/api/Transactions?accountId={account!.AccountId}&transactionType=INITIAL_BALANCE");
+        // Verify no holdings at all were created (no $CASH)
+        var holdingsResp = await client.GetAsync($"/api/Holdings?accountId={account!.AccountId}");
+        var holdings = await holdingsResp.Content.ReadFromJsonAsync<List<HoldingResponseDto>>();
+        Assert.Empty(holdings!);
+
+        // Verify a DEPOSIT transaction was created (not INITIAL_BALANCE for $CASH)
+        var txResp = await client.GetAsync($"/api/Transactions?accountId={account.AccountId}");
         var transactions = await txResp.Content.ReadFromJsonAsync<List<TransactionDto>>();
-        var cashInitTx = transactions!.Where(t => t.Symbol == "$CASH").ToList();
-        var cashCountBefore = cashInitTx.Count;
-
-        // Manually add another $CASH holding (simulating duplicate add) — should NOT create extra auto-transaction
-        var holdingResp = await client.PostAsJsonAsync("/api/Holdings", new
-        {
-            AccountId = account.AccountId,
-            Symbol = "$CASH",
-            Name = "Cash Extra",
-            AssetType = 7, // Cash
-            Quantity = 500m,
-            AverageCostBasis = 1m,
-            CurrentPrice = 1m
-        });
-        Assert.Equal(HttpStatusCode.Created, holdingResp.StatusCode);
-
-        // Re-check: $CASH INITIAL_BALANCE count should NOT have increased
-        txResp = await client.GetAsync($"/api/Transactions?accountId={account.AccountId}&transactionType=INITIAL_BALANCE");
-        transactions = await txResp.Content.ReadFromJsonAsync<List<TransactionDto>>();
-        var cashCountAfter = transactions!.Count(t => t.Symbol == "$CASH");
-        Assert.Equal(cashCountBefore, cashCountAfter); // No new auto-tx for $CASH
+        var depositTx = transactions!.FirstOrDefault(t => t.TransactionType == "DEPOSIT");
+        Assert.NotNull(depositTx);
+        Assert.Equal(8000m, depositTx!.Amount);
     }
 }

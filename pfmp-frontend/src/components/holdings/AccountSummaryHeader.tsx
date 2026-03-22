@@ -40,9 +40,11 @@ export function AccountSummaryHeader({ accountId, holdings, loading, onRefreshPr
     }).format(value);
   };
 
-  const totalValue = holdings.reduce((sum, h) => sum + h.currentValue, 0);
+  const holdingsValue = holdings.reduce((sum, h) => sum + h.currentValue, 0);
+  const cashBalance = account?.currentBalance ?? 0;
+  const totalValue = holdingsValue + cashBalance;
   const totalCostBasis = holdings.reduce((sum, h) => sum + h.totalCostBasis, 0);
-  const totalGainLoss = totalValue - totalCostBasis;
+  const totalGainLoss = holdingsValue - totalCostBasis;
   const totalGainLossPercentage = totalCostBasis > 0 ? (totalGainLoss / totalCostBasis) * 100 : 0;
   
   const isPositive = totalGainLoss >= 0;
@@ -108,6 +110,17 @@ export function AccountSummaryHeader({ accountId, holdings, loading, onRefreshPr
               {formatCurrency(totalValue)}
             </Typography>
           </Box>
+
+          {cashBalance > 0 && (
+            <Box sx={{ textAlign: 'right' }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Cash Balance
+              </Typography>
+              <Typography variant="h5">
+                {formatCurrency(cashBalance)}
+              </Typography>
+            </Box>
+          )}
 
           <Box sx={{ textAlign: 'right' }}>
             <Typography variant="body2" color="text.secondary" gutterBottom>

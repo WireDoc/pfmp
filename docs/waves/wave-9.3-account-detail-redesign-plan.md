@@ -726,4 +726,142 @@ When TransactionType == "TRANSFER":
 
 ---
 
-**Next Action:** Implement Phase 1 fixes immediately to unblock testing, then proceed with Phase 2 planning and development.
+### Phase 6: Replace $CASH Holdings with Account.CurrentBalance (Wave 9.3.6)
+
+**Status:** 🔄 In Progress (March 2026)
+**Priority:** High (architectural correction — $CASH as a holding is fundamentally wrong)
+**Triggered by:** User testing with Ally Invest revealed that brokerage cash is an *account-level balance*, not a holding. Ally shows "Spending Power" at the account level, not a $CASH position in the holdings list.
+
+#### Problem Statement
+
+Phase 5 introduced `$CASH` as a synthetic holding to track uninvested cash in investment accounts. This creates several problems:
+
+1. **Misrepresents reality.** Cash balance is an account attribute, not a security position. Real brokerages (Ally, Fidelity, Schwab) show cash as account-level "spending power" or "cash available to invest."
+2. **Complicates holdings list.** `$CASH` must be filtered out of price lookups, FMP API calls, allocation charts, and performance calculations — a spreading code smell.
+3. **Break total value calculation.** The dashboard recalculates `Account.CurrentBalance = sum(holdings × price)` which counts $CASH twice when displayed alongside an account balance.
+4. **Transfer UX is wrong.** Cross-account transfers currently debit a `$CASH` holding instead of adjusting the account balance.
+
+#### Design Decision
+
+`Account.CurrentBalance` (decimal 18,2) — which already exists — will represent **uninvested cash** for investment accounts. Total account value = `CurrentBalance + sum(holdings × currentPrice)`.
+
+**Money flows:**
+- External deposit → increases `CurrentBalance` (DEPOSIT transaction)
+- Buy stock → decreases `CurrentBalance`, creates Holding + BUY transaction
+- Sell stock → increases `CurrentBalance`, SELL transaction
+- Transfer between accounts → decreases source `CurrentBalance`, increases destination `CurrentBalance`, paired WITHDRAWAL/DEPOSIT transactions linked via `LinkedTransactionId`
+
+#### Sub-phase 6A: Backend — Replace $CASH with CurrentBalance
+
+**Goal:** Remove all `$CASH` holding logic; use `Account.CurrentBalance` for cash operations.
+
+**Changes:**
+
+1. **AccountsController.PostAccount** — Remove $CASH holding creation + INITIAL_BALANCE transaction. `CurrentBalance` is already set from `createRequest.Balance` on line 165.
+
+2. **AccountsController.UpdateBalance** — Remove $CASH holding lookup/update. Just update `CurrentBalance` directly. Create DEPOSIT/WITHDRAWAL transactions without `HoldingId` or `Symbol = "$CASH"`.
+
+3. **AccountsController.TransitionToDetailed** — Remove $CASH holding deletion. Adjust balance validation: total = CurrentBalance + sum(new holdings).
+
+4. **HoldingsController.CreateHolding** — Replace $CASH debit logic:
+   - `FundingSource.CashBalance`: Debit `account.CurrentBalance -= purchaseAmount`. Create WITHDRAWAL transaction (no HoldingId).
+   - `FundingSource.InternalTransfer`: Debit `sourceAccount.CurrentBalance`. Create paired WITHDRAWAL/DEPOSIT transactions.
+   - Remove all `$CASH` symbol lookups.
+
+5. **DashboardController.RefreshStalePricesAsync** — Stop overwriting `CurrentBalance` with `sum(holdings × price)`. Only update individual holding prices.
+
+6. **DashboardController.GetSummary** — Compute total per account as `CurrentBalance + sum(holdings × price)` for display.
+
+**Files changed:**
+- `PFMP-API/Controllers/AccountsController.cs`
+- `PFMP-API/Controllers/HoldingsController.cs`
+- `PFMP-API/Controllers/DashboardController.cs`
+
+##### Sub-phase 6B: Database Migration
+
+**Goal:** Clean up existing $CASH data.
+
+**SQL migration script:**
+1. For each account: if $CASH holding exists, set `Account.CurrentBalance = $CASH.Quantity` (preserve cash balances)
+2. Delete all transactions linked to $CASH holdings
+3. Delete all $CASH holdings
+4. User confirmed: OK to clear records and start fresh for user 20
+
+##### Sub-phase 6C: Frontend — Cash Balance Display
+
+**Goal:** Show uninvested cash as account-level info, not a holding.
+
+**Changes:**
+1. **AccountDetailView.tsx** — Show "Cash Balance: $X,XXX.XX" in the Holdings tab header
+2. Remove `$CASH` filtering from holdings display and default selection (no more $CASH holdings to filter)
+3. **AccountSummaryHeader** — Show total = `currentBalance + holdingsValue`
+
+**Files changed:**
+- `pfmp-frontend/src/views/dashboard/AccountDetailView.tsx`
+- `pfmp-frontend/src/components/accounts/AccountSummaryHeader.tsx`
+
+##### Sub-phase 6D: Transfer Funds Feature
+
+**Goal:** Allow fund transfers between accounts with proper transaction trail.
+
+**Backend:** New `POST /api/transactions/transfer` endpoint:
+```json
+{
+  "fromAccountId": 159,
+  "toAccountId": 160,
+  "amount": 5000.00,
+  "date": "2026-03-15",
+  "description": "Fund IRA from brokerage"
+}
+```
+- Creates paired WITHDRAWAL (source) + DEPOSIT (destination) transactions
+- Links them via `LinkedTransactionId`
+- Adjusts `CurrentBalance` on both accounts
+
+**Frontend:** `TransferFundsDialog` component:
+- From/To account dropdowns (filtered to user's accounts)
+- Amount input, date picker, optional description
+- "Transfer Funds" button on AccountDetailView action bar
+
+**Files changed:**
+- `PFMP-API/Controllers/TransactionsController.cs` — New transfer endpoint
+- `pfmp-frontend/src/components/transfers/TransferFundsDialog.tsx` — New component
+- `pfmp-frontend/src/views/dashboard/AccountDetailView.tsx` — Transfer button
+
+##### Sub-phase 6E: Dashboard Total Includes Cash
+
+**Goal:** Dashboard account cards and net worth show full value (cash + holdings).
+
+**Changes:**
+- `totalInvestments = investmentAccounts.Sum(a => a.CurrentBalance + holdingsValue)`
+- Account card `balance` field = `CurrentBalance + sum(holdings × price)`
+- Remove `$CASH` filter from stale price checker (no more $CASH to check)
+
+##### Sub-phase 6F: Plaid Sync Cash Mapping
+
+**Goal:** Map Plaid cash-equivalent holdings to `Account.CurrentBalance` instead of creating $CASH holdings.
+
+**Changes in PlaidInvestmentsService:**
+- `UpsertHoldingAsync`: If `security.IsCashEquivalent`, add value to `Account.CurrentBalance` instead of creating a Holding
+- `UpsertInvestmentAccountAsync`: Set `CurrentBalance = Balances.Current - sum(non-cash holding values)` (the residual is cash)
+
+##### Sub-phase 6G: Tests & Cleanup
+
+**Backend tests:**
+- Update `CreateHolding_ManualAccount_DebitsCashHolding` → test `Account.CurrentBalance` debit instead of $CASH
+- Update `CreateHolding_CashSymbol_NoAutoTransaction` → remove or replace (no more $CASH concept)
+- Add `TransferFunds_CreatesPairedTransactions` test
+- Add `CreateAccount_SetsCurrentBalance_NoMoreCashHolding` test
+
+**Frontend tests:**
+- Update HoldingFormModal tests (no more $CASH references in funding source comments)
+
+#### Acceptance Criteria
+
+1. ✅ No `$CASH` holdings exist in the database or are created by any endpoint
+2. ✅ `Account.CurrentBalance` represents uninvested cash for investment accounts
+3. ✅ Creating a holding with `CashBalance` funding debits `Account.CurrentBalance`
+4. ✅ Dashboard shows total = `CurrentBalance + holdings market value`
+5. ✅ Transfer Funds dialog creates paired WITHDRAWAL/DEPOSIT transactions
+6. ✅ Plaid cash-equivalent holdings map to `CurrentBalance`, not as holdings
+7. ✅ All existing tests pass with $CASH logic removed

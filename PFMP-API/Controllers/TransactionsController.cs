@@ -250,6 +250,104 @@ public class TransactionsController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// Transfer funds between two accounts. Creates paired WITHDRAWAL/DEPOSIT transactions
+    /// and adjusts CurrentBalance on both accounts.
+    /// </summary>
+    [HttpPost("transfer")]
+    public async Task<ActionResult<object>> TransferFunds([FromBody] TransferFundsRequest request)
+    {
+        if (request.Amount <= 0)
+            return BadRequest("Transfer amount must be greater than zero");
+
+        if (request.FromAccountId == request.ToAccountId)
+            return BadRequest("Cannot transfer funds to the same account");
+
+        var fromAccount = await _context.Accounts.FindAsync(request.FromAccountId);
+        if (fromAccount == null)
+            return NotFound($"Source account {request.FromAccountId} not found");
+
+        var toAccount = await _context.Accounts.FindAsync(request.ToAccountId);
+        if (toAccount == null)
+            return NotFound($"Destination account {request.ToAccountId} not found");
+
+        // Verify same user owns both accounts
+        if (fromAccount.UserId != toAccount.UserId)
+            return BadRequest("Cannot transfer between accounts owned by different users");
+
+        var txDate = request.Date ?? DateTime.UtcNow;
+
+        // Create WITHDRAWAL transaction on source account
+        var withdrawalTx = new Transaction
+        {
+            AccountId = fromAccount.AccountId,
+            TransactionType = TransactionTypes.Withdrawal,
+            Quantity = request.Amount,
+            Price = 1,
+            Amount = -request.Amount,
+            TransactionDate = txDate,
+            SettlementDate = txDate,
+            Source = TransactionSource.Manual,
+            FundingSource = FundingSource.InternalTransfer,
+            SourceAccountId = toAccount.AccountId,
+            Description = request.Description ?? $"Transfer to {toAccount.AccountName}",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.Transactions.Add(withdrawalTx);
+        await _context.SaveChangesAsync();
+
+        // Create DEPOSIT transaction on destination account
+        var depositTx = new Transaction
+        {
+            AccountId = toAccount.AccountId,
+            TransactionType = TransactionTypes.Deposit,
+            Quantity = request.Amount,
+            Price = 1,
+            Amount = request.Amount,
+            TransactionDate = txDate,
+            SettlementDate = txDate,
+            Source = TransactionSource.Manual,
+            FundingSource = FundingSource.InternalTransfer,
+            SourceAccountId = fromAccount.AccountId,
+            LinkedTransactionId = withdrawalTx.TransactionId,
+            Description = request.Description ?? $"Transfer from {fromAccount.AccountName}",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.Transactions.Add(depositTx);
+        await _context.SaveChangesAsync();
+
+        // Link the withdrawal to the deposit
+        withdrawalTx.LinkedTransactionId = depositTx.TransactionId;
+
+        // Adjust balances
+        fromAccount.CurrentBalance -= request.Amount;
+        fromAccount.UpdatedAt = DateTime.UtcNow;
+
+        toAccount.CurrentBalance += request.Amount;
+        toAccount.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation(
+            "Transfer: ${Amount} from account {FromId} ({FromName}) to account {ToId} ({ToName}), txIds: {WithdrawalTxId}/{DepositTxId}",
+            request.Amount, fromAccount.AccountId, fromAccount.AccountName,
+            toAccount.AccountId, toAccount.AccountName,
+            withdrawalTx.TransactionId, depositTx.TransactionId);
+
+        return Ok(new
+        {
+            withdrawalTransactionId = withdrawalTx.TransactionId,
+            depositTransactionId = depositTx.TransactionId,
+            fromAccountId = fromAccount.AccountId,
+            toAccountId = toAccount.AccountId,
+            amount = request.Amount,
+            fromNewBalance = fromAccount.CurrentBalance,
+            toNewBalance = toAccount.CurrentBalance
+        });
+    }
+
     private static TransactionResponse MapToResponse(Transaction transaction)
     {
         return new TransactionResponse
@@ -277,6 +375,9 @@ public class TransactionsController : ControllerBase
             IsQualifiedDividend = transaction.IsQualifiedDividend,
             StakingReward = transaction.StakingReward,
             StakingAPY = transaction.StakingAPY,
+            SourceAccountId = transaction.SourceAccountId,
+            LinkedTransactionId = transaction.LinkedTransactionId,
+            FundingSource = transaction.FundingSource?.ToString(),
             CreatedAt = transaction.CreatedAt,
             Notes = transaction.Notes
         };
@@ -308,6 +409,9 @@ public class TransactionResponse
     public bool IsQualifiedDividend { get; set; }
     public decimal? StakingReward { get; set; }
     public decimal? StakingAPY { get; set; }
+    public int? SourceAccountId { get; set; }
+    public int? LinkedTransactionId { get; set; }
+    public string? FundingSource { get; set; }
     public DateTime CreatedAt { get; set; }
     public string? Notes { get; set; }
 }
@@ -393,4 +497,22 @@ public class UpdateTransactionRequest
     public decimal? StakingReward { get; set; }
     public decimal? StakingAPY { get; set; }
     public string? Notes { get; set; }
+}
+
+public class TransferFundsRequest
+{
+    [Required]
+    public int FromAccountId { get; set; }
+
+    [Required]
+    public int ToAccountId { get; set; }
+
+    [Required]
+    [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than zero")]
+    public decimal Amount { get; set; }
+
+    public DateTime? Date { get; set; }
+
+    [StringLength(500)]
+    public string? Description { get; set; }
 }

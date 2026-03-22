@@ -254,8 +254,10 @@ public class HoldingsController : ControllerBase
 
         // Auto-create INITIAL_BALANCE transaction so the holding is reconciled from the start
         // (Skip for Plaid-linked accounts where transactions flow in separately)
-        if (account.Source == 0 && holding.Symbol != "$CASH" && holding.Quantity > 0)
+        if (account.Source == 0 && holding.Quantity > 0)
         {
+            var fundingSource = request.FundingSource ?? FundingSource.CashBalance;
+
             var transaction = new Transaction
             {
                 AccountId = holding.AccountId,
@@ -268,6 +270,7 @@ public class HoldingsController : ControllerBase
                 TransactionDate = holding.PurchaseDate ?? DateTime.UtcNow,
                 SettlementDate = holding.PurchaseDate ?? DateTime.UtcNow,
                 Source = TransactionSource.Manual,
+                FundingSource = fundingSource,
                 Description = $"Opening balance for {holding.Symbol}",
                 CreatedAt = DateTime.UtcNow
             };
@@ -275,40 +278,72 @@ public class HoldingsController : ControllerBase
             _context.Transactions.Add(transaction);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Auto-created INITIAL_BALANCE transaction {TxId} for holding {HoldingId} ({Symbol})",
-                transaction.TransactionId, holding.HoldingId, holding.Symbol);
+            _logger.LogInformation("Auto-created INITIAL_BALANCE transaction {TxId} for holding {HoldingId} ({Symbol}), funding: {FundingSource}",
+                transaction.TransactionId, holding.HoldingId, holding.Symbol, fundingSource);
 
-            // Auto-debit $CASH holding if one exists in the same account
-            var purchaseAmount = holding.Quantity * holding.AverageCostBasis;
-            var cashHolding = await _context.Holdings
-                .FirstOrDefaultAsync(h => h.AccountId == holding.AccountId && h.Symbol == "$CASH");
-
-            if (cashHolding != null && purchaseAmount > 0)
+            // Phase 6: Debit Account.CurrentBalance instead of $CASH holding
+            if (fundingSource == FundingSource.CashBalance)
             {
-                cashHolding.Quantity -= purchaseAmount;
-                cashHolding.UpdatedAt = DateTime.UtcNow;
-
-                var cashDebitTx = new Transaction
+                var purchaseAmount = holding.Quantity * holding.AverageCostBasis;
+                if (purchaseAmount > 0)
                 {
-                    AccountId = holding.AccountId,
-                    HoldingId = cashHolding.HoldingId,
-                    TransactionType = TransactionTypes.Buy,
-                    Symbol = "$CASH",
-                    Quantity = -purchaseAmount,
-                    Price = 1,
-                    Amount = -purchaseAmount,
-                    TransactionDate = holding.PurchaseDate ?? DateTime.UtcNow,
-                    SettlementDate = holding.PurchaseDate ?? DateTime.UtcNow,
-                    Source = TransactionSource.Manual,
-                    Description = $"Cash used to purchase {holding.Quantity} shares of {holding.Symbol}",
-                    CreatedAt = DateTime.UtcNow
-                };
+                    account.CurrentBalance -= purchaseAmount;
+                    account.UpdatedAt = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
 
-                _context.Transactions.Add(cashDebitTx);
-                await _context.SaveChangesAsync();
+                    _logger.LogInformation("Debited ${Amount} from account {AccountId} cash balance for {Symbol} purchase",
+                        purchaseAmount, holding.AccountId, holding.Symbol);
+                }
+            }
+            // Transfer from another account: debit source account's CurrentBalance, link transactions
+            else if (fundingSource == FundingSource.InternalTransfer && request.SourceAccountId.HasValue)
+            {
+                var sourceAccount = await _context.Accounts.FindAsync(request.SourceAccountId.Value);
+                if (sourceAccount != null)
+                {
+                    var transferAmount = holding.Quantity * holding.AverageCostBasis;
+                    var txDate = holding.PurchaseDate ?? DateTime.UtcNow;
 
-                _logger.LogInformation("Auto-debited ${Amount} from $CASH for {Symbol} purchase in account {AccountId}",
-                    purchaseAmount, holding.Symbol, holding.AccountId);
+                    if (transferAmount > 0)
+                    {
+                        // Debit source account's cash balance
+                        sourceAccount.CurrentBalance -= transferAmount;
+                        sourceAccount.UpdatedAt = DateTime.UtcNow;
+
+                        // Credit destination account's cash balance, then debit for purchase
+                        // Net effect: source loses cash, destination gets the holding
+                        // (CurrentBalance doesn't change on destination since cash arrives and immediately buys)
+
+                        var transferOutTx = new Transaction
+                        {
+                            AccountId = sourceAccount.AccountId,
+                            TransactionType = TransactionTypes.Withdrawal,
+                            Quantity = transferAmount,
+                            Price = 1,
+                            Amount = -transferAmount,
+                            TransactionDate = txDate,
+                            SettlementDate = txDate,
+                            Source = TransactionSource.Manual,
+                            FundingSource = FundingSource.InternalTransfer,
+                            SourceAccountId = holding.AccountId,
+                            Description = $"Transfer to {account.AccountName} for {holding.Symbol} purchase",
+                            CreatedAt = DateTime.UtcNow
+                        };
+
+                        _context.Transactions.Add(transferOutTx);
+                        await _context.SaveChangesAsync();
+
+                        // Link the INITIAL_BALANCE transaction to the transfer
+                        transaction.SourceAccountId = sourceAccount.AccountId;
+                        transaction.LinkedTransactionId = transferOutTx.TransactionId;
+                        transferOutTx.LinkedTransactionId = transaction.TransactionId;
+                        await _context.SaveChangesAsync();
+
+                        _logger.LogInformation(
+                            "Transfer: debited ${Amount} from account {SourceAccountId} cash balance, linked to INITIAL_BALANCE {TxId} in account {DestAccountId}",
+                            transferAmount, sourceAccount.AccountId, transaction.TransactionId, holding.AccountId);
+                    }
+                }
             }
         }
 
@@ -671,6 +706,8 @@ public class CreateHoldingRequest
     public DateTime? PurchaseDate { get; set; }
     public bool IsLongTermCapitalGains { get; set; }
     public string? Notes { get; set; }
+    public FundingSource? FundingSource { get; set; }
+    public int? SourceAccountId { get; set; }
 }
 
 public class UpdateHoldingRequest

@@ -28,7 +28,8 @@ namespace PFMP_API.Controllers
                 var accounts = await _context.Accounts
                     .Where(a => a.UserId == userId)
                     .Include(a => a.Holdings)
-                    .Include(a => a.Transactions.Take(10)) // Latest 10 transactions
+                    .Include(a => a.Transactions.OrderByDescending(t => t.TransactionDate).Take(10))
+                    .AsSplitQuery()
                     .OrderBy(a => a.AccountType)
                     .ThenBy(a => a.AccountName)
                     .ToListAsync();
@@ -52,6 +53,7 @@ namespace PFMP_API.Controllers
                     .Include(a => a.Holdings)
                     .Include(a => a.Transactions)
                     .Include(a => a.APICredentials)
+                    .AsSplitQuery()
                     .FirstOrDefaultAsync(a => a.AccountId == id);
 
                 if (account == null)
@@ -160,40 +162,25 @@ namespace PFMP_API.Controllers
                 _context.Accounts.Add(account);
                 await _context.SaveChangesAsync();
 
-                // Create $CASH holding for SKELETON account
-                var cashHolding = new Holding
+                // Record the initial deposit as a transaction (Phase 6: no more $CASH holdings)
+                if (createRequest.Balance > 0)
                 {
-                    AccountId = account.AccountId,
-                    Symbol = "$CASH",
-                    Name = "Cash",
-                    AssetType = AssetType.Cash,
-                    Quantity = createRequest.Balance,
-                    AverageCostBasis = 1.00m,
-                    CurrentPrice = 1.00m,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
+                    var transaction = new Transaction
+                    {
+                        AccountId = account.AccountId,
+                        TransactionType = TransactionTypes.Deposit,
+                        Quantity = createRequest.Balance,
+                        Price = 1.00m,
+                        Amount = createRequest.Balance,
+                        TransactionDate = DateTime.UtcNow,
+                        SettlementDate = DateTime.UtcNow,
+                        Description = "Initial account deposit",
+                        CreatedAt = DateTime.UtcNow
+                    };
 
-                _context.Holdings.Add(cashHolding);
-                await _context.SaveChangesAsync();
-
-                // Create INITIAL_BALANCE transaction for $CASH
-                var transaction = new Transaction
-                {
-                    AccountId = account.AccountId,
-                    HoldingId = cashHolding.HoldingId,
-                    TransactionType = "INITIAL_BALANCE",
-                    Symbol = "$CASH",
-                    Quantity = createRequest.Balance,
-                    Price = 1.00m,
-                    Amount = createRequest.Balance,
-                    TransactionDate = DateTime.UtcNow,
-                    SettlementDate = DateTime.UtcNow,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                _context.Transactions.Add(transaction);
-                await _context.SaveChangesAsync();
+                    _context.Transactions.Add(transaction);
+                    await _context.SaveChangesAsync();
+                }
 
                 return CreatedAtAction("GetAccount", new { id = account.AccountId }, account);
             }
@@ -235,7 +222,6 @@ namespace PFMP_API.Controllers
             try
             {
                 var account = await _context.Accounts
-                    .Include(a => a.Holdings)
                     .FirstOrDefaultAsync(a => a.AccountId == id);
 
                 if (account == null)
@@ -248,22 +234,11 @@ namespace PFMP_API.Controllers
                     return BadRequest("Cannot update balance on a DETAILED account. Balance is calculated from holdings.");
                 }
 
-                // Find the $CASH holding
-                var cashHolding = account.Holdings?.FirstOrDefault(h => h.Symbol == "$CASH");
-                if (cashHolding == null)
-                {
-                    return StatusCode(500, "SKELETON account missing $CASH holding");
-                }
-
-                // Update account balance
+                // Update account balance (Phase 6: no more $CASH holding)
                 var oldBalance = account.CurrentBalance;
                 account.CurrentBalance = request.NewBalance;
                 account.UpdatedAt = DateTime.UtcNow;
                 account.LastBalanceUpdate = DateTime.UtcNow;
-
-                // Update $CASH holding quantity
-                cashHolding.Quantity = request.NewBalance;
-                cashHolding.UpdatedAt = DateTime.UtcNow;
 
                 // Create transaction for balance adjustment
                 var adjustmentAmount = request.NewBalance - oldBalance;
@@ -272,9 +247,7 @@ namespace PFMP_API.Controllers
                     var transaction = new Transaction
                     {
                         AccountId = account.AccountId,
-                        HoldingId = cashHolding.HoldingId,
-                        TransactionType = adjustmentAmount > 0 ? "DEPOSIT" : "WITHDRAWAL",
-                        Symbol = "$CASH",
+                        TransactionType = adjustmentAmount > 0 ? TransactionTypes.Deposit : TransactionTypes.Withdrawal,
                         Quantity = Math.Abs(adjustmentAmount),
                         Price = 1.00m,
                         Amount = adjustmentAmount,
@@ -318,23 +291,14 @@ namespace PFMP_API.Controllers
                     return BadRequest("Account is already DETAILED");
                 }
 
-                // Validate holdings total matches account balance
+                // Validate holdings total + remaining cash = account balance
                 var holdingsTotal = request.Holdings.Sum(h => h.Quantity * h.Price);
-                if (Math.Abs(holdingsTotal - account.CurrentBalance) > 0.01m)
+                if (holdingsTotal > account.CurrentBalance + 0.01m)
                 {
-                    return BadRequest($"Holdings total ({holdingsTotal:C}) must match account balance ({account.CurrentBalance:C})");
+                    return BadRequest($"Holdings total ({holdingsTotal:C}) exceeds account balance ({account.CurrentBalance:C})");
                 }
 
-                // Remove $CASH holding and its transactions
-                var cashHolding = account.Holdings?.FirstOrDefault(h => h.Symbol == "$CASH");
-                if (cashHolding != null)
-                {
-                    var cashTransactions = await _context.Transactions
-                        .Where(t => t.HoldingId == cashHolding.HoldingId)
-                        .ToListAsync();
-                    _context.Transactions.RemoveRange(cashTransactions);
-                    _context.Holdings.Remove(cashHolding);
-                }
+                // Phase 6: No $CASH holdings to clean up. CurrentBalance tracks uninvested cash.
 
                 // Create new holdings
                 foreach (var holdingRequest in request.Holdings)
@@ -378,9 +342,10 @@ namespace PFMP_API.Controllers
                     _context.Transactions.Add(transaction);
                 }
 
-                // Transition account to DETAILED state and sync balance
+                // Transition account to DETAILED state
+                // CurrentBalance = uninvested cash (original balance minus holdings value)
                 account.State = "DETAILED";
-                account.CurrentBalance = holdingsTotal;  // Sync balance with holdings total
+                account.CurrentBalance = account.CurrentBalance - holdingsTotal;
                 account.UpdatedAt = DateTime.UtcNow;
                 account.LastBalanceUpdate = DateTime.UtcNow;
 
@@ -418,26 +383,17 @@ namespace PFMP_API.Controllers
                     return BadRequest("Cannot recalculate balance for a SKELETON account. Use the balance update endpoint instead.");
                 }
 
-                // Calculate total market value from holdings
+                // Phase 6: CurrentBalance = uninvested cash, not holdings total.
+                // Calculate total value = CurrentBalance + holdings market value.
                 var holdingsTotal = account.Holdings?.Sum(h => h.Quantity * h.CurrentPrice) ?? 0m;
-
-                // Update account balance
-                var previousBalance = account.CurrentBalance;
-                account.CurrentBalance = holdingsTotal;
-                account.UpdatedAt = DateTime.UtcNow;
-                account.LastBalanceUpdate = DateTime.UtcNow;
-
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation(
-                    "Recalculated balance for account {AccountId}: {PreviousBalance} -> {NewBalance}",
-                    id, previousBalance, holdingsTotal);
+                var totalValue = account.CurrentBalance + holdingsTotal;
 
                 return Ok(new
                 {
                     accountId = id,
-                    previousBalance = previousBalance,
-                    newBalance = holdingsTotal,
+                    cashBalance = account.CurrentBalance,
+                    holdingsValue = holdingsTotal,
+                    totalValue = totalValue,
                     holdingsCount = account.Holdings?.Count ?? 0,
                     lastBalanceUpdate = account.LastBalanceUpdate
                 });
