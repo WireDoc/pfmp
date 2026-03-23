@@ -22,5 +22,7 @@ namespace PFMP_API.DTOs
         public decimal Price { get; set; }
         public decimal? Fee { get; set; }
         public DateTime? PurchaseDate { get; set; }
+        public FundingSource? FundingSource { get; set; }
+        public int? SourceAccountId { get; set; }
     }
 }

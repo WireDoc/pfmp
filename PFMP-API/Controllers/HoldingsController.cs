@@ -690,7 +690,6 @@ public class CreateHoldingRequest
     [Range(0, double.MaxValue)]
     public decimal AverageCostBasis { get; set; }
     
-    [Required]
     [Range(0, double.MaxValue)]
     public decimal CurrentPrice { get; set; }
     

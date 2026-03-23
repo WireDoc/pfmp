@@ -78,6 +78,8 @@ export interface InitialHoldingRequest {
   price: number;
   fee?: number;
   purchaseDate?: string;
+  fundingSource?: number;
+  sourceAccountId?: number;
 }
 
 export interface TransitionToDetailedRequest {

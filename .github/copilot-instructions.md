@@ -42,6 +42,10 @@
    ```powershell
    .\stop-dev-servers.bat
    ```
+6. **Server lifecycle around code changes**:
+   - **Before backend edits** that require a `dotnet build` (controller, service, model, DTO, migration, or `Program.cs` changes): run `stop-dev-servers.bat` first so the build isn't blocked by a running dotnet process.
+   - **After any changes that require a server restart**: run `start-dev-servers.bat` (if servers are stopped) or `restart-dev-servers.bat` (if unsure whether they're running—this handles both cases).
+   - When in doubt, `restart-dev-servers.bat` is always safe—it stops first, then starts.
 
 ## 3. Manual service control & probes
 
@@ -201,6 +205,14 @@ node .\test-client.mjs
    ```powershell
    cd C:\pfmp; dotnet test PFMP-API.Tests; npm test --prefix pfmp-frontend -- --run
    ```
+
+## 11. Terminal execution mode
+
+- **Foreground terminals** (`isBackground=false`) block until the command completes and return its output. Use foreground mode for any command where you need to wait for the result before proceeding—builds, test runs, git operations, sleep/delay commands, file reads, and any sequential workflow step.
+- **Background terminals** (`isBackground=true`) return immediately without waiting. Use background mode **only** for long-running persistent processes that should keep running while you do other work—dev servers, file watchers, and similar daemons.
+- **Rule of thumb**: If you need the command's output or exit code to decide what to do next, it must run in the foreground. If the command runs indefinitely and you don't need its output right away, use background.
+
+## 12. Postman collection maintenance
 
 - **Postman updates**: When adding or modifying API endpoints, update the Postman collection and environment files:
    - Collection: `PFMP-API/postman/PFMP-API.postman_collection.json` - Add new requests with examples

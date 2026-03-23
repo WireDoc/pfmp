@@ -136,7 +136,7 @@ export function HoldingFormModal({ open, onClose, onSave, holding, accountId, us
       setError('Average cost basis must be 0 or greater');
       return false;
     }
-    if (!formData.currentPrice || parseFloat(formData.currentPrice) < 0) {
+    if (formData.currentPrice && parseFloat(formData.currentPrice) < 0) {
       setError('Current price must be 0 or greater');
       return false;
     }
@@ -169,7 +169,7 @@ export function HoldingFormModal({ open, onClose, onSave, holding, accountId, us
             assetType: formData.assetType,
             quantity: parseFloat(formData.quantity),
             averageCostBasis: parseFloat(formData.averageCostBasis),
-            currentPrice: parseFloat(formData.currentPrice),
+            currentPrice: formData.currentPrice ? parseFloat(formData.currentPrice) : undefined,
             annualDividendYield: formData.annualDividendYield ? parseFloat(formData.annualDividendYield) : undefined,
             beta: formData.beta ? parseFloat(formData.beta) : undefined,
             sectorAllocation: formData.sectorAllocation || undefined,
@@ -183,7 +183,7 @@ export function HoldingFormModal({ open, onClose, onSave, holding, accountId, us
             assetType: formData.assetType,
             quantity: parseFloat(formData.quantity),
             averageCostBasis: parseFloat(formData.averageCostBasis),
-            currentPrice: parseFloat(formData.currentPrice),
+            currentPrice: formData.currentPrice ? parseFloat(formData.currentPrice) : undefined,
             annualDividendYield: formData.annualDividendYield ? parseFloat(formData.annualDividendYield) : undefined,
             beta: formData.beta ? parseFloat(formData.beta) : undefined,
             sectorAllocation: formData.sectorAllocation || undefined,
@@ -303,10 +303,10 @@ export function HoldingFormModal({ open, onClose, onSave, holding, accountId, us
               value={formData.currentPrice}
               onChange={handleChange('currentPrice')}
               fullWidth
-              required
               disabled={loading}
               inputProps={{ step: '0.01', min: 0 }}
-              placeholder="0.00"
+              placeholder="Auto-fetched if left blank"
+              helperText="Optional — fetched automatically from market data"
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>

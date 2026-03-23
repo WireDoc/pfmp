@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -34,7 +34,8 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { transitionToDetailed, type InitialHoldingRequest, type AccountResponse } from '../../services/accountsApi';
+import { transitionToDetailed, listUserAccounts, type InitialHoldingRequest, type AccountResponse } from '../../services/accountsApi';
+import { FundingSource, FundingSourceLabels } from '../../types/holdings';
 
 // Asset types matching backend AssetType enum (Models/Holding.cs)
 const ASSET_TYPES = [
@@ -92,6 +93,8 @@ interface HoldingRow {
   total: string;
   fee: string;
   acquisitionDate: Date | null;
+  fundingSource: number;
+  sourceAccountId: number | null;
 }
 
 const steps = ['Introduction', 'Add Holdings', 'Review & Complete'];
@@ -99,10 +102,19 @@ const steps = ['Introduction', 'Add Holdings', 'Review & Complete'];
 export function AccountSetupWizard({ open, account, onClose, onComplete }: AccountSetupWizardProps) {
   const [activeStep, setActiveStep] = useState(0);
   const [holdings, setHoldings] = useState<HoldingRow[]>([
-    { id: '1', symbol: '', name: '', assetType: 1, quantity: '', price: '', total: '', fee: '', acquisitionDate: new Date() },
+    { id: '1', symbol: '', name: '', assetType: 1, quantity: '', price: '', total: '', fee: '', acquisitionDate: new Date(), fundingSource: FundingSource.CashBalance, sourceAccountId: null },
   ]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [otherAccounts, setOtherAccounts] = useState<AccountResponse[]>([]);
+
+  useEffect(() => {
+    if (open && account.userId) {
+      listUserAccounts(account.userId).then((accounts) => {
+        setOtherAccounts(accounts.filter((a) => a.accountId !== account.accountId));
+      });
+    }
+  }, [open, account.userId, account.accountId]);
 
   const handleNext = () => {
     if (activeStep === 1) {
@@ -125,7 +137,7 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
   const handleAddHolding = () => {
     setHoldings([
       ...holdings,
-      { id: Date.now().toString(), symbol: '', name: '', assetType: 1, quantity: '', price: '', total: '', fee: '', acquisitionDate: new Date() },
+      { id: Date.now().toString(), symbol: '', name: '', assetType: 1, quantity: '', price: '', total: '', fee: '', acquisitionDate: new Date(), fundingSource: FundingSource.CashBalance, sourceAccountId: null },
     ]);
   };
 
@@ -195,15 +207,21 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
       }
     }
 
-    // Check total matches balance
+    // Check total does not exceed balance
     const total = calculateTotal();
-    const balanceDiff = Math.abs(total - account.currentBalance);
     
-    if (balanceDiff > 0.01) {
+    if (total > account.currentBalance + 0.01) {
       return {
         isValid: false,
-        error: `Holdings total ($${total.toFixed(2)}) must match account balance ($${account.currentBalance.toFixed(2)})`,
+        error: `Holdings total ($${total.toFixed(2)}) cannot exceed account balance ($${account.currentBalance.toFixed(2)})`,
       };
+    }
+
+    // Validate internal transfer selections
+    for (const holding of holdings) {
+      if (holding.fundingSource === FundingSource.InternalTransfer && !holding.sourceAccountId) {
+        return { isValid: false, error: `Select a source account for "${holding.symbol}" (internal transfer)` };
+      }
     }
 
     return { isValid: true };
@@ -228,6 +246,10 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
         price: parseFloat(h.price),
         ...(h.fee && parseFloat(h.fee) > 0 ? { fee: parseFloat(h.fee) } : {}),
         ...(h.acquisitionDate ? { purchaseDate: h.acquisitionDate.toISOString() } : {}),
+        fundingSource: h.fundingSource,
+        ...(h.fundingSource === FundingSource.InternalTransfer && h.sourceAccountId
+          ? { sourceAccountId: h.sourceAccountId }
+          : {}),
       }));
 
       // Use the earliest acquisition date for the account transition
@@ -274,7 +296,7 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
                 <strong>Current Account Balance:</strong> ${account.currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </Typography>
               <Typography variant="body2">
-                You'll need to add holdings that total exactly this amount.
+                Add holdings up to this amount. Any remainder becomes your uninvested cash balance.
               </Typography>
             </Alert>
 
@@ -294,6 +316,9 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
               <Typography variant="body2">
                 • <strong>Acquisition Date</strong> - When you acquired these holdings
               </Typography>
+              <Typography variant="body2">
+                • <strong>Funding Source</strong> - How each holding was funded (cash balance, transfer, etc.)
+              </Typography>
             </Stack>
 
             <Alert severity="warning" sx={{ mt: 3 }}>
@@ -308,8 +333,8 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
       case 1:
         {
           const total = calculateTotal();
-          const balanceDiff = total - account.currentBalance;
-          const isValid = Math.abs(balanceDiff) <= 0.01;
+          const cashRemainder = account.currentBalance - total;
+          const isOverBudget = total > account.currentBalance + 0.01;
 
           return (
           <Box>
@@ -332,6 +357,7 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
                     <TableCell>Total</TableCell>
                     <TableCell>Fee</TableCell>
                     <TableCell sx={{ minWidth: 150 }}>Acq. Date</TableCell>
+                    <TableCell sx={{ minWidth: 180 }}>Funding Source</TableCell>
                     <TableCell width={50}></TableCell>
                   </TableRow>
                 </TableHead>
@@ -434,6 +460,45 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
                           </LocalizationProvider>
                         </TableCell>
                         <TableCell>
+                          <Stack spacing={1}>
+                            <TextField
+                              select
+                              value={holding.fundingSource}
+                              onChange={(e) => {
+                                const newSource = parseInt(e.target.value);
+                                handleHoldingChange(holding.id, 'fundingSource', newSource);
+                                if (newSource !== FundingSource.InternalTransfer) {
+                                  handleHoldingChange(holding.id, 'sourceAccountId', null);
+                                }
+                              }}
+                              size="small"
+                              sx={{ minWidth: 180 }}
+                            >
+                              {Object.entries(FundingSourceLabels).map(([value, label]) => (
+                                <MenuItem key={value} value={Number(value)}>
+                                  {label}
+                                </MenuItem>
+                              ))}
+                            </TextField>
+                            {holding.fundingSource === FundingSource.InternalTransfer && (
+                              <TextField
+                                select
+                                value={holding.sourceAccountId ?? ''}
+                                onChange={(e) => handleHoldingChange(holding.id, 'sourceAccountId', e.target.value ? Number(e.target.value) : null)}
+                                size="small"
+                                label="Source Account"
+                                sx={{ minWidth: 180 }}
+                              >
+                                {otherAccounts.map((acct) => (
+                                  <MenuItem key={acct.accountId} value={acct.accountId}>
+                                    {acct.accountName} (${acct.currentBalance.toLocaleString()})
+                                  </MenuItem>
+                                ))}
+                              </TextField>
+                            )}
+                          </Stack>
+                        </TableCell>
+                        <TableCell>
                           <IconButton
                             size="small"
                             onClick={() => handleRemoveHolding(holding.id)}
@@ -449,7 +514,7 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
               </Table>
             </TableContainer>
 
-            <Paper sx={{ p: 2, bgcolor: isValid ? 'success.light' : 'warning.light' }}>
+            <Paper sx={{ p: 2, bgcolor: isOverBudget ? 'error.light' : 'success.light' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="subtitle2">
                   Holdings Total: <strong>${total.toFixed(2)}</strong>
@@ -457,13 +522,13 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
                 <Typography variant="subtitle2">
                   Account Balance: <strong>${account.currentBalance.toFixed(2)}</strong>
                 </Typography>
-                <Typography variant="subtitle2" color={isValid ? 'success.main' : 'warning.main'}>
-                  Difference: <strong>${Math.abs(balanceDiff).toFixed(2)}</strong>
+                <Typography variant="subtitle2" color={isOverBudget ? 'error.main' : 'success.main'}>
+                  Cash Remainder: <strong>${cashRemainder.toFixed(2)}</strong>
                 </Typography>
               </Box>
-              {!isValid && (
-                <Typography variant="caption" color="warning.dark" sx={{ mt: 1, display: 'block' }}>
-                  Holdings total must match account balance within $0.01
+              {isOverBudget && (
+                <Typography variant="caption" color="error.dark" sx={{ mt: 1, display: 'block' }}>
+                  Holdings total cannot exceed account balance
                 </Typography>
               )}
             </Paper>
@@ -474,15 +539,19 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
       case 2:
         {
           const reviewTotal = calculateTotal();
+          const reviewCashRemainder = account.currentBalance - reviewTotal;
           return (
           <Box>
             <Typography variant="h6" gutterBottom>
               Review Your Holdings
             </Typography>
             
-            <Alert severity="success" sx={{ mb: 2 }}>
+            <Alert severity="info" sx={{ mb: 2 }}>
               <Typography variant="body2">
-                Your holdings total matches the account balance: ${reviewTotal.toFixed(2)}
+                Holdings Total: <strong>${reviewTotal.toFixed(2)}</strong>
+                {reviewCashRemainder > 0.01 && (
+                  <> &nbsp;|&nbsp; Cash Remainder: <strong>${reviewCashRemainder.toFixed(2)}</strong></>
+                )}
               </Typography>
             </Alert>
 
@@ -496,6 +565,7 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
                     <TableCell align="right">Quantity</TableCell>
                     <TableCell align="right">Price</TableCell>
                     <TableCell align="right">Value</TableCell>
+                    <TableCell>Funding</TableCell>
                     <TableCell>Acq. Date</TableCell>
                   </TableRow>
                 </TableHead>
@@ -503,6 +573,10 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
                   {holdings.map((holding) => {
                     const value = (parseFloat(holding.quantity) || 0) * (parseFloat(holding.price) || 0);
                     const assetTypeName = ASSET_TYPES.find((t) => t.value === holding.assetType)?.label || 'Unknown';
+                    const fundingLabel = FundingSourceLabels[holding.fundingSource as FundingSource] || 'Unknown';
+                    const sourceAcct = holding.fundingSource === FundingSource.InternalTransfer
+                      ? otherAccounts.find((a) => a.accountId === holding.sourceAccountId)
+                      : null;
                     return (
                       <TableRow key={holding.id}>
                         <TableCell><strong>{holding.symbol}</strong></TableCell>
@@ -511,6 +585,14 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
                         <TableCell align="right">{parseFloat(holding.quantity).toFixed(4)}</TableCell>
                         <TableCell align="right">${parseFloat(holding.price).toFixed(2)}</TableCell>
                         <TableCell align="right">${value.toFixed(2)}</TableCell>
+                        <TableCell>
+                          <Typography variant="body2" noWrap>{fundingLabel}</Typography>
+                          {sourceAcct && (
+                            <Typography variant="caption" color="text.secondary" noWrap>
+                              from {sourceAcct.accountName}
+                            </Typography>
+                          )}
+                        </TableCell>
                         <TableCell>
                           {holding.acquisitionDate?.toLocaleDateString('en-US', { 
                             year: 'numeric', 
@@ -522,9 +604,17 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
                     );
                   })}
                   <TableRow>
-                    <TableCell colSpan={6} align="right"><strong>Total</strong></TableCell>
+                    <TableCell colSpan={5} align="right"><strong>Holdings Total</strong></TableCell>
                     <TableCell align="right"><strong>${reviewTotal.toFixed(2)}</strong></TableCell>
+                    <TableCell colSpan={2} />
                   </TableRow>
+                  {reviewCashRemainder > 0.01 && (
+                    <TableRow>
+                      <TableCell colSpan={5} align="right"><strong>Cash Remainder</strong></TableCell>
+                      <TableCell align="right"><strong>${reviewCashRemainder.toFixed(2)}</strong></TableCell>
+                      <TableCell colSpan={2} />
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -539,6 +629,7 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
               <Typography variant="body2" component="div" sx={{ mt: 1, pl: 2 }}>
                 • Create {holdings.length} holding{holdings.length > 1 ? 's' : ''} in your account<br />
                 • Generate initial purchase transactions<br />
+                {reviewCashRemainder > 0.01 && <>• Set <strong>${reviewCashRemainder.toFixed(2)}</strong> as uninvested cash balance<br /></>}
                 • Enable all analytics features<br />
                 • <strong>Lock the account balance</strong> (calculated from holdings going forward)
               </Typography>

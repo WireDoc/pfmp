@@ -305,6 +305,7 @@ namespace PFMP_API.Controllers
                 {
                     // Use per-holding date if provided, otherwise fall back to request-level date
                     var acquisitionDate = holdingRequest.PurchaseDate ?? request.AcquisitionDate;
+                    var fundingSource = holdingRequest.FundingSource ?? Models.FundingSource.CashBalance;
 
                     var holding = new Holding
                     {
@@ -335,11 +336,55 @@ namespace PFMP_API.Controllers
                         Amount = holding.Quantity * holdingRequest.Price,
                         TransactionDate = acquisitionDate,
                         SettlementDate = acquisitionDate,
+                        Source = TransactionSource.Manual,
+                        FundingSource = fundingSource,
                         Description = "Initial holding from setup wizard",
                         CreatedAt = DateTime.UtcNow
                     };
 
                     _context.Transactions.Add(transaction);
+                    await _context.SaveChangesAsync();
+
+                    // Handle internal transfer: debit source account and create paired withdrawal
+                    if (fundingSource == Models.FundingSource.InternalTransfer && holdingRequest.SourceAccountId.HasValue)
+                    {
+                        var sourceAccount = await _context.Accounts.FindAsync(holdingRequest.SourceAccountId.Value);
+                        if (sourceAccount != null)
+                        {
+                            var transferAmount = holding.Quantity * holdingRequest.Price;
+                            sourceAccount.CurrentBalance -= transferAmount;
+                            sourceAccount.UpdatedAt = DateTime.UtcNow;
+
+                            var withdrawalTx = new Transaction
+                            {
+                                AccountId = sourceAccount.AccountId,
+                                TransactionType = TransactionTypes.Withdrawal,
+                                Quantity = transferAmount,
+                                Price = 1,
+                                Amount = -transferAmount,
+                                TransactionDate = acquisitionDate,
+                                SettlementDate = acquisitionDate,
+                                Source = TransactionSource.Manual,
+                                FundingSource = Models.FundingSource.InternalTransfer,
+                                SourceAccountId = account.AccountId,
+                                LinkedTransactionId = transaction.TransactionId,
+                                Description = $"Transfer to {account.AccountName} for {holding.Symbol} purchase (setup wizard)",
+                                CreatedAt = DateTime.UtcNow
+                            };
+
+                            _context.Transactions.Add(withdrawalTx);
+                            await _context.SaveChangesAsync();
+
+                            // Link the BUY transaction back
+                            transaction.SourceAccountId = sourceAccount.AccountId;
+                            transaction.LinkedTransactionId = withdrawalTx.TransactionId;
+                            await _context.SaveChangesAsync();
+
+                            _logger.LogInformation(
+                                "Setup wizard transfer: debited ${Amount} from account {SourceId} for {Symbol} in account {DestId}",
+                                transferAmount, sourceAccount.AccountId, holding.Symbol, account.AccountId);
+                        }
+                    }
                 }
 
                 // Transition account to DETAILED state

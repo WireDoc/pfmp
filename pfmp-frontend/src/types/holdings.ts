@@ -54,7 +54,7 @@ export interface CreateHoldingRequest {
   assetType: number;
   quantity: number;
   averageCostBasis: number;
-  currentPrice: number;
+  currentPrice?: number;
   annualDividendYield?: number;
   stakingAPY?: number;
   annualDividendIncome?: number;

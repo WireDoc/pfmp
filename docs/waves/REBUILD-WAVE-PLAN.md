@@ -171,6 +171,39 @@ Out of Scope:
 - Full SSR migration, advanced RUM analytics (deferred)
 
 ---
+## Phase 6H – Setup Wizard Cash-Aware Refit
+**Goal:** Update AccountSetupWizard to support the Phase 6 cash-balance model (holdings + uninvested cash) and per-holding funding sources.
+
+**Context:** Phase 6 eliminated $CASH holdings in favor of `Account.CurrentBalance` as uninvested cash. The backend `TransitionToDetailed` already computes `CurrentBalance = originalBalance - holdingsTotal` (allowing remainders), but the frontend wizard still enforces exact matching and has no funding-source awareness.
+
+### Changes Required
+
+**Frontend – AccountSetupWizard.tsx:**
+1. Remove exact-match validation — allow holdings total ≤ account balance; remainder becomes cash balance
+2. Add per-holding funding source dropdown (CashBalance, InternalTransfer, ExternalDeposit, ExistingPosition, Other)
+3. When funding source = InternalTransfer, show account picker (other investment accounts)
+4. Update summary footer to show: Holdings Total / Cash Remainder / Account Balance
+5. Update Step 3 review to show the cash remainder and per-holding funding sources
+6. Update introduction text (Step 1) to reflect that not all funds need to be allocated to holdings
+
+**Frontend – accountsApi.ts:**
+- Add `fundingSource` and `sourceAccountId` to `InitialHoldingRequest` type
+
+**Backend – AccountStateDTOs.cs:**
+- Add `FundingSource?` and `int? SourceAccountId` to `InitialHoldingRequest`
+
+**Backend – AccountsController.TransitionToDetailed:**
+- Pass `FundingSource` and `SourceAccountId` through to each BUY transaction created
+- When funding source = InternalTransfer: debit source account's CurrentBalance and create paired WITHDRAWAL transaction
+
+### Acceptance Criteria
+- Holdings total can be less than account balance — difference becomes cash balance
+- Each holding shows a funding source dropdown defaulting to "Cash Balance"
+- InternalTransfer funding sources create paired withdrawal transactions in source account
+- Review step clearly shows the cash remainder
+- Backend tests cover: remainder scenario, internal transfer debit, existing position (no balance change)
+
+---
 ## Cross-Wave Risk Register
 | Risk | Description | Mitigation |
 |------|-------------|------------|
