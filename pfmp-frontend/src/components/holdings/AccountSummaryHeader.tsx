@@ -10,9 +10,10 @@ interface AccountSummaryHeaderProps {
   loading: boolean;
   onRefreshPrices?: () => void;
   refreshing?: boolean;
+  refreshKey?: number;
 }
 
-export function AccountSummaryHeader({ accountId, holdings, loading, onRefreshPrices, refreshing = false }: AccountSummaryHeaderProps) {
+export function AccountSummaryHeader({ accountId, holdings, loading, onRefreshPrices, refreshing = false, refreshKey = 0 }: AccountSummaryHeaderProps) {
   const [account, setAccount] = useState<AccountResponse | null>(null);
   const [loadingAccount, setLoadingAccount] = useState(true);
 
@@ -30,7 +31,7 @@ export function AccountSummaryHeader({ accountId, holdings, loading, onRefreshPr
     };
 
     fetchAccountDetails();
-  }, [accountId]);
+  }, [accountId, refreshKey]);
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',

@@ -89,6 +89,7 @@ export function AccountDetailView() {
   const [editingHolding, setEditingHolding] = useState<Holding | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [accountRefreshKey, setAccountRefreshKey] = useState(0);
   const [transactionRefreshTrigger, setTransactionRefreshTrigger] = useState(0);
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   
@@ -251,6 +252,7 @@ export function AccountDetailView() {
         loading={loading}
         onRefreshPrices={handleRefreshPrices}
         refreshing={refreshing}
+        refreshKey={accountRefreshKey}
       />
 
       {/* Incomplete History Banner - shows for investment accounts with incomplete transaction history */}
@@ -451,21 +453,9 @@ export function AccountDetailView() {
           onComplete={async (updatedAccount) => {
             setAccount(updatedAccount);
             setWizardOpen(false);
-            // Refresh holdings after transition and get fresh data
-            try {
-              const holdingsResponse = await fetch(`${apiBase}/holdings?accountId=${accountId}`);
-              if (holdingsResponse.ok) {
-                const freshHoldings = await holdingsResponse.json();
-                setHoldings(freshHoldings);
-                if (freshHoldings.length > 0) {
-                  setSelectedHolding(freshHoldings[0]);
-                } else {
-                  setSelectedHolding(null);
-                }
-              }
-            } catch (err) {
-              console.error('Error refreshing holdings after wizard:', err);
-            }
+            setAccountRefreshKey(k => k + 1);
+            // Refresh holdings and current prices from FMP
+            await handleRefreshPrices();
           }}
         />
       )}

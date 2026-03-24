@@ -203,6 +203,21 @@ namespace PFMP_API.Controllers
                     return NotFound($"Account with ID {id} not found");
                 }
 
+                // Delete PriceHistory rows that reference this account's holdings first
+                // (FK is RESTRICT in the DB, so they must be removed before Holdings)
+                var holdingIds = await _context.Holdings
+                    .Where(h => h.AccountId == id)
+                    .Select(h => h.HoldingId)
+                    .ToListAsync();
+
+                if (holdingIds.Count > 0)
+                {
+                    var priceHistoryRows = _context.PriceHistory
+                        .Where(ph => ph.HoldingId.HasValue && holdingIds.Contains(ph.HoldingId.Value));
+                    _context.PriceHistory.RemoveRange(priceHistoryRows);
+                    await _context.SaveChangesAsync();
+                }
+
                 _context.Accounts.Remove(account);
                 await _context.SaveChangesAsync();
 
