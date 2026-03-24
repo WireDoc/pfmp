@@ -292,7 +292,7 @@ namespace PFMP_API.Controllers
                 }
 
                 // Validate holdings total + remaining cash = account balance
-                var holdingsTotal = request.Holdings.Sum(h => h.Quantity * h.Price);
+                var holdingsTotal = request.Holdings.Sum(h => h.Quantity * h.Price + (h.Fee ?? 0));
                 if (holdingsTotal > account.CurrentBalance + 0.01m)
                 {
                     return BadRequest($"Holdings total ({holdingsTotal:C}) exceeds account balance ({account.CurrentBalance:C})");
@@ -334,6 +334,7 @@ namespace PFMP_API.Controllers
                         Quantity = holding.Quantity,
                         Price = holdingRequest.Price,
                         Amount = holding.Quantity * holdingRequest.Price,
+                        Fee = holdingRequest.Fee,
                         TransactionDate = acquisitionDate,
                         SettlementDate = acquisitionDate,
                         Source = TransactionSource.Manual,

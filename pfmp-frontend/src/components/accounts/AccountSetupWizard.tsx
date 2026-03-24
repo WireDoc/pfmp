@@ -186,7 +186,8 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
     return holdings.reduce((sum, h) => {
       const quantity = parseFloat(h.quantity) || 0;
       const price = parseFloat(h.price) || 0;
-      return sum + quantity * price;
+      const fee = parseFloat(h.fee) || 0;
+      return sum + quantity * price + fee;
     }, 0);
   };
 
@@ -565,6 +566,7 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
                     <TableCell align="right">Quantity</TableCell>
                     <TableCell align="right">Price</TableCell>
                     <TableCell align="right">Value</TableCell>
+                    <TableCell align="right">Fee</TableCell>
                     <TableCell>Funding</TableCell>
                     <TableCell>Acq. Date</TableCell>
                   </TableRow>
@@ -572,6 +574,7 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
                 <TableBody>
                   {holdings.map((holding) => {
                     const value = (parseFloat(holding.quantity) || 0) * (parseFloat(holding.price) || 0);
+                    const fee = parseFloat(holding.fee) || 0;
                     const assetTypeName = ASSET_TYPES.find((t) => t.value === holding.assetType)?.label || 'Unknown';
                     const fundingLabel = FundingSourceLabels[holding.fundingSource as FundingSource] || 'Unknown';
                     const sourceAcct = holding.fundingSource === FundingSource.InternalTransfer
@@ -585,6 +588,7 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
                         <TableCell align="right">{parseFloat(holding.quantity).toFixed(4)}</TableCell>
                         <TableCell align="right">${parseFloat(holding.price).toFixed(2)}</TableCell>
                         <TableCell align="right">${value.toFixed(2)}</TableCell>
+                        <TableCell align="right">{fee > 0 ? `$${fee.toFixed(2)}` : '—'}</TableCell>
                         <TableCell>
                           <Typography variant="body2" noWrap>{fundingLabel}</Typography>
                           {sourceAcct && (
@@ -604,14 +608,14 @@ export function AccountSetupWizard({ open, account, onClose, onComplete }: Accou
                     );
                   })}
                   <TableRow>
-                    <TableCell colSpan={5} align="right"><strong>Holdings Total</strong></TableCell>
-                    <TableCell align="right"><strong>${reviewTotal.toFixed(2)}</strong></TableCell>
+                    <TableCell colSpan={5} align="right"><strong>Total (incl. fees)</strong></TableCell>
+                    <TableCell align="right" colSpan={2}><strong>${reviewTotal.toFixed(2)}</strong></TableCell>
                     <TableCell colSpan={2} />
                   </TableRow>
                   {reviewCashRemainder > 0.01 && (
                     <TableRow>
                       <TableCell colSpan={5} align="right"><strong>Cash Remainder</strong></TableCell>
-                      <TableCell align="right"><strong>${reviewCashRemainder.toFixed(2)}</strong></TableCell>
+                      <TableCell align="right" colSpan={2}><strong>${reviewCashRemainder.toFixed(2)}</strong></TableCell>
                       <TableCell colSpan={2} />
                     </TableRow>
                   )}
