@@ -563,20 +563,31 @@ public class HoldingsController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        // Update account's CurrentBalance for DETAILED accounts
+        // Update account timestamps after price refresh
+        // NOTE: For DETAILED accounts, CurrentBalance = uninvested cash and must NOT be overwritten.
+        // Portfolio value = sum of holdings' current values + CurrentBalance (cash).
         decimal? previousBalance = null;
         decimal? newBalance = null;
         var account = await _context.Accounts.FindAsync(accountId);
-        if (account != null && account.IsDetailed())
+        if (account != null)
         {
             previousBalance = account.CurrentBalance;
-            newBalance = holdings.Sum(h => h.Quantity * h.CurrentPrice);
-            account.CurrentBalance = newBalance.Value;
+            if (account.IsSkeleton())
+            {
+                // SKELETON: CurrentBalance IS the total balance
+                newBalance = holdings.Sum(h => h.Quantity * h.CurrentPrice);
+                account.CurrentBalance = newBalance.Value;
+            }
+            else
+            {
+                // DETAILED: CurrentBalance = uninvested cash; don't overwrite
+                newBalance = holdings.Sum(h => h.Quantity * h.CurrentPrice) + account.CurrentBalance;
+            }
             account.LastBalanceUpdate = DateTime.UtcNow;
             account.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
-            _logger.LogInformation("Updated account {AccountId} balance: {PreviousBalance} -> {NewBalance}", 
-                accountId, previousBalance, newBalance);
+            _logger.LogInformation("Refreshed prices for account {AccountId}. Cash: {CashBalance}, Holdings value: {HoldingsValue}", 
+                accountId, account.CurrentBalance, holdings.Sum(h => h.Quantity * h.CurrentPrice));
         }
 
         return Ok(new RefreshPricesResponse

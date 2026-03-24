@@ -137,9 +137,13 @@ public class PriceRefreshJob
                     }
                 }
                 
-                // Recalculate account balance based on updated holding prices
-                var newBalance = account.Holdings.Sum(h => h.Quantity * h.CurrentPrice);
-                account.CurrentBalance = newBalance;
+                // For SKELETON accounts, CurrentBalance = total balance (recalculate from holdings)
+                // For DETAILED accounts, CurrentBalance = uninvested cash (do NOT overwrite)
+                if (account.IsSkeleton())
+                {
+                    var newBalance = account.Holdings.Sum(h => h.Quantity * h.CurrentPrice);
+                    account.CurrentBalance = newBalance;
+                }
                 account.UpdatedAt = now;
             }
 
@@ -207,9 +211,13 @@ public class PriceRefreshJob
             }
         }
 
-        // Recalculate account balance based on updated holding prices
-        var newBalance = account.Holdings.Sum(h => h.Quantity * h.CurrentPrice);
-        account.CurrentBalance = newBalance;
+        // For SKELETON accounts, CurrentBalance = total balance (recalculate from holdings)
+        // For DETAILED accounts, CurrentBalance = uninvested cash (do NOT overwrite)
+        if (account.IsSkeleton())
+        {
+            var newBalance = account.Holdings.Sum(h => h.Quantity * h.CurrentPrice);
+            account.CurrentBalance = newBalance;
+        }
         account.LastAPISync = now;
         account.UpdatedAt = now;
 
