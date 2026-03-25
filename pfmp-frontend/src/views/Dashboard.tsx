@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Typography, Paper, Alert, Skeleton, Snackbar } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import { OnboardingContext } from '../onboarding/OnboardingContext.shared';
@@ -119,11 +119,32 @@ export const Dashboard: React.FC = () => {
     }
   }, []);
 
+  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api';
+  const hasRefreshedPrices = useRef(false);
+
   useEffect(() => {
     // Performance: Mark component mount
     performanceMark('dashboard-mount');
     // TSP snapshot now handled by scheduled background job (TspPriceRefreshJob)
   }, []);
+
+  // Auto-refresh prices for investment accounts when dashboard data loads
+  useEffect(() => {
+    if (!data || hasRefreshedPrices.current) return;
+    hasRefreshedPrices.current = true;
+
+    const investmentTypes = ['brokerage', 'retirement', 'other'];
+    const investmentAccounts = data.accounts.filter(a =>
+      investmentTypes.some(t => a.type === t) && !a.isCashAccount
+    );
+
+    // Fire-and-forget background refresh for each investment account
+    for (const acct of investmentAccounts) {
+      fetch(`${apiBase}/holdings/refresh-prices?accountId=${acct.id}`, { method: 'POST' })
+        .then(() => console.debug(`[dashboard] Refreshed prices for account ${acct.id}`))
+        .catch(err => console.warn(`[dashboard] Price refresh failed for account ${acct.id}`, err));
+    }
+  }, [data, apiBase]);
 
   useEffect(() => {
     if (data) {

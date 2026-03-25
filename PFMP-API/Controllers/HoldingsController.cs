@@ -71,11 +71,82 @@ public class HoldingsController : ControllerBase
             return NotFound(new { message = "Holding not found" });
         }
 
+        // For 1D period, use intraday (5-min) candles directly from FMP (not stored)
+        if (period.Equals("1D", StringComparison.OrdinalIgnoreCase) && _marketDataService != null)
+        {
+            var intradayPrices = await _marketDataService.GetIntradayPricesAsync(holding.Symbol);
+            
+            // Show the most recent full trading day. If today's session just started
+            // (fewer than 10 candles ≈ < 50 min of 5-min data), prefer the previous day.
+            var tradingDates = intradayPrices
+                .Select(p => p.Date.Date)
+                .Distinct()
+                .OrderByDescending(d => d)
+                .ToList();
+
+            DateTime targetDate = default;
+            foreach (var candidateDate in tradingDates)
+            {
+                var count = intradayPrices.Count(p => p.Date.Date == candidateDate);
+                if (count >= 10)
+                {
+                    targetDate = candidateDate;
+                    break;
+                }
+            }
+            // If no date has ≥ 10 candles, fall back to the latest date available
+            if (targetDate == default && tradingDates.Count > 0)
+                targetDate = tradingDates[0];
+
+            var filtered = targetDate == default
+                ? new List<FmpHistoricalPrice>()
+                : intradayPrices
+                    .Where(p => p.Date.Date == targetDate)
+                    .OrderBy(p => p.Date)
+                    .ToList();
+
+            _logger.LogInformation("Returning {Count} intraday candles for {Symbol}", filtered.Count, holding.Symbol);
+
+            return Ok(filtered.Select(p => new PriceHistoryResponse
+            {
+                Date = p.Date,
+                Open = p.Open,
+                High = p.High,
+                Low = p.Low,
+                Close = p.Close,
+                Volume = p.Volume
+            }));
+        }
+
+        // For 1W period, use hourly intraday candles from FMP for better granularity
+        if (period.Equals("1W", StringComparison.OrdinalIgnoreCase) && _marketDataService != null)
+        {
+            var hourlyPrices = await _marketDataService.GetIntradayPricesAsync(holding.Symbol, "1hour");
+
+            // Filter to last 7 calendar days
+            var cutoff = DateTime.UtcNow.AddDays(-7);
+            var filtered = hourlyPrices
+                .Where(p => p.Date >= cutoff)
+                .OrderBy(p => p.Date)
+                .ToList();
+
+            _logger.LogInformation("Returning {Count} hourly candles for {Symbol} (1W)", filtered.Count, holding.Symbol);
+
+            return Ok(filtered.Select(p => new PriceHistoryResponse
+            {
+                Date = p.Date,
+                Open = p.Open,
+                High = p.High,
+                Low = p.Low,
+                Close = p.Close,
+                Volume = p.Volume
+            }));
+        }
+
         // Calculate date range based on period
         DateTime? fromDate = period.ToUpper() switch
         {
-            "1D" => DateTime.UtcNow.AddDays(-1),
-            "1W" => DateTime.UtcNow.AddDays(-7),
+            "1W" => DateTime.UtcNow.AddDays(-7), // fallback if marketDataService is null
             "1M" => DateTime.UtcNow.AddMonths(-1),
             "3M" => DateTime.UtcNow.AddMonths(-3),
             "6M" => DateTime.UtcNow.AddMonths(-6),
@@ -521,6 +592,39 @@ public class HoldingsController : ControllerBase
             }
         }
 
+        // Fetch latest daily candle for each symbol so we can prefer the official
+        // closing price over the real-time quote price when the market is closed.
+        // FMP's /quote endpoint returns the last intraday trade, which can differ
+        // from the official NYSE/NASDAQ closing auction price by $0.10-0.30+.
+        var dailyCloseDict = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+        foreach (var symbol in symbols)
+        {
+            try
+            {
+                var history = await _marketDataService.GetHistoricalPricesAsync(
+                    symbol, DateTime.UtcNow.AddDays(-5), DateTime.UtcNow);
+                var latest = history.OrderByDescending(p => p.Date).FirstOrDefault();
+                if (latest != null)
+                {
+                    dailyCloseDict[symbol] = latest.AdjClose ?? latest.Close;
+                    _logger.LogDebug("Daily close for {Symbol}: ${Close} on {Date}",
+                        symbol, dailyCloseDict[symbol], latest.Date.ToString("yyyy-MM-dd"));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not fetch daily close for {Symbol}", symbol);
+            }
+        }
+
+        // Determine if US markets are currently open (9:30 AM - 4:00 PM ET, weekdays)
+        var eastern = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+        var nowEt = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, eastern);
+        var marketOpen = new TimeSpan(9, 30, 0);
+        var marketClose = new TimeSpan(16, 0, 0);
+        bool isWeekday = nowEt.DayOfWeek >= DayOfWeek.Monday && nowEt.DayOfWeek <= DayOfWeek.Friday;
+        bool marketIsOpen = isWeekday && nowEt.TimeOfDay >= marketOpen && nowEt.TimeOfDay < marketClose;
+
         int updatedCount = 0;
         int failedCount = 0;
         var errors = new List<string>();
@@ -529,29 +633,34 @@ public class HoldingsController : ControllerBase
         {
             if (quoteDict.TryGetValue(holding.Symbol.ToUpper(), out var quote))
             {
-                // Update price from real-time quote
-                holding.CurrentPrice = quote.Price;
-                holding.LastPriceUpdate = DateTime.UtcNow;
+                var bestPrice = quote.Price;
 
+                // When the market is closed, prefer the official daily close over
+                // the real-time quote (which may be a stale intraday trade price).
+                if (!marketIsOpen && dailyCloseDict.TryGetValue(holding.Symbol.ToUpper(), out var dailyClose))
+                {
+                    bestPrice = dailyClose;
+                    _logger.LogInformation("Updated price for {Symbol}: ${Price} (official daily close, market closed)", holding.Symbol, bestPrice);
+                }
+                else
+                {
+                    _logger.LogInformation("Updated price for {Symbol}: ${Price} (real-time quote)", holding.Symbol, bestPrice);
+                }
+
+                holding.CurrentPrice = bestPrice;
+                holding.LastPriceUpdate = DateTime.UtcNow;
                 updatedCount++;
-                _logger.LogInformation("Updated price for {Symbol}: ${Price} (real-time)", holding.Symbol, quote.Price);
             }
             else
             {
-                // Fallback: try to get price from historical data (for commodities/futures like GC=F)
-                var historicalPrices = await _marketDataService.GetHistoricalPricesAsync(
-                    holding.Symbol.ToUpper(), 
-                    DateTime.UtcNow.AddDays(-7), 
-                    DateTime.UtcNow);
-                
-                var latestPrice = historicalPrices.OrderByDescending(p => p.Date).FirstOrDefault();
-                if (latestPrice != null)
+                // Fallback: use daily close for symbols with no quote (commodities/futures like GC=F)
+                if (dailyCloseDict.TryGetValue(holding.Symbol.ToUpper(), out var dailyClose))
                 {
-                    holding.CurrentPrice = latestPrice.Close;
+                    holding.CurrentPrice = dailyClose;
                     holding.LastPriceUpdate = DateTime.UtcNow;
                     updatedCount++;
-                    _logger.LogInformation("Updated price for {Symbol}: ${Price} (from historical close on {Date})", 
-                        holding.Symbol, latestPrice.Close, latestPrice.Date.ToString("yyyy-MM-dd"));
+                    _logger.LogInformation("Updated price for {Symbol}: ${Price} (from daily close, no quote available)", 
+                        holding.Symbol, dailyClose);
                 }
                 else
                 {

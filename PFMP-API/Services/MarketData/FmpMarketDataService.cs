@@ -230,6 +230,63 @@ public class FmpMarketDataService : IMarketDataService
         }
     }
 
+    /// <summary>
+    /// Get intraday prices (5min, 15min, 1hour, 4hour candles) for a symbol
+    /// FMP returns a flat array for intraday charts
+    /// </summary>
+    public async Task<List<FmpHistoricalPrice>> GetIntradayPricesAsync(string symbol, string interval = "5min")
+    {
+        try
+        {
+            var url = $"{_options.BaseUrl}/historical-chart/{interval}/{symbol}?apikey={_options.ApiKey}";
+
+            var response = await _httpClient.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("FMP API returned {StatusCode} for intraday data {Symbol}", response.StatusCode, symbol);
+                return new List<FmpHistoricalPrice>();
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<List<FmpIntradayPrice>>(content, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (result == null) return new List<FmpHistoricalPrice>();
+
+            // Map to same FmpHistoricalPrice model
+            return result
+                .Where(p => DateTime.TryParse(p.Date, out _))
+                .Select(p => new FmpHistoricalPrice
+                {
+                    Date = DateTime.Parse(p.Date),
+                    Open = p.Open,
+                    High = p.High,
+                    Low = p.Low,
+                    Close = p.Close,
+                    Volume = (long)p.Volume
+                }).ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching intraday prices for {Symbol}", symbol);
+            return new List<FmpHistoricalPrice>();
+        }
+    }
+
+    // Helper class for deserializing intraday data (flat array with string date)
+    private class FmpIntradayPrice
+    {
+        public string Date { get; set; } = "";
+        public decimal Open { get; set; }
+        public decimal High { get; set; }
+        public decimal Low { get; set; }
+        public decimal Close { get; set; }
+        public decimal Volume { get; set; }
+    }
+
     // Helper class for deserializing historical data response
     private class FmpHistoricalResponse
     {

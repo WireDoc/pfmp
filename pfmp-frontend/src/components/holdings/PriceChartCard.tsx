@@ -93,12 +93,21 @@ export function PriceChartCard({ holdingId, symbol }: PriceChartCardProps) {
       
       // Parse the date string properly - assuming ISO format from backend
       const dateObj = new Date(data.date);
-      const formattedDate = dateObj.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric', 
-        year: 'numeric',
-        timeZone: 'UTC' // Use UTC to match backend data
-      });
+      const showTime = period === '1D' || period === '1W';
+      const formattedDate = showTime
+        ? dateObj.toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZone: 'UTC',
+          })
+        : dateObj.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric',
+            timeZone: 'UTC',
+          });
       
       return (
         <Box sx={{ bgcolor: 'background.paper', p: 1.5, border: 1, borderColor: 'divider', borderRadius: 1 }}>
@@ -132,6 +141,20 @@ export function PriceChartCard({ holdingId, symbol }: PriceChartCardProps) {
     ...item,
     displayDate: formatDate(item.date),
   }));
+
+  // Compute Y-axis domain with tight percentage-based padding
+  const yDomain: [number, number] | undefined = (() => {
+    if (data.length === 0) return undefined;
+    const allValues = data.flatMap(d => [d.close, d.high, d.low]);
+    const min = Math.min(...allValues);
+    const max = Math.max(...allValues);
+    const range = max - min;
+    const padding = Math.max(range * 0.1, 0.5); // 10% of range, minimum $0.50
+    return [
+      Math.floor((min - padding) * 100) / 100,
+      Math.ceil((max + padding) * 100) / 100,
+    ];
+  })();
 
   return (
     <Paper sx={{ p: 2 }}>
@@ -198,7 +221,7 @@ export function PriceChartCard({ holdingId, symbol }: PriceChartCardProps) {
               <YAxis 
                 tickFormatter={(value) => `$${Number(value).toFixed(2)}`}
                 tick={{ fontSize: 12 }}
-                domain={['dataMin - 5', 'dataMax + 5']}
+                domain={yDomain}
               />
               <Tooltip content={<CustomTooltip />} isAnimationActive={false} />
               <Legend />

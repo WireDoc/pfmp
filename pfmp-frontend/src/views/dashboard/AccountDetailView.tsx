@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Paper,
@@ -134,11 +134,29 @@ export function AccountDetailView() {
     }
   }, [accountId, apiBase, selectedHolding]);
 
+  const hasAutoRefreshed = useRef(false);
+
   useEffect(() => {
     if (accountId) {
+      hasAutoRefreshed.current = false;
       fetchHoldings();
     }
   }, [accountId, fetchHoldings]);
+
+  // Auto-refresh prices once when an investment account with holdings loads
+  useEffect(() => {
+    if (
+      account &&
+      holdings.length > 0 &&
+      !loading &&
+      !hasAutoRefreshed.current &&
+      getAccountCategory(account.accountType) === 'investment'
+    ) {
+      hasAutoRefreshed.current = true;
+      handleRefreshPrices();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account, holdings.length, loading]);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);

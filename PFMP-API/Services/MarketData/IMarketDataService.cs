@@ -155,6 +155,11 @@ public interface IMarketDataService
     Task<bool> IsServiceAvailableAsync();
 
     /// <summary>
+    /// Get intraday prices (5-minute candles) for a symbol
+    /// </summary>
+    Task<List<FmpHistoricalPrice>> GetIntradayPricesAsync(string symbol, string interval = "5min");
+
+    /// <summary>
     /// Get stock prices as a dictionary (adapter for legacy consumers)
     /// </summary>
     Task<Dictionary<string, MarketPrice>> GetStockPricesAsync(IEnumerable<string> symbols);
