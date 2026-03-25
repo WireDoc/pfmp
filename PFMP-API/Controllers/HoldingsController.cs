@@ -109,24 +109,25 @@ public class HoldingsController : ControllerBase
             }
             else
             {
-                var oldestDate = priceHistory.Min(p => p.Date);
-                var newestDate = priceHistory.Max(p => p.Date);
+                var oldestDate = priceHistory.Min(p => p.Date).Date;
+                var newestDate = priceHistory.Max(p => p.Date).Date;
                 
-                // If our oldest data is newer than what we need, fetch more
-                if (fromDate.HasValue && oldestDate > fromDate.Value)
+                // Compare date-only (FMP returns daily candles at midnight)
+                // Allow 3-day tolerance for weekends/holidays where no trading data exists
+                if (fromDate.HasValue && oldestDate > fromDate.Value.Date.AddDays(3))
                 {
                     needsMoreData = true;
                     _logger.LogInformation("Missing historical data for {Symbol}: oldest is {OldestDate}, need from {FromDate}", 
-                        holding.Symbol, oldestDate, fromDate.Value);
+                        holding.Symbol, oldestDate, fromDate.Value.Date);
                 }
                 
-                // If our newest data is more than 1 day old, fetch more recent data
-                var staleThreshold = DateTime.UtcNow.AddDays(-1);
-                if (newestDate < staleThreshold)
+                // Stale if newest candle is before yesterday's date (daily data won't have today until market close)
+                var staleDate = DateTime.UtcNow.AddDays(-2).Date;
+                if (newestDate < staleDate)
                 {
                     needsMoreData = true;
                     _logger.LogInformation("Stale price history for {Symbol}: newest is {NewestDate}, threshold is {Threshold}", 
-                        holding.Symbol, newestDate, staleThreshold);
+                        holding.Symbol, newestDate, staleDate);
                 }
             }
         }
