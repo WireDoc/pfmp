@@ -1,5 +1,6 @@
 using PFMP_API.Models;
 using PFMP_API.Models.Analytics;
+using PFMP_API.Services.MarketData;
 using Microsoft.EntityFrameworkCore;
 
 namespace PFMP_API.Services;
@@ -12,15 +13,18 @@ public class RiskAnalysisService
     private readonly ApplicationDbContext _context;
     private readonly ILogger<RiskAnalysisService> _logger;
     private readonly PerformanceCalculationService _performanceService;
+    private readonly IMarketDataService? _marketDataService;
 
     public RiskAnalysisService(
         ApplicationDbContext context,
         ILogger<RiskAnalysisService> logger,
-        PerformanceCalculationService performanceService)
+        PerformanceCalculationService performanceService,
+        IMarketDataService? marketDataService = null)
     {
         _context = context;
         _logger = logger;
         _performanceService = performanceService;
+        _marketDataService = marketDataService;
     }
 
     /// <summary>
@@ -216,6 +220,10 @@ public class RiskAnalysisService
         try
         {
             _logger.LogInformation("Starting correlation calculation: {Symbol1} vs {Symbol2}", symbol1, symbol2);
+
+            // Ensure both symbols have price history, fetching from FMP if missing
+            await EnsurePriceHistoryAsync(symbol1, startDate, endDate);
+            await EnsurePriceHistoryAsync(symbol2, startDate, endDate);
 
             // Get price history for both symbols with dates
             var priceData1 = await _context.PriceHistory
@@ -476,5 +484,58 @@ public class RiskAnalysisService
         }
 
         return returns;
+    }
+
+    /// <summary>
+    /// Ensure a symbol has price history in the DB, fetching from FMP if missing.
+    /// </summary>
+    private async Task EnsurePriceHistoryAsync(string symbol, DateTime startDate, DateTime endDate)
+    {
+        if (_marketDataService == null) return;
+
+        var existingCount = await _context.PriceHistory
+            .CountAsync(p => p.Symbol == symbol && p.Date >= startDate && p.Date <= endDate);
+
+        // Need at least a few data points worth of trading days
+        var calendarDays = (endDate - startDate).TotalDays;
+        var expectedTradingDays = (int)(calendarDays * 5.0 / 7.0);
+        var threshold = (int)(expectedTradingDays * 0.5);
+
+        if (existingCount >= Math.Max(threshold, 2))
+            return;
+
+        _logger.LogInformation("Fetching missing price history from FMP for {Symbol} ({Existing} existing, need ~{Expected})",
+            symbol, existingCount, expectedTradingDays);
+
+        var fmpPrices = await _marketDataService.GetHistoricalPricesAsync(symbol, startDate, endDate);
+        if (!fmpPrices.Any()) return;
+
+        foreach (var fmpPrice in fmpPrices)
+        {
+            var dateUtc = fmpPrice.Date.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(fmpPrice.Date, DateTimeKind.Utc)
+                : fmpPrice.Date.ToUniversalTime();
+
+            var exists = await _context.PriceHistory
+                .AnyAsync(p => p.Symbol == symbol && p.Date.Date == dateUtc.Date);
+            if (exists) continue;
+
+            _context.PriceHistory.Add(new PriceHistory
+            {
+                Symbol = symbol,
+                Date = dateUtc,
+                Open = fmpPrice.Open,
+                High = fmpPrice.High,
+                Low = fmpPrice.Low,
+                Close = fmpPrice.Close,
+                Volume = fmpPrice.Volume,
+                AdjustedClose = fmpPrice.AdjClose,
+                Change = fmpPrice.Change,
+                ChangePercent = fmpPrice.ChangePercent
+            });
+        }
+
+        await _context.SaveChangesAsync();
+        _logger.LogInformation("Stored {Count} price history records for {Symbol}", fmpPrices.Count, symbol);
     }
 }
