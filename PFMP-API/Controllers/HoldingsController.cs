@@ -597,7 +597,7 @@ public class HoldingsController : ControllerBase
         // FMP's /quote endpoint returns the last intraday trade, which can differ
         // from the official NYSE/NASDAQ closing auction price by $0.10-0.30+.
         var dailyCloseDict = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
-        foreach (var symbol in symbols)
+        var dailyCloseTasks = symbols.Select(async symbol =>
         {
             try
             {
@@ -606,15 +606,20 @@ public class HoldingsController : ControllerBase
                 var latest = history.OrderByDescending(p => p.Date).FirstOrDefault();
                 if (latest != null)
                 {
-                    dailyCloseDict[symbol] = latest.AdjClose ?? latest.Close;
-                    _logger.LogDebug("Daily close for {Symbol}: ${Close} on {Date}",
-                        symbol, dailyCloseDict[symbol], latest.Date.ToString("yyyy-MM-dd"));
+                    return (symbol, close: latest.AdjClose ?? latest.Close, ok: true);
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Could not fetch daily close for {Symbol}", symbol);
             }
+            return (symbol, close: 0m, ok: false);
+        });
+
+        foreach (var result in await Task.WhenAll(dailyCloseTasks))
+        {
+            if (result.ok)
+                dailyCloseDict[result.symbol] = result.close;
         }
 
         // Determine if US markets are currently open (9:30 AM - 4:00 PM ET, weekdays)

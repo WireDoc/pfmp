@@ -55,33 +55,35 @@ public class BenchmarkDataService
                 }
             }
 
-            // Check database first
+            // Check database first — use trading-day-aware coverage (~5/7 of calendar days)
             var dbData = await _context.PriceHistory
                 .Where(p => p.Symbol == symbol && p.Date >= startDate && p.Date <= endDate)
                 .OrderBy(p => p.Date)
                 .ToListAsync();
 
-            if (dbData.Any() && dbData.Count > (endDate - startDate).TotalDays * 0.8) // At least 80% coverage
+            var calendarDays = (endDate - startDate).TotalDays;
+            var expectedTradingDays = calendarDays * 5.0 / 7.0;
+            if (dbData.Any() && dbData.Count >= expectedTradingDays * 0.7)
             {
                 _cache[cacheKey] = (DateTime.UtcNow, dbData);
                 return dbData;
             }
 
-            // Fetch from FMP API
+            // Fetch from FMP API if DB coverage is insufficient
             var freshData = await FetchFromFMPApiAsync(symbol, startDate, endDate);
 
             if (freshData.Any())
             {
-                // Save to database
                 await SaveToDatabase(freshData);
-
-                // Update cache
                 _cache[cacheKey] = (DateTime.UtcNow, freshData);
-
                 return freshData;
             }
 
             // Fallback to whatever we have in DB
+            if (dbData.Any())
+            {
+                _cache[cacheKey] = (DateTime.UtcNow, dbData);
+            }
             return dbData;
         }
         catch (Exception ex)
@@ -215,9 +217,10 @@ public class BenchmarkDataService
     public async Task<Dictionary<string, decimal>> GetBenchmarkReturnsAsync(DateTime startDate, DateTime endDate)
     {
         var benchmarks = new Dictionary<string, decimal>();
-
         var symbols = new[] { "SPY", "QQQ", "IWM", "VTI", "AGG", "VEU" };
 
+        // Sequential — DbContext is not thread-safe. DB-first strategy with
+        // in-memory cache makes subsequent calls fast after first load.
         foreach (var symbol in symbols)
         {
             var benchmarkReturn = await CalculateBenchmarkReturnAsync(symbol, startDate, endDate);
@@ -225,6 +228,37 @@ public class BenchmarkDataService
         }
 
         return benchmarks;
+    }
+
+    /// <summary>
+    /// Refresh benchmark price history for all tracked indices.
+    /// Called by the daily Hangfire job so on-demand requests hit the DB cache.
+    /// </summary>
+    public async Task RefreshBenchmarkDataAsync()
+    {
+        var symbols = new[] { "SPY", "QQQ", "IWM", "VTI", "AGG", "VEU" };
+        var endDate = DateTime.UtcNow;
+        var startDate = endDate.AddYears(-5); // Keep 5 years of history
+
+        foreach (var symbol in symbols)
+        {
+            try
+            {
+                var freshData = await FetchFromFMPApiAsync(symbol, startDate, endDate);
+                if (freshData.Any())
+                {
+                    await SaveToDatabase(freshData);
+                    _logger.LogInformation("Refreshed {Count} benchmark prices for {Symbol}", freshData.Count, symbol);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error refreshing benchmark data for {Symbol}", symbol);
+            }
+        }
+
+        // Clear in-memory cache so next request picks up fresh DB data
+        _cache.Clear();
     }
 }
 

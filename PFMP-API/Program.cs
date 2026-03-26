@@ -310,6 +310,13 @@ namespace PFMP_API
                     job => job.SyncAllConnections(),
                     "0 22 * * *", // 10 PM daily
                     new RecurringJobOptions { TimeZone = easternTimeZone });
+
+                // Daily benchmark index refresh at 10:30 PM ET (SPY, QQQ, IWM, VTI, AGG, VEU)
+                RecurringJob.AddOrUpdate<PFMP_API.Jobs.BenchmarkRefreshJob>(
+                    "daily-benchmark-refresh",
+                    job => job.RefreshBenchmarkDataAsync(CancellationToken.None),
+                    "30 22 * * *", // 10:30 PM daily
+                    new RecurringJobOptions { TimeZone = easternTimeZone });
             }
 
             app.MapControllers();
