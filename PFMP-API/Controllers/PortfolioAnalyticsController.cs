@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PFMP_API.Models.Analytics;
 using PFMP_API.Services;
+using PFMP_API.Services.MarketData;
 using Microsoft.EntityFrameworkCore;
 
 namespace PFMP_API.Controllers;
@@ -18,6 +19,7 @@ public class PortfolioAnalyticsController : ControllerBase
     private readonly BenchmarkDataService _benchmarkService;
     private readonly ApplicationDbContext _context;
     private readonly ILogger<PortfolioAnalyticsController> _logger;
+    private readonly IMarketDataService? _marketDataService;
 
     public PortfolioAnalyticsController(
         PerformanceCalculationService performanceService,
@@ -25,7 +27,8 @@ public class PortfolioAnalyticsController : ControllerBase
         RiskAnalysisService riskService,
         BenchmarkDataService benchmarkService,
         ApplicationDbContext context,
-        ILogger<PortfolioAnalyticsController> logger)
+        ILogger<PortfolioAnalyticsController> logger,
+        IMarketDataService? marketDataService = null)
     {
         _performanceService = performanceService;
         _taxService = taxService;
@@ -33,6 +36,7 @@ public class PortfolioAnalyticsController : ControllerBase
         _benchmarkService = benchmarkService;
         _context = context;
         _logger = logger;
+        _marketDataService = marketDataService;
     }
 
     /// <summary>
@@ -162,6 +166,9 @@ public class PortfolioAnalyticsController : ControllerBase
                     RebalancingRecommendations = new List<RebalancingRecommendation>()
                 });
             }
+
+            // Enrich holdings missing sector/geography from FMP profiles
+            await EnrichHoldingsFromFmpAsync(holdings);
 
             var allocations = new List<AllocationItem>();
             var totalValue = holdings.Sum(h => h.Quantity * h.CurrentPrice);
@@ -350,6 +357,51 @@ public class PortfolioAnalyticsController : ControllerBase
             
             _ => "Unknown"
         };
+    }
+
+    /// <summary>
+    /// Enrich holdings that have no sector/geography data by fetching FMP company profiles.
+    /// Persists the data so future requests don't need FMP calls.
+    /// </summary>
+    private async Task EnrichHoldingsFromFmpAsync(List<PFMP_API.Models.Holding> holdings)
+    {
+        if (_marketDataService == null) return;
+
+        var needsEnrichment = holdings.Where(h =>
+            string.IsNullOrEmpty(h.SectorAllocation) || string.IsNullOrEmpty(h.GeographicAllocation)).ToList();
+
+        if (!needsEnrichment.Any()) return;
+
+        bool changed = false;
+        foreach (var holding in needsEnrichment)
+        {
+            try
+            {
+                var profile = await _marketDataService.GetCompanyProfileAsync(holding.Symbol);
+                if (profile == null) continue;
+
+                if (string.IsNullOrEmpty(holding.SectorAllocation) && !string.IsNullOrEmpty(profile.Sector))
+                {
+                    holding.SectorAllocation = profile.Sector;
+                    changed = true;
+                }
+
+                if (string.IsNullOrEmpty(holding.GeographicAllocation) && !string.IsNullOrEmpty(profile.Country))
+                {
+                    holding.GeographicAllocation = profile.Country;
+                    changed = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to enrich holding {Symbol} from FMP", holding.Symbol);
+            }
+        }
+
+        if (changed)
+        {
+            await _context.SaveChangesAsync();
+        }
     }
 
     /// <summary>
