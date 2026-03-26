@@ -216,13 +216,34 @@ public class TaxInsightsService
     }
 
     /// <summary>
-    /// Calculate estimated tax liability if all positions sold today
+    /// Calculate estimated tax liability if all positions sold today.
+    /// Uses IRS netting: net within each category first, then cross-net
+    /// losses from one category against gains in the other.
     /// </summary>
     private EstimatedTaxLiability CalculateEstimatedTaxLiability(decimal shortTermGains, decimal longTermGains)
     {
-        // Only tax gains, not losses
-        var taxableShortTermGains = Math.Max(0, shortTermGains);
-        var taxableLongTermGains = Math.Max(0, longTermGains);
+        // IRS netting: if one category has net losses, offset the other's gains
+        var taxableShortTermGains = shortTermGains;
+        var taxableLongTermGains = longTermGains;
+
+        if (shortTermGains < 0 && longTermGains > 0)
+        {
+            // Short-term losses offset long-term gains
+            taxableLongTermGains = Math.Max(0, longTermGains + shortTermGains);
+            taxableShortTermGains = 0;
+        }
+        else if (longTermGains < 0 && shortTermGains > 0)
+        {
+            // Long-term losses offset short-term gains
+            taxableShortTermGains = Math.Max(0, shortTermGains + longTermGains);
+            taxableLongTermGains = 0;
+        }
+        else
+        {
+            // Both positive or both negative — no cross-netting needed
+            taxableShortTermGains = Math.Max(0, shortTermGains);
+            taxableLongTermGains = Math.Max(0, longTermGains);
+        }
 
         var shortTermTax = taxableShortTermGains * SHORT_TERM_TAX_RATE;
         var longTermTax = taxableLongTermGains * LONG_TERM_TAX_RATE;
