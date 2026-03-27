@@ -64,11 +64,29 @@ public class FmpCompanyProfile
     public string Country { get; set; } = string.Empty;
     public decimal? Beta { get; set; }
     public decimal? DividendYield { get; set; }
-    public string? LastDiv { get; set; }
+    public decimal? LastDiv { get; set; }
     public string? Website { get; set; }
     public string? Description { get; set; }
     public string? Ceo { get; set; }
     public string? Image { get; set; }
+}
+
+/// <summary>
+/// ETF sector weighting from FMP /etf-sector-weightings endpoint
+/// </summary>
+public class FmpEtfSectorWeighting
+{
+    public string Sector { get; set; } = string.Empty;
+    public string WeightPercentage { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// ETF country weighting from FMP /etf-country-weightings endpoint
+/// </summary>
+public class FmpEtfCountryWeighting
+{
+    public string Country { get; set; } = string.Empty;
+    public string WeightPercentage { get; set; } = string.Empty;
 }
 
 /// <summary>
@@ -163,4 +181,14 @@ public interface IMarketDataService
     /// Get stock prices as a dictionary (adapter for legacy consumers)
     /// </summary>
     Task<Dictionary<string, MarketPrice>> GetStockPricesAsync(IEnumerable<string> symbols);
+
+    /// <summary>
+    /// Get ETF sector weightings (investment sectors, not issuer sector)
+    /// </summary>
+    Task<List<FmpEtfSectorWeighting>> GetEtfSectorWeightingsAsync(string symbol);
+
+    /// <summary>
+    /// Get ETF country weightings (investment geography, not issuer country)
+    /// </summary>
+    Task<List<FmpEtfCountryWeighting>> GetEtfCountryWeightingsAsync(string symbol);
 }

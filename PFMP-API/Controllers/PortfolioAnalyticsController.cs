@@ -293,7 +293,7 @@ public class PortfolioAnalyticsController : ControllerBase
         return symbol.ToUpper() switch
         {
             // Diversified Equity / Index Funds
-            "VOO" or "VIG" or "SPY" or "IVV" or "VTI" or "QQQ" or "DIA" or "IWM" or "VUG" or "VTV" => "Diversified Equity",
+            "VOO" or "VIG" or "SPY" or "IVV" or "VTI" or "QQQ" or "DIA" or "IWM" or "VUG" or "VTV" or "DXYZ" => "Diversified Equity",
             
             // International Equity
             "VEA" or "VXUS" or "EFA" or "EEM" or "VWO" or "IEFA" => "International Equity",
@@ -302,7 +302,7 @@ public class PortfolioAnalyticsController : ControllerBase
             "MUB" or "VTEB" or "TFI" => "Municipal Bonds",
             
             // Technology
-            "NVDA" or "AAPL" or "MSFT" or "GOOGL" or "GOOG" or "META" or "AMZN" or "TSLA" or "AMD" or "INTC" or "CRM" or "ADBE" or "NFLX" => "Technology",
+            "NVDA" or "AAPL" or "MSFT" or "GOOGL" or "GOOG" or "META" or "AMZN" or "TSLA" or "AMD" or "INTC" or "CRM" or "ADBE" or "NFLX" or "DTCR" => "Technology",
             
             // Cryptocurrency
             "BTC-USD" or "ETH-USD" or "BTC" or "ETH" or "SOL-USD" or "DOGE-USD" => "Cryptocurrency",
@@ -318,6 +318,12 @@ public class PortfolioAnalyticsController : ControllerBase
             
             // Financials
             "JPM" or "BAC" or "WFC" or "GS" or "MS" or "BRK.A" or "BRK.B" or "XLF" or "VFH" => "Financials",
+            
+            // Utilities
+            "XLU" or "VPU" or "IDU" or "NEE" or "DUK" or "SO" or "D" or "AEP" => "Utilities",
+            
+            // Industrials
+            "XLI" or "VIS" or "IYJ" or "CAT" or "UNP" or "HON" or "GE" or "BA" or "RTX" or "LMT" or "DE" => "Industrials",
             
             // Consumer
             "WMT" or "PG" or "KO" or "PEP" or "MCD" or "NKE" or "SBUX" or "HD" or "TGT" or "COST" => "Consumer",
@@ -341,7 +347,8 @@ public class PortfolioAnalyticsController : ControllerBase
             "AAPL" or "MSFT" or "GOOGL" or "GOOG" or "META" or "AMZN" or "TSLA" or "AMD" or "INTC" or
             "JNJ" or "UNH" or "PFE" or "MRK" or "JPM" or "BAC" or "WFC" or "GS" or
             "WMT" or "PG" or "KO" or "PEP" or "MCD" or "NKE" or "HD" or "XOM" or "CVX" or
-            "VNQ" or "BND" or "AGG" or "TLT" or "MUB" or "GLD" or "SLV" or "IAU" => "United States",
+            "VNQ" or "BND" or "AGG" or "TLT" or "MUB" or "GLD" or "SLV" or "IAU" or
+            "XLU" or "XLI" or "XLF" or "XLE" or "XLV" or "DXYZ" or "DTCR" => "United States",
             
             // International Developed
             "VEA" or "EFA" or "IEFA" => "International Developed",
@@ -360,7 +367,9 @@ public class PortfolioAnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Enrich holdings that have no sector/geography data by fetching FMP company profiles.
+    /// Enrich holdings that have no sector/geography data.
+    /// Uses ETF-specific FMP endpoints for ETFs (sector/country weightings)
+    /// and FMP company profiles for individual stocks.
     /// Persists the data so future requests don't need FMP calls.
     /// </summary>
     private async Task EnrichHoldingsFromFmpAsync(List<PFMP_API.Models.Holding> holdings)
@@ -377,19 +386,49 @@ public class PortfolioAnalyticsController : ControllerBase
         {
             try
             {
-                var profile = await _marketDataService.GetCompanyProfileAsync(holding.Symbol);
-                if (profile == null) continue;
-
-                if (string.IsNullOrEmpty(holding.SectorAllocation) && !string.IsNullOrEmpty(profile.Sector))
+                if (holding.AssetType == PFMP_API.Models.AssetType.ETF ||
+                    holding.AssetType == PFMP_API.Models.AssetType.MutualFund ||
+                    holding.AssetType == PFMP_API.Models.AssetType.Index)
                 {
-                    holding.SectorAllocation = profile.Sector;
-                    changed = true;
+                    // For ETFs/funds: use ETF-specific endpoints that return investment sectors
+                    // (not the fund issuer's sector like FMP profile does)
+                    if (string.IsNullOrEmpty(holding.SectorAllocation))
+                    {
+                        var sectorWeightings = await _marketDataService.GetEtfSectorWeightingsAsync(holding.Symbol);
+                        if (sectorWeightings.Any())
+                        {
+                            holding.SectorAllocation = GetDominantEtfSector(sectorWeightings);
+                            changed = true;
+                        }
+                    }
+
+                    if (string.IsNullOrEmpty(holding.GeographicAllocation))
+                    {
+                        var countryWeightings = await _marketDataService.GetEtfCountryWeightingsAsync(holding.Symbol);
+                        if (countryWeightings.Any())
+                        {
+                            holding.GeographicAllocation = GetDominantEtfCountry(countryWeightings);
+                            changed = true;
+                        }
+                    }
                 }
-
-                if (string.IsNullOrEmpty(holding.GeographicAllocation) && !string.IsNullOrEmpty(profile.Country))
+                else
                 {
-                    holding.GeographicAllocation = profile.Country;
-                    changed = true;
+                    // For individual stocks: FMP profile returns correct sector/country
+                    var profile = await _marketDataService.GetCompanyProfileAsync(holding.Symbol);
+                    if (profile == null) continue;
+
+                    if (string.IsNullOrEmpty(holding.SectorAllocation) && !string.IsNullOrEmpty(profile.Sector))
+                    {
+                        holding.SectorAllocation = profile.Sector;
+                        changed = true;
+                    }
+
+                    if (string.IsNullOrEmpty(holding.GeographicAllocation) && !string.IsNullOrEmpty(profile.Country))
+                    {
+                        holding.GeographicAllocation = NormalizeCountryName(profile.Country);
+                        changed = true;
+                    }
                 }
             }
             catch (Exception ex)
@@ -402,6 +441,72 @@ public class PortfolioAnalyticsController : ControllerBase
         {
             await _context.SaveChangesAsync();
         }
+    }
+
+    /// <summary>
+    /// Determine the dominant sector for an ETF from its sector weightings.
+    /// If one sector dominates (>50%), use that sector name.
+    /// Otherwise, classify as "Diversified Equity".
+    /// </summary>
+    private static string GetDominantEtfSector(List<FmpEtfSectorWeighting> weightings)
+    {
+        var parsed = weightings
+            .Select(w => new
+            {
+                w.Sector,
+                Weight = decimal.TryParse(w.WeightPercentage.TrimEnd('%'), out var pct) ? pct : 0
+            })
+            .OrderByDescending(w => w.Weight)
+            .ToList();
+
+        if (!parsed.Any()) return "Other";
+
+        // If one sector is >50% of the ETF, label it with that sector
+        if (parsed.First().Weight > 50)
+            return parsed.First().Sector;
+
+        return "Diversified Equity";
+    }
+
+    /// <summary>
+    /// Determine the dominant country for an ETF from its country weightings.
+    /// Uses the highest-weighted country if it's dominant (>60%), otherwise "Global".
+    /// </summary>
+    private static string GetDominantEtfCountry(List<FmpEtfCountryWeighting> weightings)
+    {
+        var parsed = weightings
+            .Select(w => new
+            {
+                w.Country,
+                Weight = decimal.TryParse(w.WeightPercentage.TrimEnd('%'), out var pct) ? pct : 0
+            })
+            .OrderByDescending(w => w.Weight)
+            .ToList();
+
+        if (!parsed.Any()) return "Unknown";
+
+        if (parsed.First().Weight > 60)
+            return parsed.First().Country;
+
+        return "Global";
+    }
+
+    /// <summary>
+    /// Normalize country names to a consistent format (e.g. "US" → "United States")
+    /// </summary>
+    private static string NormalizeCountryName(string country)
+    {
+        return country.Trim().ToUpper() switch
+        {
+            "US" or "USA" => "United States",
+            "UK" or "GB" => "United Kingdom",
+            "CN" => "China",
+            "JP" => "Japan",
+            "DE" => "Germany",
+            "FR" => "France",
+            "CA" => "Canada",
+            _ => country
+        };
     }
 
     /// <summary>

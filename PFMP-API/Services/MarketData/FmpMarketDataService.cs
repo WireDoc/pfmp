@@ -420,6 +420,80 @@ public class FmpMarketDataService : IMarketDataService
         );
     }
 
+    /// <summary>
+    /// Get ETF sector weightings — returns the investment sectors of the ETF's holdings,
+    /// not the fund issuer's sector. Uses /etf-sector-weightings/{symbol}.
+    /// </summary>
+    public async Task<List<FmpEtfSectorWeighting>> GetEtfSectorWeightingsAsync(string symbol)
+    {
+        var cacheKey = $"etf_sector_{symbol}";
+        if (_cache.TryGetValue<List<FmpEtfSectorWeighting>>(cacheKey, out var cached))
+            return cached!;
+
+        try
+        {
+            var url = $"{_options.BaseUrl}/etf-sector-weightings/{symbol}?apikey={_options.ApiKey}";
+            var response = await _httpClient.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("FMP API returned {StatusCode} for ETF sector weightings {Symbol}", response.StatusCode, symbol);
+                return new List<FmpEtfSectorWeighting>();
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<List<FmpEtfSectorWeighting>>(content, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            }) ?? new List<FmpEtfSectorWeighting>();
+
+            _cache.Set(cacheKey, result, TimeSpan.FromHours(24));
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching ETF sector weightings for {Symbol}", symbol);
+            return new List<FmpEtfSectorWeighting>();
+        }
+    }
+
+    /// <summary>
+    /// Get ETF country weightings — returns the geographic breakdown of the ETF's holdings.
+    /// Uses /etf-country-weightings/{symbol}.
+    /// </summary>
+    public async Task<List<FmpEtfCountryWeighting>> GetEtfCountryWeightingsAsync(string symbol)
+    {
+        var cacheKey = $"etf_country_{symbol}";
+        if (_cache.TryGetValue<List<FmpEtfCountryWeighting>>(cacheKey, out var cached))
+            return cached!;
+
+        try
+        {
+            var url = $"{_options.BaseUrl}/etf-country-weightings/{symbol}?apikey={_options.ApiKey}";
+            var response = await _httpClient.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("FMP API returned {StatusCode} for ETF country weightings {Symbol}", response.StatusCode, symbol);
+                return new List<FmpEtfCountryWeighting>();
+            }
+
+            var content = await response.Content.ReadAsStringAsync();
+            var result = JsonSerializer.Deserialize<List<FmpEtfCountryWeighting>>(content, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            }) ?? new List<FmpEtfCountryWeighting>();
+
+            _cache.Set(cacheKey, result, TimeSpan.FromHours(24));
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching ETF country weightings for {Symbol}", symbol);
+            return new List<FmpEtfCountryWeighting>();
+        }
+    }
+
     private static MarketPrice QuoteToMarketPrice(FmpQuote? quote, string symbol, string fallbackName = "")
     {
         if (quote == null)
