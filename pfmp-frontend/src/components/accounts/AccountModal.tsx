@@ -167,7 +167,7 @@ export function AccountModal({ open, account, onClose, onSave, onDelete }: Props
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={(_event, reason) => { if (reason !== 'backdropClick') handleClose(); }} maxWidth="sm" fullWidth>
       <DialogTitle>
         Edit Account
         {/* Only show delete for manual accounts (source = 0 or undefined) */}

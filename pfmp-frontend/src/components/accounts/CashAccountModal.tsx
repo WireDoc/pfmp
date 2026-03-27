@@ -206,7 +206,7 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={(_event, reason) => { if (reason !== 'backdropClick') handleClose(); }} maxWidth="sm" fullWidth>
       <DialogTitle>
         {isEditMode ? 'Edit Cash Account' : 'Add Cash Account'}
         {/* Only show delete for manual accounts (source = 0 or undefined) */}

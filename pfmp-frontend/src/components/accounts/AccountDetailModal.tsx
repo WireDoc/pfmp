@@ -126,7 +126,7 @@ export function AccountDetailModal({ open, account, onClose, onSave }: Props) {
   return (
     <Dialog 
       open={open} 
-      onClose={handleClose}
+      onClose={(_event, reason) => { if (reason !== 'backdropClick') handleClose(); }}
       maxWidth="sm"
       fullWidth
     >
