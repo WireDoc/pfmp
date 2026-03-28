@@ -162,12 +162,14 @@ export default function LoanAccountDetailView() {
                 <SummaryRow 
                   label="Est. Payoff Date" 
                   value={formatDate(loanDetails.estimatedPayoffDate)} 
-                />                {loanDetails.paymentDueDate && (
+                />
+                {loanDetails.paymentDueDate && (
                   <SummaryRow 
-                    label=\"Next Payment Due\" 
+                    label="Next Payment Due" 
                     value={formatDate(loanDetails.paymentDueDate)} 
                   />
-                )}              </Box>
+                )}
+              </Box>
             </Paper>
           </Grid>
         </Grid>
