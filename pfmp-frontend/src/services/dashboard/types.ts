@@ -124,6 +124,7 @@ export interface LiabilitySnapshot {
   currentBalance: CurrencyAmount;
   minimumPayment: CurrencyAmount;
   interestRate: number | null;
+  paymentDueDate: string | null;
   lastUpdated: string | null;
   propertyId?: string | null;  // If set, this is a property mortgage (not a standalone liability)
 }

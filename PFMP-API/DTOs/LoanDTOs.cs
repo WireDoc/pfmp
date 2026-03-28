@@ -24,6 +24,7 @@ public class LoanDetailsResponse
     public decimal PercentPaidOff { get; set; }
     public decimal TotalInterestPaid { get; set; }
     public decimal TotalInterestRemaining { get; set; }
+    public DateTime? PaymentDueDate { get; set; }
 }
 
 /// <summary>

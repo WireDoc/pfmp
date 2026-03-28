@@ -626,7 +626,8 @@ namespace PFMP_API.Services.Plaid
             var purchaseApr = creditCard.Aprs?.FirstOrDefault(a => 
                 a.AprType.ToString().Equals("purchase_apr", StringComparison.OrdinalIgnoreCase) ||
                 a.AprType.ToString().Equals("PurchaseApr", StringComparison.OrdinalIgnoreCase));
-            existing.InterestRateApr = (decimal?)(purchaseApr?.AprPercentage);
+            if (purchaseApr?.AprPercentage != null)
+                existing.InterestRateApr = (decimal?)(purchaseApr.AprPercentage);
 
             // Due dates
             if (creditCard.NextPaymentDueDate.HasValue)
@@ -808,7 +809,8 @@ namespace PFMP_API.Services.Plaid
             existing.Lender = account?.Name ?? account?.OfficialName ?? "Mortgage";
             existing.CurrentBalance = (decimal)(account?.Balances?.Current ?? 0);
             existing.OriginalLoanAmount = (decimal?)(mortgage.OriginationPrincipalAmount);
-            existing.InterestRateApr = (decimal?)(mortgage.InterestRate?.Percentage);
+            if (mortgage.InterestRate?.Percentage != null)
+                existing.InterestRateApr = (decimal?)(mortgage.InterestRate.Percentage);
             existing.MinimumPayment = (decimal?)(mortgage.NextMonthlyPayment);
             existing.LoanTermMonths = ParseLoanTermToMonths(mortgage.LoanTerm);
 
@@ -881,7 +883,8 @@ namespace PFMP_API.Services.Plaid
             existing.Lender = studentLoan.LoanName ?? account?.Name ?? account?.OfficialName ?? "Student Loan";
             existing.CurrentBalance = (decimal)(account?.Balances?.Current ?? 0);
             existing.OriginalLoanAmount = (decimal?)(studentLoan.OriginationPrincipalAmount);
-            existing.InterestRateApr = (decimal?)(studentLoan.InterestRatePercentage);
+            if (studentLoan.InterestRatePercentage != null)
+                existing.InterestRateApr = (decimal?)(studentLoan.InterestRatePercentage);
             existing.MinimumPayment = (decimal?)(studentLoan.MinimumPaymentAmount);
             existing.LoanTermMonths = studentLoan.ExpectedPayoffDate.HasValue && studentLoan.OriginationDate.HasValue
                 ? (int)((studentLoan.ExpectedPayoffDate.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc) -

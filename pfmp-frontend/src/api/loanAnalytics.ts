@@ -25,6 +25,7 @@ export interface LoanDetailsResponse {
   percentPaidOff: number;
   totalInterestPaid: number;
   totalInterestRemaining: number;
+  paymentDueDate: string | null;
 }
 
 export interface AmortizationPayment {

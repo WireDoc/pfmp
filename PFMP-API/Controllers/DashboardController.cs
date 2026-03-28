@@ -253,6 +253,7 @@ public class DashboardController : ControllerBase
                 currentBalance = new { amount = l.CurrentBalance, currency = "USD" },
                 minimumPayment = new { amount = l.MinimumPayment ?? 0, currency = "USD" },
                 interestRate = l.InterestRateApr,
+                paymentDueDate = (DateTime?)(l.NextPaymentDueDate ?? l.PaymentDueDate),
                 lastUpdated = l.UpdatedAt,
                 propertyId = (Guid?)null  // Not a property mortgage
             }).ToList();
@@ -271,6 +272,7 @@ public class DashboardController : ControllerBase
                     currentBalance = new { amount = property.MortgageBalance!.Value, currency = "USD" },
                     minimumPayment = new { amount = property.MonthlyMortgagePayment ?? 0, currency = "USD" },
                     interestRate = (decimal?)null,
+                    paymentDueDate = (DateTime?)null,
                     lastUpdated = property.UpdatedAt,
                     propertyId = (Guid?)property.PropertyId  // Link to the property
                 });

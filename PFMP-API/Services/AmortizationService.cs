@@ -163,7 +163,8 @@ public class AmortizationService
                 PaymentsRemaining = paymentsRemaining,
                 PercentPaidOff = Math.Round(percentPaid, 1),
                 TotalInterestPaid = Math.Round(interestPaidSoFar, 2),
-                TotalInterestRemaining = Math.Round(interestRemaining, 2)
+                TotalInterestRemaining = Math.Round(interestRemaining, 2),
+                PaymentDueDate = loan.NextPaymentDueDate ?? loan.PaymentDueDate
             },
             Schedule = schedule,
             Summary = new AmortizationSummary
@@ -267,7 +268,8 @@ public class AmortizationService
                 LiabilityType = loan.LiabilityType,
                 Lender = loan.Lender,
                 CurrentBalance = loan.CurrentBalance,
-                InterestRate = loan.InterestRateApr ?? 0
+                InterestRate = loan.InterestRateApr ?? 0,
+                PaymentDueDate = loan.NextPaymentDueDate ?? loan.PaymentDueDate
             },
             Schedule = new List<AmortizationPayment>(),
             Summary = new AmortizationSummary()

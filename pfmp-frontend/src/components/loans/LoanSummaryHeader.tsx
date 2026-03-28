@@ -103,6 +103,9 @@ export function LoanSummaryHeader({ loan }: LoanSummaryHeaderProps) {
         <QuickStat label="Interest Paid" value={formatCurrency(loan.totalInterestPaid)} color="warning.main" />
         <QuickStat label="Interest Remaining" value={formatCurrency(loan.totalInterestRemaining)} />
         <QuickStat label="Payoff Date" value={formatDate(loan.estimatedPayoffDate)} />
+        {loan.paymentDueDate && (
+          <QuickStat label="Payment Due" value={formatDate(loan.paymentDueDate)} />
+        )}
       </Box>
     </Paper>
   );

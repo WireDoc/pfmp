@@ -148,10 +148,15 @@ export default function LiabilitiesPanel({ liabilities = [], loading = false }: 
                   </Box>
 
                   {liability.minimumPayment && liability.minimumPayment.amount > 0 && (
-                    <Box mt={1}>
+                    <Box mt={1} display="flex" justifyContent="space-between" alignItems="center">
                       <Typography variant="caption" color="text.secondary">
                         Min Payment: ${liability.minimumPayment.amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/mo
                       </Typography>
+                      {liability.paymentDueDate && (
+                        <Typography variant="caption" color="text.secondary">
+                          Due: {new Date(liability.paymentDueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        </Typography>
+                      )}
                     </Box>
                   )}
                 </CardContent>
