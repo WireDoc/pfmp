@@ -22,6 +22,20 @@ import {
   Tab,
   Chip,
   Stack,
+  IconButton,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
 } from '@mui/material';
 import {
   Settings as SettingsIcon,
@@ -31,13 +45,24 @@ import {
   Link as LinkIcon,
   CreditCard as CreditCardIcon,
   Home as HomeIcon,
+  School as StudentLoanIcon,
+  MoreVert as MoreIcon,
+  LinkOff as DisconnectIcon,
+  Delete as DeleteIcon,
+  Link as ReconnectIcon,
 } from '@mui/icons-material';
 import { Link as RouterLink } from 'react-router-dom';
 import { PlaidUnifiedLinkButton, ConnectedBanksList } from '../../components/plaid';
+import { usePlaidLink } from 'react-plaid-link';
 import { 
   getConnections, 
   syncAllConnections,
   getUnifiedConnections,
+  syncConnection,
+  disconnectConnection,
+  createReconnectLinkToken,
+  reconnectSuccess,
+  deleteConnectionPermanently,
   type UnifiedConnectionInfo,
 } from '../../services/plaidApi';
 import type { PlaidConnection } from '../../services/plaidApi';
@@ -58,6 +83,216 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
+// Connection Action Menu - shared by CreditCards, Mortgages, Student Loans lists
+// Mirrors the ConnectedBanksList menu: connected → Sync Now + Pause Syncing; disconnected → Reconnect + Delete
+interface ConnectionActionMenuProps {
+  connectionId: string;
+  institutionName: string;
+  userId: number;
+  status: string;
+  errorMessage?: string;
+  onRefresh: () => void;
+}
+
+const ConnectionActionMenu: React.FC<ConnectionActionMenuProps> = ({ connectionId, institutionName, userId, status, errorMessage, onRefresh }) => {
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [reconnecting, setReconnecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteAccountsOption, setDeleteAccountsOption] = useState<'keep' | 'delete'>('keep');
+  const [deleting, setDeleting] = useState(false);
+  const [reconnectLinkToken, setReconnectLinkToken] = useState<string | null>(null);
+
+  const isDisconnected = status === 'Disconnected' || status === 'Expired'
+    || (status === 'SyncFailed' && errorMessage?.toLowerCase().includes('login'));
+
+  // Plaid Link for reconnection
+  const { open: openReconnectLink, ready: reconnectReady } = usePlaidLink({
+    token: reconnectLinkToken || '',
+    onSuccess: async () => {
+      try {
+        await reconnectSuccess(connectionId, userId);
+        setReconnectLinkToken(null);
+        onRefresh();
+      } catch {
+        setError('Failed to complete reconnection');
+      } finally {
+        setReconnecting(false);
+      }
+    },
+    onExit: () => {
+      setReconnectLinkToken(null);
+      setReconnecting(false);
+    },
+  });
+
+  React.useEffect(() => {
+    if (reconnectLinkToken && reconnectReady) {
+      openReconnectLink();
+    }
+  }, [reconnectLinkToken, reconnectReady, openReconnectLink]);
+
+  const handleSync = async () => {
+    setAnchorEl(null);
+    setSyncing(true);
+    setError(null);
+    try {
+      await syncConnection(connectionId, userId);
+      onRefresh();
+    } catch {
+      setError('Sync failed. Please try again.');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    setAnchorEl(null);
+    if (window.confirm(`Are you sure you want to pause syncing for ${institutionName}? You can reconnect later.`)) {
+      try {
+        await disconnectConnection(connectionId, userId);
+        onRefresh();
+      } catch {
+        setError('Failed to disconnect. Please try again.');
+      }
+    }
+  };
+
+  const handleReconnect = async () => {
+    setAnchorEl(null);
+    setReconnecting(true);
+    setError(null);
+    try {
+      const token = await createReconnectLinkToken(connectionId, userId);
+      setReconnectLinkToken(token);
+    } catch {
+      setError('Unable to reconnect. The connection may have been permanently deleted. Try linking the account again.');
+      setReconnecting(false);
+    }
+  };
+
+  const handleOpenDeleteDialog = () => {
+    setAnchorEl(null);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setDeleteDialogOpen(false);
+    setDeleteAccountsOption('keep');
+  };
+
+  const handleConfirmDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteConnectionPermanently(connectionId, userId, deleteAccountsOption === 'delete');
+      setDeleteDialogOpen(false);
+      onRefresh();
+    } catch {
+      setError('Failed to delete connection. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <>
+      {error && (
+        <Alert severity="error" sx={{ position: 'absolute', top: -40, right: 0, zIndex: 1 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+      {syncing && <CircularProgress size={20} />}
+      <IconButton size="small" onClick={(e) => setAnchorEl(e.currentTarget)} aria-label="Connection actions">
+        <MoreIcon />
+      </IconButton>
+      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
+        {!isDisconnected ? (
+          [
+            <MenuItem key="sync" onClick={handleSync} disabled={syncing}>
+              <ListItemIcon><RefreshIcon fontSize="small" /></ListItemIcon>
+              <ListItemText>Sync Now</ListItemText>
+            </MenuItem>,
+            <MenuItem key="disconnect" onClick={handleDisconnect}>
+              <ListItemIcon><DisconnectIcon fontSize="small" color="warning" /></ListItemIcon>
+              <ListItemText sx={{ color: 'warning.main' }}>Pause Syncing</ListItemText>
+            </MenuItem>
+          ]
+        ) : (
+          [
+            <MenuItem key="reconnect" onClick={handleReconnect} disabled={reconnecting}>
+              <ListItemIcon><ReconnectIcon fontSize="small" color="primary" /></ListItemIcon>
+              <ListItemText>Reconnect</ListItemText>
+              {reconnecting && <CircularProgress size={16} sx={{ ml: 1 }} />}
+            </MenuItem>,
+            <MenuItem key="delete" onClick={handleOpenDeleteDialog}>
+              <ListItemIcon><DeleteIcon fontSize="small" color="error" /></ListItemIcon>
+              <ListItemText sx={{ color: 'error.main' }}>Delete</ListItemText>
+            </MenuItem>
+          ]
+        )}
+      </Menu>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={handleCloseDeleteDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>Delete Connection</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            This will permanently remove the connection to <strong>{institutionName}</strong>.
+            What would you like to do with the linked accounts?
+          </DialogContentText>
+          <RadioGroup
+            value={deleteAccountsOption}
+            onChange={(e) => setDeleteAccountsOption(e.target.value as 'keep' | 'delete')}
+          >
+            <FormControlLabel
+              value="keep"
+              control={<Radio />}
+              label={
+                <Box>
+                  <Typography fontWeight="medium">Keep accounts as manual entries</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    The accounts will be converted to manual accounts. Balances will no longer sync automatically.
+                  </Typography>
+                </Box>
+              }
+            />
+            <FormControlLabel
+              value="delete"
+              control={<Radio />}
+              label={
+                <Box>
+                  <Typography fontWeight="medium" color="error.main">Delete accounts completely</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    All linked accounts and their data will be permanently deleted.
+                  </Typography>
+                </Box>
+              }
+            />
+          </RadioGroup>
+          {deleteAccountsOption === 'keep' && (
+            <Alert severity="warning" sx={{ mt: 2 }}>
+              <strong>Note:</strong> If you link this account again in the future, the accounts may be duplicated.
+              You would need to manually delete the old unlinked accounts.
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDeleteDialog} disabled={deleting}>Cancel</Button>
+          <Button
+            onClick={handleConfirmDelete}
+            color="error"
+            variant="contained"
+            disabled={deleting}
+          >
+            {deleting ? <CircularProgress size={20} /> : 'Delete Connection'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+};
+
 // Credit Cards List Component (Wave 12.5)
 interface CreditCardsListProps {
   connections: UnifiedConnectionInfo[];
@@ -65,11 +300,11 @@ interface CreditCardsListProps {
   onRefresh: () => void;
 }
 
-const CreditCardsList: React.FC<CreditCardsListProps> = ({ connections }) => {
+const CreditCardsList: React.FC<CreditCardsListProps> = ({ connections, userId, onRefresh }) => {
   return (
     <Stack spacing={2}>
       {connections.map((conn) => (
-        <Paper key={conn.connectionId} variant="outlined" sx={{ p: 2 }}>
+        <Paper key={conn.connectionId} variant="outlined" sx={{ p: 2, position: 'relative' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <CreditCardIcon color="warning" />
             <Box sx={{ flex: 1 }}>
@@ -85,6 +320,14 @@ const CreditCardsList: React.FC<CreditCardsListProps> = ({ connections }) => {
               size="small" 
               color={conn.status === 'Connected' ? 'success' : 'default'}
             />
+            <ConnectionActionMenu
+              connectionId={conn.connectionId}
+              institutionName={conn.institutionName}
+              userId={userId}
+              status={conn.status}
+              errorMessage={conn.errorMessage}
+              onRefresh={onRefresh}
+            />
           </Box>
         </Paper>
       ))}
@@ -99,11 +342,11 @@ interface MortgagesListProps {
   onRefresh: () => void;
 }
 
-const MortgagesList: React.FC<MortgagesListProps> = ({ connections }) => {
+const MortgagesList: React.FC<MortgagesListProps> = ({ connections, userId, onRefresh }) => {
   return (
     <Stack spacing={2}>
       {connections.map((conn) => (
-        <Paper key={conn.connectionId} variant="outlined" sx={{ p: 2 }}>
+        <Paper key={conn.connectionId} variant="outlined" sx={{ p: 2, position: 'relative' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <HomeIcon color="info" />
             <Box sx={{ flex: 1 }}>
@@ -119,6 +362,14 @@ const MortgagesList: React.FC<MortgagesListProps> = ({ connections }) => {
               size="small" 
               color={conn.status === 'Connected' ? 'success' : 'default'}
             />
+            <ConnectionActionMenu
+              connectionId={conn.connectionId}
+              institutionName={conn.institutionName}
+              userId={userId}
+              status={conn.status}
+              errorMessage={conn.errorMessage}
+              onRefresh={onRefresh}
+            />
           </Box>
         </Paper>
       ))}
@@ -126,6 +377,48 @@ const MortgagesList: React.FC<MortgagesListProps> = ({ connections }) => {
   );
 };
 
+
+// Student Loans List Component (Wave 12.5)
+interface StudentLoansListProps {
+  connections: UnifiedConnectionInfo[];
+  userId: number;
+  onRefresh: () => void;
+}
+
+const StudentLoansList: React.FC<StudentLoansListProps> = ({ connections, userId, onRefresh }) => {
+  return (
+    <Stack spacing={2}>
+      {connections.map((conn) => (
+        <Paper key={conn.connectionId} variant="outlined" sx={{ p: 2, position: 'relative' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <StudentLoanIcon color="secondary" />
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="subtitle1" fontWeight="medium">
+                {conn.institutionName}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {conn.studentLoanCount} student loan{conn.studentLoanCount !== 1 ? 's' : ''} linked
+              </Typography>
+            </Box>
+            <Chip 
+              label={conn.status} 
+              size="small" 
+              color={conn.status === 'Connected' ? 'success' : 'default'}
+            />
+            <ConnectionActionMenu
+              connectionId={conn.connectionId}
+              institutionName={conn.institutionName}
+              userId={userId}
+              status={conn.status}
+              errorMessage={conn.errorMessage}
+              onRefresh={onRefresh}
+            />
+          </Box>
+        </Paper>
+      ))}
+    </Stack>
+  );
+};
 
 export const ConnectionsSettingsView: React.FC = () => {
   const devUserId = useDevUserId();
@@ -160,6 +453,7 @@ export const ConnectionsSettingsView: React.FC = () => {
   // Calculate unified stats from the unified endpoint (which now returns actual counts)
   const totalCreditCards = unifiedConnections.reduce((sum, c) => sum + (c.creditCardCount || 0), 0);
   const totalMortgages = unifiedConnections.reduce((sum, c) => sum + (c.mortgageCount || 0), 0);
+  const totalStudentLoans = unifiedConnections.reduce((sum, c) => sum + (c.studentLoanCount || 0), 0);
 
   const loadConnections = useCallback(async () => {
     try {
@@ -314,6 +608,14 @@ export const ConnectionsSettingsView: React.FC = () => {
               variant="outlined"
             />
           )}
+          {totalStudentLoans > 0 && (
+            <Chip 
+              icon={<StudentLoanIcon />} 
+              label={`${totalStudentLoans} Student Loan${totalStudentLoans !== 1 ? 's' : ''}`}
+              color="secondary"
+              variant="outlined"
+            />
+          )}
         </Stack>
       )}
 
@@ -353,6 +655,11 @@ export const ConnectionsSettingsView: React.FC = () => {
                 icon={<HomeIcon />} 
                 iconPosition="start" 
                 label={`Mortgages (${totalMortgages})`}
+              />
+              <Tab 
+                icon={<StudentLoanIcon />} 
+                iconPosition="start" 
+                label={`Student Loans (${totalStudentLoans})`}
               />
             </Tabs>
 
@@ -431,6 +738,24 @@ export const ConnectionsSettingsView: React.FC = () => {
                 )}
               </Box>
             </TabPanel>
+
+            <TabPanel value={tabValue} index={4}>
+              <Box sx={{ px: 3, pb: 3 }}>
+                {totalStudentLoans > 0 ? (
+                  <StudentLoansList 
+                    connections={unifiedConnections.filter(c => c.studentLoanCount > 0)}
+                    userId={userId}
+                    onRefresh={loadConnections}
+                  />
+                ) : (
+                  <Box textAlign="center" py={4}>
+                    <StudentLoanIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+                    <Typography color="text.secondary">No student loans connected</Typography>
+                    <Typography variant="body2" color="text.secondary">Use the "Link Account" button above to connect student loans.</Typography>
+                  </Box>
+                )}
+              </Box>
+            </TabPanel>
           </>
         ) : (
           // Empty State
@@ -440,7 +765,7 @@ export const ConnectionsSettingsView: React.FC = () => {
               No Accounts Connected
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 400, mx: 'auto' }}>
-              Link your bank accounts, investments, credit cards, and mortgages to automatically 
+              Link your bank accounts, investments, credit cards, mortgages, and student loans to automatically 
               sync balances, track holdings, and monitor your complete financial picture.
             </Typography>
             <PlaidUnifiedLinkButton

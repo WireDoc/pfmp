@@ -128,7 +128,8 @@ const ConnectionCard: React.FC<ConnectionCardProps> = ({
   const [deleting, setDeleting] = useState(false);
   const [reconnectLinkToken, setReconnectLinkToken] = useState<string | null>(null);
 
-  const isDisconnected = connection.status === 'Disconnected' || connection.status === 'Expired';
+  const isDisconnected = connection.status === 'Disconnected' || connection.status === 'Expired'
+    || (connection.status === 'SyncFailed' && connection.errorMessage?.toLowerCase().includes('login'));
 
   // Plaid Link for reconnection
   const { open: openReconnectLink, ready: reconnectReady } = usePlaidLink({

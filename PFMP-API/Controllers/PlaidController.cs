@@ -1178,6 +1178,7 @@ public class PlaidController : ControllerBase
                 CreditCardCount = c.CreditCardCount,
                 MortgageCount = c.MortgageCount,
                 StudentLoanCount = c.StudentLoanCount,
+                ErrorMessage = c.ErrorMessage,
             }).ToList());
         }
         catch (Exception ex)
@@ -1487,6 +1488,7 @@ public class ConnectionInfoDto
     public int CreditCardCount { get; set; }
     public int MortgageCount { get; set; }
     public int StudentLoanCount { get; set; }
+    public string? ErrorMessage { get; set; }
 }
 
 public class UpdateProductsRequest

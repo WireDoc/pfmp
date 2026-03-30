@@ -96,6 +96,7 @@ namespace PFMP_API.Services.Plaid
         public int CreditCardCount { get; set; }
         public int MortgageCount { get; set; }
         public int StudentLoanCount { get; set; }
+        public string? ErrorMessage { get; set; }
     }
 
     /// <summary>
@@ -452,6 +453,7 @@ namespace PFMP_API.Services.Plaid
                 CreditCardCount = c.PlaidItemId != null && creditCardCounts.TryGetValue(c.PlaidItemId, out var cc) ? cc : 0,
                 MortgageCount = c.PlaidItemId != null && mortgageCounts.TryGetValue(c.PlaidItemId, out var mc) ? mc : 0,
                 StudentLoanCount = c.PlaidItemId != null && studentLoanCounts.TryGetValue(c.PlaidItemId, out var sc) ? sc : 0,
+                ErrorMessage = c.ErrorMessage,
             }).ToList();
         }
 

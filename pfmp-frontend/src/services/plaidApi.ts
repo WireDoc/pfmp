@@ -518,6 +518,7 @@ export interface UnifiedConnectionInfo {
   creditCardCount: number;
   mortgageCount: number;
   studentLoanCount: number;
+  errorMessage?: string;
 }
 
 export interface UnifiedSyncResult {

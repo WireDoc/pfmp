@@ -271,7 +271,20 @@ namespace PFMP_API.Services.Plaid
                 _logger.LogError("Plaid accounts fetch failed: {ErrorCode} - {ErrorMessage}",
                     response.Error.ErrorCode, response.Error.ErrorMessage);
                 
-                connection.Status = SyncStatus.SyncFailed;
+                // Detect login-required errors → set Expired so frontend shows Reconnect button
+                var errorCode = response.Error.ErrorCode?.ToString() ?? "";
+                if (errorCode.Contains("ITEM_LOGIN_REQUIRED", StringComparison.OrdinalIgnoreCase)
+                    || errorCode.Contains("INVALID_CREDENTIALS", StringComparison.OrdinalIgnoreCase)
+                    || errorCode.Contains("INVALID_MFA", StringComparison.OrdinalIgnoreCase))
+                {
+                    connection.Status = SyncStatus.Expired;
+                    _logger.LogWarning("Connection {ConnectionId} requires re-authentication (ErrorCode: {ErrorCode})",
+                        connection.ConnectionId, errorCode);
+                }
+                else
+                {
+                    connection.Status = SyncStatus.SyncFailed;
+                }
                 connection.ErrorMessage = response.Error.ErrorMessage;
                 connection.SyncFailureCount++;
                 await _db.SaveChangesAsync();
