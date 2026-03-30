@@ -217,6 +217,8 @@ Each Plaid sandbox user is mapped to a local dev user. Switch users via the dev 
 - ✅ Address Details section shows parsed address (Street: 2992 Cameron Road, City: Malakoff, State: NY)
 - ✅ Value History table shows records
 
+> **⚠️ Gap (2026-03-30)**: Value History table is empty. The `PropertyValueHistory` table has zero rows because: (1) Plaid mortgage sync (`UpsertPropertyFromMortgageAsync`) doesn't write history entries — it only creates/updates `PropertyProfile`, and (2) no manual property create/update has ever been performed via the API. The history feature itself works (the controller records entries on `POST`/`PUT /api/properties`), but there's simply no data yet. This will resolve naturally once Wave 15 adds dashboard property editing.
+
 ### Test 4.3: Property Panel Navigation
 **User**: User 10 (`user_good`)
 **Location**: Dashboard → Properties Panel
@@ -242,7 +244,7 @@ Each Plaid sandbox user is mapped to a local dev user. Switch users via the dev 
 - ✅ Still shows estimated value and other details
 - ✅ No errors
 
-> **⚠️ Gap**: No user currently has a manual property without a mortgage. User 20 has no properties. Need to manually create one to test this scenario.
+> **⚠️ Blocked until Wave 15**: No user has a manual property, and there is no dashboard UI to add one. Manual property creation is planned for Wave 15 Phase 1 (Dashboard CRUD). Skip this test until then. See `docs/waves/wave-15-property-management.md`.
 
 ### Test 4.5: Plaid-Synced Property Indicator
 **User**: User 10 (`user_good`) — property Source=5 (PlaidMortgage)
