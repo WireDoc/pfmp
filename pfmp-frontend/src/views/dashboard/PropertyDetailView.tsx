@@ -133,9 +133,10 @@ export function PropertyDetailView() {
         setError(null);
         const data = await fetchProperty(propertyId);
         setProperty(data);
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Error fetching property:', err);
-        setError('Failed to load property details');
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        setError(status === 404 ? 'Property not found' : 'Failed to load property details');
       } finally {
         setLoading(false);
       }
@@ -155,7 +156,10 @@ export function PropertyDetailView() {
   if (error || !property) {
     return (
       <Box p={3}>
-        <Alert severity="error">{error || 'Property not found'}</Alert>
+        <Alert severity="error" sx={{ mb: 2 }}>{error || 'Property not found'}</Alert>
+        <Link component="button" variant="body2" onClick={() => navigate('/dashboard')}>
+          &larr; Back to Dashboard
+        </Link>
       </Box>
     );
   }
