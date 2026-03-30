@@ -1,6 +1,6 @@
 # PFMP Product Roadmap (2025–2026)
 
-_Last updated: 2025-12-18_
+_Last updated: 2026-03-30_
 
 ## Current Status Summary
 
@@ -17,9 +17,10 @@ _Last updated: 2025-12-18_
 | Wave 12: Brokerage Linking | 🔄 In Progress | Q1 2026 |
 | Wave 13: Crypto Exchanges | 📋 Planned | Q1-Q2 2026 |
 | Wave 14: Spending Analysis | 📋 Planned | Q2 2026 |
-| Wave 15: AI Enhancement | 📋 Planned | Q2 2026 |
+| Wave 15: Property Management & Valuation | 📋 Planned | Q2 2026 |
+| Wave 16: AI Enhancement | 📋 Planned | Q2 2026 |
 
-**Current Version**: v0.10.2-alpha (December 18, 2025)
+**Current Version**: v0.11.1-alpha (March 30, 2026)
 
 ---
 
@@ -188,8 +189,29 @@ Building on Wave 11's transaction sync foundation:
 - Anomaly detection for unusual spending
 - Cash flow forecasting
 
-### Wave 15: AI Enhancement & Vetting 📋
-**Target**: Q2 2026 (Before Chatbot)
+### Wave 15: Property Management & Automated Valuation 📋
+**Target**: Q2 2026
+
+The dashboard currently has no ability to manually add, edit, or delete properties — only Plaid mortgage auto-creation and onboarding entry exist. Additionally, property values are static with no automatic refresh.
+
+This wave delivers:
+- **Dashboard property CRUD** — Add, edit, delete, and update property values from the dashboard
+- **Automatic property valuation** — Monthly Hangfire job using a third-party AVM provider (Estated, HouseCanary, or similar) to refresh home values, similar to USAA
+- **Address validation** — Autocomplete and verification for accurate valuation lookups
+- **Manual value refresh** — One-click value update from the property detail page
+
+**Phases:**
+| Phase | Focus | Status |
+|-------|-------|--------|
+| 1 | Dashboard CRUD UI (add/edit/delete/update value) | 📋 Planned |
+| 2 | Automatic valuation service + Hangfire job | 📋 Planned |
+| 3 | Address autocomplete & validation | 📋 Planned |
+| 4 | Property advice integration (refinance/HELOC) | 📋 Future |
+
+**See:** `docs/waves/wave-15-property-management.md`
+
+### Wave 16: AI Enhancement & Vetting 📋
+**Target**: Q2 2026 (After Wave 15 — AI needs property data for refinance/HELOC recommendations)
 **Priority**: Required before Chatbot
 
 The Wave 7 AI advisory system focused on cash optimization. Before building the chatbot, the AI context needs expansion and vetting.
@@ -294,9 +316,9 @@ GET  /api/market/tsp/history?fund=L2050&days=30        # Fund price history
 ### AI Chatbot with Memory 📋
 **Priority**: High (Core differentiator)
 **Target**: Q2 2026
-**Prerequisite**: Wave 13 (AI Enhancement & Vetting) must be complete
+**Prerequisite**: Wave 16 (AI Enhancement & Vetting) must be complete
 
-The dual AI pipeline (Wave 7) laid groundwork. Wave 13 expands context coverage. Chatbot extends this:
+The dual AI pipeline (Wave 7) laid groundwork. Wave 16 expands context coverage. Chatbot extends this:
 
 **Database Schema**
 - `AIConversation` - Conversation sessions with user context
@@ -440,7 +462,7 @@ The wave system provides tactical implementation milestones. These align with hi
 | **Phase 1** | Onboarding MVP | Waves 0-5 | ✅ Complete |
 | **Phase 1.5** | Navigation Polish | Wave 6 + Accounts Page | 📋 Needed |
 | **Phase 2** | Data Aggregation | Waves 8-9, 11 | 🔄 In Progress |
-| **Phase 3** | AI Advisory | Wave 7 + Wave 13 + Chatbot | ✅ Core done, Vetting & Chatbot planned |
+| **Phase 3** | AI Advisory | Wave 7 + Wave 16 + Chatbot | ✅ Core done, Vetting & Chatbot planned |
 | **Phase 4** | Daily Experience | Wave 10 + Notifications | 📋 Wave 10 next |
 | **Phase 5** | Production Hardening | Auth, Security, Compliance | 📋 H2 2026 |
 
@@ -474,7 +496,8 @@ The wave system provides tactical implementation milestones. These align with hi
 | Q1 2026 | Wave 10 Background Jobs |
 | January 2026 | Wave 11 Plaid Integration |
 | Q1 2026 | Wave 12 Advanced Analytics |
-| Q1-Q2 2026 | Wave 13 AI Enhancement & Vetting |
+| Q2 2026 | Wave 15 Property Management & Valuation |
+| Q2 2026 | Wave 16 AI Enhancement & Vetting |
 
 ---
 

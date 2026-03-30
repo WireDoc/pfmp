@@ -82,10 +82,12 @@ This index lists every active document under `docs/` following the subject-first
 ### Active Wave Plans
 - `docs/waves/wave-12-plan.md` – **Wave 12: Brokerage & Investment Linking** (Q1 2026)
 - `docs/waves/wave-12-5-unified-plaid.md` – **Wave 12.5: Unified Plaid Account Linking** (Q1 2026)
+- `docs/waves/wave-15-property-management.md` – **Wave 15: Property Management & Automated Valuation** (Q2 2026)
 - `docs/waves/wave-11-account-linking-strategy.md` – Wave 11-13: Full account linking strategy reference
+- `docs/waves/WAVE-5-REAL-ESTATE-ENRICHMENT.md` – Original real estate enrichment plan (superseded by Wave 15)
 - Wave 13: Crypto Integration – Documented in `docs/history/roadmap.md`
 - Wave 14: Spending Analysis – Documented in `docs/history/roadmap.md`
-- Wave 15: AI Enhancement & Vetting – Documented in `docs/history/roadmap.md`
+- Wave 16: AI Enhancement & Vetting – Documented in `docs/history/roadmap.md`
 
 ### Wave Completion Summaries
 - `docs/waves/wave-11-complete.md` – **Wave 11 Complete** (Dec 2025) - Plaid Bank Account Linking

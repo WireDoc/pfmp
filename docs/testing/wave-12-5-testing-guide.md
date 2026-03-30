@@ -190,7 +190,7 @@ Each Plaid sandbox user is mapped to a local dev user. Switch users via the dev 
 - ✅ Mortgage balance shows ($56,302)
 - ✅ Equity calculated (value – mortgage)
 
-> **⚠️ Gap**: Users 17 (`custom_pfmp_mortgage`) and 19 (`custom_pfmp_unified`) both have mortgages but no property was auto-created. Needs investigation — may need to re-trigger Plaid sync or fix property auto-creation for custom sandbox mortgages.
+> **⚠️ Gap (Investigated 2026-03-30)**: Users 17 (`custom_pfmp_mortgage`) and 19 (`custom_pfmp_unified`) both have mortgages but no property was auto-created. **Root cause**: Plaid custom sandbox mortgages do not include `PropertyAddress` in the API response. The `UpsertPropertyFromMortgageAsync` method is gated on `mortgage.PropertyAddress != null`, so these mortgages correctly sync but skip property creation. This is a Plaid sandbox data limitation, not a code bug. Only the `user_good` sandbox returns full mortgage address data. No relinking needed — the property auto-creation logic is working correctly for mortgages that include address data.
 
 ### Test 4.2: Property Detail View
 **User**: User 10 (`user_good`) — property ID `b81911dd-45c1-4d71-a64a-763a25e12cb0`
