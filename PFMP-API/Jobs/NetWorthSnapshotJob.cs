@@ -142,10 +142,9 @@ public class NetWorthSnapshotJob
             .ToListAsync(cancellationToken);
 
         // Calculate totals matching Dashboard logic exactly
-        // Dashboard uses CurrentBalance directly for investments, not holdings calculation
         decimal cashTotal = cashAccounts.Sum(a => a.Balance);
         
-        // Dashboard filters for specific investment account types and uses CurrentBalance
+        // Dashboard filters for specific investment account types
         var investmentAccounts = accounts.Where(a => 
             a.AccountType == AccountType.Brokerage || 
             a.AccountType == AccountType.RetirementAccountIRA || 
@@ -153,7 +152,9 @@ public class NetWorthSnapshotJob
             a.AccountType == AccountType.RetirementAccountRoth ||
             a.AccountType == AccountType.HSA).ToList();
         
-        decimal investmentsTotal = investmentAccounts.Sum(a => a.CurrentBalance);
+        // Matches DashboardController: CurrentBalance (cash in account) + Holdings value (Quantity × CurrentPrice)
+        decimal investmentsTotal = investmentAccounts.Sum(a =>
+            a.CurrentBalance + (a.Holdings?.Sum(h => h.Quantity * h.CurrentPrice) ?? 0));
 
         // Calculate TSP with cached prices (matching Dashboard)
         decimal tspTotal = 0;
