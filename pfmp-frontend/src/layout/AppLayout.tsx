@@ -3,11 +3,15 @@ import { useAuth } from '../contexts/auth/useAuth';
 import { HeaderBar } from './HeaderBar';
 import { DevFlagsPanel } from '../components/dev/DevFlagsPanel';
 import { DevUserSwitcher } from '../dev/DevUserSwitcher';
+import { useDevUserInit } from '../dev/useDevUserInit';
 
 export function AppLayout() {
   const { isDev } = useAuth();
   const location = useLocation();
   const isDashboardRoute = location.pathname.startsWith('/dashboard');
+
+  // Ensure dev user store is initialized before any route guards evaluate.
+  useDevUserInit();
   
   return (
     <div style={{ display: 'flex', minHeight: '100vh', flexDirection: 'column' }}>

@@ -1,5 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import { useOnboarding } from '../../onboarding/useOnboarding';
+import { useAuth } from '../../contexts/auth/useAuth';
+import { useDevUserReady } from '../../dev/devUserState';
 import { PageSpinner } from '../common/PageSpinner';
 
 /**
@@ -7,7 +9,13 @@ import { PageSpinner } from '../common/PageSpinner';
  * Redirects to /dashboard if complete, /onboarding if incomplete.
  */
 export function RootGuard() {
+  const { isDev } = useAuth();
+  const devUserReady = useDevUserReady();
   const { hydrated, statuses } = useOnboarding();
+
+  if (isDev && !devUserReady) {
+    return <PageSpinner />;
+  }
 
   if (!hydrated) {
     return <PageSpinner />;

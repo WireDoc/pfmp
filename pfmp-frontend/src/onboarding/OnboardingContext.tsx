@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { sortedSteps, type OnboardingStepId } from './steps';
-import { useDevUserId } from '../dev/devUserState';
+import { useDevUserId, useDevUserReady } from '../dev/devUserState';
 import { fetchFinancialProfileSectionStatuses, type FinancialProfileSectionStatusValue } from '../services/financialProfileApi';
 import { OnboardingContext } from './OnboardingContext.shared';
 import type { OnboardingContextValue } from './OnboardingContext.shared';
@@ -113,6 +113,7 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
   });
 
   const devUserId = useDevUserId();
+  const devUserReady = useDevUserReady();
   const resolvedUserId = userId ?? devUserId ?? 1;
   const hydrationSeqRef = useRef(0);
   const isHydratingRef = useRef(false);
@@ -165,8 +166,14 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({
     if (skipAutoHydrate) {
       return;
     }
+    // In dev mode, delay hydration until the dev user store is initialized
+    // (from localStorage or DevUserSwitcher). This prevents hydrating against the
+    // fallback userId=1 and then immediately re-hydrating once the real user is known.
+    if (!userId && !devUserReady) {
+      return;
+    }
     void hydrate();
-  }, [hydrate, skipAutoHydrate, resolvedUserId]);
+  }, [hydrate, skipAutoHydrate, resolvedUserId, userId, devUserReady]);
 
   const goNext = useCallback(() => dispatch({ type: 'NEXT' }), []);
   const goPrev = useCallback(() => dispatch({ type: 'PREV' }), []);
