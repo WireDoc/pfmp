@@ -139,11 +139,25 @@ export const ConnectionsSettingsView: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [tabValue, setTabValue] = useState(0);
 
-  // Separate connections by type
-  const bankConnections = connections.filter(c => c.source !== 'PlaidInvestments');
-  const investmentConnections = connections.filter(c => c.source === 'PlaidInvestments');
+  // Enrich legacy connections with unified product data for proper tab categorization
+  const enrichedConnections = connections.map(c => {
+    const unified = unifiedConnections.find(u => u.connectionId === c.connectionId);
+    return { 
+      ...c, 
+      products: unified?.products ?? c.products, 
+      isUnified: unified?.isUnified ?? c.isUnified ?? false,
+    };
+  });
+
+  // Separate connections by product type (not source enum)
+  const bankConnections = enrichedConnections.filter(c =>
+    c.isUnified ? (c.products?.includes('transactions') ?? false) : c.source !== 'PlaidInvestments'
+  );
+  const investmentConnections = enrichedConnections.filter(c =>
+    c.isUnified ? (c.products?.includes('investments') ?? false) : c.source === 'PlaidInvestments'
+  );
   
-  // Calculate unified stats
+  // Calculate unified stats from the unified endpoint (which now returns actual counts)
   const totalCreditCards = unifiedConnections.reduce((sum, c) => sum + (c.creditCardCount || 0), 0);
   const totalMortgages = unifiedConnections.reduce((sum, c) => sum + (c.mortgageCount || 0), 0);
 
@@ -350,6 +364,7 @@ export const ConnectionsSettingsView: React.FC = () => {
                     userId={userId}
                     onRefresh={loadConnections}
                     onDisconnect={handleDisconnect}
+                    productType="transactions"
                   />
                 ) : (
                   <Box textAlign="center" py={4}>
@@ -369,6 +384,7 @@ export const ConnectionsSettingsView: React.FC = () => {
                     userId={userId}
                     onRefresh={loadConnections}
                     onDisconnect={handleDisconnect}
+                    productType="investments"
                   />
                 ) : (
                   <Box textAlign="center" py={4}>

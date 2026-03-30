@@ -66,6 +66,7 @@ interface ConnectedBanksListProps {
   userId: number;
   onRefresh: () => void;
   onDisconnect?: (connectionId: string) => void;
+  productType?: 'transactions' | 'investments' | 'liabilities';
 }
 
 export const ConnectedBanksList: React.FC<ConnectedBanksListProps> = ({
@@ -73,6 +74,7 @@ export const ConnectedBanksList: React.FC<ConnectedBanksListProps> = ({
   userId,
   onRefresh,
   onDisconnect,
+  productType,
 }) => {
   if (connections.length === 0) {
     return (
@@ -91,6 +93,7 @@ export const ConnectedBanksList: React.FC<ConnectedBanksListProps> = ({
           userId={userId}
           onRefresh={onRefresh}
           onDisconnect={onDisconnect}
+          productType={productType}
         />
       ))}
     </Box>
@@ -103,6 +106,7 @@ interface ConnectionCardProps {
   userId: number;
   onRefresh: () => void;
   onDisconnect?: (connectionId: string) => void;
+  productType?: 'transactions' | 'investments' | 'liabilities';
 }
 
 const ConnectionCard: React.FC<ConnectionCardProps> = ({
@@ -110,6 +114,7 @@ const ConnectionCard: React.FC<ConnectionCardProps> = ({
   userId,
   onRefresh,
   onDisconnect,
+  productType,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const [accounts, setAccounts] = useState<PlaidAccount[]>([]);
@@ -156,7 +161,7 @@ const ConnectionCard: React.FC<ConnectionCardProps> = ({
     if (!expanded && accounts.length === 0) {
       setLoading(true);
       try {
-        const fetchedAccounts = await getConnectionAccounts(connection.connectionId, userId);
+        const fetchedAccounts = await getConnectionAccounts(connection.connectionId, userId, productType);
         setAccounts(fetchedAccounts);
       } catch (err) {
         setError('Failed to load accounts');
@@ -174,7 +179,7 @@ const ConnectionCard: React.FC<ConnectionCardProps> = ({
     try {
       await syncConnection(connection.connectionId, userId);
       // Refresh accounts after sync
-      const fetchedAccounts = await getConnectionAccounts(connection.connectionId, userId);
+      const fetchedAccounts = await getConnectionAccounts(connection.connectionId, userId, productType);
       setAccounts(fetchedAccounts);
       onRefresh();
     } catch (err) {

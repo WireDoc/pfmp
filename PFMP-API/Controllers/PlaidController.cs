@@ -140,7 +140,10 @@ public class PlaidController : ControllerBase
     [ProducesResponseType(typeof(List<AccountDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<List<AccountDto>>> GetConnectionAccounts(Guid connectionId, [FromQuery] int userId)
+    public async Task<ActionResult<List<AccountDto>>> GetConnectionAccounts(
+        Guid connectionId, 
+        [FromQuery] int userId,
+        [FromQuery] string? productType = null)
     {
         if (userId <= 0)
         {
@@ -159,10 +162,16 @@ public class PlaidController : ControllerBase
 
             var result = new List<AccountDto>();
 
-            // Check if this is an investment connection (PlaidInvestments source)
-            if (connection.Source == AccountSource.PlaidInvestments)
+            // For unified connections, use productType to determine which accounts to return.
+            // For legacy connections, fall back to Source enum.
+            bool showInvestments = productType == "investments" 
+                || (productType == null && connection.Source == AccountSource.PlaidInvestments);
+            bool showBanks = productType == "transactions" 
+                || (productType == null && connection.Source != AccountSource.PlaidInvestments);
+            bool showLiabilities = productType == "liabilities";
+
+            if (showInvestments)
             {
-                // Query investment accounts from the Accounts table
                 var investmentAccounts = await _db.Accounts
                     .Where(a => a.ConnectionId == connectionId && a.UserId == userId)
                     .OrderBy(a => a.AccountName)
@@ -170,7 +179,7 @@ public class PlaidController : ControllerBase
 
                 result.AddRange(investmentAccounts.Select(a => new AccountDto
                 {
-                    CashAccountId = Guid.Empty, // Not a CashAccount
+                    CashAccountId = Guid.Empty,
                     AccountId = a.AccountId,
                     Name = a.AccountName,
                     Balance = a.CurrentBalance,
@@ -179,9 +188,9 @@ public class PlaidController : ControllerBase
                     LastSyncedAt = a.PlaidLastSyncedAt
                 }));
             }
-            else
+
+            if (showBanks)
             {
-                // Query bank accounts from the CashAccounts table
                 var accounts = await _plaidService.GetConnectionAccountsAsync(connectionId);
                 result.AddRange(accounts.Select(a => new AccountDto
                 {
@@ -191,6 +200,25 @@ public class PlaidController : ControllerBase
                     PlaidAccountId = a.PlaidAccountId,
                     SyncStatus = a.SyncStatus.ToString(),
                     LastSyncedAt = a.LastSyncedAt
+                }));
+            }
+
+            if (showLiabilities)
+            {
+                var liabilities = await _db.LiabilityAccounts
+                    .Where(l => l.PlaidItemId == connection.PlaidItemId && l.UserId == userId)
+                    .OrderBy(l => l.Lender)
+                    .ToListAsync();
+
+                result.AddRange(liabilities.Select(l => new AccountDto
+                {
+                    CashAccountId = Guid.Empty,
+                    AccountId = l.LiabilityAccountId,
+                    Name = l.Lender ?? l.LiabilityType,
+                    Balance = l.CurrentBalance,
+                    PlaidAccountId = l.PlaidAccountId,
+                    SyncStatus = l.SyncStatus ?? "synced",
+                    LastSyncedAt = l.LastSyncedAt
                 }));
             }
 
@@ -1144,7 +1172,12 @@ public class PlaidController : ControllerBase
                 IsUnified = c.IsUnified,
                 Status = c.Status.ToString(),
                 LastSyncedAt = c.LastSyncedAt,
-                ConnectedAt = c.ConnectedAt
+                ConnectedAt = c.ConnectedAt,
+                BankAccountCount = c.BankAccountCount,
+                InvestmentAccountCount = c.InvestmentAccountCount,
+                CreditCardCount = c.CreditCardCount,
+                MortgageCount = c.MortgageCount,
+                StudentLoanCount = c.StudentLoanCount,
             }).ToList());
         }
         catch (Exception ex)
@@ -1449,6 +1482,11 @@ public class ConnectionInfoDto
     public string Status { get; set; } = string.Empty;
     public DateTime? LastSyncedAt { get; set; }
     public DateTime ConnectedAt { get; set; }
+    public int BankAccountCount { get; set; }
+    public int InvestmentAccountCount { get; set; }
+    public int CreditCardCount { get; set; }
+    public int MortgageCount { get; set; }
+    public int StudentLoanCount { get; set; }
 }
 
 public class UpdateProductsRequest

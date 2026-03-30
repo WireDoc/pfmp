@@ -90,6 +90,12 @@ namespace PFMP_API.Services.Plaid
         public SyncStatus Status { get; set; }
         public DateTime? LastSyncedAt { get; set; }
         public DateTime ConnectedAt { get; set; }
+        public string? PlaidItemId { get; set; }
+        public int BankAccountCount { get; set; }
+        public int InvestmentAccountCount { get; set; }
+        public int CreditCardCount { get; set; }
+        public int MortgageCount { get; set; }
+        public int StudentLoanCount { get; set; }
     }
 
     /// <summary>
@@ -390,6 +396,45 @@ namespace PFMP_API.Services.Plaid
                 .OrderByDescending(c => c.ConnectedAt)
                 .ToListAsync();
 
+            // Batch-load account counts for all connections
+            var plaidItemIds = connections
+                .Where(c => c.PlaidItemId != null)
+                .Select(c => c.PlaidItemId!)
+                .Distinct()
+                .ToList();
+
+            var connectionIds = connections.Select(c => c.ConnectionId).ToList();
+
+            var bankCounts = await _dbContext.CashAccounts
+                .Where(ca => ca.UserId == userId && ca.PlaidItemId != null && plaidItemIds.Contains(ca.PlaidItemId!))
+                .GroupBy(ca => ca.PlaidItemId)
+                .Select(g => new { PlaidItemId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(g => g.PlaidItemId!, g => g.Count);
+
+            var investmentCounts = await _dbContext.Accounts
+                .Where(a => a.UserId == userId && a.ConnectionId != null && connectionIds.Contains(a.ConnectionId.Value))
+                .GroupBy(a => a.ConnectionId)
+                .Select(g => new { ConnectionId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(g => g.ConnectionId!.Value, g => g.Count);
+
+            var liabilityCounts = await _dbContext.LiabilityAccounts
+                .Where(l => l.UserId == userId && l.PlaidItemId != null && plaidItemIds.Contains(l.PlaidItemId!))
+                .GroupBy(l => new { l.PlaidItemId, l.LiabilityType })
+                .Select(g => new { g.Key.PlaidItemId, g.Key.LiabilityType, Count = g.Count() })
+                .ToListAsync();
+
+            var creditCardCounts = liabilityCounts
+                .Where(l => l.LiabilityType == "credit_card")
+                .ToDictionary(l => l.PlaidItemId!, l => l.Count);
+
+            var mortgageCounts = liabilityCounts
+                .Where(l => l.LiabilityType == "mortgage")
+                .ToDictionary(l => l.PlaidItemId!, l => l.Count);
+
+            var studentLoanCounts = liabilityCounts
+                .Where(l => l.LiabilityType == "student_loan")
+                .ToDictionary(l => l.PlaidItemId!, l => l.Count);
+
             return connections.Select(c => new ConnectionInfo
             {
                 ConnectionId = c.ConnectionId,
@@ -400,7 +445,13 @@ namespace PFMP_API.Services.Plaid
                 IsUnified = c.IsUnified,
                 Status = c.Status,
                 LastSyncedAt = c.LastSyncedAt,
-                ConnectedAt = c.ConnectedAt
+                ConnectedAt = c.ConnectedAt,
+                PlaidItemId = c.PlaidItemId,
+                BankAccountCount = c.PlaidItemId != null && bankCounts.TryGetValue(c.PlaidItemId, out var bc) ? bc : 0,
+                InvestmentAccountCount = investmentCounts.TryGetValue(c.ConnectionId, out var ic) ? ic : 0,
+                CreditCardCount = c.PlaidItemId != null && creditCardCounts.TryGetValue(c.PlaidItemId, out var cc) ? cc : 0,
+                MortgageCount = c.PlaidItemId != null && mortgageCounts.TryGetValue(c.PlaidItemId, out var mc) ? mc : 0,
+                StudentLoanCount = c.PlaidItemId != null && studentLoanCounts.TryGetValue(c.PlaidItemId, out var sc) ? sc : 0,
             }).ToList();
         }
 

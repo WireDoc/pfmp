@@ -26,8 +26,8 @@ export interface PlaidConnection {
   errorMessage?: string;
   connectedAt: string;
   lastSyncedAt?: string;
-  /** Source type: "Plaid" for bank accounts, "PlaidInvestments" for brokerage/retirement */
-  source?: 'Plaid' | 'PlaidInvestments';
+  /** Source type: "Plaid" for bank accounts, "PlaidInvestments" for brokerage/retirement, etc. */
+  source?: string;
   /** Products enabled for this connection (Wave 12.5) */
   products?: PlaidProduct[];
   /** Whether this connection was created via unified flow */
@@ -124,11 +124,16 @@ export async function getConnections(userId: number): Promise<PlaidConnection[]>
 
 /**
  * Get all accounts for a specific connection.
+ * @param productType - For unified connections, filter by product: 'transactions' (banks), 'investments', 'liabilities'
  */
-export async function getConnectionAccounts(connectionId: string, userId: number): Promise<PlaidAccount[]> {
+export async function getConnectionAccounts(
+  connectionId: string, 
+  userId: number,
+  productType?: 'transactions' | 'investments' | 'liabilities'
+): Promise<PlaidAccount[]> {
   const response = await axios.get<PlaidAccount[]>(
     `${API_BASE_URL}/plaid/connections/${connectionId}/accounts`,
-    { params: { userId } }
+    { params: { userId, productType } }
   );
   return response.data;
 }
