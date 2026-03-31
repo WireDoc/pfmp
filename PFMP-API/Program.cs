@@ -115,6 +115,11 @@ namespace PFMP_API
             // Property Task Service (Wave 12.5)
             builder.Services.AddScoped<IPropertyTaskService, PropertyTaskService>();
 
+            // Property Valuation & Address Services (Wave 15)
+            builder.Services.AddScoped<PFMP_API.Services.Properties.IAddressValidationService, PFMP_API.Services.Properties.UspsAddressValidationService>();
+            builder.Services.AddScoped<PFMP_API.Services.Properties.IPropertyValuationProvider, PFMP_API.Services.Properties.EstatedValuationProvider>();
+            builder.Services.AddScoped<PFMP_API.Services.Properties.IPropertyValuationService, PFMP_API.Services.Properties.PropertyValuationService>();
+
             // Background Jobs - Hangfire (Wave 10)
             // Skip Hangfire in Testing environment to allow WebApplicationFactory tests to work
             var isTestingEnvironment = builder.Environment.EnvironmentName == "Testing";
@@ -316,6 +321,13 @@ namespace PFMP_API
                     "daily-benchmark-refresh",
                     job => job.RefreshBenchmarkDataAsync(CancellationToken.None),
                     "30 22 * * *", // 10:30 PM daily
+                    new RecurringJobOptions { TimeZone = easternTimeZone });
+
+                // Monthly property valuation refresh — 1st of each month at 3 AM ET (Wave 15)
+                RecurringJob.AddOrUpdate<PFMP_API.Jobs.PropertyValuationRefreshJob>(
+                    "monthly-property-valuation",
+                    job => job.RefreshAllPropertyValuationsAsync(CancellationToken.None),
+                    "0 3 1 * *", // 3 AM ET on the 1st of every month
                     new RecurringJobOptions { TimeZone = easternTimeZone });
             }
 

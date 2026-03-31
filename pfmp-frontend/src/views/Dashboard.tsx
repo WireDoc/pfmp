@@ -789,7 +789,7 @@ export const Dashboard: React.FC = () => {
           </Paper>
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
-          {loading ? <Skeleton variant="rectangular" height={200} /> : <PropertiesPanel properties={displayData?.properties} loading={loading} />}
+          {loading ? <Skeleton variant="rectangular" height={200} /> : <PropertiesPanel properties={displayData?.properties} loading={loading} userId={devUserId ?? Number(import.meta.env.VITE_PFMP_DASHBOARD_USER_ID || '1')} onRefresh={refresh} />}
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
           {loading ? <Skeleton variant="rectangular" height={200} /> : <LiabilitiesPanel liabilities={displayData?.liabilities} loading={loading} />}

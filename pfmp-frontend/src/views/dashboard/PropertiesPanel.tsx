@@ -1,23 +1,44 @@
-import { Box, Card, CardContent, Typography, Stack } from '@mui/material';
+import { useState } from 'react';
+import { Box, Card, CardContent, Typography, Stack, IconButton, Tooltip } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
 import { useNavigate } from 'react-router-dom';
 import HomeIcon from '@mui/icons-material/Home';
 import type { PropertySnapshot } from '../../services/dashboard/types';
+import AddPropertyDialog from '../../components/properties/AddPropertyDialog';
 
 interface PropertiesPanelProps {
   properties?: PropertySnapshot[];
   loading?: boolean;
+  userId?: number;
+  onRefresh?: () => void;
 }
 
-export default function PropertiesPanel({ properties = [], loading = false }: PropertiesPanelProps) {
+export default function PropertiesPanel({ properties = [], loading = false, userId, onRefresh }: PropertiesPanelProps) {
   const navigate = useNavigate();
+  const [addOpen, setAddOpen] = useState(false);
+
+  const handleCreated = () => {
+    onRefresh?.();
+  };
+
+  const addButton = userId ? (
+    <Tooltip title="Add Property">
+      <IconButton size="small" onClick={() => setAddOpen(true)}>
+        <AddIcon />
+      </IconButton>
+    </Tooltip>
+  ) : null;
 
   if (loading) {
     return (
       <Card>
         <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Properties
-          </Typography>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6" gutterBottom>
+              Properties
+            </Typography>
+            {addButton}
+          </Box>
           <Typography color="text.secondary">Loading...</Typography>
         </CardContent>
       </Card>
@@ -28,11 +49,22 @@ export default function PropertiesPanel({ properties = [], loading = false }: Pr
     return (
       <Card>
         <CardContent>
-          <Typography variant="h6" gutterBottom>
-            Properties
-          </Typography>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6" gutterBottom>
+              Properties
+            </Typography>
+            {addButton}
+          </Box>
           <Typography color="text.secondary">No properties to display</Typography>
         </CardContent>
+        {userId && (
+          <AddPropertyDialog
+            open={addOpen}
+            onClose={() => setAddOpen(false)}
+            userId={userId}
+            onCreated={handleCreated}
+          />
+        )}
       </Card>
     );
   }
@@ -45,7 +77,10 @@ export default function PropertiesPanel({ properties = [], loading = false }: Pr
     <Card>
       <CardContent>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h6">Properties</Typography>
+          <Box display="flex" alignItems="center" gap={1}>
+            <Typography variant="h6">Properties</Typography>
+            {addButton}
+          </Box>
           <Typography variant="h6" color="primary">
             ${totalEquity.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
           </Typography>
@@ -127,6 +162,14 @@ export default function PropertiesPanel({ properties = [], loading = false }: Pr
           </Box>
         </Box>
       </CardContent>
+      {userId && (
+        <AddPropertyDialog
+          open={addOpen}
+          onClose={() => setAddOpen(false)}
+          userId={userId}
+          onCreated={handleCreated}
+        />
+      )}
     </Card>
   );
 }

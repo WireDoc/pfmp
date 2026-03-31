@@ -1,8 +1,18 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import PropertiesPanel from '../views/dashboard/PropertiesPanel';
 import type { PropertySnapshot } from '../services/dashboard/types';
+
+vi.mock('../api/properties', async () => {
+  const actual = await vi.importActual('../api/properties');
+  return {
+    ...actual,
+    createProperty: vi.fn(),
+    validateAddress: vi.fn(),
+  };
+});
 
 function renderWithRouter(ui: React.ReactElement) {
   return render(<MemoryRouter>{ui}</MemoryRouter>);
@@ -84,5 +94,25 @@ describe('PropertiesPanel', () => {
     // Full value as equity (appears in multiple places)
     expect(screen.getAllByText(/400,000/).length).toBeGreaterThan(0);
     expect(screen.getByText(/100.0% equity/i)).toBeInTheDocument();
+  });
+
+  it('shows Add button when userId is provided', () => {
+    renderWithRouter(<PropertiesPanel properties={[]} loading={false} userId={1} />);
+    expect(screen.getByLabelText(/Add Property/i)).toBeInTheDocument();
+  });
+
+  it('does not show Add button when userId is missing', () => {
+    renderWithRouter(<PropertiesPanel properties={[]} loading={false} />);
+    expect(screen.queryByLabelText(/Add Property/i)).not.toBeInTheDocument();
+  });
+
+  it('opens AddPropertyDialog when Add button clicked', async () => {
+    const user = userEvent.setup({ delay: 0 });
+    renderWithRouter(<PropertiesPanel properties={[]} loading={false} userId={1} />);
+
+    await user.click(screen.getByLabelText(/Add Property/i));
+
+    expect(screen.getByText('Add Property')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Property Name/i)).toBeInTheDocument();
   });
 });

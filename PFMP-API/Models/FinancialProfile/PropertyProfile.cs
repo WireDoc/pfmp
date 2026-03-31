@@ -76,6 +76,49 @@ namespace PFMP_API.Models.FinancialProfile
 
         // --- End Plaid Integration Fields ---
 
+        // --- Valuation Fields (Wave 15) ---
+
+        /// <summary>
+        /// Whether automatic valuation refreshes are enabled for this property.
+        /// </summary>
+        public bool AutoValuationEnabled { get; set; } = true;
+
+        /// <summary>
+        /// When the last automatic valuation was fetched.
+        /// </summary>
+        public DateTime? LastValuationAt { get; set; }
+
+        /// <summary>
+        /// Provider that last supplied a valuation (e.g., "estated", "manual").
+        /// </summary>
+        [MaxLength(50)]
+        public string? ValuationSource { get; set; }
+
+        /// <summary>
+        /// Provider confidence score (0-1) for the last valuation.
+        /// </summary>
+        [Column(TypeName = "decimal(5,4)")]
+        public decimal? ValuationConfidence { get; set; }
+
+        /// <summary>
+        /// Low-end estimate from the valuation provider.
+        /// </summary>
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? ValuationLow { get; set; }
+
+        /// <summary>
+        /// High-end estimate from the valuation provider.
+        /// </summary>
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? ValuationHigh { get; set; }
+
+        /// <summary>
+        /// Whether the address has been validated/standardized.
+        /// </summary>
+        public bool AddressValidated { get; set; }
+
+        // --- End Valuation Fields ---
+
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

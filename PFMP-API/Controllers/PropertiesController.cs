@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
 using PFMP_API.Models.FinancialProfile;
 using PFMP_API.Services;
+using PFMP_API.Services.Properties;
 
 namespace PFMP_API.Controllers;
 
@@ -16,15 +17,18 @@ public class PropertiesController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly ILogger<PropertiesController> _logger;
     private readonly IPropertyTaskService _propertyTaskService;
+    private readonly IPropertyValuationService _valuationService;
 
     public PropertiesController(
         ApplicationDbContext context,
         ILogger<PropertiesController> logger,
-        IPropertyTaskService propertyTaskService)
+        IPropertyTaskService propertyTaskService,
+        IPropertyValuationService valuationService)
     {
         _context = context;
         _logger = logger;
         _propertyTaskService = propertyTaskService;
+        _valuationService = valuationService;
     }
 
     /// <summary>
@@ -204,12 +208,6 @@ public class PropertiesController : ControllerBase
         if (property == null)
             return NotFound($"Property {propertyId} not found");
 
-        // Check if Plaid-synced
-        if (property.Source == Models.Plaid.AccountSource.PlaidMortgage)
-        {
-            return BadRequest("Cannot delete a Plaid-synced property. Unlink the mortgage first.");
-        }
-
         // Delete history
         var history = await _context.PropertyValueHistories
             .Where(h => h.PropertyId == propertyId)
@@ -265,6 +263,86 @@ public class PropertiesController : ControllerBase
         return Ok(tasks);
     }
 
+    /// <summary>
+    /// Validate and standardize a US address.
+    /// </summary>
+    [HttpPost("validate-address")]
+    [ProducesResponseType(typeof(AddressValidationResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<AddressValidationResponse>> ValidateAddress([FromBody] AddressValidationRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Street) || string.IsNullOrWhiteSpace(request.City)
+            || string.IsNullOrWhiteSpace(request.State) || string.IsNullOrWhiteSpace(request.Zip))
+        {
+            return Ok(new AddressValidationResponse
+            {
+                IsValid = true, // Allow manual entry
+                Street = request.Street?.Trim() ?? "",
+                City = request.City?.Trim() ?? "",
+                State = request.State?.Trim() ?? "",
+                Zip = request.Zip?.Trim() ?? "",
+                Message = "Partial address — manual entry accepted"
+            });
+        }
+
+        var result = await _valuationService.ValidateAddressAsync(
+            request.Street, request.City, request.State, request.Zip);
+
+        return Ok(new AddressValidationResponse
+        {
+            IsValid = result.IsValid,
+            Street = result.Street,
+            City = result.City,
+            State = result.State,
+            Zip = result.Zip5,
+            Zip4 = result.Zip4,
+            Message = result.Error
+        });
+    }
+
+    /// <summary>
+    /// Trigger a manual valuation refresh for a property.
+    /// Rate-limited to 1 refresh per property per day.
+    /// </summary>
+    [HttpPost("{propertyId}/refresh-valuation")]
+    [ProducesResponseType(typeof(ValuationRefreshResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<ActionResult<ValuationRefreshResponse>> RefreshValuation(Guid propertyId)
+    {
+        var property = await _context.Properties.FindAsync(propertyId);
+        if (property == null)
+            return NotFound($"Property {propertyId} not found");
+
+        // Rate limit: 1 refresh per day
+        if (property.LastValuationAt.HasValue &&
+            property.LastValuationAt.Value > DateTime.UtcNow.AddHours(-24))
+        {
+            return StatusCode(429, new { message = "Valuation already refreshed in the last 24 hours" });
+        }
+
+        var valuation = await _valuationService.RefreshValuationAsync(propertyId);
+
+        if (valuation == null)
+        {
+            return Ok(new ValuationRefreshResponse
+            {
+                Success = false,
+                Message = "No valuation data available for this property. Ensure the address is complete."
+            });
+        }
+
+        return Ok(new ValuationRefreshResponse
+        {
+            Success = true,
+            EstimatedValue = valuation.EstimatedValue,
+            LowEstimate = valuation.LowEstimate,
+            HighEstimate = valuation.HighEstimate,
+            Source = valuation.Source,
+            Confidence = valuation.ConfidenceScore,
+            Message = $"Valuation updated: ${valuation.EstimatedValue:N0}"
+        });
+    }
+
     #region Mapping
 
     private static PropertyDto MapToDto(PropertyProfile p) => new()
@@ -285,7 +363,14 @@ public class PropertiesController : ControllerBase
         Source = p.Source.ToString(),
         IsPlaidLinked = p.LinkedMortgageLiabilityId.HasValue,
         LastSyncedAt = p.LastSyncedAt,
-        UpdatedAt = p.UpdatedAt
+        UpdatedAt = p.UpdatedAt,
+        ValuationSource = p.ValuationSource,
+        ValuationConfidence = p.ValuationConfidence,
+        ValuationLow = p.ValuationLow,
+        ValuationHigh = p.ValuationHigh,
+        LastValuationAt = p.LastValuationAt,
+        AutoValuationEnabled = p.AutoValuationEnabled,
+        AddressValidated = p.AddressValidated
     };
 
     private static PropertyDetailDto MapToDetailDto(
@@ -317,6 +402,13 @@ public class PropertiesController : ControllerBase
         SyncStatus = p.SyncStatus,
         CreatedAt = p.CreatedAt,
         UpdatedAt = p.UpdatedAt,
+        ValuationSource = p.ValuationSource,
+        ValuationConfidence = p.ValuationConfidence,
+        ValuationLow = p.ValuationLow,
+        ValuationHigh = p.ValuationHigh,
+        LastValuationAt = p.LastValuationAt,
+        AutoValuationEnabled = p.AutoValuationEnabled,
+        AddressValidated = p.AddressValidated,
         LinkedMortgage = mortgage != null ? new MortgageSummaryDto
         {
             LiabilityAccountId = mortgage.LiabilityAccountId,
@@ -369,6 +461,13 @@ public class PropertyDto
     public bool IsPlaidLinked { get; set; }
     public DateTime? LastSyncedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public string? ValuationSource { get; set; }
+    public decimal? ValuationConfidence { get; set; }
+    public decimal? ValuationLow { get; set; }
+    public decimal? ValuationHigh { get; set; }
+    public DateTime? LastValuationAt { get; set; }
+    public bool AutoValuationEnabled { get; set; }
+    public bool AddressValidated { get; set; }
 }
 
 public class PropertyDetailDto : PropertyDto
@@ -438,6 +537,36 @@ public class UpdatePropertyRequest
     public string? City { get; set; }
     public string? State { get; set; }
     public string? PostalCode { get; set; }
+}
+
+public class AddressValidationRequest
+{
+    public string? Street { get; set; }
+    public string? City { get; set; }
+    public string? State { get; set; }
+    public string? Zip { get; set; }
+}
+
+public class AddressValidationResponse
+{
+    public bool IsValid { get; set; }
+    public string Street { get; set; } = string.Empty;
+    public string City { get; set; } = string.Empty;
+    public string State { get; set; } = string.Empty;
+    public string Zip { get; set; } = string.Empty;
+    public string? Zip4 { get; set; }
+    public string? Message { get; set; }
+}
+
+public class ValuationRefreshResponse
+{
+    public bool Success { get; set; }
+    public decimal? EstimatedValue { get; set; }
+    public decimal? LowEstimate { get; set; }
+    public decimal? HighEstimate { get; set; }
+    public string? Source { get; set; }
+    public decimal? Confidence { get; set; }
+    public string? Message { get; set; }
 }
 
 #endregion

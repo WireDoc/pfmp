@@ -27,6 +27,13 @@ export interface PropertyDto {
   isPlaidLinked: boolean;
   lastSyncedAt: string | null;
   updatedAt: string;
+  valuationSource: string | null;
+  valuationConfidence: number | null;
+  valuationLow: number | null;
+  valuationHigh: number | null;
+  lastValuationAt: string | null;
+  autoValuationEnabled: boolean;
+  addressValidated: boolean;
 }
 
 export interface MortgageSummaryDto {
@@ -165,5 +172,61 @@ export const generatePropertyTasks = async (
   const response = await http.post('/properties/tasks/generate', null, {
     params: { userId, monthsThreshold },
   });
+  return response.data;
+};
+
+// ============================================================================
+// Address Validation & Valuation (Wave 15)
+// ============================================================================
+
+export interface AddressValidationRequest {
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+}
+
+export interface AddressValidationResponse {
+  isValid: boolean;
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+  zip4: string | null;
+  message: string | null;
+}
+
+export interface ValuationRefreshResponse {
+  success: boolean;
+  estimatedValue: number | null;
+  lowEstimate: number | null;
+  highEstimate: number | null;
+  source: string | null;
+  confidence: number | null;
+  message: string | null;
+}
+
+/**
+ * Validate and standardize a US address
+ */
+export const validateAddress = async (
+  request: AddressValidationRequest
+): Promise<AddressValidationResponse> => {
+  const response = await http.post<AddressValidationResponse>(
+    '/properties/validate-address',
+    request
+  );
+  return response.data;
+};
+
+/**
+ * Trigger a manual valuation refresh for a property
+ */
+export const refreshValuation = async (
+  propertyId: string
+): Promise<ValuationRefreshResponse> => {
+  const response = await http.post<ValuationRefreshResponse>(
+    `/properties/${propertyId}/refresh-valuation`
+  );
   return response.data;
 };

@@ -23,9 +23,27 @@ import {
   TableRow,
   Alert,
   Divider,
+  Button,
+  IconButton,
+  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
-import { ArrowBack as ArrowBackIcon, Home as HomeIcon, Sync as SyncIcon } from '@mui/icons-material';
-import { fetchProperty, type PropertyDetailDto, type PropertyValueHistoryDto } from '../../api/properties';
+import {
+  ArrowBack as ArrowBackIcon,
+  Home as HomeIcon,
+  Sync as SyncIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Refresh as RefreshIcon,
+  AttachMoney as AttachMoneyIcon,
+} from '@mui/icons-material';
+import { fetchProperty, deleteProperty, refreshValuation, type PropertyDetailDto, type PropertyValueHistoryDto } from '../../api/properties';
+import EditPropertyDialog from '../../components/properties/EditPropertyDialog';
+import UpdateValueDialog from '../../components/properties/UpdateValueDialog';
 
 // ============================================================================
 // Helper Functions
@@ -123,27 +141,72 @@ export function PropertyDetailView() {
   const [property, setProperty] = useState<PropertyDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [updateValueOpen, setUpdateValueOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [actionMsg, setActionMsg] = useState<{ text: string; severity: 'success' | 'error' | 'warning' } | null>(null);
+
+  const loadProperty = async () => {
+    if (!propertyId) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await fetchProperty(propertyId);
+      setProperty(data);
+    } catch (err: unknown) {
+      console.error('Error fetching property:', err);
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      setError(status === 404 ? 'Property not found' : 'Failed to load property details');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadProperty = async () => {
-      if (!propertyId) return;
-
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await fetchProperty(propertyId);
-        setProperty(data);
-      } catch (err: unknown) {
-        console.error('Error fetching property:', err);
-        const status = (err as { response?: { status?: number } })?.response?.status;
-        setError(status === 404 ? 'Property not found' : 'Failed to load property details');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadProperty();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propertyId]);
+
+  const handleDelete = async () => {
+    if (!propertyId) return;
+    setDeleting(true);
+    try {
+      await deleteProperty(propertyId);
+      navigate('/dashboard');
+    } catch {
+      setActionMsg({ text: 'Failed to delete property', severity: 'error' });
+    } finally {
+      setDeleting(false);
+      setDeleteConfirmOpen(false);
+    }
+  };
+
+  const handleRefreshValuation = async () => {
+    if (!propertyId) return;
+    setRefreshing(true);
+    setActionMsg(null);
+    try {
+      const result = await refreshValuation(propertyId);
+      if (result.success) {
+        setActionMsg({ text: `Valuation updated: ${result.source || 'AVM'} — $${result.estimatedValue?.toLocaleString() ?? '—'}`, severity: 'success' });
+        await loadProperty();
+      } else {
+        setActionMsg({ text: result.message || 'Valuation not available for this property', severity: 'warning' });
+      }
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 429) {
+        setActionMsg({ text: 'Valuation was refreshed recently. Please wait 24 hours between refreshes.', severity: 'warning' });
+      } else {
+        setActionMsg({ text: 'Failed to refresh valuation', severity: 'error' });
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -184,6 +247,13 @@ export function PropertyDetailView() {
         <Typography color="text.primary">{property.propertyName}</Typography>
       </Breadcrumbs>
 
+      {/* Action Messages */}
+      {actionMsg && (
+        <Alert severity={actionMsg.severity} sx={{ mb: 2 }} onClose={() => setActionMsg(null)}>
+          {actionMsg.text}
+        </Alert>
+      )}
+
       {/* Property Header */}
       <Box display="flex" alignItems="flex-start" gap={2} mb={3}>
         <HomeIcon sx={{ fontSize: 40, color: 'action.active' }} />
@@ -207,6 +277,31 @@ export function PropertyDetailView() {
               />
             )}
           </Box>
+        </Box>
+        {/* Action Buttons */}
+        <Box display="flex" gap={1} alignItems="flex-start" flexShrink={0}>
+          <Tooltip title="Update Value">
+            <IconButton size="small" onClick={() => setUpdateValueOpen(true)}>
+              <AttachMoneyIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Refresh Valuation">
+            <span>
+              <IconButton size="small" onClick={handleRefreshValuation} disabled={refreshing}>
+                {refreshing ? <CircularProgress size={20} /> : <RefreshIcon />}
+              </IconButton>
+            </span>
+          </Tooltip>
+          <Tooltip title="Edit Property">
+            <IconButton size="small" onClick={() => setEditOpen(true)}>
+              <EditIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Delete Property">
+            <IconButton size="small" color="error" onClick={() => setDeleteConfirmOpen(true)}>
+              <DeleteIcon />
+            </IconButton>
+          </Tooltip>
         </Box>
       </Box>
 
@@ -320,6 +415,39 @@ export function PropertyDetailView() {
           </Grid>
         )}
 
+        {/* Full Width - Automated Valuation */}
+        {(property.valuationSource || property.autoValuationEnabled) && (
+          <Grid size={{ xs: 12 }}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Automated Valuation
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              {property.valuationSource ? (
+                <>
+                  <SummaryRow label="Source" value={property.valuationSource} />
+                  {property.valuationConfidence != null && (
+                    <SummaryRow label="Confidence" value={`${(property.valuationConfidence * 100).toFixed(1)}%`} />
+                  )}
+                  {property.valuationLow != null && property.valuationHigh != null && (
+                    <SummaryRow
+                      label="Value Range"
+                      value={`${formatCurrency(property.valuationLow)} – ${formatCurrency(property.valuationHigh)}`}
+                    />
+                  )}
+                  <SummaryRow label="Last Valuation" value={formatDate(property.lastValuationAt)} />
+                </>
+              ) : (
+                <Typography color="text.secondary">
+                  {property.addressValidated
+                    ? 'No automated valuation yet. Click the refresh button above to request one.'
+                    : 'Add a complete address to enable automated valuation.'}
+                </Typography>
+              )}
+            </Paper>
+          </Grid>
+        )}
+
         {/* Full Width - Value History */}
         <Grid size={{ xs: 12 }}>
           <Paper sx={{ p: 3 }}>
@@ -331,6 +459,37 @@ export function PropertyDetailView() {
           </Paper>
         </Grid>
       </Grid>
+
+      {/* Dialogs */}
+      <EditPropertyDialog
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        property={property}
+        onUpdated={loadProperty}
+      />
+
+      <UpdateValueDialog
+        open={updateValueOpen}
+        onClose={() => setUpdateValueOpen(false)}
+        propertyId={property.propertyId}
+        currentValue={property.estimatedValue}
+        onUpdated={loadProperty}
+      />
+
+      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
+        <DialogTitle>Delete Property</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete &quot;{property.propertyName}&quot;? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirmOpen(false)} disabled={deleting}>Cancel</Button>
+          <Button onClick={handleDelete} color="error" variant="contained" disabled={deleting}>
+            {deleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

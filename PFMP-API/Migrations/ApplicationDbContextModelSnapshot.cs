@@ -1371,6 +1371,12 @@ namespace PFMP_API.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("AddressValidated")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("AutoValuationEnabled")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("City")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -1385,6 +1391,9 @@ namespace PFMP_API.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("LastSyncedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastValuationAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int?>("LinkedMortgageLiabilityId")
@@ -1441,6 +1450,19 @@ namespace PFMP_API.Migrations
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
+
+                    b.Property<decimal?>("ValuationConfidence")
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<decimal?>("ValuationHigh")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("ValuationLow")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ValuationSource")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.HasKey("PropertyId");
 

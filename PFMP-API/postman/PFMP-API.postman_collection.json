@@ -2,8 +2,8 @@
   "info": {
     "name": "PFMP API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "1.9.0",
-    "description": "PFMP API endpoints grouped for development and testing. Adjust {{baseUrl}} as needed. v1.9.0: Fixed stale routes (Dashboard, Loan Analytics, Portfolio Analytics, Weather), added Account Transactions, Cash Transactions, Profile, Alerts credit/generate, AI preview, and missing Loan Analytics user routes."
+    "version": "1.10.0",
+    "description": "PFMP API endpoints grouped for development and testing. Adjust {{baseUrl}} as needed. v1.10.0: Wave 15 — Added Validate Address and Refresh Property Valuation endpoints to Properties folder. Updated Delete Property description (Plaid restriction removed)."
   },
   "item": [
     {
@@ -463,7 +463,7 @@
         },
         {
           "name": "Delete Property",
-          "description": "Deletes a property. Plaid-synced properties cannot be deleted.",
+          "description": "Deletes a property. Both manual and Plaid-synced properties can be deleted.",
           "request": {
             "method": "DELETE",
             "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
@@ -501,6 +501,33 @@
                 {"key": "monthsThreshold", "value": "3"}
               ]
             }
+          },
+          "response": []
+        },
+        {
+          "name": "Validate Address",
+          "description": "Validates and standardizes a US property address via USPS. Returns the standardized address or passes through if USPS is unconfigured.",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"street\": \"1600 Pennsylvania Ave NW\",\n  \"city\": \"Washington\",\n  \"state\": \"DC\",\n  \"zip\": \"20500\"\n}"
+            },
+            "url": "{{baseUrl}}/api/properties/validate-address"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Property Valuation",
+          "description": "Triggers an automated valuation refresh for a property. Requires a complete address. Rate-limited to once per 24 hours per property.",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "{{baseUrl}}/api/properties/{{propertyId}}/refresh-valuation"
           },
           "response": []
         }

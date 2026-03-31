@@ -18,10 +18,10 @@ _Last updated: 2026-03-30_
 | Wave 12.5: Unified Plaid Linking | ✅ Complete | March 2026 |
 | Wave 13: Crypto Exchanges | 📋 Planned | Q2-Q3 2026 |
 | Wave 14: Spending Analysis | 📋 Planned | Q2-Q3 2026 |
-| Wave 15: Property Management & Valuation | 📋 Planned | Q2-Q3 2026 |
+| Wave 15: Property Management & Valuation | ✅ Complete | March 2026 |
 | Wave 16: AI Enhancement | 📋 Planned | Q3 2026 |
 
-**Current Version**: v0.12.0-alpha (March 30, 2026)
+**Current Version**: v0.15.0-alpha (March 31, 2026)
 
 ---
 
@@ -182,26 +182,28 @@ Building on Wave 11's transaction sync foundation:
 - Anomaly detection for unusual spending
 - Cash flow forecasting
 
-### Wave 15: Property Management & Automated Valuation 📋
-**Target**: Q3 2026
+### Wave 15: Property Management & Automated Valuation ✅
+**Completed**: March 2026
 
-The dashboard currently has no ability to manually add, edit, or delete properties — only Plaid mortgage auto-creation and onboarding entry exist. Additionally, property values are static with no automatic refresh.
+Delivered full property CRUD from the dashboard plus automated valuation infrastructure.
 
-This wave delivers:
-- **Dashboard property CRUD** — Add, edit, delete, and update property values from the dashboard
-- **Automatic property valuation** — Monthly Hangfire job using a third-party AVM provider (Estated, HouseCanary, or similar) to refresh home values, similar to USAA
-- **Address validation** — Autocomplete and verification for accurate valuation lookups
-- **Manual value refresh** — One-click value update from the property detail page
+**What shipped:**
+- **Dashboard property CRUD** — Add, edit, delete, update value dialogs; Add button on PropertiesPanel
+- **Automated property valuation** — Estated AVM provider with monthly Hangfire refresh job (1st of month, 3 AM ET)
+- **Address validation** — USPS Web Tools integration with graceful pass-through fallback
+- **Manual value refresh** — One-click from PropertyDetailView with 24hr rate limit
+- **Plaid delete restriction removed** — Both manual and Plaid-synced properties can be deleted
+- **7 new model fields** — AutoValuationEnabled, LastValuationAt, ValuationSource, ValuationConfidence, ValuationLow, ValuationHigh, AddressValidated
 
 **Phases:**
 | Phase | Focus | Status |
 |-------|-------|--------|
-| 1 | Dashboard CRUD UI (add/edit/delete/update value) | 📋 Planned |
-| 2 | Automatic valuation service + Hangfire job | 📋 Planned |
-| 3 | Address autocomplete & validation | 📋 Planned |
+| 1 | Dashboard CRUD UI (add/edit/delete/update value) | ✅ Complete |
+| 2 | Automatic valuation service + Hangfire job | ✅ Complete |
+| 3 | Address validation (USPS) | ✅ Complete |
 | 4 | Property advice integration (refinance/HELOC) | 📋 Future |
 
-**See:** `docs/waves/wave-15-property-management.md`
+**See:** `docs/waves/wave-15-complete.md`
 
 ### Wave 16: AI Enhancement & Vetting 📋
 **Target**: Q3 2026 (After Wave 15 — AI needs property data for refinance/HELOC recommendations)
