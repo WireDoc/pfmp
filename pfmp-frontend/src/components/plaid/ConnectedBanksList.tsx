@@ -158,6 +158,15 @@ const ConnectionCard: React.FC<ConnectionCardProps> = ({
     }
   }, [reconnectLinkToken, reconnectReady, openReconnectLink]);
 
+  // Re-fetch expanded accounts when connection's lastSyncedAt changes (e.g. after Sync All)
+  React.useEffect(() => {
+    if (expanded && connection.lastSyncedAt) {
+      getConnectionAccounts(connection.connectionId, userId, productType)
+        .then(setAccounts)
+        .catch(() => {/* keep stale data on error */});
+    }
+  }, [connection.lastSyncedAt]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleExpand = async () => {
     if (!expanded && accounts.length === 0) {
       setLoading(true);
