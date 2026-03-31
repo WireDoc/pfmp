@@ -294,13 +294,33 @@ public class PlaidController : ControllerBase
         try
         {
             _logger.LogInformation("Manual sync-all triggered for user {UserId}", userId);
-            var result = await _plaidService.SyncAllUserConnectionsAsync(userId);
-            
+            var connectionService = HttpContext.RequestServices.GetRequiredService<IPlaidConnectionService>();
+            var connections = await connectionService.GetUserConnectionsAsync(userId);
+            var activeConnections = connections.Where(c => c.Status == SyncStatus.Connected).ToList();
+
+            var totalAccountsUpdated = 0;
+            var errors = new List<string>();
+
+            foreach (var conn in activeConnections)
+            {
+                try
+                {
+                    var result = await connectionService.SyncUnifiedConnectionAsync(conn.ConnectionId);
+                    totalAccountsUpdated += result.HoldingsCount + result.TransactionsCount + result.LiabilitiesCount;
+                    if (result.Errors.Count > 0)
+                        errors.AddRange(result.Errors);
+                }
+                catch (Exception connEx)
+                {
+                    errors.Add($"{conn.InstitutionName}: {connEx.Message}");
+                }
+            }
+
             return Ok(new SyncResultDto
             {
-                Success = result.Success,
-                AccountsUpdated = result.AccountsUpdated,
-                ErrorMessage = result.ErrorMessage
+                Success = errors.Count == 0,
+                AccountsUpdated = totalAccountsUpdated,
+                ErrorMessage = errors.Count > 0 ? string.Join("; ", errors) : null
             });
         }
         catch (Exception ex)

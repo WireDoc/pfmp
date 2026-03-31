@@ -139,15 +139,18 @@ export async function getConnectionAccounts(
 }
 
 /**
- * Manually trigger a sync for a specific connection.
+ * Manually trigger a sync for a specific connection (unified: syncs all products).
  */
-export async function syncConnection(connectionId: string, userId: number): Promise<SyncResult> {
-  const response = await axios.post<SyncResult>(
-    `${API_BASE_URL}/plaid/connections/${connectionId}/sync`,
-    {},
-    { params: { userId } }
+export async function syncConnection(connectionId: string, _userId: number): Promise<SyncResult> {
+  const response = await axios.post(
+    `${API_BASE_URL}/plaid/unified/connections/${connectionId}/sync`
   );
-  return response.data;
+  const data = response.data;
+  return {
+    success: data.success ?? data.Success,
+    accountsUpdated: (data.holdingsCount ?? 0) + (data.transactionsCount ?? 0) + (data.liabilitiesCount ?? 0),
+    errorMessage: data.errors?.join('; ') ?? null,
+  } as SyncResult;
 }
 
 /**
