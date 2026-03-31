@@ -342,7 +342,7 @@ public class PropertiesController : ControllerBase
         {
             var reason = _valuationService.IsValuationConfigured
                 ? "Property not found in valuation database. Verify the address is correct and complete."
-                : "Valuation service is not configured. Set PropertyValuation:EstatedApiToken in appsettings.";
+                : "Valuation service is not configured. Set PropertyValuation:RentCastApiKey in appsettings.";
             return Ok(new ValuationRefreshResponse
             {
                 Success = false,

@@ -117,7 +117,7 @@ namespace PFMP_API
 
             // Property Valuation & Address Services (Wave 15)
             builder.Services.AddScoped<PFMP_API.Services.Properties.IAddressValidationService, PFMP_API.Services.Properties.UspsAddressValidationService>();
-            builder.Services.AddScoped<PFMP_API.Services.Properties.IPropertyValuationProvider, PFMP_API.Services.Properties.EstatedValuationProvider>();
+            builder.Services.AddScoped<PFMP_API.Services.Properties.IPropertyValuationProvider, PFMP_API.Services.Properties.RentCastValuationProvider>();
             builder.Services.AddScoped<PFMP_API.Services.Properties.IPropertyValuationService, PFMP_API.Services.Properties.PropertyValuationService>();
 
             // Background Jobs - Hangfire (Wave 10)
