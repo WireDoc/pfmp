@@ -9,6 +9,12 @@ namespace PFMP_API.Services.Properties;
 /// </summary>
 public interface IPropertyValuationService
 {
+    /// <summary>Whether the underlying valuation provider has its API credentials configured.</summary>
+    bool IsValuationConfigured { get; }
+
+    /// <summary>Whether the address validation service has its API credentials configured.</summary>
+    bool IsAddressValidationConfigured { get; }
+
     /// <summary>
     /// Refresh the valuation for a single property. Returns the new valuation or null.
     /// </summary>
@@ -47,6 +53,9 @@ public class PropertyValuationService : IPropertyValuationService
         _logger = logger;
     }
 
+    public bool IsValuationConfigured => _valuationProvider.IsConfigured;
+    public bool IsAddressValidationConfigured => _addressService.IsConfigured;
+
     public async Task<StandardizedAddress> ValidateAddressAsync(string street, string city, string state, string zip)
     {
         return await _addressService.ValidateAsync(street, city, state, zip);
@@ -68,8 +77,37 @@ public class PropertyValuationService : IPropertyValuationService
             return null;
         }
 
-        var valuation = await _valuationProvider.GetValuationAsync(
-            property.Street!, property.City!, property.State!, property.PostalCode!);
+        // Standardize address via USPS before calling valuation provider
+        // This handles city name mismatches (e.g., Centerton → Bentonville for USPS ZIP)
+        var street = property.Street!;
+        var city = property.City!;
+        var state = property.State!;
+        var zip = property.PostalCode!;
+
+        if (_addressService.IsConfigured && !property.AddressValidated)
+        {
+            var standardized = await _addressService.ValidateAsync(street, city, state, zip);
+            if (standardized.IsValid && standardized.WasStandardized)
+            {
+                street = standardized.Street;
+                city = standardized.City;
+                state = standardized.State;
+                zip = standardized.Zip5;
+
+                // Persist the standardized address
+                property.Street = street;
+                property.City = city;
+                property.State = state;
+                property.PostalCode = zip;
+                property.AddressValidated = true;
+
+                _logger.LogInformation(
+                    "Standardized address for property {PropertyId}: {Street}, {City}, {State} {Zip}",
+                    propertyId, street, city, state, zip);
+            }
+        }
+
+        var valuation = await _valuationProvider.GetValuationAsync(street, city, state, zip);
 
         if (valuation == null)
         {

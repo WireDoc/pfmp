@@ -20,6 +20,9 @@ public interface IPropertyValuationProvider
 {
     string ProviderName { get; }
 
+    /// <summary>Whether the provider has its API credentials configured.</summary>
+    bool IsConfigured { get; }
+
     /// <summary>
     /// Fetch a property valuation for the given address.
     /// Returns null if the property cannot be valued (vacant lot, no data, etc.).

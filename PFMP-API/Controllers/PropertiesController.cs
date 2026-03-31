@@ -305,6 +305,7 @@ public class PropertiesController : ControllerBase
         return Ok(new AddressValidationResponse
         {
             IsValid = result.IsValid,
+            WasStandardized = result.WasStandardized,
             Street = result.Street,
             City = result.City,
             State = result.State,
@@ -339,10 +340,13 @@ public class PropertiesController : ControllerBase
 
         if (valuation == null)
         {
+            var reason = _valuationService.IsValuationConfigured
+                ? "Property not found in valuation database. Verify the address is correct and complete."
+                : "Valuation service is not configured. Set PropertyValuation:EstatedApiToken in appsettings.";
             return Ok(new ValuationRefreshResponse
             {
                 Success = false,
-                Message = "No valuation data available for this property. Ensure the address is complete."
+                Message = reason
             });
         }
 
@@ -565,6 +569,7 @@ public class AddressValidationRequest
 public class AddressValidationResponse
 {
     public bool IsValid { get; set; }
+    public bool WasStandardized { get; set; }
     public string Street { get; set; } = string.Empty;
     public string City { get; set; } = string.Empty;
     public string State { get; set; } = string.Empty;

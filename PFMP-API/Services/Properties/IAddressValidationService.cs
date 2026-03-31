@@ -10,7 +10,8 @@ public record StandardizedAddress(
     string Zip5,
     string? Zip4,
     bool IsValid,
-    string? Error
+    string? Error,
+    bool WasStandardized = false
 );
 
 /// <summary>
@@ -19,6 +20,9 @@ public record StandardizedAddress(
 /// </summary>
 public interface IAddressValidationService
 {
+    /// <summary>Whether the validation service has its API credentials configured.</summary>
+    bool IsConfigured { get; }
+
     /// <summary>
     /// Validate and standardize a US address. Returns a standardized address or
     /// an invalid result with an error message.

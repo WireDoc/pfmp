@@ -121,6 +121,7 @@ describe('AddPropertyDialog', () => {
   it('validates address and shows success chip', async () => {
     vi.mocked(propertiesApi.validateAddress).mockResolvedValue({
       isValid: true,
+      wasStandardized: true,
       street: '123 MAIN ST',
       city: 'SPRINGFIELD',
       state: 'VA',

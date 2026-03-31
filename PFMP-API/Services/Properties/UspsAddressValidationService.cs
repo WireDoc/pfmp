@@ -38,6 +38,8 @@ public class UspsAddressValidationService : IAddressValidationService
         }
     }
 
+    public bool IsConfigured => _isConfigured;
+
     public async Task<StandardizedAddress> ValidateAsync(string street, string city, string state, string zip)
     {
         // Pass-through if USPS is not configured — treat the address as valid but un-standardized
@@ -50,7 +52,8 @@ public class UspsAddressValidationService : IAddressValidationService
                 Zip5: zip.Trim(),
                 Zip4: null,
                 IsValid: true,
-                Error: null
+                Error: null,
+                WasStandardized: false
             );
         }
 
@@ -75,7 +78,8 @@ public class UspsAddressValidationService : IAddressValidationService
                 Zip5: zip.Trim(),
                 Zip4: null,
                 IsValid: true,
-                Error: $"Validation service unavailable: {ex.Message}"
+                Error: $"Validation service unavailable: {ex.Message}",
+                WasStandardized: false
             );
         }
     }
@@ -119,7 +123,8 @@ public class UspsAddressValidationService : IAddressValidationService
             Zip5: address.Element("Zip5")?.Value ?? "",
             Zip4: address.Element("Zip4")?.Value,
             IsValid: true,
-            Error: null
+            Error: null,
+            WasStandardized: true
         );
     }
 }

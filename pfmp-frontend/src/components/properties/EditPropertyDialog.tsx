@@ -371,8 +371,8 @@ export default function EditPropertyDialog({ open, onClose, property, onUpdated 
               {addressValidation?.isValid && (
                 <Chip
                   icon={<CheckCircleIcon />}
-                  label="Address validated"
-                  color="success"
+                  label={addressValidation.wasStandardized ? 'Address validated' : 'Address saved (validation unavailable)'}
+                  color={addressValidation.wasStandardized ? 'success' : 'default'}
                   size="small"
                   variant="outlined"
                 />

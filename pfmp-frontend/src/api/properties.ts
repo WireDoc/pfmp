@@ -188,6 +188,7 @@ export interface AddressValidationRequest {
 
 export interface AddressValidationResponse {
   isValid: boolean;
+  wasStandardized: boolean;
   street: string;
   city: string;
   state: string;

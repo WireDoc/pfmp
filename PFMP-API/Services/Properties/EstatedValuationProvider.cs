@@ -37,6 +37,8 @@ public class EstatedValuationProvider : IPropertyValuationProvider
         }
     }
 
+    public bool IsConfigured => _isConfigured;
+
     public async Task<PropertyValuation?> GetValuationAsync(string street, string city, string state, string zip)
     {
         if (!_isConfigured)
