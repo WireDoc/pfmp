@@ -60,6 +60,12 @@ interface FormData {
   monthlyRentalIncome: string;
   monthlyExpenses: string;
   hasHeloc: boolean;
+  interestRate: string;
+  mortgageTerm: string;
+  lienholder: string;
+  monthlyPropertyTax: string;
+  monthlyInsurance: string;
+  purpose: string;
   street: string;
   city: string;
   state: string;
@@ -76,6 +82,12 @@ const initialForm: FormData = {
   monthlyRentalIncome: '',
   monthlyExpenses: '',
   hasHeloc: false,
+  interestRate: '',
+  mortgageTerm: '',
+  lienholder: '',
+  monthlyPropertyTax: '',
+  monthlyInsurance: '',
+  purpose: '',
   street: '',
   city: '',
   state: '',
@@ -156,6 +168,12 @@ export default function AddPropertyDialog({ open, onClose, userId, onCreated }: 
         monthlyRentalIncome: formData.monthlyRentalIncome ? parseFloat(formData.monthlyRentalIncome) : undefined,
         monthlyExpenses: formData.monthlyExpenses ? parseFloat(formData.monthlyExpenses) : undefined,
         hasHeloc: formData.hasHeloc,
+        interestRate: formData.interestRate ? parseFloat(formData.interestRate) : undefined,
+        mortgageTerm: formData.mortgageTerm ? parseInt(formData.mortgageTerm, 10) : undefined,
+        lienholder: formData.lienholder.trim() || undefined,
+        monthlyPropertyTax: formData.monthlyPropertyTax ? parseFloat(formData.monthlyPropertyTax) : undefined,
+        monthlyInsurance: formData.monthlyInsurance ? parseFloat(formData.monthlyInsurance) : undefined,
+        purpose: formData.purpose.trim() || undefined,
         street: formData.street.trim() || undefined,
         city: formData.city.trim() || undefined,
         state: formData.state.trim() || undefined,
@@ -303,6 +321,78 @@ export default function AddPropertyDialog({ open, onClose, userId, onCreated }: 
               />
             }
             label="Has HELOC (Home Equity Line of Credit)"
+          />
+
+          {/* Mortgage Details Section */}
+          <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1 }}>
+            Mortgage Details (optional)
+          </Typography>
+
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <TextField
+              label="Interest Rate (%)"
+              type="number"
+              value={formData.interestRate}
+              onChange={(e) => handleChange('interestRate', e.target.value)}
+              helperText="Mortgage APR"
+              fullWidth
+              disabled={saving}
+              slotProps={{ htmlInput: { min: 0, max: 25, step: 0.125 } }}
+            />
+            <TextField
+              label="Loan Term (years)"
+              type="number"
+              value={formData.mortgageTerm}
+              onChange={(e) => handleChange('mortgageTerm', e.target.value)}
+              helperText="e.g., 15, 20, 30"
+              fullWidth
+              disabled={saving}
+              slotProps={{ htmlInput: { min: 1, max: 50, step: 1 } }}
+            />
+          </Box>
+
+          <TextField
+            label="Lienholder / Lender"
+            value={formData.lienholder}
+            onChange={(e) => handleChange('lienholder', e.target.value)}
+            helperText="e.g., Wells Fargo, Rocket Mortgage"
+            fullWidth
+            disabled={saving}
+          />
+
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <TextField
+              label="Monthly Property Tax"
+              type="number"
+              value={formData.monthlyPropertyTax}
+              onChange={(e) => handleChange('monthlyPropertyTax', e.target.value)}
+              helperText="Monthly tax amount"
+              fullWidth
+              disabled={saving}
+              slotProps={{ htmlInput: { min: 0, step: 10 } }}
+            />
+            <TextField
+              label="Monthly Insurance"
+              type="number"
+              value={formData.monthlyInsurance}
+              onChange={(e) => handleChange('monthlyInsurance', e.target.value)}
+              helperText="Homeowner's insurance"
+              fullWidth
+              disabled={saving}
+              slotProps={{ htmlInput: { min: 0, step: 10 } }}
+            />
+          </Box>
+
+          <TextField
+            label="Purpose / Notes"
+            value={formData.purpose}
+            onChange={(e) => handleChange('purpose', e.target.value)}
+            helperText="Strategy notes visible to AI advisor (e.g., 'Plan to refinance in 2025')"
+            fullWidth
+            multiline
+            rows={2}
+            disabled={saving}
+            slotProps={{ htmlInput: { maxLength: 500 } }}
           />
 
           {/* Address Section */}

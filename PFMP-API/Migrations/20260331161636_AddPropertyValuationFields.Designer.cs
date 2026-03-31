@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PFMP_API;
@@ -12,9 +13,11 @@ using PFMP_API;
 namespace PFMP_API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260331161636_AddPropertyValuationFields")]
+    partial class AddPropertyValuationFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1390,18 +1393,11 @@ namespace PFMP_API.Migrations
                     b.Property<bool>("HasHeloc")
                         .HasColumnType("boolean");
 
-                    b.Property<decimal?>("InterestRate")
-                        .HasColumnType("decimal(8,4)");
-
                     b.Property<DateTime?>("LastSyncedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("LastValuationAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Lienholder")
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
 
                     b.Property<int?>("LinkedMortgageLiabilityId")
                         .HasColumnType("integer");
@@ -1409,13 +1405,7 @@ namespace PFMP_API.Migrations
                     b.Property<decimal?>("MonthlyExpenses")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<decimal?>("MonthlyInsurance")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<decimal?>("MonthlyMortgagePayment")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("MonthlyPropertyTax")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("MonthlyRentalIncome")
@@ -1423,9 +1413,6 @@ namespace PFMP_API.Migrations
 
                     b.Property<decimal?>("MortgageBalance")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<int?>("MortgageTerm")
-                        .HasColumnType("integer");
 
                     b.Property<string>("Occupancy")
                         .IsRequired()
@@ -1445,10 +1432,6 @@ namespace PFMP_API.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
-
-                    b.Property<string>("Purpose")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
 
                     b.Property<int>("Source")
                         .HasColumnType("integer");

@@ -43,7 +43,6 @@ Vite Console Output.txt
 # Entity Framework
 *.edmx.diagram
 *.edmx.sql
-migrations/
 
 # Secrets and configuration
 appsettings.local.json

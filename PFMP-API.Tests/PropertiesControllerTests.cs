@@ -25,6 +25,12 @@ public class PropertiesControllerTests : IClassFixture<TestingWebAppFactory>
         decimal? MonthlyRentalIncome = null,
         decimal? MonthlyExpenses = null,
         bool HasHeloc = false,
+        decimal? InterestRate = null,
+        int? MortgageTerm = null,
+        string? Lienholder = null,
+        decimal? MonthlyPropertyTax = null,
+        decimal? MonthlyInsurance = null,
+        string? Purpose = null,
         string? Street = null,
         string? City = null,
         string? State = null,
@@ -36,6 +42,12 @@ public class PropertiesControllerTests : IClassFixture<TestingWebAppFactory>
         string? PropertyType = null,
         decimal? EstimatedValue = null,
         decimal? MortgageBalance = null,
+        decimal? InterestRate = null,
+        int? MortgageTerm = null,
+        string? Lienholder = null,
+        decimal? MonthlyPropertyTax = null,
+        decimal? MonthlyInsurance = null,
+        string? Purpose = null,
         string? Street = null,
         string? City = null,
         string? State = null,
@@ -68,6 +80,12 @@ public class PropertiesControllerTests : IClassFixture<TestingWebAppFactory>
         string? City,
         string? State,
         string? PostalCode,
+        decimal? InterestRate,
+        int? MortgageTerm,
+        string? Lienholder,
+        decimal? MonthlyPropertyTax,
+        decimal? MonthlyInsurance,
+        string? Purpose,
         string? ValuationSource,
         decimal? ValuationConfidence,
         decimal? ValuationLow,
@@ -303,5 +321,50 @@ public class PropertiesControllerTests : IClassFixture<TestingWebAppFactory>
         Assert.NotNull(created);
         Assert.True(created!.AutoValuationEnabled);
         Assert.Null(created.ValuationSource);
+    }
+
+    [Fact]
+    public async Task CreateProperty_WithMortgageDetails_Persists()
+    {
+        var client = _factory.CreateClient();
+        var createUserResp = await client.PostAsync("/api/admin/users/test?scenario=fresh", null);
+        var user = await createUserResp.Content.ReadFromJsonAsync<UserAdminControllerTests.UserDto>();
+
+        var newProperty = new CreatePropertyRequest(
+            UserId: user!.UserId,
+            PropertyName: "Mortgage Details Test",
+            EstimatedValue: 550000m,
+            MortgageBalance: 400000m,
+            MonthlyMortgagePayment: 2200m,
+            InterestRate: 6.875m,
+            MortgageTerm: 30,
+            Lienholder: "Wells Fargo",
+            MonthlyPropertyTax: 350m,
+            MonthlyInsurance: 150m,
+            Purpose: "Primary home, plan to refinance when rates drop",
+            Street: "100 Finance Way",
+            City: "Arlington",
+            State: "VA",
+            PostalCode: "22201"
+        );
+
+        var createResp = await client.PostAsJsonAsync("/api/properties", newProperty);
+        Assert.Equal(HttpStatusCode.Created, createResp.StatusCode);
+
+        var created = await createResp.Content.ReadFromJsonAsync<PropertyDto>();
+        Assert.NotNull(created);
+
+        // Retrieve detail to verify new fields persisted
+        var getResp = await client.GetAsync($"/api/properties/{created!.PropertyId}");
+        Assert.Equal(HttpStatusCode.OK, getResp.StatusCode);
+
+        var detail = await getResp.Content.ReadFromJsonAsync<PropertyDetailDto>();
+        Assert.NotNull(detail);
+        Assert.Equal(6.875m, detail!.InterestRate);
+        Assert.Equal(30, detail.MortgageTerm);
+        Assert.Equal("Wells Fargo", detail.Lienholder);
+        Assert.Equal(350m, detail.MonthlyPropertyTax);
+        Assert.Equal(150m, detail.MonthlyInsurance);
+        Assert.Equal("Primary home, plan to refinance when rates drop", detail.Purpose);
     }
 }

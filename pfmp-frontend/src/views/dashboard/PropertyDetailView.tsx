@@ -326,6 +326,12 @@ export function PropertyDetailView() {
               Monthly Cash Flow
             </Typography>
             <SummaryRow label="Mortgage Payment" value={formatCurrency(property.monthlyMortgagePayment)} />
+            {property.monthlyPropertyTax != null && (
+              <SummaryRow label="Property Tax" value={formatCurrency(property.monthlyPropertyTax)} />
+            )}
+            {property.monthlyInsurance != null && (
+              <SummaryRow label="Insurance" value={formatCurrency(property.monthlyInsurance)} />
+            )}
             <SummaryRow label="Rental Income" value={formatCurrency(property.monthlyRentalIncome)} />
             <SummaryRow label="Other Expenses" value={formatCurrency(property.monthlyExpenses)} />
             <SummaryRow
@@ -333,6 +339,25 @@ export function PropertyDetailView() {
               value={formatCurrency(property.monthlyCashFlow)}
               highlight
             />
+
+            {/* Mortgage Details (manual entry fields) */}
+            {(property.interestRate != null || property.mortgageTerm != null || property.lienholder) && (
+              <>
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="subtitle2" gutterBottom color="text.secondary">
+                  Mortgage Details
+                </Typography>
+                {property.lienholder && (
+                  <SummaryRow label="Lienholder" value={property.lienholder} />
+                )}
+                {property.interestRate != null && (
+                  <SummaryRow label="Interest Rate" value={formatPercent(property.interestRate)} />
+                )}
+                {property.mortgageTerm != null && (
+                  <SummaryRow label="Mortgage Term" value={`${property.mortgageTerm} years`} />
+                )}
+              </>
+            )}
           </Paper>
         </Grid>
 
@@ -411,6 +436,21 @@ export function PropertyDetailView() {
                   </Grid>
                 )}
               </Grid>
+            </Paper>
+          </Grid>
+        )}
+
+        {/* Full Width - Purpose / Notes */}
+        {property.purpose && (
+          <Grid size={{ xs: 12 }}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Notes
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                {property.purpose}
+              </Typography>
             </Paper>
           </Grid>
         )}

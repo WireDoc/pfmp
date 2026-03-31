@@ -40,6 +40,47 @@ namespace PFMP_API.Models.FinancialProfile
 
         public bool HasHeloc { get; set; }
 
+        // --- Mortgage Detail Fields (Wave 15.1) ---
+
+        /// <summary>
+        /// Mortgage interest rate (APR) for manual properties.
+        /// Plaid-linked properties get this from the linked LiabilityAccount.
+        /// </summary>
+        [Column(TypeName = "decimal(8,4)")]
+        public decimal? InterestRate { get; set; }
+
+        /// <summary>
+        /// Mortgage term in years (e.g., 15, 20, 30).
+        /// </summary>
+        public int? MortgageTerm { get; set; }
+
+        /// <summary>
+        /// Mortgage lender/lienholder name (e.g., "Navy Federal", "Wells Fargo").
+        /// </summary>
+        [MaxLength(150)]
+        public string? Lienholder { get; set; }
+
+        /// <summary>
+        /// Monthly property tax amount.
+        /// </summary>
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? MonthlyPropertyTax { get; set; }
+
+        /// <summary>
+        /// Monthly homeowner's insurance premium.
+        /// </summary>
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? MonthlyInsurance { get; set; }
+
+        /// <summary>
+        /// Owner notes — strategy, plans, context for AI analysis.
+        /// E.g., "Primary residence, considering refinancing when rates drop below 5%"
+        /// </summary>
+        [MaxLength(500)]
+        public string? Purpose { get; set; }
+
+        // --- End Mortgage Detail Fields ---
+
         // --- Plaid Integration Fields ---
         public AccountSource Source { get; set; } = AccountSource.Manual;
 

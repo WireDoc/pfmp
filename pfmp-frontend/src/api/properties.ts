@@ -22,6 +22,12 @@ export interface PropertyDto {
   monthlyExpenses: number | null;
   monthlyCashFlow: number;
   hasHeloc: boolean;
+  interestRate: number | null;
+  mortgageTerm: number | null;
+  lienholder: string | null;
+  monthlyPropertyTax: number | null;
+  monthlyInsurance: number | null;
+  purpose: string | null;
   address: string | null;
   source: string;
   isPlaidLinked: boolean;
@@ -78,6 +84,12 @@ export interface CreatePropertyRequest {
   monthlyRentalIncome?: number;
   monthlyExpenses?: number;
   hasHeloc?: boolean;
+  interestRate?: number;
+  mortgageTerm?: number;
+  lienholder?: string;
+  monthlyPropertyTax?: number;
+  monthlyInsurance?: number;
+  purpose?: string;
   street?: string;
   city?: string;
   state?: string;
@@ -94,6 +106,12 @@ export interface UpdatePropertyRequest {
   monthlyRentalIncome?: number;
   monthlyExpenses?: number;
   hasHeloc?: boolean;
+  interestRate?: number;
+  mortgageTerm?: number;
+  lienholder?: string;
+  monthlyPropertyTax?: number;
+  monthlyInsurance?: number;
+  purpose?: string;
   street?: string;
   city?: string;
   state?: string;

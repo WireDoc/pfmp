@@ -104,6 +104,12 @@ public class PropertiesController : ControllerBase
             MonthlyRentalIncome = request.MonthlyRentalIncome,
             MonthlyExpenses = request.MonthlyExpenses,
             HasHeloc = request.HasHeloc,
+            InterestRate = request.InterestRate,
+            MortgageTerm = request.MortgageTerm,
+            Lienholder = request.Lienholder,
+            MonthlyPropertyTax = request.MonthlyPropertyTax,
+            MonthlyInsurance = request.MonthlyInsurance,
+            Purpose = request.Purpose,
             Street = request.Street,
             City = request.City,
             State = request.State,
@@ -182,6 +188,18 @@ public class PropertiesController : ControllerBase
             property.MonthlyExpenses = request.MonthlyExpenses.Value;
         if (request.HasHeloc.HasValue)
             property.HasHeloc = request.HasHeloc.Value;
+        if (request.InterestRate.HasValue)
+            property.InterestRate = request.InterestRate.Value;
+        if (request.MortgageTerm.HasValue)
+            property.MortgageTerm = request.MortgageTerm.Value;
+        if (request.Lienholder != null)
+            property.Lienholder = request.Lienholder;
+        if (request.MonthlyPropertyTax.HasValue)
+            property.MonthlyPropertyTax = request.MonthlyPropertyTax.Value;
+        if (request.MonthlyInsurance.HasValue)
+            property.MonthlyInsurance = request.MonthlyInsurance.Value;
+        if (request.Purpose != null)
+            property.Purpose = request.Purpose;
         if (!string.IsNullOrEmpty(request.Street))
             property.Street = request.Street;
         if (!string.IsNullOrEmpty(request.City))
@@ -376,8 +394,14 @@ public class PropertiesController : ControllerBase
         MonthlyMortgagePayment = p.MonthlyMortgagePayment,
         MonthlyRentalIncome = p.MonthlyRentalIncome,
         MonthlyExpenses = p.MonthlyExpenses,
-        MonthlyCashFlow = (p.MonthlyRentalIncome ?? 0) - (p.MonthlyMortgagePayment ?? 0) - (p.MonthlyExpenses ?? 0),
+        MonthlyCashFlow = (p.MonthlyRentalIncome ?? 0) - (p.MonthlyMortgagePayment ?? 0) - (p.MonthlyExpenses ?? 0) - (p.MonthlyPropertyTax ?? 0) - (p.MonthlyInsurance ?? 0),
         HasHeloc = p.HasHeloc,
+        InterestRate = p.InterestRate,
+        MortgageTerm = p.MortgageTerm,
+        Lienholder = p.Lienholder,
+        MonthlyPropertyTax = p.MonthlyPropertyTax,
+        MonthlyInsurance = p.MonthlyInsurance,
+        Purpose = p.Purpose,
         Address = FormatAddress(p),
         Source = p.Source.ToString(),
         IsPlaidLinked = p.LinkedMortgageLiabilityId.HasValue,
@@ -407,8 +431,14 @@ public class PropertiesController : ControllerBase
         MonthlyMortgagePayment = p.MonthlyMortgagePayment,
         MonthlyRentalIncome = p.MonthlyRentalIncome,
         MonthlyExpenses = p.MonthlyExpenses,
-        MonthlyCashFlow = (p.MonthlyRentalIncome ?? 0) - (p.MonthlyMortgagePayment ?? 0) - (p.MonthlyExpenses ?? 0),
+        MonthlyCashFlow = (p.MonthlyRentalIncome ?? 0) - (p.MonthlyMortgagePayment ?? 0) - (p.MonthlyExpenses ?? 0) - (p.MonthlyPropertyTax ?? 0) - (p.MonthlyInsurance ?? 0),
         HasHeloc = p.HasHeloc,
+        InterestRate = p.InterestRate,
+        MortgageTerm = p.MortgageTerm,
+        Lienholder = p.Lienholder,
+        MonthlyPropertyTax = p.MonthlyPropertyTax,
+        MonthlyInsurance = p.MonthlyInsurance,
+        Purpose = p.Purpose,
         Street = p.Street,
         City = p.City,
         State = p.State,
@@ -475,6 +505,12 @@ public class PropertyDto
     public decimal? MonthlyExpenses { get; set; }
     public decimal MonthlyCashFlow { get; set; }
     public bool HasHeloc { get; set; }
+    public decimal? InterestRate { get; set; }
+    public int? MortgageTerm { get; set; }
+    public string? Lienholder { get; set; }
+    public decimal? MonthlyPropertyTax { get; set; }
+    public decimal? MonthlyInsurance { get; set; }
+    public string? Purpose { get; set; }
     public string? Address { get; set; }
     public string Source { get; set; } = string.Empty;
     public bool IsPlaidLinked { get; set; }
@@ -535,6 +571,12 @@ public class CreatePropertyRequest
     public decimal? MonthlyRentalIncome { get; set; }
     public decimal? MonthlyExpenses { get; set; }
     public bool HasHeloc { get; set; }
+    public decimal? InterestRate { get; set; }
+    public int? MortgageTerm { get; set; }
+    public string? Lienholder { get; set; }
+    public decimal? MonthlyPropertyTax { get; set; }
+    public decimal? MonthlyInsurance { get; set; }
+    public string? Purpose { get; set; }
     public string? Street { get; set; }
     public string? City { get; set; }
     public string? State { get; set; }
@@ -552,6 +594,12 @@ public class UpdatePropertyRequest
     public decimal? MonthlyRentalIncome { get; set; }
     public decimal? MonthlyExpenses { get; set; }
     public bool? HasHeloc { get; set; }
+    public decimal? InterestRate { get; set; }
+    public int? MortgageTerm { get; set; }
+    public string? Lienholder { get; set; }
+    public decimal? MonthlyPropertyTax { get; set; }
+    public decimal? MonthlyInsurance { get; set; }
+    public string? Purpose { get; set; }
     public string? Street { get; set; }
     public string? City { get; set; }
     public string? State { get; set; }
