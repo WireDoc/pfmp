@@ -2,8 +2,8 @@
   "info": {
     "name": "PFMP API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "1.8.0",
-    "description": "PFMP API endpoints grouped for development and testing. Adjust {{baseUrl}} as needed. v1.8.0: Consolidated Market Data endpoints under unified /api/market-data route (legacy /api/market removed)."
+    "version": "1.9.0",
+    "description": "PFMP API endpoints grouped for development and testing. Adjust {{baseUrl}} as needed. v1.9.0: Fixed stale routes (Dashboard, Loan Analytics, Portfolio Analytics, Weather), added Account Transactions, Cash Transactions, Profile, Alerts credit/generate, AI preview, and missing Loan Analytics user routes."
   },
   "item": [
     {
@@ -75,6 +75,7 @@
       "item": [
         { "name": "Get Snapshot", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/snapshot" } },
         { "name": "Section Statuses", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/sections" } },
+        { "name": "Update Section Status", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"status\": \"complete\"\n}"}, "url": "{{baseUrl}}/api/financial-profile/{{userId}}/sections/household" } },
         { "name": "Household: Upsert", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"preferredName\": \"Pat\",\n  \"maritalStatus\": \"single\",\n  \"dependentCount\": 0\n}" }, "url": "{{baseUrl}}/api/financial-profile/{{userId}}/household" } },
         { "name": "Household: Get", "request": { "method": "GET", "url": "{{baseUrl}}/api/financial-profile/{{userId}}/household" } },
         { "name": "Risk & Goals: Upsert", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"riskTolerance\": 7\n}" }, "url": "{{baseUrl}}/api/financial-profile/{{userId}}/risk-goals" } },
@@ -179,7 +180,9 @@
             "url": "{{baseUrl}}/api/cashaccounts/import?userId={{userId}}"
           },
           "response": []
-        }
+        },
+        { "name": "Get Transactions", "request": { "method": "GET", "url": "{{baseUrl}}/api/cash-accounts/{{cashAccountId}}/transactions?limit=50" } },
+        { "name": "Get Balance History", "request": { "method": "GET", "url": "{{baseUrl}}/api/cash-accounts/{{cashAccountId}}/transactions/balance-history" } }
       ]
     },
     {
@@ -871,14 +874,14 @@
     {
       "name": "Dashboard",
       "item": [
-        { "name": "Get Dashboard", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard?userId={{userId}}" } }
+        { "name": "Get Dashboard Summary", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard/summary?userId={{userId}}" } }
       ]
     },
     {
       "name": "Net Worth Timeline",
       "description": "Dashboard net worth history and tracking",
       "item": [
-        { "name": "Get Timeline", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard/net-worth/timeline?userId={{userId}}&months=12" } },
+        { "name": "Get Timeline", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard/net-worth/timeline?userId={{userId}}&period=3M" } },
         { "name": "Get Current Net Worth", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard/net-worth/current?userId={{userId}}" } },
         { "name": "Get Sparkline", "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard/net-worth/sparkline?userId={{userId}}&days=30" } }
       ]
@@ -887,20 +890,21 @@
       "name": "Loan Analytics",
       "description": "Loan amortization, payoff strategies, and credit utilization analysis",
       "item": [
-        { "name": "Get Amortization Schedule", "request": { "method": "GET", "url": "{{baseUrl}}/api/loan-analytics/{{loanId}}/amortization" } },
-        { "name": "Calculate Payoff Strategies", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"extraPayment\": 200,\n  \"oneTimePayment\": 0\n}" }, "url": "{{baseUrl}}/api/loan-analytics/{{loanId}}/payoff" } },
-        { "name": "Get Loan Details", "request": { "method": "GET", "url": "{{baseUrl}}/api/loan-analytics/{{loanId}}" } },
-        { "name": "Get Credit Utilization (by liability)", "request": { "method": "GET", "url": "{{baseUrl}}/api/loan-analytics/credit-utilization/{{liabilityId}}" } },
-        { "name": "Get User Credit Utilization", "request": { "method": "GET", "url": "{{baseUrl}}/api/loan-analytics/credit-utilization/user/{{userId}}" } },
-        { "name": "Get Payoff Strategies (user)", "request": { "method": "GET", "url": "{{baseUrl}}/api/loan-analytics/payoff-strategies/{{userId}}" } }
+        { "name": "Get Amortization Schedule", "request": { "method": "GET", "url": "{{baseUrl}}/api/loan-analytics/loans/{{liabilityId}}/amortization" } },
+        { "name": "Calculate Payoff Strategies", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"extraPayment\": 200,\n  \"oneTimePayment\": 0\n}" }, "url": "{{baseUrl}}/api/loan-analytics/loans/{{liabilityId}}/payoff-calculator" } },
+        { "name": "Get Loan Details", "request": { "method": "GET", "url": "{{baseUrl}}/api/loan-analytics/loans/{{liabilityId}}" } },
+        { "name": "Get Credit Utilization (by liability)", "request": { "method": "GET", "url": "{{baseUrl}}/api/loan-analytics/credit-cards/{{liabilityId}}/utilization" } },
+        { "name": "Get User Credit Utilization", "request": { "method": "GET", "url": "{{baseUrl}}/api/loan-analytics/users/{{userId}}/credit-utilization" } },
+        { "name": "Get Payoff Strategies (user)", "request": { "method": "GET", "url": "{{baseUrl}}/api/loan-analytics/users/{{userId}}/payoff-strategies" } },
+        { "name": "Get User Loans", "request": { "method": "GET", "url": "{{baseUrl}}/api/loan-analytics/users/{{userId}}/loans" } }
       ]
     },
     {
       "name": "Portfolio Analytics",
       "description": "Portfolio performance and allocation analysis",
       "item": [
-        { "name": "Get Performance Metrics", "request": { "method": "GET", "url": "{{baseUrl}}/api/portfolios/{{userId}}/performance?period=1Y" } },
-        { "name": "Get Allocation", "request": { "method": "GET", "url": "{{baseUrl}}/api/portfolios/{{userId}}/allocation" } }
+        { "name": "Get Performance Metrics", "request": { "method": "GET", "url": "{{baseUrl}}/api/portfolios/{{accountId}}/performance?period=1Y" } },
+        { "name": "Get Allocation", "request": { "method": "GET", "url": "{{baseUrl}}/api/portfolios/{{accountId}}/allocation?dimension=assetClass" } }
       ]
     },
     {
@@ -940,6 +944,15 @@
       ]
     },
     {
+      "name": "Account Transactions",
+      "description": "Account-level transaction and balance history endpoints",
+      "item": [
+        { "name": "List Transactions", "request": { "method": "GET", "url": "{{baseUrl}}/api/accounts/{{accountId}}/transactions?limit=50" } },
+        { "name": "Get Balance History", "request": { "method": "GET", "url": "{{baseUrl}}/api/accounts/{{accountId}}/balance-history" } },
+        { "name": "Get Interest Summary", "request": { "method": "GET", "url": "{{baseUrl}}/api/accounts/{{accountId}}/interest-summary" } }
+      ]
+    },
+    {
       "name": "Users",
       "item": [
         { "name": "List Users", "request": { "method": "GET", "url": "{{baseUrl}}/api/Users" } },
@@ -948,6 +961,14 @@
         { "name": "Update User", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"userId\": {{userId}},\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Doe\"\n}"}, "url": "{{baseUrl}}/api/Users/{{userId}}" } },
         { "name": "Delete User", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/Users/{{userId}}" } },
         { "name": "User Summary", "request": { "method": "GET", "url": "{{baseUrl}}/api/Users/{{userId}}/summary" } }
+      ]
+    },
+    {
+      "name": "Profile",
+      "description": "User profile management (demographics, risk tolerance, setup status)",
+      "item": [
+        { "name": "Get Profile", "request": { "method": "GET", "url": "{{baseUrl}}/api/profile/{{userId}}" } },
+        { "name": "Update Profile", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": {"mode":"raw","raw": "{\n  \"riskTolerance\": \"Moderate\",\n  \"investmentHorizon\": \"10+ years\"\n}"}, "url": "{{baseUrl}}/api/profile/{{userId}}" } }
       ]
     },
     {
@@ -995,7 +1016,8 @@
         { "name": "Mark Read", "request": { "method": "PATCH", "url": "{{baseUrl}}/api/Alerts/{{alertId}}/read" } },
         { "name": "Dismiss", "request": { "method": "PATCH", "url": "{{baseUrl}}/api/Alerts/{{alertId}}/dismiss" } },
         { "name": "Undismiss", "request": { "method": "PATCH", "url": "{{baseUrl}}/api/Alerts/{{alertId}}/undismiss" } },
-        { "name": "Delete", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/Alerts/{{alertId}}" } }
+        { "name": "Delete", "request": { "method": "DELETE", "url": "{{baseUrl}}/api/Alerts/{{alertId}}" } },
+        { "name": "Generate Credit Alerts", "request": { "method": "POST", "url": "{{baseUrl}}/api/alerts/credit/generate?userId={{userId}}" } }
       ]
     },
     {
@@ -1051,7 +1073,8 @@
             { "name": "Cash Optimization", "request": { "method": "POST", "url": "{{baseUrl}}/api/ai/analyze/{{userId}}/cash-optimization" } },
             { "name": "Portfolio Rebalancing", "request": { "method": "POST", "url": "{{baseUrl}}/api/ai/analyze/{{userId}}/rebalancing" } },
             { "name": "TSP Allocation", "request": { "method": "POST", "url": "{{baseUrl}}/api/ai/analyze/{{userId}}/tsp" } },
-            { "name": "Risk Alignment", "request": { "method": "POST", "url": "{{baseUrl}}/api/ai/analyze/{{userId}}/risk" } }
+            { "name": "Risk Alignment", "request": { "method": "POST", "url": "{{baseUrl}}/api/ai/analyze/{{userId}}/risk" } },
+            { "name": "Preview Prompt (dry-run)", "request": { "method": "GET", "url": "{{baseUrl}}/api/ai/preview/{{userId}}/cash" } }
           ]
         },
         {
@@ -1091,7 +1114,7 @@
     {
       "name": "Weather",
       "item": [
-        { "name": "Weather Forecast", "request": { "method": "GET", "url": "{{baseUrl}}/weatherforecast" } }
+        { "name": "Weather Forecast", "request": { "method": "GET", "url": "{{baseUrl}}/api/weatherforecast" } }
       ]
     },
     {

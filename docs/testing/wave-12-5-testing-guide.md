@@ -385,29 +385,29 @@ Each Plaid sandbox user is mapped to a local dev user. Switch users via the dev 
 
 | Test | Feature | User | Pass/Fail |
 |------|---------|------|-----------|
-| 1.1 | Unified Link Token | Any (10) | ⬜ |
-| 1.2 | Multi-Product Sync | 19 | ⬜ |
-| 1.3 | Dashboard Data | 19 | ⬜ |
-| 3.1 | Credit Card Display | 10 | ⬜ |
-| 3.2 | High Util Alert | 16 | ⬜ |
-| 3.3 | Overdue Alert | 10 | ⬜ |
-| 3.4 | Student Loan Display | 18 | ⬜ |
-| 3.5 | Debt Payoff Dashboard | 10 | ⬜ |
-| 4.1 | Mortgage → Property | 10 | ⬜ |
-| 4.2 | Property Detail View | 10 | ⬜ |
-| 4.3 | Property Panel Nav | 10 | ⬜ |
-| 4.4 | No Mortgage Property | 20 ⚠️ | ⬜ |
-| 4.5 | Plaid Sync Indicator | 10 | ⬜ |
-| X.1 | Net Worth Calculation | 10 | ⬜ |
-| X.2 | Net Worth Timeline | 10 or 20 | ⬜ |
-| X.3 | Connection Sync | 10 | ⬜ |
-| X.4 | Connection Products | 19 | ⬜ |
-| E.1 | Invalid Property ID | Any | ⬜ |
-| E.2 | Plaid Cancellation | Any | ⬜ |
-| E.3 | Sync Failure | Any | ⬜ |
-| R.1 | Existing Connections | 10 | ⬜ |
-| R.2 | Manual Entries | 20 | ⬜ |
-| R.3 | TSP Still Works | 20 | ⬜ |
+| 1.1 | Unified Link Token | Any (10) | ✅ |
+| 1.2 | Multi-Product Sync | 19 | ✅ |
+| 1.3 | Dashboard Data | 19 | ✅ |
+| 3.1 | Credit Card Display | 10 | ✅ |
+| 3.2 | High Util Alert | 16 | ✅ |
+| 3.3 | Overdue Alert | 10 | ✅ |
+| 3.4 | Student Loan Display | 18 | ✅ |
+| 3.5 | Debt Payoff Dashboard | 10 | ✅ |
+| 4.1 | Mortgage → Property | 10 | ✅ |
+| 4.2 | Property Detail View | 10 | ✅ (data OK; value history deferred to Wave 15) |
+| 4.3 | Property Panel Nav | 10 | ✅ |
+| 4.4 | No Mortgage Property | 20 ⚠️ | ⏸️ Deferred to Wave 15 |
+| 4.5 | Plaid Sync Indicator | 10 | ✅ |
+| X.1 | Net Worth Calculation | 10 | ✅ |
+| X.2 | Net Worth Timeline | 10 or 20 | ✅ |
+| X.3 | Connection Sync | 10 | ✅ |
+| X.4 | Connection Products | 19 | ✅ |
+| E.1 | Invalid Property ID | Any | ✅ |
+| E.2 | Plaid Cancellation | Any | ✅ |
+| E.3 | Sync Failure | Any | ✅ |
+| R.1 | Existing Connections | 10 | ✅ |
+| R.2 | Manual Entries | 20 | ✅ |
+| R.3 | TSP Still Works | 20 | ✅ |
 
 ---
 

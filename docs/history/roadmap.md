@@ -14,13 +14,14 @@ _Last updated: 2026-03-30_
 | Wave 10: Background Jobs | ✅ Complete | December 2025 |
 | TSP Detail Page | ✅ Complete | December 2025 |
 | Wave 11: Plaid Integration | ✅ Complete | December 2025 |
-| Wave 12: Brokerage Linking | 🔄 In Progress | Q1 2026 |
-| Wave 13: Crypto Exchanges | 📋 Planned | Q1-Q2 2026 |
-| Wave 14: Spending Analysis | 📋 Planned | Q2 2026 |
-| Wave 15: Property Management & Valuation | 📋 Planned | Q2 2026 |
-| Wave 16: AI Enhancement | 📋 Planned | Q2 2026 |
+| Wave 12: Brokerage & Investment Linking | ✅ Complete | January 2026 |
+| Wave 12.5: Unified Plaid Linking | ✅ Complete | March 2026 |
+| Wave 13: Crypto Exchanges | 📋 Planned | Q2-Q3 2026 |
+| Wave 14: Spending Analysis | 📋 Planned | Q2-Q3 2026 |
+| Wave 15: Property Management & Valuation | 📋 Planned | Q2-Q3 2026 |
+| Wave 16: AI Enhancement | 📋 Planned | Q3 2026 |
 
-**Current Version**: v0.11.1-alpha (March 30, 2026)
+**Current Version**: v0.12.0-alpha (March 30, 2026)
 
 ---
 
@@ -128,45 +129,37 @@ Originally planned for persistent sidebar navigation. Dashboard currently functi
 - Secure token management via Data Protection API
 - Transaction categorization (FOOD_AND_DRINK, TRAVEL, TRANSPORTATION, etc.)
 
-**See:** `docs/waves/wave-11-plan.md`
+**See:** `docs/waves/wave-11-complete.md`
+
+### Wave 12: Brokerage & Investment Linking ✅
+**Completed**: January 2026
+
+- Plaid Investments integration for 1,600+ brokerages
+- Holdings sync with cost basis and investment transaction tracking
+- Opening balance detection with dialog for adding historical cost basis
+- Custom Plaid sandbox users for testing (5 scenarios)
+- Price refresh integration with FMP API
+
+### Wave 12.5: Unified Plaid Account Linking ✅
+**Completed**: March 2026
+
+- Unified "Connect a Bank" flow for all Plaid products (bank, investments, liabilities)
+- Credit card sync: balance, limit, utilization, APR, payment due dates
+- Mortgage sync with auto-property creation and equity tracking
+- Student loan sync: balance, APR, due dates, minimum payments
+- Credit utilization and overdue payment alert generation
+- Synced field protection (read-only for Plaid-managed fields)
+- ITEM_LOGIN_REQUIRED detection with SyncStatus.Expired
+- 10 custom sandbox users, 23 manual tests, 289+ automated tests
+
+**See:** `docs/waves/wave-12-complete.md`
 
 ---
 
 ## Planned Waves
 
-### Wave 12: Brokerage & Investment Linking �
-**Status**: In Progress (Phase 2.5)
-**Target**: Q1 2026
-
-**Completed (Dec 13-14, 2025):**
-
-| Phase | Description |
-|-------|-------------|
-| Phase 1 | Backend: PlaidInvestmentsService, PlaidSecurity model, EF migration |
-| Phase 2 | Frontend: PlaidInvestmentsLinkButton, InvestmentsSettingsView |
-
-**In Progress:**
-- Phase 2.5: Investment transactions sync (buy, sell, dividend, contribution, withdrawal)
-
-**Phase A: Plaid Investments** (~$1.00/account/month)
-- Covers Fidelity, Vanguard, and 10+ other brokerages
-- Holdings sync with cost basis
-- Fastest path to broad coverage
-
-**Phase B: Direct Brokerage APIs** (Free)
-| Broker | API | Holdings | Transactions | Notes |
-|--------|-----|----------|--------------|-------|
-| TD Ameritrade/Schwab | OAuth REST | ✅ | ✅ | Free, well-documented |
-| E*TRADE | OAuth REST | ✅ | ✅ | Free, Morgan Stanley owned |
-| Fidelity | ❌ No API | Use Plaid | Use Plaid | No public API |
-| Vanguard | ❌ No API | Use Plaid | Use Plaid | No public API |
-| Ally Invest | Limited | ⚠️ | ⚠️ | Poor API support |
-| Robinhood | ❌ Unofficial | ⚠️ | ⚠️ | TOS violation risk |
-
-**Recommendation:** Start with Plaid Investments for broad coverage, add direct Schwab/E*TRADE APIs for power users who want free access.
-
 ### Wave 13: Crypto Exchange Integration 📋
-**Target**: Q1-Q2 2026
+**Target**: Q2-Q3 2026
 
 All major exchanges offer **free** read-only APIs:
 
@@ -180,7 +173,7 @@ All major exchanges offer **free** read-only APIs:
 **Security:** Read-only API keys only (no trading/withdrawal permissions)
 
 ### Wave 14: Spending Analysis & Budgeting 📋
-**Target**: Q2 2026
+**Target**: Q3 2026
 
 Building on Wave 11's transaction sync foundation:
 - Spending trends and category breakdown visualizations
@@ -190,7 +183,7 @@ Building on Wave 11's transaction sync foundation:
 - Cash flow forecasting
 
 ### Wave 15: Property Management & Automated Valuation 📋
-**Target**: Q2 2026
+**Target**: Q3 2026
 
 The dashboard currently has no ability to manually add, edit, or delete properties — only Plaid mortgage auto-creation and onboarding entry exist. Additionally, property values are static with no automatic refresh.
 
@@ -211,7 +204,7 @@ This wave delivers:
 **See:** `docs/waves/wave-15-property-management.md`
 
 ### Wave 16: AI Enhancement & Vetting 📋
-**Target**: Q2 2026 (After Wave 15 — AI needs property data for refinance/HELOC recommendations)
+**Target**: Q3 2026 (After Wave 15 — AI needs property data for refinance/HELOC recommendations)
 **Priority**: Required before Chatbot
 
 The Wave 7 AI advisory system focused on cash optimization. Before building the chatbot, the AI context needs expansion and vetting.

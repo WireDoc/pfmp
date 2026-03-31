@@ -11,11 +11,14 @@ PFMP is an AI-assisted financial planning platform for government employees and 
 - **Authentication**: Azure Entra ID with local bypass mode for development
 - **AI Architecture**: Dual-model pipeline planned (Azure OpenAI + Anthropic) with consensus scoring - See Phase 3 in roadmap
 - **Current Highlights**: 
-  - **Wave 12.5 In Progress** - Unified Plaid linking with liabilities sync (February 2026)
+  - **Wave 12.5 Complete** - Unified Plaid account linking with liabilities sync (March 2026)
   - Single "Link Account" button connects banks, investments, credit cards, and mortgages
   - Credit card, mortgage, and student loan sync via Plaid Liabilities
   - Mortgage-to-property auto-linking with equity tracking
   - Synced field protection: Plaid-managed fields are read-only in edit dialogs
+  - Credit utilization alerts and overdue payment detection
+  - ITEM_LOGIN_REQUIRED detection with SyncStatus.Expired handling
+  - 10 custom sandbox users for comprehensive testing
   - **Wave 12 Complete** - Plaid investment account linking with holdings sync (January 2026)
   - Investment transactions: buy, sell, dividend, contribution, withdrawal tracking
   - Opening balance detection with dialog for adding historical cost basis
@@ -26,20 +29,7 @@ PFMP is an AI-assisted financial planning platform for government employees and 
   - Connection lifecycle: connect, reconnect, disconnect, delete
   - **Wave 10 Complete** - Background jobs with Hangfire (TSP prices, market data, net worth snapshots)
   - **Wave 9.3 Complete** - D3.js visualizations, debt payoff strategies, investment analytics
-  - Debt Payoff Dashboard: Strategy comparison with auto loan and mortgage filters
-  - Performance analytics: TWR/MWR, Sharpe ratio, volatility, benchmark comparison vs SPY/QQQ/IWM/VTI
-  - Tax insights: Unrealized gains/losses, short/long-term classification, tax-loss harvesting
-  - Risk analysis: Portfolio beta, max drawdown, correlation matrix, 30-day rolling volatility
-  - Allocation breakdown: By asset class/sector/geography/market cap with rebalancing recommendations
-  - **Wave 9.2 Complete** - Market data integration with FMP API for real-time quotes and historical charts
-  - **Wave 5 MVP Complete** - Production dashboard enabled with real backend data
-  - Rebuilt onboarding flow with 15 financial profile sections (all fully functional with autosave)
-  - Enhanced UX: Cash accounts with type dropdowns, simplified W-4-based tax withholding section
-  - Comprehensive API integration with PascalCase mapping for all backend endpoints
-  - Dev user reset functionality for testing complete data clearing
-  - Dashboard with net worth aggregation, accounts summary, insights, and task management
-  - Review status persistence - onboarding completion survives page refreshes
-  - TSP summary and daily snapshots with lifecycle funds (L2030–L2075)
+  - **Wave 5 MVP Complete** - Production dashboard with 15-section onboarding, AI advisory, and TSP tracking
   - All 93 backend + 289 frontend tests passing
 - **Planning Frames**: Wave 0–6 rebuild plan (tactical) aligned with roadmap Phases 1–5 (product milestones)
 
@@ -132,28 +122,25 @@ See `docs/api/postman.md` for details.
 
 ## Status & roadmap
 
-- Active version: **v0.11.1-alpha** (Wave 12.5 Phase 5 - February 2026)
-- **Milestone**: Wave 12.5 bug fixes and UX improvements complete
-- **Achievement**: Unified Plaid linking, synced field protection, 382 total tests passing
-- **Next Phase**: Wave 12.5 testing guide completion and validation
+- Active version: **v0.12.0-alpha** (Wave 12.5 Complete - March 2026)
+- **Milestone**: Wave 12 + 12.5 complete — full Plaid integration (banks, investments, liabilities)
+- **Achievement**: Unified account linking, synced field protection, 382 total tests passing
+- **Next Phase**: Wave 13 (Crypto Exchange Integration) or Wave 15 (Property Management)
 - Roadmap Phase 2 (Data Aggregation) complete; Phase 3 (AI Advisory) on deck
 
 ### Upcoming Waves
 
 | Wave | Focus | Target |
 |------|-------|--------|
-| **12** | Brokerage & Investment Linking | February 2026 |
-| | • Plaid Investments for broad coverage | |
-| | • Direct Schwab/E*TRADE APIs (free) | |
-| | • Holdings sync with cost basis | |
-| **13** | AI Enhancement & Vetting | Q1-Q2 2026 |
-| | • Expand AI context coverage | |
-| | • Model upgrades (Gemini 3 Pro) | |
-| | • Chatbot preparation | |
-| **14** | Transaction Import | Q2 2026 |
-| | • Plaid Transactions product | |
-| | • Auto-categorization | |
-| | • Spending analysis | |
+| **13** | Crypto Exchange Integration | Q2-Q3 2026 |
+| | • Coinbase, Binance, Kraken, Gemini APIs | |
+| | • Holdings sync with staking support | |
+| **14** | Spending Analysis & Budgeting | Q3 2026 |
+| | • Category breakdowns & trends | |
+| | • Budget tracking & cash flow forecasting | |
+| **15** | Property Management | Q3 2026 |
+| | • Dashboard CRUD for properties | |
+| | • Automated valuation via AVM providers | |
 
 Track progress, migration notes, and future waves in `docs/waves/`
 

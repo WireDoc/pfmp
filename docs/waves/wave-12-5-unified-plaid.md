@@ -1,7 +1,8 @@
 # Wave 12.5: Unified Plaid Account Linking
 
-> **Status**: Phase 5 In Progress - Bug Fixes Complete
+> **Status**: ✅ Complete (Consolidated into `wave-12-complete.md`)
 > **Target**: Q1 2026
+> **Completed**: March 30, 2026
 > **Priority**: High
 > **Prerequisites**: Wave 12 Complete ✅
 

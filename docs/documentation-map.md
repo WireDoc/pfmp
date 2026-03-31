@@ -1,6 +1,6 @@
 # PFMP Documentation Map
 
-_Last updated: 2025-12-18_
+_Last updated: 2026-03-30_
 
 This index lists every active document under `docs/` following the subject-first taxonomy. Paths are relative to the repository root (`C:\pfmp`). Archive folders capture retired or historical material.
 
@@ -80,9 +80,7 @@ This index lists every active document under `docs/` following the subject-first
 ## 🌊 waves
 
 ### Active Wave Plans
-- `docs/waves/wave-12-plan.md` – **Wave 12: Brokerage & Investment Linking** (Q1 2026)
-- `docs/waves/wave-12-5-unified-plaid.md` – **Wave 12.5: Unified Plaid Account Linking** (Q1 2026)
-- `docs/waves/wave-15-property-management.md` – **Wave 15: Property Management & Automated Valuation** (Q2 2026)
+- `docs/waves/wave-15-property-management.md` – **Wave 15: Property Management & Automated Valuation** (Q3 2026)
 - `docs/waves/wave-11-account-linking-strategy.md` – Wave 11-13: Full account linking strategy reference
 - `docs/waves/WAVE-5-REAL-ESTATE-ENRICHMENT.md` – Original real estate enrichment plan (superseded by Wave 15)
 - Wave 13: Crypto Integration – Documented in `docs/history/roadmap.md`
@@ -90,6 +88,7 @@ This index lists every active document under `docs/` following the subject-first
 - Wave 16: AI Enhancement & Vetting – Documented in `docs/history/roadmap.md`
 
 ### Wave Completion Summaries
+- `docs/waves/wave-12-complete.md` – **Wave 12 + 12.5 Complete** (Jan–Mar 2026) - Brokerage, Investment & Unified Plaid Linking
 - `docs/waves/wave-11-complete.md` – **Wave 11 Complete** (Dec 2025) - Plaid Bank Account Linking
 - `docs/waves/wave-10-complete.md` – **Wave 10 Complete** (Dec 2025) - Background Jobs & Automation
 - `docs/waves/wave-9.3-complete-summary.md` – **Wave 9.3 Complete** (Dec 2025) - All 4 options
@@ -101,6 +100,8 @@ This index lists every active document under `docs/` following the subject-first
 - `docs/waves/wave-8.1-implementation-summary.md` – Wave 8.1: Account Detail Modal
 
 ### Reference Documents
+- `docs/waves/wave-12-plan.md` – Wave 12 original plan (superseded by wave-12-complete.md)
+- `docs/waves/wave-12-5-unified-plaid.md` – Wave 12.5 original plan (superseded by wave-12-complete.md)
 - `docs/waves/REBUILD-WAVE-PLAN.md` – Original wave rebuild plan
 - `docs/waves/MIGRATION_STATUS.md` – Migration tracking
 - `docs/waves/SESSION_COMPLETE.md` – Session completion tracking
