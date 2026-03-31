@@ -129,6 +129,21 @@ public class PropertiesController : ControllerBase
         await _context.SaveChangesAsync();
 
         _logger.LogInformation("Created property {PropertyId} for user {UserId}", property.PropertyId, request.UserId);
+
+        // Fire-and-forget initial valuation refresh (don't block the create response)
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await _valuationService.RefreshValuationAsync(property.PropertyId);
+                _logger.LogInformation("Initial valuation completed for property {PropertyId}", property.PropertyId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Initial valuation failed for property {PropertyId} — user can retry manually", property.PropertyId);
+            }
+        });
+
         return CreatedAtAction(nameof(GetProperty), new { propertyId = property.PropertyId }, MapToDto(property));
     }
 
