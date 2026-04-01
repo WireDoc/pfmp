@@ -19,6 +19,7 @@ namespace PFMP_API.Services.AI
 
         // Throttle constants
         private const int SAME_ADVICE_COOLDOWN_DAYS = 14;
+        private const int SAME_ALERT_COOLDOWN_DAYS = 7;
         private const int MAX_ADVICE_PER_WEEK = 3;
         private const int POST_ACTION_HOLD_DAYS = 14;
         private const decimal MIN_IMPACT_THRESHOLD = 0.05m; // 5% impact
@@ -72,8 +73,9 @@ namespace PFMP_API.Services.AI
                     result.TotalTokens += consensus.TotalTokens;
                     result.TotalCost += consensus.TotalCost;
 
-                    // Generate alert if warranted
-                    if (!forceAnalysis && ShouldGenerateAlert(consensus, userId))
+                    // Generate alert if warranted (checks dedup)
+                    if (!forceAnalysis && ShouldGenerateAlert(consensus, userId)
+                        && !await HasRecentActiveAlertAsync(userId, finding.Key))
                     {
                         var alert = await CreateAlertFromFindingAsync(userId, finding.Key, consensus);
                         result.AlertsGenerated.Add(alert);
@@ -538,6 +540,29 @@ Your analysis will be reviewed by a backup AI system for validation.",
             if (result.ConservativeAdvice?.ActionItems.Count == 0) return false;
 
             return true;
+        }
+
+        /// <summary>
+        /// Checks for existing active (non-dismissed) alerts in the same category
+        /// within the cooldown window to prevent duplicate alerts.
+        /// </summary>
+        private async Task<bool> HasRecentActiveAlertAsync(int userId, string findingKey)
+        {
+            var alertCategory = MapCategoryToAlertCategory(findingKey);
+            var hasRecent = await _context.Alerts
+                .Where(a => a.UserId == userId &&
+                           a.Category == alertCategory &&
+                           !a.IsDismissed &&
+                           a.CreatedAt >= DateTime.UtcNow.AddDays(-SAME_ALERT_COOLDOWN_DAYS))
+                .AnyAsync();
+
+            if (hasRecent)
+            {
+                _logger.LogInformation("Dedup: Active {Category} alert exists for user {UserId} within {Days}-day window",
+                    findingKey, userId, SAME_ALERT_COOLDOWN_DAYS);
+            }
+
+            return hasRecent;
         }
 
         public async Task<bool> ShouldGenerateAdviceAsync(ConsensusResult result, int userId, string adviceType)
@@ -1015,8 +1040,72 @@ Your analysis will be reviewed by a backup AI system for validation.",
             sb.AppendLine("=== MARKET CONTEXT ===");
             sb.AppendLine(marketSummary.TrimEnd());
             sb.AppendLine();
+            sb.AppendLine();
+
+            // Active alerts & advice — tells AI what's already been recommended
+            await AppendActiveAlertsAndAdviceAsync(sb, userId);
 
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Appends a summary of active (non-dismissed) alerts and proposed/accepted advice
+        /// so the AI knows what has already been communicated and avoids repetition.
+        /// </summary>
+        private async Task AppendActiveAlertsAndAdviceAsync(StringBuilder sb, int userId)
+        {
+            var activeAlerts = await _context.Alerts
+                .Where(a => a.UserId == userId && !a.IsDismissed)
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(20)
+                .ToListAsync();
+
+            var activeAdvice = await _context.Advice
+                .Where(a => a.UserId == userId && (a.Status == "Proposed" || a.Status == "Accepted"))
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(20)
+                .ToListAsync();
+
+            sb.AppendLine("=== ACTIVE ALERTS & ADVICE (already communicated to user) ===");
+            sb.AppendLine("Do NOT repeat these. Provide new insights, follow-ups, or escalations only.");
+
+            if (activeAlerts.Any())
+            {
+                sb.AppendLine($"Active Alerts ({activeAlerts.Count}):");
+                foreach (var a in activeAlerts)
+                {
+                    var age = (DateTime.UtcNow - a.CreatedAt).Days;
+                    var read = a.IsRead ? "read" : "unread";
+                    sb.AppendLine($"  - [{a.Category}] {a.Title} ({a.Severity}, {read}, {age}d ago)");
+                }
+            }
+            else
+            {
+                sb.AppendLine("No active alerts.");
+            }
+
+            if (activeAdvice.Any())
+            {
+                sb.AppendLine($"Active Advice ({activeAdvice.Count}):");
+                foreach (var a in activeAdvice)
+                {
+                    var age = (DateTime.UtcNow - a.CreatedAt).Days;
+                    sb.AppendLine($"  - [{a.Theme}] {a.Status} | Confidence: {a.ConfidenceScore}% | {age}d ago");
+                    if (!string.IsNullOrWhiteSpace(a.ConsensusText))
+                    {
+                        var summary = a.ConsensusText.Length > 150
+                            ? a.ConsensusText[..150] + "..."
+                            : a.ConsensusText;
+                        sb.AppendLine($"    Summary: {summary}");
+                    }
+                }
+            }
+            else
+            {
+                sb.AppendLine("No active advice.");
+            }
+
+            sb.AppendLine();
         }
 
         private Task<string> BuildCashContextAsync(int userId)
