@@ -115,6 +115,10 @@ export interface PropertySnapshot {
   estimatedValue: CurrencyAmount;
   mortgageBalance: CurrencyAmount;
   lastUpdated: string | null;
+  interestRate: number | null;
+  lienholder: string | null;
+  monthlyMortgagePayment: number | null;
+  estimatedPayoffDate: string | null;
 }
 
 export interface LiabilitySnapshot {

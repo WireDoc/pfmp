@@ -26,7 +26,10 @@ export interface PropertyDto {
   mortgageTerm: number | null;
   lienholder: string | null;
   monthlyPropertyTax: number | null;
+  propertyTaxFrequency: string;
   monthlyInsurance: number | null;
+  insuranceFrequency: string;
+  estimatedPayoffDate: string | null;
   purpose: string | null;
   address: string | null;
   source: string;
@@ -88,7 +91,10 @@ export interface CreatePropertyRequest {
   mortgageTerm?: number;
   lienholder?: string;
   monthlyPropertyTax?: number;
+  propertyTaxFrequency?: string;
   monthlyInsurance?: number;
+  insuranceFrequency?: string;
+  estimatedPayoffDate?: string;
   purpose?: string;
   street?: string;
   city?: string;
@@ -110,7 +116,10 @@ export interface UpdatePropertyRequest {
   mortgageTerm?: number;
   lienholder?: string;
   monthlyPropertyTax?: number;
+  propertyTaxFrequency?: string;
   monthlyInsurance?: number;
+  insuranceFrequency?: string;
+  estimatedPayoffDate?: string;
   purpose?: string;
   street?: string;
   city?: string;

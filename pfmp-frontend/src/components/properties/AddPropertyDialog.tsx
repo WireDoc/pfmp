@@ -64,7 +64,10 @@ interface FormData {
   mortgageTerm: string;
   lienholder: string;
   monthlyPropertyTax: string;
+  propertyTaxFrequency: string;
   monthlyInsurance: string;
+  insuranceFrequency: string;
+  estimatedPayoffDate: string;
   purpose: string;
   street: string;
   city: string;
@@ -86,7 +89,10 @@ const initialForm: FormData = {
   mortgageTerm: '',
   lienholder: '',
   monthlyPropertyTax: '',
+  propertyTaxFrequency: 'annual',
   monthlyInsurance: '',
+  insuranceFrequency: 'annual',
+  estimatedPayoffDate: '',
   purpose: '',
   street: '',
   city: '',
@@ -172,7 +178,10 @@ export default function AddPropertyDialog({ open, onClose, userId, onCreated }: 
         mortgageTerm: formData.mortgageTerm ? parseInt(formData.mortgageTerm, 10) : undefined,
         lienholder: formData.lienholder.trim() || undefined,
         monthlyPropertyTax: formData.monthlyPropertyTax ? parseFloat(formData.monthlyPropertyTax) : undefined,
+        propertyTaxFrequency: formData.propertyTaxFrequency,
         monthlyInsurance: formData.monthlyInsurance ? parseFloat(formData.monthlyInsurance) : undefined,
+        insuranceFrequency: formData.insuranceFrequency,
+        estimatedPayoffDate: formData.estimatedPayoffDate ? `${formData.estimatedPayoffDate}-01` : undefined,
         purpose: formData.purpose.trim() || undefined,
         street: formData.street.trim() || undefined,
         city: formData.city.trim() || undefined,
@@ -362,17 +371,31 @@ export default function AddPropertyDialog({ open, onClose, userId, onCreated }: 
 
           <Box sx={{ display: 'flex', gap: 2 }}>
             <TextField
-              label="Monthly Property Tax"
+              label="Property Tax"
               type="number"
               value={formData.monthlyPropertyTax}
               onChange={(e) => handleChange('monthlyPropertyTax', e.target.value)}
-              helperText="Monthly tax amount"
+              helperText="Tax amount"
               fullWidth
               disabled={saving}
               slotProps={{ htmlInput: { min: 0, step: 10 } }}
             />
             <TextField
-              label="Monthly Insurance"
+              select
+              label="Frequency"
+              value={formData.propertyTaxFrequency}
+              onChange={(e) => handleChange('propertyTaxFrequency', e.target.value)}
+              disabled={saving}
+              sx={{ minWidth: 120 }}
+            >
+              <MenuItem value="monthly">Monthly</MenuItem>
+              <MenuItem value="annual">Annual</MenuItem>
+            </TextField>
+          </Box>
+
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <TextField
+              label="Insurance"
               type="number"
               value={formData.monthlyInsurance}
               onChange={(e) => handleChange('monthlyInsurance', e.target.value)}
@@ -381,7 +404,29 @@ export default function AddPropertyDialog({ open, onClose, userId, onCreated }: 
               disabled={saving}
               slotProps={{ htmlInput: { min: 0, step: 10 } }}
             />
+            <TextField
+              select
+              label="Frequency"
+              value={formData.insuranceFrequency}
+              onChange={(e) => handleChange('insuranceFrequency', e.target.value)}
+              disabled={saving}
+              sx={{ minWidth: 120 }}
+            >
+              <MenuItem value="monthly">Monthly</MenuItem>
+              <MenuItem value="annual">Annual</MenuItem>
+            </TextField>
           </Box>
+
+          <TextField
+            label="Estimated Payoff Date"
+            type="month"
+            value={formData.estimatedPayoffDate}
+            onChange={(e) => handleChange('estimatedPayoffDate', e.target.value)}
+            helperText="Expected mortgage payoff (month/year)"
+            fullWidth
+            disabled={saving}
+            slotProps={{ inputLabel: { shrink: true } }}
+          />
 
           <TextField
             label="Purpose / Notes"

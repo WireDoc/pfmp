@@ -64,7 +64,9 @@ const formatDate = (dateStr: string | null | undefined): string => {
 };
 
 const formatPercent = (value: number): string => {
-  return `${value.toFixed(1)}%`;
+  // Use up to 2 decimal places, but strip unnecessary trailing zeros
+  const fixed = value.toFixed(2).replace(/\.?0+$/, '');
+  return `${fixed}%`;
 };
 
 // ============================================================================
@@ -327,10 +329,16 @@ export function PropertyDetailView() {
             </Typography>
             <SummaryRow label="Mortgage Payment" value={formatCurrency(property.monthlyMortgagePayment)} />
             {property.monthlyPropertyTax != null && (
-              <SummaryRow label="Property Tax" value={formatCurrency(property.monthlyPropertyTax)} />
+              <SummaryRow
+                label="Property Tax"
+                value={`${formatCurrency(property.monthlyPropertyTax)}/${property.propertyTaxFrequency === 'annual' ? 'yr' : 'mo'}`}
+              />
             )}
             {property.monthlyInsurance != null && (
-              <SummaryRow label="Insurance" value={formatCurrency(property.monthlyInsurance)} />
+              <SummaryRow
+                label="Insurance"
+                value={`${formatCurrency(property.monthlyInsurance)}/${property.insuranceFrequency === 'annual' ? 'yr' : 'mo'}`}
+              />
             )}
             <SummaryRow label="Rental Income" value={formatCurrency(property.monthlyRentalIncome)} />
             <SummaryRow label="Other Expenses" value={formatCurrency(property.monthlyExpenses)} />
@@ -341,7 +349,7 @@ export function PropertyDetailView() {
             />
 
             {/* Mortgage Details (manual entry fields) */}
-            {(property.interestRate != null || property.mortgageTerm != null || property.lienholder) && (
+            {(property.interestRate != null || property.mortgageTerm != null || property.lienholder || property.estimatedPayoffDate) && (
               <>
                 <Divider sx={{ my: 2 }} />
                 <Typography variant="subtitle2" gutterBottom color="text.secondary">
@@ -355,6 +363,9 @@ export function PropertyDetailView() {
                 )}
                 {property.mortgageTerm != null && (
                   <SummaryRow label="Mortgage Term" value={`${property.mortgageTerm} years`} />
+                )}
+                {property.estimatedPayoffDate && (
+                  <SummaryRow label="Est. Payoff" value={new Date(property.estimatedPayoffDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short' })} />
                 )}
               </>
             )}
@@ -414,28 +425,9 @@ export function PropertyDetailView() {
                 Address Details
               </Typography>
               <Divider sx={{ mb: 2 }} />
-              <Grid container spacing={2}>
-                {property.street && (
-                  <Grid size={{ xs: 12, sm: 6 }}>
-                    <SummaryRow label="Street" value={property.street} />
-                  </Grid>
-                )}
-                {property.city && (
-                  <Grid size={{ xs: 12, sm: 3 }}>
-                    <SummaryRow label="City" value={property.city} />
-                  </Grid>
-                )}
-                {property.state && (
-                  <Grid size={{ xs: 6, sm: 1.5 }}>
-                    <SummaryRow label="State" value={property.state} />
-                  </Grid>
-                )}
-                {property.postalCode && (
-                  <Grid size={{ xs: 6, sm: 1.5 }}>
-                    <SummaryRow label="ZIP" value={property.postalCode} />
-                  </Grid>
-                )}
-              </Grid>
+              <Typography variant="body2">
+                {[property.street, property.city, [property.state, property.postalCode].filter(Boolean).join(' ')].filter(Boolean).join(', ')}
+              </Typography>
             </Paper>
           </Grid>
         )}

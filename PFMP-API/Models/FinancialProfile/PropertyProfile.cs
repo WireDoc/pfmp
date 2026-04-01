@@ -62,15 +62,36 @@ namespace PFMP_API.Models.FinancialProfile
 
         /// <summary>
         /// Monthly property tax amount.
+        /// If PropertyTaxFrequency is "annual", this stores the annual amount;
+        /// the cash flow calculation normalizes to monthly automatically.
         /// </summary>
         [Column(TypeName = "decimal(18,2)")]
         public decimal? MonthlyPropertyTax { get; set; }
 
         /// <summary>
+        /// How the property tax amount was entered: "monthly" or "annual".
+        /// </summary>
+        [MaxLength(20)]
+        public string PropertyTaxFrequency { get; set; } = "monthly";
+
+        /// <summary>
         /// Monthly homeowner's insurance premium.
+        /// If InsuranceFrequency is "annual", this stores the annual amount;
+        /// the cash flow calculation normalizes to monthly automatically.
         /// </summary>
         [Column(TypeName = "decimal(18,2)")]
         public decimal? MonthlyInsurance { get; set; }
+
+        /// <summary>
+        /// How the insurance amount was entered: "monthly" or "annual".
+        /// </summary>
+        [MaxLength(20)]
+        public string InsuranceFrequency { get; set; } = "monthly";
+
+        /// <summary>
+        /// Estimated mortgage payoff date (month/year).
+        /// </summary>
+        public DateTime? EstimatedPayoffDate { get; set; }
 
         /// <summary>
         /// Owner notes — strategy, plans, context for AI analysis.

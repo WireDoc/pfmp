@@ -108,7 +108,10 @@ public class PropertiesController : ControllerBase
             MortgageTerm = request.MortgageTerm,
             Lienholder = request.Lienholder,
             MonthlyPropertyTax = request.MonthlyPropertyTax,
+            PropertyTaxFrequency = request.PropertyTaxFrequency ?? "monthly",
             MonthlyInsurance = request.MonthlyInsurance,
+            InsuranceFrequency = request.InsuranceFrequency ?? "monthly",
+            EstimatedPayoffDate = request.EstimatedPayoffDate.HasValue ? DateTime.SpecifyKind(request.EstimatedPayoffDate.Value, DateTimeKind.Utc) : null,
             Purpose = request.Purpose,
             Street = request.Street,
             City = request.City,
@@ -196,8 +199,14 @@ public class PropertiesController : ControllerBase
             property.Lienholder = request.Lienholder;
         if (request.MonthlyPropertyTax.HasValue)
             property.MonthlyPropertyTax = request.MonthlyPropertyTax.Value;
+        if (request.PropertyTaxFrequency != null)
+            property.PropertyTaxFrequency = request.PropertyTaxFrequency;
         if (request.MonthlyInsurance.HasValue)
             property.MonthlyInsurance = request.MonthlyInsurance.Value;
+        if (request.InsuranceFrequency != null)
+            property.InsuranceFrequency = request.InsuranceFrequency;
+        if (request.EstimatedPayoffDate.HasValue)
+            property.EstimatedPayoffDate = DateTime.SpecifyKind(request.EstimatedPayoffDate.Value, DateTimeKind.Utc);
         if (request.Purpose != null)
             property.Purpose = request.Purpose;
         if (!string.IsNullOrEmpty(request.Street))
@@ -382,6 +391,9 @@ public class PropertiesController : ControllerBase
 
     #region Mapping
 
+    private static decimal MonthlyAmount(decimal? amount, string frequency) =>
+        amount.HasValue && frequency == "annual" ? amount.Value / 12 : (amount ?? 0);
+
     private static PropertyDto MapToDto(PropertyProfile p) => new()
     {
         PropertyId = p.PropertyId,
@@ -394,13 +406,16 @@ public class PropertiesController : ControllerBase
         MonthlyMortgagePayment = p.MonthlyMortgagePayment,
         MonthlyRentalIncome = p.MonthlyRentalIncome,
         MonthlyExpenses = p.MonthlyExpenses,
-        MonthlyCashFlow = (p.MonthlyRentalIncome ?? 0) - (p.MonthlyMortgagePayment ?? 0) - (p.MonthlyExpenses ?? 0) - (p.MonthlyPropertyTax ?? 0) - (p.MonthlyInsurance ?? 0),
+        MonthlyCashFlow = (p.MonthlyRentalIncome ?? 0) - (p.MonthlyMortgagePayment ?? 0) - (p.MonthlyExpenses ?? 0) - MonthlyAmount(p.MonthlyPropertyTax, p.PropertyTaxFrequency) - MonthlyAmount(p.MonthlyInsurance, p.InsuranceFrequency),
         HasHeloc = p.HasHeloc,
         InterestRate = p.InterestRate,
         MortgageTerm = p.MortgageTerm,
         Lienholder = p.Lienholder,
         MonthlyPropertyTax = p.MonthlyPropertyTax,
+        PropertyTaxFrequency = p.PropertyTaxFrequency,
         MonthlyInsurance = p.MonthlyInsurance,
+        InsuranceFrequency = p.InsuranceFrequency,
+        EstimatedPayoffDate = p.EstimatedPayoffDate,
         Purpose = p.Purpose,
         Address = FormatAddress(p),
         Source = p.Source.ToString(),
@@ -431,13 +446,16 @@ public class PropertiesController : ControllerBase
         MonthlyMortgagePayment = p.MonthlyMortgagePayment,
         MonthlyRentalIncome = p.MonthlyRentalIncome,
         MonthlyExpenses = p.MonthlyExpenses,
-        MonthlyCashFlow = (p.MonthlyRentalIncome ?? 0) - (p.MonthlyMortgagePayment ?? 0) - (p.MonthlyExpenses ?? 0) - (p.MonthlyPropertyTax ?? 0) - (p.MonthlyInsurance ?? 0),
+        MonthlyCashFlow = (p.MonthlyRentalIncome ?? 0) - (p.MonthlyMortgagePayment ?? 0) - (p.MonthlyExpenses ?? 0) - MonthlyAmount(p.MonthlyPropertyTax, p.PropertyTaxFrequency) - MonthlyAmount(p.MonthlyInsurance, p.InsuranceFrequency),
         HasHeloc = p.HasHeloc,
         InterestRate = p.InterestRate,
         MortgageTerm = p.MortgageTerm,
         Lienholder = p.Lienholder,
         MonthlyPropertyTax = p.MonthlyPropertyTax,
+        PropertyTaxFrequency = p.PropertyTaxFrequency,
         MonthlyInsurance = p.MonthlyInsurance,
+        InsuranceFrequency = p.InsuranceFrequency,
+        EstimatedPayoffDate = p.EstimatedPayoffDate,
         Purpose = p.Purpose,
         Street = p.Street,
         City = p.City,
@@ -509,7 +527,10 @@ public class PropertyDto
     public int? MortgageTerm { get; set; }
     public string? Lienholder { get; set; }
     public decimal? MonthlyPropertyTax { get; set; }
+    public string PropertyTaxFrequency { get; set; } = "monthly";
     public decimal? MonthlyInsurance { get; set; }
+    public string InsuranceFrequency { get; set; } = "monthly";
+    public DateTime? EstimatedPayoffDate { get; set; }
     public string? Purpose { get; set; }
     public string? Address { get; set; }
     public string Source { get; set; } = string.Empty;
@@ -575,7 +596,10 @@ public class CreatePropertyRequest
     public int? MortgageTerm { get; set; }
     public string? Lienholder { get; set; }
     public decimal? MonthlyPropertyTax { get; set; }
+    public string? PropertyTaxFrequency { get; set; }
     public decimal? MonthlyInsurance { get; set; }
+    public string? InsuranceFrequency { get; set; }
+    public DateTime? EstimatedPayoffDate { get; set; }
     public string? Purpose { get; set; }
     public string? Street { get; set; }
     public string? City { get; set; }
@@ -598,7 +622,10 @@ public class UpdatePropertyRequest
     public int? MortgageTerm { get; set; }
     public string? Lienholder { get; set; }
     public decimal? MonthlyPropertyTax { get; set; }
+    public string? PropertyTaxFrequency { get; set; }
     public decimal? MonthlyInsurance { get; set; }
+    public string? InsuranceFrequency { get; set; }
+    public DateTime? EstimatedPayoffDate { get; set; }
     public string? Purpose { get; set; }
     public string? Street { get; set; }
     public string? City { get; set; }

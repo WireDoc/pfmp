@@ -241,7 +241,11 @@ public class DashboardController : ControllerBase
                 type = p.PropertyType ?? "Residence",
                 estimatedValue = new { amount = p.EstimatedValue, currency = "USD" },
                 mortgageBalance = new { amount = p.MortgageBalance ?? 0, currency = "USD" },
-                lastUpdated = p.UpdatedAt
+                lastUpdated = p.UpdatedAt,
+                interestRate = p.InterestRate,
+                lienholder = p.Lienholder,
+                monthlyMortgagePayment = p.MonthlyMortgagePayment,
+                estimatedPayoffDate = p.EstimatedPayoffDate
             }).ToList();
 
             // Build liabilities list (includes standalone liabilities + mortgages from properties)

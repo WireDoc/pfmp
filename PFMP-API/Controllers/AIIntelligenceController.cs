@@ -140,12 +140,34 @@ namespace PFMP_API.Controllers
             }
         }
 
+        /// <summary>
+        /// POST /api/ai/analyze/{userId}/full
+        /// Comprehensive analysis of all financial areas with equal weight
+        /// </summary>
+        [HttpPost("analyze/{userId}/full")]
+        public async Task<ActionResult<ConsensusResult>> AnalyzeFull(int userId)
+        {
+            if (!IsAuthorizedUser(userId))
+                return Forbid();
+
+            try
+            {
+                var result = await _aiIntelligence.AnalyzeFullFinancialAsync(userId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error running full analysis for user {UserId}", userId);
+                return StatusCode(500, new { error = "Failed to run full analysis", details = ex.Message });
+            }
+        }
+
         // ===== Preview/Dry-Run (Development) =====
 
         /// <summary>
         /// GET /api/ai/preview/{userId}/{analysisType}
         /// Returns the prompt that would be sent to AI without calling the API.
-        /// Valid analysisType values: cash, portfolio, tsp, risk
+        /// Valid analysisType values: cash, portfolio, tsp, risk, full
         /// Useful for debugging and refining context before incurring API costs.
         /// </summary>
         [HttpGet("preview/{userId}/{analysisType}")]

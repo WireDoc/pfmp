@@ -135,6 +135,26 @@ export default function PropertiesPanel({ properties = [], loading = false, user
                       </Typography>
                     )}
                   </Box>
+
+                  {(property.interestRate != null || property.lienholder || property.monthlyMortgagePayment != null) && (
+                    <Box mt={0.5} display="flex" justifyContent="space-between" flexWrap="wrap" gap={0.5}>
+                      {property.lienholder && (
+                        <Typography variant="caption" color="text.secondary">
+                          {property.lienholder}
+                        </Typography>
+                      )}
+                      {property.interestRate != null && (
+                        <Typography variant="caption" color="text.secondary">
+                          {property.interestRate.toFixed(2).replace(/\.?0+$/, '')}% APR
+                        </Typography>
+                      )}
+                      {property.monthlyMortgagePayment != null && property.monthlyMortgagePayment > 0 && (
+                        <Typography variant="caption" color="text.secondary">
+                          ${property.monthlyMortgagePayment.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}/mo
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
                 </CardContent>
               </Card>
             );

@@ -38,25 +38,30 @@ namespace PFMP_API
             // Add AI Service
             builder.Services.AddScoped<IAIService, AIService>();
 
-            // Add Wave 7: Primary-Backup AI Intelligence Services (OpenAI GPT-5 primary, Gemini backup)
-            builder.Services.Configure<PFMP_API.Services.AI.OpenAIServiceOptions>(
-                builder.Configuration.GetSection("AI:OpenAI"));
-            builder.Services.Configure<PFMP_API.Services.AI.ClaudeServiceOptions>(
-                builder.Configuration.GetSection("AI:Claude"));
-            builder.Services.Configure<PFMP_API.Services.AI.GeminiServiceOptions>(
-                builder.Configuration.GetSection("AI:Gemini"));
+            // Wave 16: OpenRouter AI gateway — single provider, two model roles
+            builder.Services.Configure<PFMP_API.Services.AI.OpenRouterOptions>(
+                builder.Configuration.GetSection("AI:OpenRouter"));
             builder.Services.Configure<PFMP_API.Services.AI.ConsensusOptions>(
                 builder.Configuration.GetSection("AI:Consensus"));
             builder.Services.Configure<PFMP_API.Services.AI.AISafetyOptions>(
                 builder.Configuration.GetSection("AI:Safety"));
 
-            builder.Services.AddHttpClient<PFMP_API.Services.AI.OpenAIService>();
-            builder.Services.AddHttpClient<PFMP_API.Services.AI.ClaudeService>();
-            builder.Services.AddHttpClient<PFMP_API.Services.AI.GeminiService>();
-            
-            builder.Services.AddScoped<PFMP_API.Services.AI.IAIFinancialAdvisor, PFMP_API.Services.AI.OpenAIService>();
-            builder.Services.AddScoped<PFMP_API.Services.AI.IAIFinancialAdvisor, PFMP_API.Services.AI.ClaudeService>();
-            builder.Services.AddScoped<PFMP_API.Services.AI.IAIFinancialAdvisor, PFMP_API.Services.AI.GeminiService>();
+            builder.Services.AddHttpClient("OpenRouter");
+
+            // Register two OpenRouterService instances with different roles (Primary + Verifier)
+            builder.Services.AddScoped<PFMP_API.Services.AI.IAIFinancialAdvisor>(sp =>
+                new PFMP_API.Services.AI.OpenRouterService(
+                    sp.GetRequiredService<IHttpClientFactory>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<PFMP_API.Services.AI.OpenRouterOptions>>(),
+                    sp.GetRequiredService<ILogger<PFMP_API.Services.AI.OpenRouterService>>(),
+                    "Primary"));
+            builder.Services.AddScoped<PFMP_API.Services.AI.IAIFinancialAdvisor>(sp =>
+                new PFMP_API.Services.AI.OpenRouterService(
+                    sp.GetRequiredService<IHttpClientFactory>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<PFMP_API.Services.AI.OpenRouterOptions>>(),
+                    sp.GetRequiredService<ILogger<PFMP_API.Services.AI.OpenRouterService>>(),
+                    "Verifier"));
+
             builder.Services.AddScoped<PFMP_API.Services.AI.ConsensusEngine>();
             builder.Services.AddScoped<PFMP_API.Services.AI.IDualAIAdvisor, PFMP_API.Services.AI.PrimaryBackupAIAdvisor>();
             builder.Services.AddScoped<PFMP_API.Services.AI.IAIMemoryService, PFMP_API.Services.AI.AIMemoryService>();

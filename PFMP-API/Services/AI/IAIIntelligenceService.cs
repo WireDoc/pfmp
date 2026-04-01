@@ -21,6 +21,7 @@ namespace PFMP_API.Services.AI
         Task<ConsensusResult> AnalyzePortfolioRebalancingAsync(int userId);
         Task<ConsensusResult> AnalyzeTSPAllocationAsync(int userId);
         Task<ConsensusResult> AnalyzeRiskAlignmentAsync(int userId);
+        Task<ConsensusResult> AnalyzeFullFinancialAsync(int userId);
 
         // ===== Preview/Dry-Run (Development) =====
         /// <summary>

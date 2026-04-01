@@ -136,6 +136,7 @@ export const Dashboard: React.FC = () => {
     const investmentTypes = ['brokerage', 'retirement', 'other'];
     const investmentAccounts = data.accounts.filter(a =>
       investmentTypes.some(t => a.type === t) && !a.isCashAccount
+      && typeof a.id === 'number' // exclude synthetic accounts like tsp_aggregate
     );
 
     // Fire-and-forget background refresh for each investment account
