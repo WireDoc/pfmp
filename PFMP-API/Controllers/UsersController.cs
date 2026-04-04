@@ -79,9 +79,36 @@ namespace PFMP_API.Controllers
 
             try
             {
-                user.UpdatedAt = DateTime.UtcNow;
-                _context.Entry(user).State = EntityState.Modified;
+                var existing = await _context.Users.FindAsync(id);
+                if (existing == null)
+                {
+                    return NotFound($"User with ID {id} not found");
+                }
 
+                // Load-then-merge: copy incoming values onto the tracked entity,
+                // then restore any nullable field the request would wipe to null.
+                // This prevents accidental data loss from partial payloads.
+                var entry = _context.Entry(existing);
+                var originalCreatedAt = existing.CreatedAt;
+                entry.CurrentValues.SetValues(user);
+                existing.CreatedAt = originalCreatedAt; // Never overwrite audit timestamp
+
+                foreach (var prop in entry.Properties)
+                {
+                    if (!prop.IsModified || prop.Metadata.Name == "UpdatedAt" || prop.Metadata.Name == "CreatedAt")
+                        continue;
+
+                    if (prop.OriginalValue != null && 
+                        (prop.CurrentValue == null || (prop.CurrentValue is string s && string.IsNullOrWhiteSpace(s))))
+                    {
+                        _logger.LogDebug("PutUser: Prevented null/empty overwrite of {Property} for user {UserId}",
+                            prop.Metadata.Name, id);
+                        prop.CurrentValue = prop.OriginalValue;
+                        prop.IsModified = false;
+                    }
+                }
+
+                existing.UpdatedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
                 return NoContent();
             }

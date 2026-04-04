@@ -73,6 +73,7 @@ public class HoldingsControllerTests : IClassFixture<TestingWebAppFactory>
         decimal? Quantity,
         decimal? Price,
         decimal Amount,
+        decimal? Fee,
         string? Description
     );
 
@@ -337,5 +338,194 @@ public class HoldingsControllerTests : IClassFixture<TestingWebAppFactory>
         var depositTx = transactions!.FirstOrDefault(t => t.TransactionType == "DEPOSIT");
         Assert.NotNull(depositTx);
         Assert.Equal(8000m, depositTx!.Amount);
+    }
+
+    /// <summary>
+    /// AddShares creates a BUY transaction and recalculates holding via sync service
+    /// </summary>
+    [Fact]
+    public async Task AddShares_BuyMore_RecalculatesHolding()
+    {
+        var client = _factory.CreateClient();
+
+        // Create a test user
+        var userResp = await client.PostAsync("/api/admin/users/test?scenario=done", null);
+        var user = await userResp.Content.ReadFromJsonAsync<UserAdminControllerTests.UserDto>();
+
+        // Create a manual investment account
+        var acctResp = await client.PostAsJsonAsync("/api/Accounts", new AccountCreateDto(
+            user!.UserId, "Test Add Shares", "TestBroker", "Brokerage", 50000m));
+        Assert.Equal(HttpStatusCode.Created, acctResp.StatusCode);
+        var account = await acctResp.Content.ReadFromJsonAsync<AccountResponseDto>();
+
+        // Create initial holding: 10 shares at $100
+        var holdingResp = await client.PostAsJsonAsync("/api/Holdings", new
+        {
+            AccountId = account!.AccountId,
+            Symbol = "TEST",
+            Name = "Test Stock",
+            AssetType = 0,
+            Quantity = 10m,
+            AverageCostBasis = 100m,
+            CurrentPrice = 120m,
+            FundingSource = 2 // ExternalDeposit — no cash debit
+        });
+        Assert.Equal(HttpStatusCode.Created, holdingResp.StatusCode);
+        var holding = await holdingResp.Content.ReadFromJsonAsync<HoldingResponseDto>();
+
+        // Add 5 more shares at $150
+        var addResp = await client.PostAsJsonAsync($"/api/Holdings/{holding!.HoldingId}/add-shares", new
+        {
+            Quantity = 5m,
+            PricePerShare = 150m,
+            TransactionType = "BUY",
+            FundingSource = 2 // ExternalDeposit
+        });
+        Assert.Equal(HttpStatusCode.OK, addResp.StatusCode);
+        var updated = await addResp.Content.ReadFromJsonAsync<HoldingResponseDto>();
+
+        // New quantity should be 15
+        Assert.Equal(15m, updated!.Quantity);
+        // New avg cost: (10*100 + 5*150) / 15 = 1750/15 ≈ 116.67
+        Assert.InRange(updated.AverageCostBasis, 116.66m, 116.67m);
+    }
+
+    /// <summary>
+    /// AddShares records fee on the transaction when provided
+    /// </summary>
+    [Fact]
+    public async Task AddShares_WithFee_RecordsFeeOnTransaction()
+    {
+        var client = _factory.CreateClient();
+
+        var userResp = await client.PostAsync("/api/admin/users/test?scenario=done", null);
+        var user = await userResp.Content.ReadFromJsonAsync<UserAdminControllerTests.UserDto>();
+
+        var acctResp = await client.PostAsJsonAsync("/api/Accounts", new AccountCreateDto(
+            user!.UserId, "Fee Test", "TestBroker", "Brokerage", 50000m));
+        var account = await acctResp.Content.ReadFromJsonAsync<AccountResponseDto>();
+
+        var holdingResp = await client.PostAsJsonAsync("/api/Holdings", new
+        {
+            AccountId = account!.AccountId,
+            Symbol = "FEE",
+            Name = "Fee Test Stock",
+            AssetType = 0,
+            Quantity = 10m,
+            AverageCostBasis = 100m,
+            CurrentPrice = 110m,
+            FundingSource = 2
+        });
+        Assert.Equal(HttpStatusCode.Created, holdingResp.StatusCode);
+        var holding = await holdingResp.Content.ReadFromJsonAsync<HoldingResponseDto>();
+
+        // Add shares with a fee and CashBalance funding source
+        var addResp = await client.PostAsJsonAsync($"/api/Holdings/{holding!.HoldingId}/add-shares", new
+        {
+            Quantity = 5m,
+            PricePerShare = 110m,
+            TransactionType = "BUY",
+            FundingSource = 0, // CashBalance
+            Fee = 9.99m
+        });
+        Assert.Equal(HttpStatusCode.OK, addResp.StatusCode);
+
+        // Verify the transaction has the fee recorded
+        var txResp = await client.GetAsync($"/api/Transactions?accountId={account.AccountId}&transactionType=BUY");
+        Assert.Equal(HttpStatusCode.OK, txResp.StatusCode);
+        var transactions = await txResp.Content.ReadFromJsonAsync<List<TransactionDto>>();
+        var buyTx = transactions!.FirstOrDefault(t => t.Symbol == "FEE" && t.Quantity == 5m);
+        Assert.NotNull(buyTx);
+        Assert.Equal(9.99m, buyTx!.Fee);
+    }
+
+    /// <summary>
+    /// AddShares supports DIVIDEND_REINVEST transaction type
+    /// </summary>
+    [Fact]
+    public async Task AddShares_Drip_CreatesReinvestTransaction()
+    {
+        var client = _factory.CreateClient();
+
+        var userResp = await client.PostAsync("/api/admin/users/test?scenario=done", null);
+        var user = await userResp.Content.ReadFromJsonAsync<UserAdminControllerTests.UserDto>();
+
+        var acctResp = await client.PostAsJsonAsync("/api/Accounts", new AccountCreateDto(
+            user!.UserId, "DRIP Test", "TestBroker", "Brokerage", 50000m));
+        var account = await acctResp.Content.ReadFromJsonAsync<AccountResponseDto>();
+
+        // Create initial holding: 100 shares at $50
+        var holdingResp = await client.PostAsJsonAsync("/api/Holdings", new
+        {
+            AccountId = account!.AccountId,
+            Symbol = "DIV",
+            Name = "Dividend Stock",
+            AssetType = 0,
+            Quantity = 100m,
+            AverageCostBasis = 50m,
+            CurrentPrice = 55m,
+            FundingSource = 2
+        });
+        Assert.Equal(HttpStatusCode.Created, holdingResp.StatusCode);
+        var holding = await holdingResp.Content.ReadFromJsonAsync<HoldingResponseDto>();
+
+        // DRIP: reinvest 2 shares at $55
+        var addResp = await client.PostAsJsonAsync($"/api/Holdings/{holding!.HoldingId}/add-shares", new
+        {
+            Quantity = 2m,
+            PricePerShare = 55m,
+            TransactionType = "DIVIDEND_REINVEST",
+            Notes = "Q1 2026 dividend reinvestment"
+        });
+        Assert.Equal(HttpStatusCode.OK, addResp.StatusCode);
+        var updated = await addResp.Content.ReadFromJsonAsync<HoldingResponseDto>();
+
+        Assert.Equal(102m, updated!.Quantity);
+
+        // Verify DIVIDEND_REINVEST transaction was created
+        var txResp = await client.GetAsync($"/api/Transactions?accountId={account.AccountId}&transactionType=DIVIDEND_REINVEST");
+        Assert.Equal(HttpStatusCode.OK, txResp.StatusCode);
+        var transactions = await txResp.Content.ReadFromJsonAsync<List<TransactionDto>>();
+        var dripTx = transactions!.FirstOrDefault(t => t.Symbol == "DIV");
+        Assert.NotNull(dripTx);
+        Assert.Equal(2m, dripTx!.Quantity);
+        Assert.Equal(55m, dripTx.Price);
+    }
+
+    /// <summary>
+    /// AddShares rejects invalid transaction types
+    /// </summary>
+    [Fact]
+    public async Task AddShares_InvalidType_ReturnsBadRequest()
+    {
+        var client = _factory.CreateClient();
+
+        var userResp = await client.PostAsync("/api/admin/users/test?scenario=done", null);
+        var user = await userResp.Content.ReadFromJsonAsync<UserAdminControllerTests.UserDto>();
+
+        var acctResp = await client.PostAsJsonAsync("/api/Accounts", new AccountCreateDto(
+            user!.UserId, "Invalid Type Test", "TestBroker", "Brokerage", 10000m));
+        var account = await acctResp.Content.ReadFromJsonAsync<AccountResponseDto>();
+
+        var holdingResp = await client.PostAsJsonAsync("/api/Holdings", new
+        {
+            AccountId = account!.AccountId,
+            Symbol = "BAD",
+            Name = "Bad Test",
+            AssetType = 0,
+            Quantity = 10m,
+            AverageCostBasis = 100m,
+            CurrentPrice = 100m,
+            FundingSource = 2
+        });
+        var holding = await holdingResp.Content.ReadFromJsonAsync<HoldingResponseDto>();
+
+        var addResp = await client.PostAsJsonAsync($"/api/Holdings/{holding!.HoldingId}/add-shares", new
+        {
+            Quantity = 5m,
+            PricePerShare = 100m,
+            TransactionType = "SELL"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, addResp.StatusCode);
     }
 }

@@ -4,7 +4,7 @@ namespace PFMP_API.Services.AI;
 
 /// <summary>
 /// Consensus engine that analyzes and merges recommendations from dual AI advisors.
-/// Compares Claude (conservative) and Gemini (aggressive) responses to find common ground.
+/// Compares Primary (Gemini) and Verifier (Claude) responses via OpenRouter to find common ground.
 /// </summary>
 public class ConsensusEngine
 {

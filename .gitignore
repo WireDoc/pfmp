@@ -1,3 +1,6 @@
+# Temporary working files
+temp/
+
 # .NET Core
 bin/
 obj/

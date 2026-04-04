@@ -341,7 +341,7 @@ function assertSectionKey(value: string): value is FinancialProfileSectionKey {
 export async function ensureTspSnapshotFresh(userId: number): Promise<void> {
   try {
     // Backend is idempotent per user+asOf; safe to call unconditionally on dashboard load.
-    await apiClient.post(`/api/financial-profile/${userId}/tsp/snapshot`);
+    await apiClient.post(`/financial-profile/${userId}/tsp/snapshot`);
   } catch (err) {
     // Non-fatal: dashboard can continue even if snapshot creation fails.
     // Vite: use import.meta.env.MODE for environment checks
@@ -368,7 +368,7 @@ export interface TspSummaryLite {
 }
 
 export async function fetchTspSummaryLite(userId: number): Promise<TspSummaryLite> {
-  const resp = await apiClient.get(`/api/financial-profile/${userId}/tsp/summary-lite`);
+  const resp = await apiClient.get(`/financial-profile/${userId}/tsp/summary-lite`);
   const dto = resp.data as {
     items?: Array<{ fundCode?: string; currentPrice?: number | null; units?: number | null; currentMarketValue?: number | null; currentMixPercent?: number | null }>;
     totalBalance?: number | null;

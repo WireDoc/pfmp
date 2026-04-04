@@ -1,7 +1,7 @@
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import type { GridColDef, GridRowParams } from '@mui/x-data-grid';
 import { Box, Chip, Typography } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Edit as EditIcon, Delete as DeleteIcon, AddShoppingCart as AddSharesIcon } from '@mui/icons-material';
 import type { Holding } from '../../types/holdings';
 import { AssetTypeLabels, AssetTypeNameToValue } from '../../types/holdings';
 
@@ -11,9 +11,10 @@ interface HoldingsTableProps {
   onSelect?: (holding: Holding) => void;
   onEdit: (holding: Holding) => void;
   onDelete: (holdingId: number) => void;
+  onAddShares?: (holding: Holding) => void;
 }
 
-export function HoldingsTable({ holdings, selectedHoldingId, onSelect, onEdit, onDelete }: HoldingsTableProps) {
+export function HoldingsTable({ holdings, selectedHoldingId, onSelect, onEdit, onDelete, onAddShares }: HoldingsTableProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -156,7 +157,7 @@ export function HoldingsTable({ holdings, selectedHoldingId, onSelect, onEdit, o
       field: 'actions',
       type: 'actions',
       headerName: 'Actions',
-      width: 100,
+      width: 140,
       getActions: (params) => {
         // Check if this is a synced holding (has plaidSecurityId)
         const isSynced = !!params.row.plaidSecurityId;
@@ -168,6 +169,17 @@ export function HoldingsTable({ holdings, selectedHoldingId, onSelect, onEdit, o
             showInMenu={false}
           />,
         ];
+        // Add "Buy More" for manual holdings
+        if (!isSynced && onAddShares) {
+          actions.push(
+            <GridActionsCellItem
+              icon={<AddSharesIcon />}
+              label="Buy More / DRIP"
+              onClick={() => onAddShares(params.row)}
+              showInMenu={false}
+            />
+          );
+        }
         // Only show delete for manual holdings
         if (!isSynced) {
           actions.push(

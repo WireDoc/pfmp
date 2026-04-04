@@ -4,17 +4,17 @@ import {
   Box,
   Paper,
   Typography,
-  Breadcrumbs,
-  Link,
   Button,
   Tabs,
   Tab,
   CircularProgress,
   Alert,
 } from '@mui/material';
-import { Add as AddIcon, ArrowBack as ArrowBackIcon, SwapHoriz as SwapHorizIcon } from '@mui/icons-material';
+import { Add as AddIcon, SwapHoriz as SwapHorizIcon } from '@mui/icons-material';
 import { HoldingsTable } from '../../components/holdings/HoldingsTable';
 import { HoldingFormModal } from '../../components/holdings/HoldingFormModal';
+import { AddSharesModal } from '../../components/holdings/AddSharesModal';
+import type { AddSharesRequest } from '../../components/holdings/AddSharesModal';
 import { AccountSummaryHeader } from '../../components/holdings/AccountSummaryHeader';
 import { AssetAllocationChart } from '../../components/holdings/AssetAllocationChart';
 import { PriceChartCard } from '../../components/holdings/PriceChartCard';
@@ -87,6 +87,7 @@ export function AccountDetailView() {
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingHolding, setEditingHolding] = useState<Holding | null>(null);
+  const [addSharesHolding, setAddSharesHolding] = useState<Holding | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [accountRefreshKey, setAccountRefreshKey] = useState(0);
@@ -176,6 +177,24 @@ export function AccountDetailView() {
     setSelectedHolding(holding);
   };
 
+  const handleAddShares = (holding: Holding) => {
+    setAddSharesHolding(holding);
+  };
+
+  const handleAddSharesSave = async (holdingId: number, request: AddSharesRequest) => {
+    const response = await fetch(`${apiBase}/holdings/${holdingId}/add-shares`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request),
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(body.message || 'Failed to add shares');
+    }
+    await fetchHoldings();
+    setTransactionRefreshTrigger(prev => prev + 1);
+  };
+
   const handleDeleteHolding = async (holdingId: number) => {
     if (!window.confirm('Are you sure you want to delete this holding?')) {
       return;
@@ -247,22 +266,6 @@ export function AccountDetailView() {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Secondary Breadcrumbs - Back Navigation */}
-      <Breadcrumbs sx={{ mb: 2 }}>
-        <Link
-          component="button"
-          variant="body2"
-          onClick={() => navigate('/dashboard')}
-          sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-        >
-          <ArrowBackIcon fontSize="small" />
-          Dashboard
-        </Link>
-        <Typography color="text.primary">
-          {account?.accountName || 'Account Details'}
-        </Typography>
-      </Breadcrumbs>
-
       {/* Account Summary Header */}
       <AccountSummaryHeader 
         accountId={Number(accountId)} 
@@ -376,6 +379,7 @@ export function AccountDetailView() {
                 onSelect={handleSelectHolding}
                 onEdit={handleEditHolding}
                 onDelete={handleDeleteHolding}
+                onAddShares={handleAddShares}
               />
             </Box>
           )}
@@ -419,6 +423,14 @@ export function AccountDetailView() {
           userId={account?.userId}
           onClose={handleModalClose}
           onSave={handleModalSave}
+        />
+
+        {/* Add Shares / DRIP Modal */}
+        <AddSharesModal
+          open={!!addSharesHolding}
+          holding={addSharesHolding}
+          onClose={() => setAddSharesHolding(null)}
+          onSave={handleAddSharesSave}
         />
 
         {/* Transfer Funds Dialog */}

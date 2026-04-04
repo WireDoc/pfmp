@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
+using PFMP_API.Services;
 using PFMP_API.Services.MarketData;
 using System.ComponentModel.DataAnnotations;
 
@@ -13,14 +14,17 @@ public class HoldingsController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly ILogger<HoldingsController> _logger;
     private readonly IMarketDataService? _marketDataService;
+    private readonly HoldingsSyncService _holdingsSyncService;
 
     public HoldingsController(
         ApplicationDbContext context, 
         ILogger<HoldingsController> logger,
+        HoldingsSyncService holdingsSyncService,
         IMarketDataService? marketDataService = null)
     {
         _context = context;
         _logger = logger;
+        _holdingsSyncService = holdingsSyncService;
         _marketDataService = marketDataService;
     }
 
@@ -717,6 +721,78 @@ public class HoldingsController : ControllerBase
         });
     }
 
+    /// <summary>
+    /// Add shares to an existing holding (Buy More / DRIP).
+    /// Creates a transaction and recalculates the holding via HoldingsSyncService.
+    /// </summary>
+    [HttpPost("{id}/add-shares")]
+    public async Task<ActionResult<HoldingResponse>> AddShares(int id, [FromBody] AddSharesRequest request)
+    {
+        var holding = await _context.Holdings
+            .Include(h => h.Account)
+            .FirstOrDefaultAsync(h => h.HoldingId == id);
+
+        if (holding == null)
+            return NotFound(new { message = "Holding not found" });
+
+        // Validate transaction type
+        var allowedTypes = new[] { "BUY", "DIVIDEND_REINVEST" };
+        var txType = (request.TransactionType ?? "BUY").ToUpperInvariant();
+        if (!allowedTypes.Contains(txType))
+            return BadRequest(new { message = "TransactionType must be BUY or DIVIDEND_REINVEST" });
+
+        var txDate = request.TransactionDate ?? DateTime.UtcNow;
+        if (txDate.Kind == DateTimeKind.Unspecified)
+            txDate = DateTime.SpecifyKind(txDate, DateTimeKind.Utc);
+
+        var transaction = new Transaction
+        {
+            AccountId = holding.AccountId,
+            HoldingId = holding.HoldingId,
+            TransactionType = txType,
+            Symbol = holding.Symbol,
+            Quantity = request.Quantity,
+            Price = request.PricePerShare,
+            Amount = request.Quantity * request.PricePerShare,
+            TransactionDate = txDate,
+            SettlementDate = txDate,
+            Source = TransactionSource.Manual,
+            FundingSource = request.FundingSource ?? FundingSource.ExternalDeposit,
+            Fee = request.Fee,
+            Description = request.Notes ?? $"{(txType == "DIVIDEND_REINVEST" ? "DRIP" : "Buy more")} {holding.Symbol}",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+
+        // Debit account cash balance if funding from cash
+        if (transaction.FundingSource == FundingSource.CashBalance)
+        {
+            var cost = request.Quantity * request.PricePerShare;
+            if (cost > 0)
+            {
+                holding.Account.CurrentBalance -= cost;
+                holding.Account.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        // Recalculate holding from all transactions (weighted avg cost, total qty)
+        await _holdingsSyncService.UpdateHoldingFromTransactionsAsync(holding.HoldingId);
+
+        _logger.LogInformation(
+            "Added {Qty} shares of {Symbol} at ${Price} to holding {HoldingId} via {TxType}",
+            request.Quantity, holding.Symbol, request.PricePerShare, holding.HoldingId, txType);
+
+        // Reload with navigation properties
+        holding = await _context.Holdings
+            .Include(h => h.Account)
+            .FirstAsync(h => h.HoldingId == holding.HoldingId);
+
+        return Ok(MapToResponse(holding));
+    }
+
     private static HoldingResponse MapToResponse(Holding holding)
     {
         return new HoldingResponse
@@ -890,4 +966,28 @@ public class PriceHistoryResponse
     public decimal? AdjustedClose { get; set; }
     public decimal? Change { get; set; }
     public decimal? ChangePercent { get; set; }
+}
+
+public class AddSharesRequest
+{
+    [Required]
+    [Range(0.00000001, double.MaxValue, ErrorMessage = "Quantity must be greater than 0")]
+    public decimal Quantity { get; set; }
+
+    [Required]
+    [Range(0, double.MaxValue)]
+    public decimal PricePerShare { get; set; }
+
+    public DateTime? TransactionDate { get; set; }
+
+    /// <summary>BUY or DIVIDEND_REINVEST</summary>
+    public string? TransactionType { get; set; }
+
+    public FundingSource? FundingSource { get; set; }
+
+    [Range(0, double.MaxValue)]
+    public decimal? Fee { get; set; }
+
+    [StringLength(500)]
+    public string? Notes { get; set; }
 }

@@ -4,14 +4,14 @@ namespace PFMP_API.Services.AI;
 
 /// <summary>
 /// Primary-Backup AI Advisor orchestrates calls where:
-/// 1. Primary AI (OpenAI GPT-5) generates the recommendation
-/// 2. Backup AI (Gemini) reviews and corroborates/adjusts the primary's recommendation
+/// 1. Primary AI (Gemini via OpenRouter) generates the recommendation
+/// 2. Verifier AI (Claude via OpenRouter) reviews and corroborates/adjusts the primary's recommendation
 /// This replaces the "dual panel" approach with a hierarchical validation model.
 /// </summary>
 public class PrimaryBackupAIAdvisor : IDualAIAdvisor
 {
-    private readonly IAIFinancialAdvisor _primaryService;   // OpenAI GPT-5
-    private readonly IAIFinancialAdvisor _backupService;    // Gemini
+    private readonly IAIFinancialAdvisor _primaryService;   // OpenRouter Primary (Gemini)
+    private readonly IAIFinancialAdvisor _backupService;    // OpenRouter Verifier (Claude)
     private readonly ConsensusEngine _consensusEngine;
     private readonly ConsensusOptions _options;
     private readonly ILogger<PrimaryBackupAIAdvisor> _logger;
@@ -24,11 +24,10 @@ public class PrimaryBackupAIAdvisor : IDualAIAdvisor
     {
         var advisorList = advisors.ToList();
         
-        // Easy model switching via configuration:
+        // Both roles route through OpenRouter with different models:
         // Set "AI:Consensus:PrimaryService" and "AI:Consensus:BackupService" in appsettings
-        // Options: "OpenAI", "Claude", "Gemini"
-        var primaryName = options.Value.PrimaryService ?? "OpenAI";
-        var backupName = options.Value.BackupService ?? "Gemini";
+        var primaryName = options.Value.PrimaryService ?? "Primary";
+        var backupName = options.Value.BackupService ?? "Verifier";
         
         _primaryService = advisorList.FirstOrDefault(a => a.ServiceName == primaryName)
             ?? throw new InvalidOperationException($"Primary service '{primaryName}' not found. Available: {string.Join(", ", advisorList.Select(a => a.ServiceName))}");
@@ -52,8 +51,8 @@ public class PrimaryBackupAIAdvisor : IDualAIAdvisor
 
         try
         {
-            // Step 1: Get primary recommendation from OpenAI GPT-5
-            _logger.LogInformation("Calling primary AI (OpenAI)...");
+            // Step 1: Get primary recommendation from Primary model (Gemini via OpenRouter)
+            _logger.LogInformation("Calling primary AI...");
             AIRecommendation primary;
             
             try
@@ -66,14 +65,14 @@ public class PrimaryBackupAIAdvisor : IDualAIAdvisor
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Primary AI (OpenAI) failed");
+                _logger.LogError(ex, "Primary AI failed");
                 
                 // If primary fails, we can't proceed without a recommendation to validate
                 throw new InvalidOperationException("Primary AI service failed - cannot generate recommendation", ex);
             }
 
-            // Step 2: Get backup corroboration from Gemini
-            _logger.LogInformation("Calling backup AI (Gemini) for corroboration...");
+            // Step 2: Get verifier corroboration from Verifier model (Claude via OpenRouter)
+            _logger.LogInformation("Calling verifier AI for corroboration...");
             AIRecommendation? backup = null;
             
             try
@@ -88,7 +87,7 @@ public class PrimaryBackupAIAdvisor : IDualAIAdvisor
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Backup AI (Gemini) failed - proceeding with primary recommendation only");
+                _logger.LogWarning(ex, "Verifier AI failed - proceeding with primary recommendation only");
                 
                 // Backup failure is acceptable - we can proceed with primary only
                 if (_options.RequireBothResponses)

@@ -35,10 +35,10 @@ namespace PFMP_API
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-            // Add AI Service
+            // All AI services route through OpenRouter
             builder.Services.AddScoped<IAIService, AIService>();
 
-            // Wave 16: OpenRouter AI gateway — single provider, two model roles
+            // OpenRouter AI gateway — single provider, two model roles
             builder.Services.Configure<PFMP_API.Services.AI.OpenRouterOptions>(
                 builder.Configuration.GetSection("AI:OpenRouter"));
             builder.Services.Configure<PFMP_API.Services.AI.ConsensusOptions>(

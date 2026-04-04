@@ -9,14 +9,12 @@ import {
   Box,
   Paper,
   Typography,
-  Breadcrumbs,
-  Link,
   CircularProgress,
   Alert,
   Grid,
   Chip,
 } from '@mui/material';
-import { ArrowBack as ArrowBackIcon, CreditCard as CreditCardIcon } from '@mui/icons-material';
+import { CreditCard as CreditCardIcon } from '@mui/icons-material';
 import { UtilizationGauge } from '../../components/credit-cards/UtilizationGauge';
 import { CreditCardSummary } from '../../components/credit-cards/CreditCardSummary';
 import { useCreditUtilization } from '../../hooks/useLoanAnalytics';
@@ -62,22 +60,6 @@ export default function CreditCardDetailView() {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Breadcrumbs */}
-      <Breadcrumbs sx={{ mb: 2 }}>
-        <Link
-          component="button"
-          variant="body2"
-          onClick={() => navigate('/dashboard')}
-          sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-        >
-          <ArrowBackIcon fontSize="small" />
-          Dashboard
-        </Link>
-        <Typography color="text.primary">
-          {utilization.lender || 'Credit Card'}
-        </Typography>
-      </Breadcrumbs>
-
       {/* Header Card */}
       <Paper sx={{ p: 3, mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>

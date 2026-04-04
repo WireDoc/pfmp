@@ -165,4 +165,16 @@ public class FakeAIIntelligenceService : IAIIntelligenceService
             GeneratedAt = DateTime.UtcNow
         });
     }
+
+    public Task<ConsensusResult> AnalyzeFullFinancialAsync(int userId)
+    {
+        return Task.FromResult(new ConsensusResult
+        {
+            ConservativeAdvice = new AIRecommendation { RecommendationText = "Conservative full financial", ConfidenceScore = 0.85m },
+            AggressiveAdvice = new AIRecommendation { RecommendationText = "Aggressive full financial", ConfidenceScore = 0.82m },
+            ConsensusRecommendation = "Consensus full financial",
+            AgreementScore = 0.80m,
+            HasConsensus = true
+        });
+    }
 }

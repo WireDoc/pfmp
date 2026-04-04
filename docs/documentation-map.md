@@ -1,6 +1,6 @@
 # PFMP Documentation Map
 
-_Last updated: 2026-03-30_
+_Last updated: 2026-04-01_
 
 This index lists every active document under `docs/` following the subject-first taxonomy. Paths are relative to the repository root (`C:\pfmp`). Archive folders capture retired or historical material.
 
@@ -80,12 +80,13 @@ This index lists every active document under `docs/` following the subject-first
 ## 🌊 waves
 
 ### Active Wave Plans
+- `docs/waves/wave-17-dashboard-expansion.md` – **Wave 17 In Progress** (Apr 2026) - Dashboard Expansion & Profile Management
 - `docs/waves/wave-11-account-linking-strategy.md` – Wave 11-13: Full account linking strategy reference
 - Wave 13: Crypto Integration – Documented in `docs/history/roadmap.md`
 - Wave 14: Spending Analysis – Documented in `docs/history/roadmap.md`
-- Wave 16: AI Enhancement & Vetting – Documented in `docs/history/roadmap.md`
 
 ### Wave Completion Summaries
+- `docs/waves/wave-16-openrouter-ai-overhaul.md` – **Wave 16 Complete** (Mar 2026) - OpenRouter AI Overhaul & Financial Context
 - `docs/waves/wave-15-complete.md` – **Wave 15 Complete** (Mar 2026) - Property Management & Automated Valuation
 - `docs/waves/wave-12-complete.md` – **Wave 12 + 12.5 Complete** (Jan–Mar 2026) - Brokerage, Investment & Unified Plaid Linking
 - `docs/waves/wave-11-complete.md` – **Wave 11 Complete** (Dec 2025) - Plaid Bank Account Linking

@@ -1,6 +1,6 @@
 # PFMP Product Roadmap (2025–2026)
 
-_Last updated: 2026-03-30_
+_Last updated: 2026-04-01_
 
 ## Current Status Summary
 
@@ -19,9 +19,10 @@ _Last updated: 2026-03-30_
 | Wave 13: Crypto Exchanges | 📋 Planned | Q2-Q3 2026 |
 | Wave 14: Spending Analysis | 📋 Planned | Q2-Q3 2026 |
 | Wave 15: Property Management & Valuation | ✅ Complete | March 2026 |
-| Wave 16: AI Enhancement | 📋 Planned | Q3 2026 |
+| Wave 16: OpenRouter AI Overhaul | ✅ Complete | March 2026 |
+| Wave 17: Dashboard Expansion | 🔄 In Progress | April 2026 |
 
-**Current Version**: v0.15.0-alpha (March 31, 2026)
+**Current Version**: v0.17.0-alpha (April 1, 2026)
 
 ---
 
@@ -205,66 +206,65 @@ Delivered full property CRUD from the dashboard plus automated valuation infrast
 
 **See:** `docs/waves/wave-15-complete.md`
 
-### Wave 16: AI Enhancement & Vetting 📋
-**Target**: Q3 2026 (After Wave 15 — AI needs property data for refinance/HELOC recommendations)
-**Priority**: Required before Chatbot
+### Wave 16: OpenRouter AI Overhaul ✅
+**Completed**: March 2026
 
-The Wave 7 AI advisory system focused on cash optimization. Before building the chatbot, the AI context needs expansion and vetting.
+Replaced three separate AI provider integrations (OpenAI, Claude, Gemini) with a single **OpenRouter** gateway. Rebuilt the entire AI financial context to send comprehensive data across all 14 sections.
 
-**Context Improvements Needed:**
-| Analysis Type | Current Status | Required Changes |
-|--------------|----------------|------------------|
-| Cash Optimization | ✅ Good | Minor refinements |
-| Portfolio Rebalancing | ⚠️ Minimal | Add holdings, allocations, asset classes |
-| TSP | ⚠️ Minimal | Add actual fund positions, contribution rates |
-| Risk | ⚠️ Minimal | Add portfolio composition, volatility metrics |
+**What shipped:**
+- **OpenRouterService** — single `IAIFinancialAdvisor` implementation replacing all three providers
+- **Unified config** — one API key, model names in appsettings (swappable without code changes)
+- **Primary**: `google/gemini-3.1-pro-preview` | **Verifier**: `anthropic/claude-sonnet-4.6`
+- **Comprehensive system prompt** — CFP role, dual-AI architecture explanation, structured 5-section response format
+- **Full financial context** — all 14 data sections (cash, investments, holdings, TSP, properties, liabilities, income, expenses, tax, insurance, obligations, goals, user profile, active alerts/advice)
+- **New `/api/ai/analyze/{userId}/full` endpoint** — comprehensive cross-domain analysis
+- **Alert/advice deduplication** — 7-day category cooldown + active alerts injected into AI context with "do not repeat" instruction
+- **Explicit "None" messages** — 8 empty sections explicitly tell AI "no data" rather than omitting
+- **9 new backend tests** for OpenRouter integration
+- **Legacy services archived** (not deleted) for reference
 
-**Developer Tools (Already Implemented):**
-- `GET /api/ai/preview/{userId}/{analysisType}` - Dry-run preview
-- Shows exact prompts before sending to AI
-- Helps refine context quality
+**See:** `docs/waves/wave-16-openrouter-ai-overhaul.md`
 
-**Post-Processing Recommendations:**
-- Two-Pass Summarization (verbose → action items)
-- Structured JSON output for concrete recommendations
-- Enhanced `ExtractActionItems()` rule-based extraction
+### Wave 17: Dashboard Expansion & Profile Management 🔄
+**Status**: In Progress (April 2026)
 
-**Model Updates:**
-- Upgrade to Gemini 3 Pro when available
-- Simple config change: `appsettings.json` → `"Model": "gemini-3.0-pro"`
+Build out all 8 placeholder dashboard pages into functional views, with ProfileView as the top priority to enable editing onboarding data from the dashboard.
 
-**Success Criteria:**
-- All analysis types return meaningful, accurate recommendations
-- AI correctly interprets user's complete financial picture
-- Recommendations are concrete with $ amounts and timelines
-- Ready for chatbot memory integration
+**Scope:**
+| Part | Deliverable | Priority |
+|------|-------------|----------|
+| A | Profile Management — tabbed editor for all onboarding sections | 1 |
+| B | Accounts Hub — unified grouped account list | 2 |
+| C | Insights Full Page — AI analysis hub with history | 3 |
+| D | Tasks Full Page — task board with status management | 4 |
+| E | Settings Enhancement — notifications, display, security prefs | 5 |
+| F | Help Page — FAQ, shortcuts, version info | 6 |
+| G | Dashboard Overview — health score, cash flow, quick actions | 7 |
+| H | New Features — health score widget, cash flow chart, command palette | Bonus |
 
-See archived AI context documentation for implementation details.
+**See:** `docs/waves/wave-17-dashboard-expansion.md`
 
 ---
 
 ## Major Features Roadmap
 
-### Navigation Shell & Accounts Page 📋
-**Dependency**: Wave 6 (deferred but needed)
+### Navigation Shell & Accounts Page �
+**Status**: Being addressed in Wave 17
 
-The left sidebar currently has placeholder pages. Full implementation includes:
+The left sidebar currently has placeholder pages. Wave 17 builds out all 8 placeholder views:
 
 | Page | Status | Description |
 |------|--------|-------------|
 | Dashboard | ✅ Functional | Net worth, accounts, insights, tasks |
-| Accounts | 🔄 Partial | Detail views exist, list page needs work |
-| **TSP** | 📋 **Needed** | **Detail page with fund editing** |
-| Insights | 📋 Placeholder | AI recommendations hub |
-| Tasks | 📋 Placeholder | Task management with status tracking |
-| Profile | 📋 Placeholder | Edit onboarding sections |
-| Settings | 📋 Placeholder | Preferences, notifications, auth |
+| Accounts | 🔄 Wave 17 | Unified grouped account list |
+| **TSP** | ✅ **Complete** | **Detail page with fund editing (Wave 10)** |
+| Insights | 🔄 Wave 17 | AI recommendations hub with history |
+| Tasks | 🔄 Wave 17 | Full task board with status management |
+| Profile | 🔄 Wave 17 | Edit all onboarding sections (top priority) |
+| Settings | 🔄 Wave 17 | Notifications, display, security prefs |
+| Help | 🔄 Wave 17 | FAQ, shortcuts, version info |
 
-**Deliverables when implemented:**
-- Persistent left sidebar navigation (900px+ screens)
-- Mobile-responsive hamburger menu
-- Enhanced data display: sparkline charts, sync status badges
-- WCAG 2.1 AA accessibility compliance
+**See:** `docs/waves/wave-17-dashboard-expansion.md`
 
 ### TSP Detail Page & Editing 📋
 **Target**: Q1 2026 (With Wave 10 or 11)

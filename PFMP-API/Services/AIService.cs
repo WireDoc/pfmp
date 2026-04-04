@@ -1,48 +1,101 @@
-using Azure.AI.OpenAI;
-using Azure;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using PFMP_API.Models;
+using PFMP_API.Services.AI;
 using PFMP_API.Services.MarketData;
-using OpenAI.Chat;
 
 namespace PFMP_API.Services
 {
     /// <summary>
-    /// AI service implementation using Azure OpenAI for financial analysis and recommendations
+    /// AI service implementation using OpenRouter (Gemini 3.1 Pro) for financial analysis and recommendations.
+    /// All AI calls route through OpenRouter using the configured PrimaryModel.
     /// </summary>
     public class AIService : IAIService
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<AIService> _logger;
-        private readonly AzureOpenAIClient? _openAIClient;
-        private readonly ChatClient? _chatClient;
-        private readonly IConfiguration _configuration;
-        private readonly PFMP_API.Services.MarketData.IMarketDataService _marketDataService;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly OpenRouterOptions _openRouterOptions;
+        private readonly IMarketDataService _marketDataService;
         private readonly TSPService _tspService;
 
-        public AIService(ApplicationDbContext context, ILogger<AIService> logger, IConfiguration configuration, PFMP_API.Services.MarketData.IMarketDataService marketDataService, TSPService tspService)
+        public AIService(
+            ApplicationDbContext context,
+            ILogger<AIService> logger,
+            IHttpClientFactory httpClientFactory,
+            IOptions<OpenRouterOptions> openRouterOptions,
+            IMarketDataService marketDataService,
+            TSPService tspService)
         {
             _context = context;
             _logger = logger;
-            _configuration = configuration;
+            _httpClientFactory = httpClientFactory;
+            _openRouterOptions = openRouterOptions.Value;
             _marketDataService = marketDataService;
             _tspService = tspService;
 
-            // Initialize Azure OpenAI client
-            var endpoint = _configuration["AzureOpenAI:Endpoint"];
-            var apiKey = _configuration["AzureOpenAI:ApiKey"];
-            var deploymentName = _configuration["AzureOpenAI:DeploymentName"] ?? "gpt-4";
+            var hasKey = !string.IsNullOrEmpty(_openRouterOptions.ApiKey);
+            _logger.LogInformation(
+                "AIService initialized via OpenRouter: model={Model}, configured={HasKey}",
+                _openRouterOptions.PrimaryModel, hasKey);
+        }
 
-            if (!string.IsNullOrEmpty(endpoint) && !string.IsNullOrEmpty(apiKey))
+        private bool IsConfigured => !string.IsNullOrEmpty(_openRouterOptions.ApiKey);
+
+        /// <summary>
+        /// Call OpenRouter chat completions API with the primary model.
+        /// </summary>
+        private async Task<string?> CallOpenRouterAsync(string systemPrompt, string userPrompt)
+        {
+            var client = _httpClientFactory.CreateClient("OpenRouter");
+            client.Timeout = TimeSpan.FromSeconds(_openRouterOptions.TimeoutSeconds);
+
+            var request = new HttpRequestMessage(HttpMethod.Post, _openRouterOptions.BaseUrl);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _openRouterOptions.ApiKey);
+
+            if (!string.IsNullOrEmpty(_openRouterOptions.SiteName))
+                request.Headers.Add("X-Title", _openRouterOptions.SiteName);
+
+            var payload = new
             {
-                _openAIClient = new AzureOpenAIClient(new Uri(endpoint), new AzureKeyCredential(apiKey));
-                _chatClient = _openAIClient.GetChatClient(deploymentName);
-                _logger.LogInformation("Azure OpenAI client initialized successfully");
-            }
-            else
+                model = _openRouterOptions.PrimaryModel,
+                messages = new object[]
+                {
+                    new { role = "system", content = systemPrompt },
+                    new { role = "user", content = userPrompt }
+                },
+                max_tokens = _openRouterOptions.MaxTokens,
+                temperature = (double)_openRouterOptions.Temperature
+            };
+
+            var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions
             {
-                _logger.LogWarning("Azure OpenAI configuration not found. AI features will use fallback logic.");
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            });
+            request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await client.SendAsync(request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("OpenRouter API error: {StatusCode} - {Body}",
+                    response.StatusCode, errorBody.Length > 500 ? errorBody[..500] : errorBody);
+                return null;
             }
+
+            var responseBody = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(responseBody);
+            var content = doc.RootElement
+                .GetProperty("choices")[0]
+                .GetProperty("message")
+                .GetProperty("content")
+                .GetString();
+
+            return content;
         }
 
         public async Task<List<CreateTaskRequest>> GenerateTaskRecommendationsAsync(int userId)
@@ -68,23 +121,21 @@ namespace PFMP_API.Services
                     .Where(g => g.UserId == userId)
                     .ToListAsync();
 
-                // If no OpenAI client, return basic recommendations
-                if (_chatClient == null)
+                // If no OpenRouter API key, return basic recommendations
+                if (!IsConfigured)
                 {
                     return GenerateFallbackRecommendations(userId, accounts, goals);
                 }
 
                 // Create AI prompt
                 var prompt = BuildPortfolioAnalysisPrompt(user, accounts, goals);
-                
-                var messages = new List<ChatMessage>
-                {
-                    new SystemChatMessage("You are a professional financial advisor. Analyze the portfolio data and generate specific, actionable task recommendations. Return your response as a JSON array of tasks."),
-                    new UserChatMessage(prompt)
-                };
 
-                var response = await _chatClient.CompleteChatAsync(messages);
-                var content = response.Value.Content[0].Text;
+                var content = await CallOpenRouterAsync(
+                    "You are a professional financial advisor. Analyze the portfolio data and generate specific, actionable task recommendations. Return your response as a JSON array of tasks.",
+                    prompt);
+
+                if (string.IsNullOrEmpty(content))
+                    return GenerateFallbackRecommendations(userId, accounts, goals);
 
                 // Parse AI response and convert to CreateTaskRequest objects
                 return ParseAITaskRecommendations(content, userId);
@@ -100,7 +151,7 @@ namespace PFMP_API.Services
         {
             try
             {
-                if (_chatClient == null)
+                if (!IsConfigured)
                 {
                     // Fallback priority logic
                     return task.Type switch
@@ -114,15 +165,12 @@ namespace PFMP_API.Services
                 }
 
                 var prompt = $"Analyze this financial task and recommend priority level (Critical/High/Medium/Low):\nTitle: {task.Title}\nDescription: {task.Description}\nType: {task.Type}";
-                
-                var messages = new List<ChatMessage>
-                {
-                    new SystemChatMessage("You are a financial advisor. Analyze the task and return only the priority level: Critical, High, Medium, or Low."),
-                    new UserChatMessage(prompt)
-                };
 
-                var response = await _chatClient.CompleteChatAsync(messages);
-                var priorityText = response.Value.Content[0].Text.Trim();
+                var content = await CallOpenRouterAsync(
+                    "You are a financial advisor. Analyze the task and return only the priority level: Critical, High, Medium, or Low.",
+                    prompt);
+
+                var priorityText = (content ?? "Medium").Trim();
 
                 return priorityText.ToUpper() switch
                 {
@@ -144,7 +192,7 @@ namespace PFMP_API.Services
         {
             try
             {
-                if (_chatClient == null)
+                if (!IsConfigured)
                 {
                     // Simple keyword-based categorization
                     var text = $"{title} {description}".ToLower();
@@ -157,15 +205,12 @@ namespace PFMP_API.Services
                 }
 
                 var prompt = $"Categorize this financial task. Return only the category number:\n1=Rebalancing, 2=StockPurchase, 3=TaxLossHarvesting, 4=CashOptimization, 5=GoalAdjustment, 6=InsuranceReview, 7=EmergencyFundContribution, 8=TSPAllocationChange\n\nTitle: {title}\nDescription: {description}";
-                
-                var messages = new List<ChatMessage>
-                {
-                    new SystemChatMessage("You are a financial advisor. Categorize the task and return only a number 1-8."),
-                    new UserChatMessage(prompt)
-                };
 
-                var response = await _chatClient.CompleteChatAsync(messages);
-                var categoryText = response.Value.Content[0].Text.Trim();
+                var content = await CallOpenRouterAsync(
+                    "You are a financial advisor. Categorize the task and return only a number 1-8.",
+                    prompt);
+
+                var categoryText = (content ?? "1").Trim();
 
                 return int.TryParse(categoryText, out int category) && category >= 1 && category <= 8
                     ? (TaskType)category
@@ -200,21 +245,18 @@ namespace PFMP_API.Services
                     tspPrices = await _tspService.GetTSPPricesAsDictionaryAsync();
                 }
 
-                if (_chatClient == null)
+                if (!IsConfigured)
                 {
                     return GenerateFallbackAnalysisWithMarketData(accounts, marketIndices, economicIndicators, tspPrices);
                 }
 
                 var prompt = BuildMarketAwarePortfolioPrompt(user, accounts, null, marketIndices, economicIndicators, tspPrices);
-                
-                var messages = new List<ChatMessage>
-                {
-                    new SystemChatMessage("You are a financial advisor with real-time market data. Provide comprehensive portfolio analysis incorporating current market conditions, economic indicators, and actionable recommendations based on market trends."),
-                    new UserChatMessage(prompt)
-                };
 
-                var response = await _chatClient.CompleteChatAsync(messages);
-                return response.Value.Content[0].Text;
+                var content = await CallOpenRouterAsync(
+                    "You are a financial advisor with real-time market data. Provide comprehensive portfolio analysis incorporating current market conditions, economic indicators, and actionable recommendations based on market trends.",
+                    prompt);
+
+                return content ?? GenerateFallbackAnalysisWithMarketData(accounts, marketIndices, economicIndicators, tspPrices);
             }
             catch (Exception ex)
             {
@@ -343,19 +385,16 @@ namespace PFMP_API.Services
         {
             try
             {
-                if (_chatClient == null)
+                if (!IsConfigured)
                 {
                     return $"Recommendation: {recommendation}\n\nThis recommendation is based on standard financial planning principles and portfolio optimization strategies.";
                 }
 
-                var messages = new List<ChatMessage>
-                {
-                    new SystemChatMessage("You are a financial advisor. Explain the reasoning behind this recommendation in simple, clear terms."),
-                    new UserChatMessage($"Explain why this recommendation is important: {recommendation}")
-                };
+                var content = await CallOpenRouterAsync(
+                    "You are a financial advisor. Explain the reasoning behind this recommendation in simple, clear terms.",
+                    $"Explain why this recommendation is important: {recommendation}");
 
-                var response = await _chatClient.CompleteChatAsync(messages);
-                return response.Value.Content[0].Text;
+                return content ?? $"Recommendation: {recommendation}\n\nThis recommendation is based on standard financial planning principles and portfolio optimization strategies.";
             }
             catch (Exception ex)
             {

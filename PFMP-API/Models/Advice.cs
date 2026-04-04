@@ -97,13 +97,13 @@ namespace PFMP_API.Models
         // ===== Wave 7: Dual AI Integration Fields (Legacy) =====
 
         /// <summary>
-        /// Conservative AI recommendation (Claude typically) - LEGACY: Use PrimaryRecommendation for new code
+        /// Conservative AI recommendation (legacy) - Use PrimaryRecommendation for new code
         /// </summary>
         [MaxLength(5000)]
         public string? ConservativeRecommendation { get; set; }
 
         /// <summary>
-        /// Aggressive AI recommendation (Gemini typically) - LEGACY: Use BackupCorroboration for new code
+        /// Aggressive AI recommendation (legacy) - Use BackupCorroboration for new code
         /// </summary>
         [MaxLength(5000)]
         public string? AggressiveRecommendation { get; set; }
@@ -111,13 +111,13 @@ namespace PFMP_API.Models
         // ===== Wave 7.3: Primary-Backup AI Model =====
 
         /// <summary>
-        /// Primary AI recommendation (OpenAI GPT-5 typically)
+        /// Primary AI recommendation (Gemini via OpenRouter)
         /// </summary>
         [MaxLength(5000)]
         public string? PrimaryRecommendation { get; set; }
 
         /// <summary>
-        /// Backup AI corroboration/review (Gemini typically)
+        /// Verifier AI corroboration/review (Claude via OpenRouter)
         /// </summary>
         [MaxLength(5000)]
         public string? BackupCorroboration { get; set; }

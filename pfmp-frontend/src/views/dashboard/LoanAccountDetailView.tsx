@@ -9,15 +9,13 @@ import {
   Box,
   Paper,
   Typography,
-  Breadcrumbs,
-  Link,
   Tabs,
   Tab,
   CircularProgress,
   Alert,
   Grid,
 } from '@mui/material';
-import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
+
 import { LoanSummaryHeader } from '../../components/loans/LoanSummaryHeader';
 import { AmortizationTable } from '../../components/loans/AmortizationTable';
 import { PayoffCalculator } from '../../components/loans/PayoffCalculator';
@@ -93,22 +91,6 @@ export default function LoanAccountDetailView() {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Breadcrumbs */}
-      <Breadcrumbs sx={{ mb: 2 }}>
-        <Link
-          component="button"
-          variant="body2"
-          onClick={() => navigate('/dashboard')}
-          sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-        >
-          <ArrowBackIcon fontSize="small" />
-          Dashboard
-        </Link>
-        <Typography color="text.primary">
-          {loanDetails.lender} - {formatLoanType(loanDetails.liabilityType)}
-        </Typography>
-      </Breadcrumbs>
-
       {/* Loan Summary Header */}
       <LoanSummaryHeader loan={loanDetails} />
 

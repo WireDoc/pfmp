@@ -109,18 +109,11 @@ export const InvestmentTransactionForm: React.FC<InvestmentTransactionFormProps>
   }, [transactionDate, transactionType, isEdit]);
 
   // Calculate amount based on type, quantity, price, and fee
+  // Amounts are stored as positive values; fee is tracked separately
   const calculateAmount = (): number => {
     const qty = parseFloat(quantity) || 0;
     const prc = parseFloat(price) || 0;
-    const f = parseFloat(fee) || 0;
 
-    if (transactionType === 'BUY' || transactionType === 'INITIAL_BALANCE') {
-      return -1 * (qty * prc + f); // Negative for cash outflow
-    } else if (transactionType === 'SELL') {
-      return qty * prc - f; // Positive for cash inflow
-    } else if (transactionType === 'DIVIDEND' || transactionType === 'DIVIDEND_REINVEST') {
-      return qty * prc; // Dividend amount
-    }
     return qty * prc;
   };
 

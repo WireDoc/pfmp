@@ -11,7 +11,6 @@ import {
   Paper,
   Typography,
   CircularProgress,
-  Breadcrumbs,
   Link,
   Grid,
   Chip,
@@ -33,7 +32,6 @@ import {
   DialogActions,
 } from '@mui/material';
 import {
-  ArrowBack as ArrowBackIcon,
   Home as HomeIcon,
   Sync as SyncIcon,
   Edit as EditIcon,
@@ -235,20 +233,6 @@ export function PropertyDetailView() {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Breadcrumbs */}
-      <Breadcrumbs sx={{ mb: 2 }}>
-        <Link
-          component="button"
-          variant="body2"
-          onClick={() => navigate('/dashboard')}
-          sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-        >
-          <ArrowBackIcon fontSize="small" />
-          Dashboard
-        </Link>
-        <Typography color="text.primary">{property.propertyName}</Typography>
-      </Breadcrumbs>
-
       {/* Action Messages */}
       {actionMsg && (
         <Alert severity={actionMsg.severity} sx={{ mb: 2 }} onClose={() => setActionMsg(null)}>

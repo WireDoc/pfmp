@@ -8,7 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Azure.AI.OpenAI" Version="2.1.0" />
+    <!-- Exclude archived AI service implementations from compilation -->
+    <Compile Remove="Services\AI\archive\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="CsvHelper" Version="33.1.0" />
     <PackageReference Include="Going.Plaid" Version="6.54.0" />

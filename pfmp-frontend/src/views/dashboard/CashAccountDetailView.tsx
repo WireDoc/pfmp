@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Paper, Tabs, Tab, Typography, CircularProgress, Breadcrumbs, Link, Button } from '@mui/material';
-import { ArrowBack as ArrowBackIcon, SwapHoriz as SwapHorizIcon } from '@mui/icons-material';
+import { Box, Paper, Tabs, Tab, Typography, CircularProgress, Button } from '@mui/material';
+import { SwapHoriz as SwapHorizIcon } from '@mui/icons-material';
 import { TransactionList } from '../../components/cash-accounts/TransactionList';
 import { BalanceTrendChart } from '../../components/cash-accounts/BalanceTrendChart';
 import { AccountDetailsCard } from '../../components/cash-accounts/AccountDetailsCard';
@@ -96,20 +96,6 @@ const CashAccountDetailView: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      {/* Secondary Breadcrumbs - Back Navigation */}
-      <Breadcrumbs sx={{ mb: 2 }}>
-        <Link
-          component="button"
-          variant="body2"
-          onClick={() => navigate('/dashboard')}
-          sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-        >
-          <ArrowBackIcon fontSize="small" />
-          Dashboard
-        </Link>
-        <Typography color="text.primary">{account.nickname}</Typography>
-      </Breadcrumbs>
-
       {/* Account Header */}
       <Box mb={3} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <Box>
