@@ -155,6 +155,7 @@ export interface InsurancePolicyPayload {
   renewalDate?: string | null;
   isAdequateCoverage?: boolean | null;
   recommendedCoverage?: number | null;
+  notes?: string | null;
 }
 
 export interface InsurancePoliciesProfilePayload {
@@ -243,6 +244,8 @@ export interface IncomeStreamPayload {
   incomeType?: string | null;
   monthlyAmount?: number | null;
   annualAmount?: number | null;
+  monthlyNetAmount?: number | null;
+  annualNetAmount?: number | null;
   isGuaranteed?: boolean | null;
   startDate?: string | null;
   endDate?: string | null;
@@ -896,6 +899,7 @@ export async function upsertInsurancePoliciesProfile(userId: number, payload: In
       RenewalDate: policy.renewalDate,
       IsAdequateCoverage: policy.isAdequateCoverage ?? false,
       RecommendedCoverage: policy.recommendedCoverage,
+      Notes: policy.notes,
     })),
     OptOut: payload.optOut?.isOptedOut ? {
       IsOptedOut: payload.optOut.isOptedOut,
@@ -918,6 +922,7 @@ export async function fetchInsurancePoliciesProfile(userId: number): Promise<Ins
     renewalDate: policy?.renewalDate ?? null,
     isAdequateCoverage: policy?.isAdequateCoverage ?? false,
     recommendedCoverage: policy?.recommendedCoverage ?? null,
+    notes: policy?.notes ?? null,
   }));
 
   return {
@@ -971,6 +976,8 @@ export async function upsertIncomeStreamsProfile(userId: number, payload: Income
       IncomeType: stream.incomeType,
       MonthlyAmount: stream.monthlyAmount,
       AnnualAmount: stream.annualAmount,
+      MonthlyNetAmount: stream.monthlyNetAmount,
+      AnnualNetAmount: stream.annualNetAmount,
       IsGuaranteed: stream.isGuaranteed,
       StartDate: stream.startDate,
       EndDate: stream.endDate,
@@ -992,6 +999,8 @@ export async function fetchIncomeStreamsProfile(userId: number): Promise<IncomeS
     incomeType: stream?.incomeType ?? 'salary',
     monthlyAmount: stream?.monthlyAmount ?? null,
     annualAmount: stream?.annualAmount ?? null,
+    monthlyNetAmount: stream?.monthlyNetAmount ?? null,
+    annualNetAmount: stream?.annualNetAmount ?? null,
     isGuaranteed: stream?.isGuaranteed ?? false,
     startDate: stream?.startDate ?? null,
     endDate: stream?.endDate ?? null,

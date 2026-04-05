@@ -121,7 +121,10 @@ namespace PFMP_API.Services.FinancialProfile
                 }
                 if (input.TargetRetirementDate.HasValue)
                 {
-                    user.TargetRetirementDate = input.TargetRetirementDate;
+                    var dt = input.TargetRetirementDate.Value;
+                    user.TargetRetirementDate = dt.Kind == DateTimeKind.Utc
+                        ? dt
+                        : DateTime.SpecifyKind(dt, DateTimeKind.Utc);
                 }
                 if (input.PassiveIncomeGoal.HasValue)
                 {
@@ -643,6 +646,7 @@ namespace PFMP_API.Services.FinancialProfile
                         RenewalDate = policy.RenewalDate,
                         IsAdequateCoverage = policy.IsAdequateCoverage,
                         RecommendedCoverage = policy.RecommendedCoverage,
+                        Notes = policy.Notes?.Trim(),
                         CreatedAt = now,
                         UpdatedAt = now
                     });
@@ -678,6 +682,14 @@ namespace PFMP_API.Services.FinancialProfile
                     {
                         annualAmount = monthlyAmount * 12;
                     }
+
+                    // Auto-calc net amounts the same way
+                    decimal? monthlyNet = stream.MonthlyNetAmount;
+                    decimal? annualNet = stream.AnnualNetAmount;
+                    if ((monthlyNet == null || monthlyNet == 0) && annualNet > 0)
+                        monthlyNet = annualNet / 12;
+                    else if ((annualNet == null || annualNet == 0) && monthlyNet > 0)
+                        annualNet = monthlyNet * 12;
                     
                     _db.IncomeStreams.Add(new IncomeStreamProfile
                     {
@@ -686,6 +698,8 @@ namespace PFMP_API.Services.FinancialProfile
                         IncomeType = stream.IncomeType,
                         MonthlyAmount = monthlyAmount,
                         AnnualAmount = annualAmount,
+                        MonthlyNetAmount = monthlyNet,
+                        AnnualNetAmount = annualNet,
                         IsGuaranteed = stream.IsGuaranteed,
                         StartDate = stream.StartDate,
                         EndDate = stream.EndDate,
@@ -1050,7 +1064,8 @@ namespace PFMP_API.Services.FinancialProfile
                     PremiumFrequency = p.PremiumFrequency,
                     RenewalDate = p.RenewalDate,
                     IsAdequateCoverage = p.IsAdequateCoverage,
-                    RecommendedCoverage = p.RecommendedCoverage
+                    RecommendedCoverage = p.RecommendedCoverage,
+                    Notes = p.Notes
                 })
                 .ToListAsync(ct);
 
@@ -1074,6 +1089,8 @@ namespace PFMP_API.Services.FinancialProfile
                     IncomeType = s.IncomeType,
                     MonthlyAmount = s.MonthlyAmount,
                     AnnualAmount = s.AnnualAmount,
+                    MonthlyNetAmount = s.MonthlyNetAmount,
+                    AnnualNetAmount = s.AnnualNetAmount,
                     IsGuaranteed = s.IsGuaranteed,
                     StartDate = s.StartDate,
                     EndDate = s.EndDate,

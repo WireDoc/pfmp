@@ -232,7 +232,7 @@ export function ProfileView() {
                 <Grid size={{ xs: 12, md: 6 }}>
                   <FormControl fullWidth>
                     <InputLabel>Marital Status</InputLabel>
-                    <Select value={household.maritalStatus ?? ''} label="Marital Status" onChange={e => setHousehold(p => ({ ...p, maritalStatus: e.target.value }))}>
+                    <Select value={MARITAL_OPTIONS.find(o => o.toLowerCase() === (household.maritalStatus ?? '').toLowerCase()) ?? ''} label="Marital Status" onChange={e => setHousehold(p => ({ ...p, maritalStatus: e.target.value }))}>
                       {MARITAL_OPTIONS.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
                     </Select>
                   </FormControl>
@@ -316,7 +316,7 @@ export function ProfileView() {
             <Stack spacing={2}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="h6">Income Streams</Typography>
-                <Button startIcon={<AddIcon />} onClick={() => setIncomeStreams(p => [...p, { name: '', incomeType: 'salary', monthlyAmount: null, isGuaranteed: false, isActive: true }])}>Add Stream</Button>
+                <Button startIcon={<AddIcon />} onClick={() => setIncomeStreams(p => [...p, { name: '', incomeType: 'salary', monthlyAmount: null, monthlyNetAmount: null, isGuaranteed: false, isActive: true }])}>Add Stream</Button>
               </Box>
               {incomeStreams.length === 0 && <Typography color="text.secondary">No income streams. Click "Add Stream" to begin.</Typography>}
               {incomeStreams.map((stream, i) => (
@@ -334,12 +334,15 @@ export function ProfileView() {
                       </FormControl>
                     </Grid>
                     <Grid size={{ xs: 6, md: 2 }}>
-                      <TextField fullWidth type="number" label="Monthly $" value={stream.monthlyAmount ?? ''} onChange={e => { const next = [...incomeStreams]; next[i] = { ...next[i], monthlyAmount: Number(e.target.value) || null }; setIncomeStreams(next); }} />
+                      <TextField fullWidth type="number" label="Monthly Gross $" value={stream.monthlyAmount ?? ''} onChange={e => { const next = [...incomeStreams]; next[i] = { ...next[i], monthlyAmount: Number(e.target.value) || null }; setIncomeStreams(next); }} />
                     </Grid>
                     <Grid size={{ xs: 6, md: 2 }}>
+                      <TextField fullWidth type="number" label="Monthly Net $" value={stream.monthlyNetAmount ?? ''} onChange={e => { const next = [...incomeStreams]; next[i] = { ...next[i], monthlyNetAmount: Number(e.target.value) || null }; setIncomeStreams(next); }} />
+                    </Grid>
+                    <Grid size={{ xs: 6, md: 1 }}>
                       <FormControlLabel control={<Switch checked={stream.isGuaranteed ?? false} onChange={e => { const next = [...incomeStreams]; next[i] = { ...next[i], isGuaranteed: e.target.checked }; setIncomeStreams(next); }} />} label="Guaranteed" />
                     </Grid>
-                    <Grid size={{ xs: 6, md: 2 }}>
+                    <Grid size={{ xs: 6, md: 1 }}>
                       <FormControlLabel control={<Switch checked={stream.isActive ?? true} onChange={e => { const next = [...incomeStreams]; next[i] = { ...next[i], isActive: e.target.checked }; setIncomeStreams(next); }} />} label="Active" />
                     </Grid>
                     <Grid size={{ xs: 12, md: 1 }}>
@@ -450,7 +453,7 @@ export function ProfileView() {
             <Stack spacing={2}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="h6">Insurance Policies</Typography>
-                <Button startIcon={<AddIcon />} onClick={() => setInsurance(p => [...p, { policyType: '', carrier: '', coverageAmount: null, premiumAmount: null, premiumFrequency: 'Monthly' }])}>Add Policy</Button>
+                <Button startIcon={<AddIcon />} onClick={() => setInsurance(p => [...p, { policyType: '', carrier: '', coverageAmount: null, premiumAmount: null, premiumFrequency: 'Monthly', notes: '' }])}>Add Policy</Button>
               </Box>
               {insurance.length === 0 && <Typography color="text.secondary">No insurance policies. Click "Add Policy" to begin.</Typography>}
               {insurance.map((pol, i) => (
@@ -486,6 +489,9 @@ export function ProfileView() {
                     </Grid>
                     <Grid size={{ xs: 12, md: 1 }}>
                       <IconButton color="error" onClick={() => setInsurance(p => p.filter((_, idx) => idx !== i))} aria-label="Delete policy"><DeleteIcon /></IconButton>
+                    </Grid>
+                    <Grid size={{ xs: 12 }}>
+                      <TextField fullWidth label="Notes" placeholder="e.g. policy through employer, renews automatically" multiline minRows={2} inputProps={{ maxLength: 500 }} value={pol.notes ?? ''} onChange={e => { const next = [...insurance]; next[i] = { ...next[i], notes: e.target.value }; setInsurance(next); }} />
                     </Grid>
                   </Grid>
                 </Paper>

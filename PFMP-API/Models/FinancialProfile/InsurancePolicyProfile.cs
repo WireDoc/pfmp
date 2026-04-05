@@ -38,6 +38,9 @@ namespace PFMP_API.Models.FinancialProfile
         [Column(TypeName = "decimal(18,2)")]
         public decimal? RecommendedCoverage { get; set; }
 
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

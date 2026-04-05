@@ -658,23 +658,27 @@ Your analysis will be reviewed by a backup AI system for validation.",
             }
 
             // === FINANCIAL GOALS ===
-            if (user != null && (user.RetirementGoalAmount.HasValue || user.TargetMonthlyPassiveIncome.HasValue || user.EmergencyFundTarget > 0))
+            var hasGoals = user != null && (user.RetirementGoalAmount.HasValue || user.TargetMonthlyPassiveIncome.HasValue ||
+                user.EmergencyFundTarget > 0 || user.TargetRetirementDate.HasValue || user.LiquidityBufferMonths.HasValue ||
+                user.TransactionalAccountDesiredBalance.HasValue);
+            if (hasGoals)
             {
                 sb.AppendLine("=== FINANCIAL GOALS ===");
-                if (user.RetirementGoalAmount.HasValue)
+                if (user!.TargetRetirementDate.HasValue)
                 {
-                    sb.Append($"Retirement Target: ${user.RetirementGoalAmount:N0}");
-                    if (user.TargetRetirementDate.HasValue)
-                    {
-                        var yearsTo = user.TargetRetirementDate.Value.Year - DateTime.UtcNow.Year;
-                        sb.Append($" by {user.TargetRetirementDate.Value:yyyy} ({yearsTo} years)");
-                    }
-                    sb.AppendLine();
+                    var yearsTo = user.TargetRetirementDate.Value.Year - DateTime.UtcNow.Year;
+                    sb.AppendLine($"Target Retirement Date: {user.TargetRetirementDate.Value:yyyy} ({yearsTo} years away)");
                 }
+                if (user.RetirementGoalAmount.HasValue)
+                    sb.AppendLine($"Retirement Target: ${user.RetirementGoalAmount:N0}");
                 if (user.TargetMonthlyPassiveIncome.HasValue)
                     sb.AppendLine($"Target Monthly Passive Income: ${user.TargetMonthlyPassiveIncome:N0}");
                 if (user.EmergencyFundTarget > 0)
-                    sb.AppendLine($"Emergency Fund Target: ${user.EmergencyFundTarget:N0}");
+                    sb.AppendLine($"Emergency/Savings Fund Target: ${user.EmergencyFundTarget:N0}");
+                if (user.LiquidityBufferMonths.HasValue)
+                    sb.AppendLine($"Liquidity Buffer: {user.LiquidityBufferMonths:N1} months");
+                if (user.TransactionalAccountDesiredBalance.HasValue)
+                    sb.AppendLine($"Desired Checking Balance: ${user.TransactionalAccountDesiredBalance:N0}");
                 sb.AppendLine();
             }
 
@@ -693,8 +697,6 @@ Your analysis will be reviewed by a backup AI system for validation.",
                     var purpose = !string.IsNullOrEmpty(ca.Purpose) ? $" | Purpose: {ca.Purpose}" : "";
                     sb.AppendLine($"• {ca.Nickname} | {ca.AccountType} | {apr} | ${ca.Balance:N0}{efTag}{purpose}");
                 }
-                if (user?.TransactionalAccountDesiredBalance.HasValue == true)
-                    sb.AppendLine($"Desired Checking Balance: ${user.TransactionalAccountDesiredBalance:N0}");
                 sb.AppendLine();
             }
             else
@@ -913,11 +915,14 @@ Your analysis will be reviewed by a backup AI system for validation.",
             if (incomeStreams.Any())
             {
                 var totalMonthly = incomeStreams.Sum(i => i.MonthlyAmount);
-                sb.AppendLine($"=== INCOME SOURCES ({incomeStreams.Count} sources, ${totalMonthly:N0}/mo gross) ===");
+                var totalMonthlyNet = incomeStreams.Where(i => i.MonthlyNetAmount.HasValue).Sum(i => i.MonthlyNetAmount!.Value);
+                var netLabel = totalMonthlyNet > 0 ? $", ${totalMonthlyNet:N0}/mo net" : "";
+                sb.AppendLine($"=== INCOME SOURCES ({incomeStreams.Count} sources, ${totalMonthly:N0}/mo gross{netLabel}) ===");
                 foreach (var inc in incomeStreams)
                 {
                     var guaranteed = inc.IsGuaranteed ? "Guaranteed" : "Variable";
-                    sb.AppendLine($"• {inc.Name} | {inc.IncomeType} | ${inc.MonthlyAmount:N0}/mo | {guaranteed}");
+                    var netPart = inc.MonthlyNetAmount.HasValue ? $" gross / ${inc.MonthlyNetAmount:N0} net" : "";
+                    sb.AppendLine($"• {inc.Name} | {inc.IncomeType} | ${inc.MonthlyAmount:N0}/mo{netPart} | {guaranteed}");
                 }
                 sb.AppendLine();
             }
@@ -980,6 +985,7 @@ Your analysis will be reviewed by a backup AI system for validation.",
                     if (pol.PremiumAmount > 0)
                         sb.Append($" | Premium: ${pol.PremiumAmount:N0}/{pol.PremiumFrequency ?? "mo"}");
                     sb.Append(pol.IsAdequateCoverage ? " | Adequate" : " | Needs Review");
+                    if (!string.IsNullOrWhiteSpace(pol.Notes)) sb.Append($" | Notes: {pol.Notes}");
                     sb.AppendLine();
                 }
             }

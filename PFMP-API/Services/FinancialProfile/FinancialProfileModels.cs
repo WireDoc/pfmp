@@ -133,6 +133,7 @@ namespace PFMP_API.Services.FinancialProfile
         public DateTime? RenewalDate { get; set; }
         public bool IsAdequateCoverage { get; set; }
         public decimal? RecommendedCoverage { get; set; }
+        public string? Notes { get; set; }
     }
 
     public class InsurancePoliciesInput
@@ -147,6 +148,8 @@ namespace PFMP_API.Services.FinancialProfile
         public string IncomeType { get; set; } = "salary";
         public decimal? MonthlyAmount { get; set; }
         public decimal? AnnualAmount { get; set; }
+        public decimal? MonthlyNetAmount { get; set; }
+        public decimal? AnnualNetAmount { get; set; }
         public bool IsGuaranteed { get; set; }
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }

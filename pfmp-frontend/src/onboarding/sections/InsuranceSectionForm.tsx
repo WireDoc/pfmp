@@ -41,6 +41,7 @@ type InsurancePolicyFormState = {
   renewalDate: string;
   isAdequateCoverage: boolean;
   recommendedCoverage: string;
+  notes: string;
 };
 
 const POLICY_TYPE_OPTIONS = [
@@ -72,6 +73,7 @@ const DEFAULT_POLICY: InsurancePolicyFormState = {
   renewalDate: '',
   isAdequateCoverage: false,
   recommendedCoverage: '',
+  notes: '',
 };
 
 function createPolicy(index: number): InsurancePolicyFormState {
@@ -95,6 +97,7 @@ function buildPayloadPolicies(policies: InsurancePolicyFormState[]): InsurancePo
       policy.premiumAmount.trim() !== '' ||
       policy.renewalDate.trim() !== '' ||
       policy.recommendedCoverage.trim() !== '' ||
+      policy.notes.trim() !== '' ||
       policy.isAdequateCoverage;
 
     if (!hasValues) {
@@ -111,6 +114,7 @@ function buildPayloadPolicies(policies: InsurancePolicyFormState[]): InsurancePo
       renewalDate: policy.renewalDate ? new Date(policy.renewalDate).toISOString() : null,
       isAdequateCoverage: policy.isAdequateCoverage,
       recommendedCoverage: parseNumber(policy.recommendedCoverage) ?? null,
+      notes: policy.notes.trim() || null,
     });
   });
 
@@ -140,6 +144,7 @@ export default function InsuranceSectionForm({ userId, onStatusChange, currentSt
       policy.premiumAmount.trim() !== '' ||
       policy.renewalDate.trim() !== '' ||
       policy.recommendedCoverage.trim() !== '' ||
+      policy.notes.trim() !== '' ||
       policy.isAdequateCoverage,
     );
   }, []);
@@ -156,6 +161,7 @@ export default function InsuranceSectionForm({ userId, onStatusChange, currentSt
       renewalDate: policy.renewalDate ? policy.renewalDate.slice(0, 10) : '',
       isAdequateCoverage: policy.isAdequateCoverage ?? false,
       recommendedCoverage: policy.recommendedCoverage != null ? String(policy.recommendedCoverage) : '',
+      notes: policy.notes ?? '',
     }));
 
     const optedOutState = payload.optOut?.isOptedOut === true;
@@ -377,6 +383,18 @@ export default function InsuranceSectionForm({ userId, onStatusChange, currentSt
                         label="Coverage meets my needs"
                       />
                     </Stack>
+
+                    <TextField
+                      label="Notes"
+                      placeholder="e.g. policy through employer, renews automatically"
+                      value={policy.notes}
+                      onChange={(event) => handlePolicyChange(policy.id, 'notes', event.target.value)}
+                      multiline
+                      minRows={2}
+                      fullWidth
+                      inputProps={{ maxLength: 500 }}
+                      sx={{ mt: 2 }}
+                    />
                   </Box>
                   {canRemovePolicies && (
                     <Tooltip title="Remove policy">

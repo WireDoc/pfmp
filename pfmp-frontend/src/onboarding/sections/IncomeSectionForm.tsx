@@ -42,6 +42,8 @@ type IncomeStreamFormState = {
   incomeType: string;
   monthlyAmount: string;
   annualAmount: string;
+  monthlyNetAmount: string;
+  annualNetAmount: string;
   isGuaranteed: boolean;
   startDate: string;
   endDate: string;
@@ -66,6 +68,8 @@ const DEFAULT_STREAM: IncomeStreamFormState = {
   incomeType: 'salary',
   monthlyAmount: '',
   annualAmount: '',
+  monthlyNetAmount: '',
+  annualNetAmount: '',
   isGuaranteed: false,
   startDate: '',
   endDate: '',
@@ -90,6 +94,8 @@ function buildPayloadStreams(streams: IncomeStreamFormState[]): IncomeStreamPayl
       stream.name.trim() !== '' ||
       stream.monthlyAmount.trim() !== '' ||
       stream.annualAmount.trim() !== '' ||
+      stream.monthlyNetAmount.trim() !== '' ||
+      stream.annualNetAmount.trim() !== '' ||
       stream.startDate.trim() !== '' ||
       stream.endDate.trim() !== '' ||
       stream.isGuaranteed ||
@@ -104,6 +110,8 @@ function buildPayloadStreams(streams: IncomeStreamFormState[]): IncomeStreamPayl
       incomeType: stream.incomeType || 'salary',
       monthlyAmount: parseNumber(stream.monthlyAmount) ?? null,
       annualAmount: parseNumber(stream.annualAmount) ?? null,
+      monthlyNetAmount: parseNumber(stream.monthlyNetAmount) ?? null,
+      annualNetAmount: parseNumber(stream.annualNetAmount) ?? null,
       isGuaranteed: stream.isGuaranteed,
       startDate: stream.startDate ? new Date(stream.startDate).toISOString() : null,
       endDate: stream.endDate ? new Date(stream.endDate).toISOString() : null,
@@ -136,6 +144,8 @@ export default function IncomeSectionForm({ userId, onStatusChange, currentStatu
       incomeType: stream.incomeType ?? 'salary',
       monthlyAmount: stream.monthlyAmount != null ? String(stream.monthlyAmount) : '',
       annualAmount: stream.annualAmount != null ? String(stream.annualAmount) : '',
+      monthlyNetAmount: stream.monthlyNetAmount != null ? String(stream.monthlyNetAmount) : '',
+      annualNetAmount: stream.annualNetAmount != null ? String(stream.annualNetAmount) : '',
       isGuaranteed: stream.isGuaranteed ?? false,
       startDate: stream.startDate ? stream.startDate.slice(0, 10) : '',
       endDate: stream.endDate ? stream.endDate.slice(0, 10) : '',
@@ -280,7 +290,7 @@ export default function IncomeSectionForm({ userId, onStatusChange, currentStatu
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 2 }}>
                       <TextField
                         type="number"
-                        label="Monthly amount ($)"
+                        label="Monthly gross ($)"
                         value={stream.monthlyAmount}
                         onChange={(event) => handleStreamChange(stream.id, 'monthlyAmount', event.target.value)}
                         inputProps={{ min: 0, step: 50 }}
@@ -288,9 +298,30 @@ export default function IncomeSectionForm({ userId, onStatusChange, currentStatu
                       />
                       <TextField
                         type="number"
-                        label="Annual amount ($)"
+                        label="Annual gross ($)"
                         value={stream.annualAmount}
                         onChange={(event) => handleStreamChange(stream.id, 'annualAmount', event.target.value)}
+                        inputProps={{ min: 0, step: 500 }}
+                        fullWidth
+                      />
+                    </Stack>
+
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mt: 2 }}>
+                      <TextField
+                        type="number"
+                        label="Monthly net ($)"
+                        placeholder="Take-home pay"
+                        value={stream.monthlyNetAmount}
+                        onChange={(event) => handleStreamChange(stream.id, 'monthlyNetAmount', event.target.value)}
+                        inputProps={{ min: 0, step: 50 }}
+                        fullWidth
+                      />
+                      <TextField
+                        type="number"
+                        label="Annual net ($)"
+                        placeholder="Take-home pay"
+                        value={stream.annualNetAmount}
+                        onChange={(event) => handleStreamChange(stream.id, 'annualNetAmount', event.target.value)}
                         inputProps={{ min: 0, step: 500 }}
                         fullWidth
                       />

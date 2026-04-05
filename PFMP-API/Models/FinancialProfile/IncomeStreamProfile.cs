@@ -25,6 +25,12 @@ namespace PFMP_API.Models.FinancialProfile
         [Column(TypeName = "decimal(18,2)")]
         public decimal AnnualAmount { get; set; }
 
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? MonthlyNetAmount { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? AnnualNetAmount { get; set; }
+
         public bool IsGuaranteed { get; set; }
 
         public DateTime? StartDate { get; set; }
