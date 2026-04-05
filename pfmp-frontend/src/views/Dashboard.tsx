@@ -72,7 +72,13 @@ export const Dashboard: React.FC = () => {
   const totalSteps = onboardingSteps.length;
   const completedCount = completedSteps.size;
   const onboardingHydrated = onboarding?.hydrated ?? true;
-  const onboardingComplete = onboarding ? completedCount >= totalSteps : true;
+  // Use the same "review completed" check as DashboardGuard/OnboardingGuard to determine
+  // if the user should be on the dashboard. A stricter "all steps completed" check would
+  // redirect users who have completed review but still have optional sections as needs_info,
+  // creating an infinite redirect loop with OnboardingGuard (which redirects review-completed
+  // users back to /dashboard).
+  const reviewComplete = onboarding?.statuses?.review === 'completed';
+  const onboardingComplete = reviewComplete;
   const nextStepTitle = onboardingSteps.find(step => !completedSteps.has(step.id))?.title ?? null;
 
   const stepsSummaryText = onboardingHydrated

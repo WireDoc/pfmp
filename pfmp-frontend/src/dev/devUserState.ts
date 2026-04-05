@@ -22,6 +22,7 @@ let initialized = false;
 const listeners = new Set<() => void>();
 
 export function setDevUserId(id: number | null) {
+  if (id === currentDevUserId && initialized) return;
   currentDevUserId = id;
   initialized = true;
   try {

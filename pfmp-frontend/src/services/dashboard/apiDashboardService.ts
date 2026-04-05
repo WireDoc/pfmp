@@ -152,11 +152,6 @@ async function safeJson<T>(resp: Response): Promise<T> {
 async function fetchSummary(headers: HeadersInit): Promise<ApiDashboardSummaryResponse> {
   const effectiveUserId = getEffectiveUserId();
   const url = `${DASHBOARD_BASE}/summary?userId=${encodeURIComponent(effectiveUserId)}`;
-  console.log('[Dashboard API] Fetching summary from:', url);
-  console.log('[Dashboard API] Using userId:', effectiveUserId);
-  console.log('[Dashboard API] DASHBOARD_BASE:', DASHBOARD_BASE);
-  console.log('[Dashboard API] API_ORIGIN:', API_ORIGIN);
-  console.log('[Dashboard API] API_BASE_URL:', API_BASE_URL);
   const resp = await fetch(url, {
     headers,
   });

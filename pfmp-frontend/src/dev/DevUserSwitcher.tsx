@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { setDevUserId } from './devUserState';
+import { setDevUserId, getDevUserId, useDevUserId } from './devUserState';
 
 interface DevUserInfo { userId: number; email: string; isDefault: boolean; }
 
@@ -7,28 +7,35 @@ interface DevUsersResponse { users: DevUserInfo[] }
 
 export const DevUserSwitcher: React.FC = () => {
   const isTestMode = import.meta.env.MODE === 'test';
+  const activeUserId = useDevUserId();
   const [users, setUsers] = useState<DevUserInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal?: AbortSignal) => {
     setLoading(true); setError(null);
     try {
-      const resp = await fetch('/api/dev/users');
+      const resp = await fetch('/api/dev/users', { signal });
+      if (signal?.aborted) return;
       if (!resp.ok) throw new Error('Failed to fetch dev users');
       const data = await resp.json() as DevUsersResponse;
       setUsers(data.users);
-      const def = data.users.find((u) => u.isDefault);
-      setDevUserId(def?.userId ?? null);
+      // Only set from API default when no user is persisted yet.
+      // Explicit user switches go through setDefault() which calls setDevUserId directly.
+      if (getDevUserId() === null) {
+        const def = data.users.find((u) => u.isDefault);
+        setDevUserId(def?.userId ?? null);
+      }
     } catch (rawError: unknown) {
+      if (signal?.aborted) return;
       if (rawError instanceof Error) {
         setError(rawError.message);
       } else {
         setError('Unexpected error');
       }
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   }, []);
 
@@ -36,7 +43,9 @@ export const DevUserSwitcher: React.FC = () => {
     if (isTestMode) {
       return;
     }
-    void load();
+    const controller = new AbortController();
+    void load(controller.signal);
+    return () => controller.abort();
   }, [isTestMode, load]);
 
   async function setDefault(userId: number) {
@@ -84,8 +93,8 @@ export const DevUserSwitcher: React.FC = () => {
                 onClick={() => setDefault(u.userId)}
                 style={{
                   padding: '0.4rem 0.6rem',
-                  background: u.isDefault ? '#2563eb' : '#e0e0e0',
-                  color: u.isDefault ? '#fff' : '#000',
+                  background: u.userId === activeUserId ? '#2563eb' : '#e0e0e0',
+                  color: u.userId === activeUserId ? '#fff' : '#000',
                   border: 'none',
                   borderRadius: 4,
                   cursor: 'pointer',
