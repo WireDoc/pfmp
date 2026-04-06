@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useMemo } from 'react';
 import { createBrowserRouter, createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { useFeatureFlag } from './flags/featureFlags';
 import { staticChildRoutes, StaticNotFoundComponent } from './routes/staticRoutes';
@@ -36,10 +36,14 @@ const SchedulerAdminView = lazy(() => import('./views/admin/SchedulerAdminView')
 
 export interface AppRouterProps { initialEntries?: string[] }
 
+const ROUTER_FUTURE = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
+
 export function AppRouter(props: AppRouterProps) {
   const enableWave4 = useFeatureFlag('enableDashboardWave4');
-  const futureConfig = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
 
+  // Memoize router so parent re-renders (OnboardingProvider hydration, auth init)
+  // don't recreate the router and remount the entire route tree.
+  const router = useMemo(() => {
   const baseChildren = staticChildRoutes
     .filter(r => enableWave4 || r.id !== 'dashboard-wave4')
     .map(r => {
@@ -197,9 +201,10 @@ export function AppRouter(props: AppRouterProps) {
     { path: '*', element: <Suspense fallback={<PageSpinner />}><StaticNotFoundComponent /></Suspense> }
   ];
 
-  const router = props.initialEntries
+  return props.initialEntries
     ? createMemoryRouter(routes, { initialEntries: props.initialEntries })
     : createBrowserRouter(routes);
+  }, [enableWave4, props.initialEntries]);
 
-  return <RouterProvider router={router} future={futureConfig} />;
+  return <RouterProvider router={router} future={ROUTER_FUTURE} />;
 }

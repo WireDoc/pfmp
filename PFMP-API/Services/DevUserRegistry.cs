@@ -9,7 +9,7 @@ namespace PFMP_API.Services;
 public static class DevUserRegistry
 {
     private static readonly ConcurrentDictionary<int, string> _users = new();
-    public static int DefaultTestUserId { get; private set; } = 1;
+    public static int DefaultTestUserId { get; private set; } = 20;
 
     public static void Register(int userId, string email)
     {
