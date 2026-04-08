@@ -319,41 +319,16 @@ describe('Dashboard direct component render', () => {
     expect(await screen.findByText('Failed to load dashboard data')).toBeInTheDocument();
   });
 
-  it('optimistically creates a follow-up task from an actionable alert', async () => {
-  renderDashboard();
+  it('shows advice status chip when alert has linked advice', async () => {
+    renderDashboard();
 
-  const alertsPanel = await screen.findByTestId('alerts-panel');
-  const tasksPanel = await screen.findByTestId('tasks-panel');
-  const createTaskButton = within(alertsPanel).getByRole('button', { name: /create a follow-up task to track this alert/i });
-    fireEvent.click(createTaskButton);
-
-    expect(screen.getByText('Follow up: High credit utilization')).toBeInTheDocument();
-    expect(within(tasksPanel).getByTestId('recent-task-card')).toBeInTheDocument();
-    expect(screen.getByText(/Linked task #\d+/)).toBeInTheDocument();
-    expect(screen.getByText(/Rebalance equity allocation/)).toBeInTheDocument();
-
-    await waitFor(() => {
-      expect(screen.queryByRole('button', { name: /create follow-up task/i })).not.toBeInTheDocument();
-    });
+    const alertsPanel = await screen.findByTestId('alerts-panel');
+    // Alert 42 has linked advice (adviceId 101, status Proposed) → shows "Advice generated"
+    expect(within(alertsPanel).queryByRole('button', { name: /get ai advice/i })).not.toBeInTheDocument();
+    expect(within(alertsPanel).getByText(/advice generated/i)).toBeInTheDocument();
   });
 
-  it('persists follow-up tasks via API when real data flag is enabled', async () => {
-    const createTaskHandler = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
-      expect(init?.method).toBeDefined();
-      if (init?.body) {
-        const parsed = JSON.parse(init.body.toString());
-        expect(parsed).toMatchObject({
-          title: expect.stringContaining('Portfolio drift detected'),
-          userId: 1,
-          sourceAlertId: 88,
-        });
-      }
-      return new Response(JSON.stringify({ taskId: 4321 }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    });
-
+  it('shows Get AI Advice button for actionable alert with no linked advice', async () => {
     renderDashboardWithRealData({
       summary: {
         netWorth: {
@@ -380,98 +355,20 @@ describe('Dashboard direct component render', () => {
           actionUrl: null,
         },
       ],
-      advice: [
-        {
-          adviceId: 101,
-          userId: 1,
-          theme: 'Rebalance',
-          status: 'Proposed',
-          consensusText: 'Shift 3% from equities into bonds.',
-          confidenceScore: 82,
-          sourceAlertId: 88,
-          linkedTaskId: null,
-          createdAt: '2025-10-07T00:00:00Z',
-        },
-      ],
+      advice: [],
       tasks: [],
-    }, { handleCreateTask: createTaskHandler });
+    });
 
     const alertsPanel = await screen.findByTestId('alerts-panel');
-    const tasksPanel = await screen.findByTestId('tasks-panel');
-    const createTaskButton = within(alertsPanel).getByRole('button', { name: /create a follow-up task to track this alert/i });
-    fireEvent.click(createTaskButton);
-
-    await waitFor(() => expect(createTaskHandler).toHaveBeenCalled());
-
-    await waitFor(() => {
-      expect(within(tasksPanel).getByText('Follow up: Portfolio drift detected')).toBeInTheDocument();
-      expect(screen.getByText('Linked task #4321')).toBeInTheDocument();
-    });
-    await waitFor(() => {
-      expect(screen.queryByRole('button', { name: /create follow-up task/i })).not.toBeInTheDocument();
-    });
+    expect(within(alertsPanel).getByRole('button', { name: /get ai advice/i })).toBeInTheDocument();
   });
 
-  it('reverts optimistic follow-up task when API persistence fails', async () => {
-    const failingCreateTask = vi.fn(async () => new Response(JSON.stringify({ message: 'nope' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    }));
+  it('shows advice accept and dismiss buttons for proposed advice', async () => {
+    renderDashboard();
 
-    renderDashboardWithRealData({
-      summary: {
-        netWorth: {
-          totalAssets: { amount: 100000, currency: 'USD' },
-          totalLiabilities: { amount: 10000, currency: 'USD' },
-          netWorth: { amount: 90000, currency: 'USD' },
-          lastUpdated: '2025-10-07T00:00:00Z',
-        },
-      },
-      alerts: [
-        {
-          alertId: 77,
-          userId: 1,
-          title: 'High utilization detected',
-          message: 'Utilization at 50% exceeds target.',
-          severity: 'High',
-          category: 'Cashflow',
-          isActionable: true,
-          portfolioImpactScore: 60,
-          createdAt: '2025-10-07T00:00:00Z',
-          isRead: false,
-          isDismissed: false,
-          expiresAt: null,
-          actionUrl: null,
-        },
-      ],
-      advice: [
-        {
-          adviceId: 222,
-          userId: 1,
-          theme: 'Cashflow',
-          status: 'Proposed',
-          consensusText: 'Consider reducing discretionary expenses.',
-          confidenceScore: 55,
-          sourceAlertId: 77,
-          linkedTaskId: null,
-          createdAt: '2025-10-07T00:00:00Z',
-        },
-      ],
-      tasks: [],
-    }, { handleCreateTask: failingCreateTask });
-
-    const alertsPanel = await screen.findByTestId('alerts-panel');
-    const createTaskButton = within(alertsPanel).getByRole('button', { name: /create a follow-up task to track this alert/i });
-    fireEvent.click(createTaskButton);
-
-    await waitFor(() => expect(failingCreateTask).toHaveBeenCalled());
-
-    await waitFor(() => {
-      expect(screen.queryByText('Follow up: High utilization detected')).not.toBeInTheDocument();
-      expect(within(alertsPanel).getByRole('button', { name: /create a follow-up task to track this alert/i })).toBeInTheDocument();
-    });
-
-    expect(await screen.findByText(/Couldn't save “High utilization detected”/)).toBeInTheDocument();
+    const advicePanel = await screen.findByTestId('advice-panel');
+    expect(within(advicePanel).getByRole('button', { name: /accept/i })).toBeInTheDocument();
+    expect(within(advicePanel).getByRole('button', { name: /dismiss/i })).toBeInTheDocument();
   });
 
   it('updates task status optimistically and clears pending state when persistence succeeds', async () => {
@@ -491,7 +388,7 @@ describe('Dashboard direct component render', () => {
     expect(completeButton).toBeDisabled();
 
     await waitFor(() => expect(completeButton).not.toBeDisabled());
-    await screen.findByText('Updated “Rebalance equity allocation”');
+    await screen.findByText('Updated "Rebalance equity allocation"');
   });
 
   it('reverts task status when persistence fails', async () => {
@@ -511,7 +408,7 @@ describe('Dashboard direct component render', () => {
     expect(within(tasksPanel).getByText('InProgress')).toBeInTheDocument();
 
     await waitFor(() => expect(within(tasksPanel).getByText('Pending')).toBeInTheDocument());
-  expect(await screen.findByText("Couldn't update “Rebalance equity allocation”. Please try again.")).toBeInTheDocument();
+  expect(await screen.findByText(`Couldn't update "Rebalance equity allocation". Please try again.`)).toBeInTheDocument();
 
     consoleSpy.mockRestore();
   });
@@ -543,7 +440,7 @@ describe('Dashboard direct component render', () => {
     await waitFor(() => expect(updateProgress).toHaveBeenCalledWith({ taskId: 555, progressPercentage: 50 }));
     await waitFor(() => expect(within(tasksPanel).getByText('InProgress')).toBeInTheDocument());
     await waitFor(() => expect(within(tasksPanel).getByText('50%')).toBeInTheDocument());
-    await screen.findByText('Updated progress for “Rebalance equity allocation”');
+    await screen.findByText('Updated progress for "Rebalance equity allocation"');
 
     rectSpy.mockRestore();
   });
@@ -578,7 +475,7 @@ describe('Dashboard direct component render', () => {
   await waitFor(() => expect(failingProgress).toHaveBeenCalled());
   await waitFor(() => expect(within(tasksPanel).getByText('Pending')).toBeInTheDocument());
   await waitFor(() => expect(within(tasksPanel).getByText('0%')).toBeInTheDocument());
-    expect(await screen.findByText("Couldn't update progress for “Rebalance equity allocation”. Please try again.")).toBeInTheDocument();
+    expect(await screen.findByText(`Couldn't update progress for "Rebalance equity allocation". Please try again.`)).toBeInTheDocument();
 
     consoleSpy.mockRestore();
     rectSpy.mockRestore();

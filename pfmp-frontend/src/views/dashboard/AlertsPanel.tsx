@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Chip,
+  CircularProgress,
   Divider,
   Stack,
   Tooltip,
@@ -12,16 +13,17 @@ import {
   WarningAmberRounded as WarningIcon,
   ErrorOutlineRounded as ErrorIcon,
   InfoOutlined as InfoIcon,
-  TaskAlt as TaskIcon,
+  AutoAwesome as AdviceIcon,
   CheckCircleOutline as SuccessIcon,
 } from '@mui/icons-material';
-import type { AlertCard, TaskItem } from '../../services/dashboard';
+import type { AlertCard, AdviceItem } from '../../services/dashboard';
 
 interface AlertsPanelProps {
   alerts: AlertCard[];
   loading: boolean;
-  tasks?: TaskItem[];
-  onCreateTask?: (alert: AlertCard) => void;
+  advice?: AdviceItem[];
+  generatingAdviceForAlertId?: number | null;
+  onGenerateAdvice?: (alert: AlertCard) => void;
 }
 
 type ChipColor = 'default' | 'success' | 'warning' | 'error' | 'info';
@@ -33,7 +35,7 @@ const severityMeta = {
   Critical: { color: 'error', Icon: ErrorIcon },
 } satisfies Record<AlertCard['severity'], { color: ChipColor; Icon: typeof SuccessIcon }>;
 
-export function AlertsPanel({ alerts, loading, tasks = [], onCreateTask }: AlertsPanelProps) {
+export function AlertsPanel({ alerts, loading, advice = [], generatingAdviceForAlertId, onGenerateAdvice }: AlertsPanelProps) {
   if (loading && alerts.length === 0) {
     return <Typography variant="body2">Loading alerts…</Typography>;
   }
@@ -89,36 +91,39 @@ export function AlertsPanel({ alerts, loading, tasks = [], onCreateTask }: Alert
                   {new Date(alert.createdAt).toLocaleString()}
                 </Typography>
                 {(() => {
-                  const linkedTask = tasks.find(t => t.sourceAlertId === alert.alertId);
-                  if (linkedTask) {
-                    const statusLabel =
-                      linkedTask.status === 'Completed' ? 'Follow-up task completed' :
-                      linkedTask.status === 'InProgress' ? 'Follow-up task in progress' :
-                      linkedTask.status === 'Dismissed' ? 'Follow-up task dismissed' :
-                      'Follow-up task created';
+                  const linkedAdvice = advice.find(a => a.sourceAlertId === alert.alertId);
+                  const isGenerating = generatingAdviceForAlertId === alert.alertId;
+                  if (linkedAdvice) {
+                    const label =
+                      linkedAdvice.status === 'Accepted' ? 'Advice accepted' :
+                      linkedAdvice.status === 'Dismissed' ? 'Advice dismissed' :
+                      'Advice generated';
                     return (
                       <Button
                         size="small"
                         variant="outlined"
-                        color={linkedTask.status === 'Completed' ? 'success' : 'info'}
+                        color={linkedAdvice.status === 'Accepted' ? 'success' : linkedAdvice.status === 'Dismissed' ? 'default' : 'info'}
                         disabled
-                        endIcon={<TaskIcon fontSize="small" />}
+                        endIcon={<AdviceIcon fontSize="small" />}
                       >
-                        {statusLabel}
+                        {label}
                       </Button>
                     );
                   }
-                  if (actionable && onCreateTask) {
+                  if (actionable && onGenerateAdvice) {
                     return (
-                      <Tooltip title="Create a follow-up task to track this alert">
-                        <Button
-                          size="small"
-                          variant="contained"
-                          endIcon={<TaskIcon fontSize="small" />}
-                          onClick={() => onCreateTask(alert)}
-                        >
-                          Create follow-up task
-                        </Button>
+                      <Tooltip title="Generate AI-verified advice for this alert">
+                        <span>
+                          <Button
+                            size="small"
+                            variant="contained"
+                            endIcon={isGenerating ? <CircularProgress size={16} color="inherit" /> : <AdviceIcon fontSize="small" />}
+                            onClick={() => onGenerateAdvice(alert)}
+                            disabled={isGenerating}
+                          >
+                            {isGenerating ? 'Generating…' : 'Get AI Advice'}
+                          </Button>
+                        </span>
                       </Tooltip>
                     );
                   }

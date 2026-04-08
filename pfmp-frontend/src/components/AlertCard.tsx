@@ -304,9 +304,9 @@ export const AlertCard: React.FC<AlertCardProps> = ({
                 value={taskData.type}
                 onChange={(e) => setTaskData({ ...taskData, type: e.target.value as TaskType })}
               >
-                {Object.values(TaskType).filter(t => typeof t === 'number').map((type) => (
+                {Object.values(TaskType).map((type) => (
                   <MenuItem key={type} value={type}>
-                    {getTaskTypeLabel(type as TaskType)}
+                    {getTaskTypeLabel(type)}
                   </MenuItem>
                 ))}
               </Select>
@@ -318,9 +318,9 @@ export const AlertCard: React.FC<AlertCardProps> = ({
                 value={taskData.priority}
                 onChange={(e) => setTaskData({ ...taskData, priority: e.target.value as TaskPriority })}
               >
-                {Object.values(TaskPriority).filter(p => typeof p === 'number').map((priority) => (
+                {Object.values(TaskPriority).map((priority) => (
                   <MenuItem key={priority} value={priority}>
-                    {getTaskPriorityLabel(priority as TaskPriority)}
+                    {getTaskPriorityLabel(priority)}
                   </MenuItem>
                 ))}
               </Select>

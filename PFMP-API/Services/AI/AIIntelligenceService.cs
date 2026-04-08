@@ -1120,7 +1120,7 @@ Your analysis will be reviewed by a backup AI system for validation.",
             sb.AppendLine("PRIMARY FOCUS: Cash allocation efficiency.");
             sb.AppendLine("Emphasize: Is cash optimally allocated? Any excess in low-yield accounts? Is emergency fund properly funded?");
             sb.AppendLine("When recommending transfers to higher-yield alternatives, provide specific examples of current accounts/institutions with competitive rates.");
-            sb.AppendLine("Still provide the full structured response (CRITICAL_ALERTS, RECOMMENDATIONS, PORTFOLIO_HEALTH, GOAL_PROGRESS, NET_WORTH_SNAPSHOT) covering all areas, but weight cash analysis most heavily.");
+            sb.AppendLine("Still provide the full structured response covering all areas, but weight cash analysis most heavily.");
             return Task.FromResult(sb.ToString());
         }
 

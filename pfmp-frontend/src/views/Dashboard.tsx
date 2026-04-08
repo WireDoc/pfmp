@@ -23,36 +23,16 @@ import PropertiesPanel from './dashboard/PropertiesPanel';
 import LiabilitiesPanel from './dashboard/LiabilitiesPanel';
 import TspPanel from './dashboard/TspPanel';
 import { useAuth } from '../contexts/auth/useAuth';
-import { getDashboardService, TASK_PRIORITY_TO_ENUM, DEFAULT_TASK_PRIORITY_ENUM } from '../services/dashboard';
+import { getDashboardService } from '../services/dashboard';
 import type {
   AdviceItem,
   AlertCard,
   DashboardData,
   TaskItem,
-  CreateFollowUpTaskRequest,
   Insight,
 } from '../services/dashboard';
 import type { OnboardingStepId } from '../onboarding/steps';
-
-function resolveTaskTypeFromCategory(category: AlertCard['category']): number {
-  const normalized = `${category ?? ''}`.toLowerCase();
-  if (normalized.includes('portfolio') || normalized.includes('equity') || normalized.includes('allocation')) {
-    return 1; // Rebalancing
-  }
-  if (normalized.includes('cash') || normalized.includes('bank')) {
-    return 4; // CashOptimization
-  }
-  if (normalized.includes('tax')) {
-    return 3; // TaxLossHarvesting
-  }
-  if (normalized.includes('insurance')) {
-    return 6; // InsuranceReview
-  }
-  if (normalized.includes('emergency')) {
-    return 7; // EmergencyFundContribution
-  }
-  return 5; // GoalAdjustment as a sensible default
-}
+import { adviceService } from '../services/api';
 
 function monotonicNow(): number {
   if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
@@ -60,8 +40,6 @@ function monotonicNow(): number {
   }
   return Date.now();
 }
-
-// (Removed old sections placeholder list; replaced by dedicated panel components.)
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -87,14 +65,14 @@ export const Dashboard: React.FC = () => {
       : totalSteps > 0
         ? `You're making progress! Complete ${totalSteps - completedCount} more ${totalSteps - completedCount === 1 ? 'section' : 'sections'}${nextStepTitle ? ` (next: ${nextStepTitle})` : ''} to unlock personalized insights.`
         : 'Complete your financial profile to unlock personalized insights.'
-    : 'Loading your financial profile…';
+    : 'Loading your financial profile\u2026';
   const onboardingStatusText = onboardingHydrated
     ? onboardingComplete
       ? 'Profile complete'
       : totalSteps > 0
         ? `Profile ${completedCount}/${totalSteps} complete`
         : 'Profile incomplete'
-    : 'Syncing profile…';
+    : 'Syncing profile\u2026';
   const onboardingStatusColor = onboardingHydrated
     ? (onboardingComplete ? 'success.main' : 'warning.main')
     : 'text.secondary';
@@ -103,6 +81,8 @@ export const Dashboard: React.FC = () => {
   const [viewData, setViewData] = useState<DashboardData | null>(null);
   const [recentTaskIds, setRecentTaskIds] = useState<Set<number>>(new Set());
   const [pendingTaskIds, setPendingTaskIds] = useState<Set<number>>(new Set());
+  const [generatingAdviceForAlertId, setGeneratingAdviceForAlertId] = useState<number | null>(null);
+  const [pendingAdviceId, setPendingAdviceId] = useState<number | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const displayData = viewData ?? data ?? null;
   const displayName = viewData?.userName ?? data?.userName ?? user?.name ?? user?.username ?? 'Client';
@@ -110,10 +90,10 @@ export const Dashboard: React.FC = () => {
   // Data refresh functionality
   const { lastRefreshed, isRefreshing, refresh, timeSinceRefresh } = useDataRefresh({
     refreshFn: refetch,
-    autoRefresh: false, // TODO: Load from user settings when settings page is implemented
-    refreshOnFocus: true, // TODO: Load from user settings when settings page is implemented
-    isLoading: loading, // Track initial load to set timestamp
-    storageKey: 'dashboard-last-refresh', // Persist timestamp across page reloads
+    autoRefresh: false,
+    refreshOnFocus: true,
+    isLoading: loading,
+    storageKey: 'dashboard-last-refresh',
   });
 
   // Offline detection
@@ -129,9 +109,7 @@ export const Dashboard: React.FC = () => {
   const hasRefreshedPrices = useRef(false);
 
   useEffect(() => {
-    // Performance: Mark component mount
     performanceMark('dashboard-mount');
-    // TSP snapshot now handled by scheduled background job (TspPriceRefreshJob)
   }, []);
 
   // Auto-refresh prices for investment accounts when dashboard data loads
@@ -142,10 +120,9 @@ export const Dashboard: React.FC = () => {
     const investmentTypes = ['brokerage', 'retirement', 'other'];
     const investmentAccounts = data.accounts.filter(a =>
       investmentTypes.some(t => a.type === t) && !a.isCashAccount
-      && typeof a.id === 'number' // exclude synthetic accounts like tsp_aggregate
+      && typeof a.id === 'number'
     );
 
-    // Fire-and-forget background refresh for each investment account
     for (const acct of investmentAccounts) {
       fetch(`${apiBase}/holdings/refresh-prices?accountId=${acct.id}`, { method: 'POST' })
         .then(() => console.debug(`[dashboard] Refreshed prices for account ${acct.id}`))
@@ -155,21 +132,12 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     if (data) {
-      // Performance: Mark data loaded and measure time from mount
       performanceMark('dashboard-data-loaded');
       performanceMeasure('dashboard-time-to-data', 'dashboard-mount', 'dashboard-data-loaded');
-      
       setViewData(data);
       setRecentTaskIds(new Set());
     }
   }, [data]);
-
-  const severityToPriority = useMemo(() => ({
-    Low: 'Low',
-    Medium: 'Medium',
-    High: 'High',
-    Critical: 'High',
-  } satisfies Record<AlertCard['severity'], TaskItem['priority']>), []);
 
   const markTaskPending = useCallback((taskId: number, pending: boolean) => {
     setPendingTaskIds(prev => {
@@ -227,204 +195,147 @@ export const Dashboard: React.FC = () => {
     });
   }, [viewData, data]);
 
-  const handleCreateTaskFromAlert = useCallback((alert: AlertCard) => {
-    const baseline = viewData ?? data ?? null;
-    if (!baseline) {
-      setToastMessage('Dashboard data still loading — please try again in a moment.');
-      logTelemetry('alert_task_create_blocked', { reason: 'no-data', alertId: alert.alertId });
-      return;
-    }
+  // -- Alert -> Generate Advice ------------------------------------------------
+  const handleGenerateAdvice = useCallback(async (alert: AlertCard) => {
+    setGeneratingAdviceForAlertId(alert.alertId);
+    logTelemetry('advice_generate_attempt', { alertId: alert.alertId });
 
-    const existingFollowUpTask = baseline.tasks.find(task =>
-      task.sourceAlertId === alert.alertId && task.title.startsWith('Follow up:'),
-    );
-    if (existingFollowUpTask) {
-      setToastMessage(`Task already exists for “${alert.title}”`);
-      logTelemetry('alert_task_create_duplicate', {
-        alertId: alert.alertId,
-        existingTaskId: existingFollowUpTask.taskId,
+    try {
+      const response = await adviceService.generateFromAlert(alert.alertId);
+      const newAdvice: AdviceItem = {
+        adviceId: response.data.adviceId,
+        userId: response.data.userId,
+        theme: response.data.theme ?? 'General',
+        status: response.data.status as AdviceItem['status'],
+        consensusText: response.data.consensusText,
+        confidenceScore: response.data.confidenceScore,
+        sourceAlertId: alert.alertId,
+        linkedTaskId: response.data.linkedTaskId ?? null,
+        createdAt: response.data.createdAt,
+      };
+
+      setViewData(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          advice: [newAdvice, ...prev.advice],
+          alerts: prev.alerts.map(a =>
+            a.alertId === alert.alertId ? { ...a, isRead: true } : a,
+          ),
+        } satisfies DashboardData;
       });
-      return;
-    }
-
-    const newTaskId = Date.now();
-    const createdAt = new Date().toISOString();
-    const priority = severityToPriority[alert.severity] ?? 'Medium';
-    const newTask: TaskItem = {
-      taskId: newTaskId,
-      userId: alert.userId,
-      type: 'FollowUp',
-      title: `Follow up: ${alert.title}`,
-      description: alert.message,
-      priority,
-      status: 'Pending',
-      createdDate: createdAt,
-      dueDate: null,
-      sourceAdviceId: null,
-      sourceAlertId: alert.alertId,
-      progressPercentage: 0,
-      confidenceScore: alert.portfolioImpactScore ?? null,
-    };
-
-    const originalAlertSnapshot = baseline.alerts.find(a => a.alertId === alert.alertId);
-    const adviceSnapshots = new Map<number, AdviceItem>();
-    baseline.advice.forEach(item => {
-      if (item.sourceAlertId === alert.alertId) {
-        adviceSnapshots.set(item.adviceId, { ...item });
-      }
-    });
-
-    setViewData(prev => {
-      if (!prev) {
-        return prev;
-      }
-      const updatedAdvice = prev.advice.map(item =>
-        item.sourceAlertId === alert.alertId
-          ? {
-              ...item,
-              linkedTaskId: newTaskId,
-              status: item.status === 'Proposed' ? 'Accepted' : item.status,
-            }
-          : item,
-      );
-      return {
-        ...prev,
-        alerts: prev.alerts.map(a =>
-          a.alertId === alert.alertId
-            ? { ...a, isActionable: false, isRead: true }
-            : a,
-        ),
-        advice: updatedAdvice,
-        tasks: [newTask, ...prev.tasks],
-      } satisfies DashboardData;
-    });
-
-    setRecentTaskIds(prevIds => {
-      const next = new Set(prevIds);
-      next.add(newTaskId);
-      return next;
-    });
-    setToastMessage('Creating follow-up task…');
-
-    const attemptStartedAt = monotonicNow();
-    logTelemetry('alert_task_create_attempt', {
-      alertId: alert.alertId,
-      severity: alert.severity,
-      category: alert.category,
-    });
-
-    const service = getDashboardService();
-    const requestPayload: CreateFollowUpTaskRequest = {
-      userId: alert.userId,
-      type: resolveTaskTypeFromCategory(alert.category),
-      title: newTask.title,
-      description: newTask.description,
-      priority: TASK_PRIORITY_TO_ENUM[priority] ?? DEFAULT_TASK_PRIORITY_ENUM,
-      dueDate: null,
-      sourceAlertId: alert.alertId,
-      confidenceScore: alert.portfolioImpactScore ?? null,
-    };
-
-    const persistPromise = service.createFollowUpTask?.(requestPayload);
-
-    if (!persistPromise) {
-      setToastMessage(`Created task “${alert.title}”`);
-      logTelemetry('alert_task_create_local_only', {
+      setToastMessage('AI advice generated \u2014 review it in the Advice panel.');
+      logTelemetry('advice_generate_success', { alertId: alert.alertId, adviceId: newAdvice.adviceId });
+    } catch (error) {
+      console.error('Failed to generate advice', error);
+      setToastMessage("Couldn't generate advice. Please try again.");
+      logTelemetry('advice_generate_failure', {
         alertId: alert.alertId,
-        taskId: newTaskId,
+        error: error instanceof Error ? error.message : 'unknown',
       });
-      return;
+    } finally {
+      setGeneratingAdviceForAlertId(null);
     }
+  }, [logTelemetry]);
 
-    persistPromise
-      .then(({ taskId }) => {
-        const durationMs = Math.max(0, Math.round(monotonicNow() - attemptStartedAt));
-        logTelemetry('alert_task_create_success', {
-          alertId: alert.alertId,
-          durationMs,
-          taskId: taskId ?? newTaskId,
-        });
-        if (taskId && taskId !== newTaskId) {
-          setViewData(prev => {
-            if (!prev) {
-              return prev;
-            }
-            return {
-              ...prev,
-              advice: prev.advice.map(item =>
-                item.sourceAlertId === alert.alertId
-                  ? { ...item, linkedTaskId: taskId }
-                  : item,
-              ),
-              tasks: prev.tasks.map(task =>
-                task.taskId === newTaskId
-                  ? { ...task, taskId }
-                  : task,
-              ),
-            } satisfies DashboardData;
-          });
-          setRecentTaskIds(prevIds => {
-            const next = new Set(prevIds);
-            next.delete(newTaskId);
-            next.add(taskId);
-            return next;
-          });
-          logTelemetry('alert_task_id_swap', {
-            temporaryTaskId: newTaskId,
-            persistedTaskId: taskId,
-            alertId: alert.alertId,
-          });
-        }
-        setToastMessage(`Created task “${alert.title}”`);
-    })
-    .catch(error => {
-        const durationMs = Math.max(0, Math.round(monotonicNow() - attemptStartedAt));
-        console.error('Failed to persist follow-up task', error);
-        setToastMessage(`Couldn't save “${alert.title}”. Please try again.`);
-        setRecentTaskIds(prevIds => {
-          const next = new Set(prevIds);
-          next.delete(newTaskId);
-          return next;
-        });
-        logTelemetry('alert_task_create_failure', {
-          alertId: alert.alertId,
-          durationMs,
-          error:
-            error instanceof Error
-              ? error.message
-              : typeof error === 'string'
-                ? error
-                : 'unknown',
-        });
-        setViewData(prev => {
-          if (!prev) {
-            return prev;
+  // -- Advice -> Accept (auto-creates linked Task) -----------------------------
+  const handleAcceptAdvice = useCallback(async (adviceId: number) => {
+    setPendingAdviceId(adviceId);
+    logTelemetry('advice_accept_attempt', { adviceId });
+
+    try {
+      const response = await adviceService.accept(adviceId);
+      const accepted = response.data;
+
+      setViewData(prev => {
+        if (!prev) return prev;
+
+        const updatedAdvice = prev.advice.map(item =>
+          item.adviceId === adviceId
+            ? { ...item, status: 'Accepted' as AdviceItem['status'], linkedTaskId: accepted.linkedTaskId ?? null }
+            : item,
+        );
+
+        const newTasks = [...prev.tasks];
+        if (accepted.linkedTaskId) {
+          const alreadyExists = prev.tasks.some(t => t.taskId === accepted.linkedTaskId);
+          if (!alreadyExists) {
+            newTasks.unshift({
+              taskId: accepted.linkedTaskId,
+              userId: accepted.userId,
+              type: accepted.theme ?? 'General',
+              title: `${accepted.theme ?? 'General'} Action`,
+              description: accepted.consensusText.slice(0, 200),
+              priority: 'Medium',
+              status: 'Pending',
+              createdDate: new Date().toISOString(),
+              dueDate: null,
+              sourceAdviceId: adviceId,
+              sourceAlertId: accepted.sourceAlertId ?? null,
+              progressPercentage: 0,
+              confidenceScore: accepted.confidenceScore,
+            });
           }
-          const revertedAlerts = prev.alerts.map(a => {
-            if (a.alertId !== alert.alertId) {
-              return a;
-            }
-            return originalAlertSnapshot ? { ...originalAlertSnapshot } : { ...a, isActionable: true };
-          });
-          const revertedAdvice = prev.advice.map(item => {
-            const snapshot = adviceSnapshots.get(item.adviceId);
-            return snapshot ? { ...snapshot } : item;
-          });
-          return {
-            ...prev,
-            alerts: revertedAlerts,
-            advice: revertedAdvice,
-            tasks: prev.tasks.filter(task => task.taskId !== newTaskId),
-          } satisfies DashboardData;
-        });
+        }
+
+        return { ...prev, advice: updatedAdvice, tasks: newTasks } satisfies DashboardData;
       });
-  }, [data, viewData, severityToPriority, logTelemetry]);
+
+      if (accepted.linkedTaskId) {
+        setRecentTaskIds(prev => { const next = new Set(prev); next.add(accepted.linkedTaskId!); return next; });
+      }
+      setToastMessage('Advice accepted \u2014 task created.');
+      logTelemetry('advice_accept_success', { adviceId, linkedTaskId: accepted.linkedTaskId });
+    } catch (error) {
+      console.error('Failed to accept advice', error);
+      setToastMessage("Couldn't accept advice. Please try again.");
+      logTelemetry('advice_accept_failure', {
+        adviceId,
+        error: error instanceof Error ? error.message : 'unknown',
+      });
+    } finally {
+      setPendingAdviceId(null);
+    }
+  }, [logTelemetry]);
+
+  // -- Advice -> Dismiss -------------------------------------------------------
+  const handleDismissAdvice = useCallback(async (adviceId: number) => {
+    setPendingAdviceId(adviceId);
+    logTelemetry('advice_dismiss_attempt', { adviceId });
+
+    try {
+      await adviceService.dismiss(adviceId);
+
+      setViewData(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          advice: prev.advice.map(item =>
+            item.adviceId === adviceId
+              ? { ...item, status: 'Dismissed' as AdviceItem['status'] }
+              : item,
+          ),
+        } satisfies DashboardData;
+      });
+      setToastMessage('Advice dismissed.');
+      logTelemetry('advice_dismiss_success', { adviceId });
+    } catch (error) {
+      console.error('Failed to dismiss advice', error);
+      setToastMessage("Couldn't dismiss advice. Please try again.");
+      logTelemetry('advice_dismiss_failure', {
+        adviceId,
+        error: error instanceof Error ? error.message : 'unknown',
+      });
+    } finally {
+      setPendingAdviceId(null);
+    }
+  }, [logTelemetry]);
 
   const handleTaskStatusChange = useCallback((taskId: number, nextStatus: TaskItem['status']) => {
     const service = getDashboardService();
     const baseline = (viewData ?? data) ?? null;
     if (!baseline) {
-      setToastMessage('Dashboard data still loading — please try again in a moment.');
+      setToastMessage('Dashboard data still loading \u2014 please try again in a moment.');
       logTelemetry('task_status_update_blocked', { taskId, reason: 'no-data' });
       return;
     }
@@ -485,7 +396,7 @@ export const Dashboard: React.FC = () => {
             return next;
           });
         }
-        setToastMessage(`Updated “${snapshot.title}”`);
+        setToastMessage(`Updated "${snapshot.title}"`);
         logTelemetry('task_status_update_success', {
           taskId,
           toStatus: nextStatus,
@@ -496,7 +407,7 @@ export const Dashboard: React.FC = () => {
         console.error('Failed to update dashboard task status', error);
         markTaskPending(taskId, false);
         restoreTaskSnapshot(taskId, snapshot);
-        setToastMessage(`Couldn't update “${snapshot.title}”. Please try again.`);
+        setToastMessage(`Couldn't update "${snapshot.title}". Please try again.`);
         logTelemetry('task_status_update_failure', {
           taskId,
           toStatus: nextStatus,
@@ -556,7 +467,7 @@ export const Dashboard: React.FC = () => {
             return next;
           });
         }
-        setToastMessage(`Updated progress for “${snapshot.title}”`);
+        setToastMessage(`Updated progress for "${snapshot.title}"`);
         logTelemetry('task_progress_update_success', {
           taskId,
           progress: clamped,
@@ -567,7 +478,7 @@ export const Dashboard: React.FC = () => {
         console.error('Failed to update dashboard task progress', error);
         markTaskPending(taskId, false);
         restoreTaskSnapshot(taskId, snapshot);
-        setToastMessage(`Couldn't update progress for “${snapshot.title}”. Please try again.`);
+        setToastMessage(`Couldn't update progress for "${snapshot.title}". Please try again.`);
         logTelemetry('task_progress_update_failure', {
           taskId,
           progress: clamped,
@@ -701,7 +612,7 @@ export const Dashboard: React.FC = () => {
       <Box data-testid="wave4-dashboard-root" p={3} display="flex" flexDirection="column" gap={3}>
         <Typography variant="h4" gutterBottom>Dashboard (Wave 4)</Typography>
         <Paper variant="outlined" sx={{ p: 2 }}>
-          <Typography variant="body1" gutterBottom>Preparing your dashboard…</Typography>
+          <Typography variant="body1" gutterBottom>Preparing your dashboard\u2026</Typography>
           <Skeleton variant="rounded" height={120} />
         </Paper>
       </Box>
@@ -807,14 +718,28 @@ export const Dashboard: React.FC = () => {
             {loading ? (
               <Skeleton variant="rectangular" height={140} />
             ) : (
-              <AlertsPanel alerts={alerts} loading={loading} tasks={tasks} onCreateTask={handleCreateTaskFromAlert} />
+              <AlertsPanel
+                alerts={alerts}
+                loading={loading}
+                advice={advice}
+                generatingAdviceForAlertId={generatingAdviceForAlertId}
+                onGenerateAdvice={handleGenerateAdvice}
+              />
             )}
           </Paper>
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
           <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
             <Typography variant="h6" gutterBottom>Advice</Typography>
-            {loading ? <Skeleton variant="rectangular" height={140} /> : <AdvicePanel advice={advice} loading={loading} />}
+            {loading ? <Skeleton variant="rectangular" height={140} /> : (
+              <AdvicePanel
+                advice={advice}
+                loading={loading}
+                pendingAdviceId={pendingAdviceId}
+                onAccept={handleAcceptAdvice}
+                onDismiss={handleDismissAdvice}
+              />
+            )}
           </Paper>
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
@@ -835,14 +760,6 @@ export const Dashboard: React.FC = () => {
           </Paper>
         </Grid>
       </Grid>
-      <Paper variant="outlined" sx={{ p: 2 }}>
-        <Typography variant="subtitle2" gutterBottom>Development Notes</Typography>
-        <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.5 }}>
-          <li>Route: /dashboard (flag: enableDashboardWave4)</li>
-          <li>Redirects: Incomplete onboarding → /onboarding</li>
-          <li>Future: live account aggregation, richer alert → task flows, AI insights</li>
-        </ul>
-      </Paper>
       <Snackbar
         open={Boolean(toastMessage)}
         autoHideDuration={4000}

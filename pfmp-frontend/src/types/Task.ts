@@ -1,31 +1,31 @@
 export const TaskType = {
-  Rebalancing: 1,
-  StockPurchase: 2,
-  TaxLossHarvesting: 3,
-  CashOptimization: 4,
-  GoalAdjustment: 5,
-  InsuranceReview: 6,
-  EmergencyFundContribution: 7,
-  TSPAllocationChange: 8
+  Rebalancing: 'Rebalancing',
+  StockPurchase: 'StockPurchase',
+  TaxLossHarvesting: 'TaxLossHarvesting',
+  CashOptimization: 'CashOptimization',
+  GoalAdjustment: 'GoalAdjustment',
+  InsuranceReview: 'InsuranceReview',
+  EmergencyFundContribution: 'EmergencyFundContribution',
+  TSPAllocationChange: 'TSPAllocationChange'
 } as const;
 
 export type TaskType = typeof TaskType[keyof typeof TaskType];
 
 export const TaskStatus = {
-  Pending: 1,
-  Accepted: 2,
-  InProgress: 3,
-  Completed: 4,
-  Dismissed: 5
+  Pending: 'Pending',
+  Accepted: 'Accepted',
+  InProgress: 'InProgress',
+  Completed: 'Completed',
+  Dismissed: 'Dismissed'
 } as const;
 
 export type TaskStatus = typeof TaskStatus[keyof typeof TaskStatus];
 
 export const TaskPriority = {
-  Low: 1,
-  Medium: 2,
-  High: 3,
-  Critical: 4
+  Low: 'Low',
+  Medium: 'Medium',
+  High: 'High',
+  Critical: 'Critical'
 } as const;
 
 export type TaskPriority = typeof TaskPriority[keyof typeof TaskPriority];

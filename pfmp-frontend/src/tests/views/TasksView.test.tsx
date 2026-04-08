@@ -33,16 +33,16 @@ vi.mock('../../services/api', () => ({
   },
 }));
 
-// TaskStatus enum values: Pending=1, Accepted=2, InProgress=3, Completed=4, Dismissed=5
-// TaskType enum values: Rebalancing=1, CashOptimization=4
-// TaskPriority enum values: Low=1, Medium=2, High=3, Critical=4
+// TaskStatus enum values: Pending='Pending', Accepted='Accepted', InProgress='InProgress', Completed='Completed', Dismissed='Dismissed'
+// TaskType enum values: Rebalancing='Rebalancing', CashOptimization='CashOptimization'
+// TaskPriority enum values: Low='Low', Medium='Medium', High='High', Critical='Critical'
 
 const sampleTasks = [
-  { taskId: 1, userId: 20, type: 4, title: 'Move emergency fund to HYSA', description: 'Transfer $5K to high-yield savings', priority: 3, status: 1, createdDate: '2026-03-28', dueDate: '2026-04-15', progressPercentage: 0, confidenceScore: 0.85 },
-  { taskId: 2, userId: 20, type: 1, title: 'Rebalance TSP allocation', description: 'Increase C Fund to 60%', priority: 2, status: 1, createdDate: '2026-03-29', dueDate: null, progressPercentage: 0, confidenceScore: 0.72 },
-  { taskId: 3, userId: 20, type: 1, title: 'Review portfolio drift', description: 'Check asset allocation drift', priority: 2, status: 3, createdDate: '2026-03-20', dueDate: null, progressPercentage: 40, confidenceScore: null },
-  { taskId: 4, userId: 20, type: 4, title: 'Close old savings account', description: 'Low-yield account at local bank', priority: 1, status: 4, createdDate: '2026-03-01', dueDate: null, progressPercentage: 100, confidenceScore: null },
-  { taskId: 5, userId: 20, type: 1, title: 'Dismissed task', description: 'No longer relevant', priority: 1, status: 5, createdDate: '2026-03-01', dueDate: null, progressPercentage: 0, confidenceScore: null },
+  { taskId: 1, userId: 20, type: 'CashOptimization', title: 'Move emergency fund to HYSA', description: 'Transfer $5K to high-yield savings', priority: 'High', status: 'Pending', createdDate: '2026-03-28', dueDate: '2026-04-15', progressPercentage: 0, confidenceScore: 0.85 },
+  { taskId: 2, userId: 20, type: 'Rebalancing', title: 'Rebalance TSP allocation', description: 'Increase C Fund to 60%', priority: 'Medium', status: 'Pending', createdDate: '2026-03-29', dueDate: null, progressPercentage: 0, confidenceScore: 0.72 },
+  { taskId: 3, userId: 20, type: 'Rebalancing', title: 'Review portfolio drift', description: 'Check asset allocation drift', priority: 'Medium', status: 'InProgress', createdDate: '2026-03-20', dueDate: null, progressPercentage: 40, confidenceScore: null },
+  { taskId: 4, userId: 20, type: 'CashOptimization', title: 'Close old savings account', description: 'Low-yield account at local bank', priority: 'Low', status: 'Completed', createdDate: '2026-03-01', dueDate: null, progressPercentage: 100, confidenceScore: null },
+  { taskId: 5, userId: 20, type: 'Rebalancing', title: 'Dismissed task', description: 'No longer relevant', priority: 'Low', status: 'Dismissed', createdDate: '2026-03-01', dueDate: null, progressPercentage: 0, confidenceScore: null },
 ];
 
 function renderTasksView() {
@@ -149,7 +149,7 @@ describe('TasksView', () => {
     await user.click(startButtons[0].closest('button')!);
 
     await waitFor(() => {
-      expect(mockUpdateStatus).toHaveBeenCalledWith(1, 3); // taskId=1, InProgress=3
+      expect(mockUpdateStatus).toHaveBeenCalledWith(1, 'InProgress'); // taskId=1, InProgress
     });
   });
 

@@ -31,16 +31,11 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import { useDevUserId } from '../../dev/devUserState';
 import { taskService } from '../../services/api';
 import type { Task, CreateTaskRequest } from '../../types/Task';
-import { TaskStatus, TaskType, TaskPriority, getTaskTypeLabel, getTaskStatusLabel } from '../../types/Task';
+import { TaskStatus, TaskType, TaskPriority, getTaskTypeLabel, getTaskStatusLabel, getTaskPriorityLabel } from '../../types/Task';
 
-const priorityLabel = (p: number): string => {
-  const m: Record<number, string> = { 1: 'Low', 2: 'Medium', 3: 'High', 4: 'Critical' };
-  return m[p] || 'Unknown';
-};
-
-const priorityColor = (p: number): 'error' | 'warning' | 'default' => {
-  if (p >= 3) return 'error';
-  if (p === 2) return 'warning';
+const priorityColor = (p: string): 'error' | 'warning' | 'default' => {
+  if (p === 'Critical' || p === 'High') return 'error';
+  if (p === 'Medium') return 'warning';
   return 'default';
 };
 
@@ -163,7 +158,7 @@ export function TasksView() {
                 <Box sx={{ flex: 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                     <Typography variant="subtitle1" fontWeight={600}>{t.title}</Typography>
-                    <Chip label={priorityLabel(t.priority)} size="small" color={priorityColor(t.priority)} />
+                    <Chip label={getTaskPriorityLabel(t.priority)} size="small" color={priorityColor(t.priority)} />
                     <Chip label={getTaskTypeLabel(t.type)} size="small" variant="outlined" />
                   </Box>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{t.description}</Typography>

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AccountInfo } from '@azure/msal-browser';
 import Dashboard from '../views/Dashboard';
@@ -78,7 +78,7 @@ function renderDashboard() {
   );
 }
 
-describe('DashboardWave4 alert to task handoff', () => {
+describe('Dashboard alert to advice to task workflow', () => {
   beforeEach(() => {
     updateFlags({
       enableDashboardWave4: true,
@@ -98,12 +98,11 @@ describe('DashboardWave4 alert to task handoff', () => {
     mswServer.resetHandlers();
   });
 
-  it('creates a follow-up task and persists success', async () => {
+  it('generates advice from an alert, then accepts to create a task', async () => {
     const now = '2025-10-08T12:00:00Z';
-    let createdTaskPayload: unknown = null;
-  const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
 
-  mswServer.use(
+    mswServer.use(
       http.get(/\/api\/dashboard\/summary$/, () =>
         HttpResponse.json({
           netWorth: {
@@ -137,55 +136,80 @@ describe('DashboardWave4 alert to task handoff', () => {
       ),
       http.get(/\/api\/advice/i, () => HttpResponse.json([])),
       http.get(/\/api\/tasks/i, () => HttpResponse.json([])),
-      http.post(/\/api\/Tasks$/i, async ({ request }) => {
-        createdTaskPayload = await request.json();
-        return HttpResponse.json({ taskId: 907 }, { status: 200 });
-      }),
+      http.post(/\/api\/Alerts\/77\/generate-advice$/i, () =>
+        HttpResponse.json({
+          adviceId: 501,
+          userId: 42,
+          theme: 'Rebalancing',
+          status: 'Proposed',
+          consensusText: 'Consider increasing your 401(k) contributions by $150/month to close the gap.',
+          confidenceScore: 88,
+          sourceAlertId: 77,
+          linkedTaskId: null,
+          createdAt: now,
+          updatedAt: now,
+        }),
+      ),
+      http.post(/\/api\/Advice\/501\/accept$/i, () =>
+        HttpResponse.json({
+          adviceId: 501,
+          userId: 42,
+          theme: 'Rebalancing',
+          status: 'Accepted',
+          consensusText: 'Consider increasing your 401(k) contributions by $150/month to close the gap.',
+          confidenceScore: 88,
+          sourceAlertId: 77,
+          linkedTaskId: 907,
+          createdAt: now,
+          updatedAt: now,
+        }),
+      ),
     );
 
     const user = userEvent.setup();
     renderDashboard();
 
     try {
+      // Wait for the alerts panel to render
       const alertsPanel = await screen.findByTestId('alerts-panel');
       expect(alertsPanel).toBeInTheDocument();
 
-      const createButton = screen.getByRole('button', { name: /create a follow-up task/i });
-      await user.click(createButton);
+      // Click "Get AI Advice" button
+      const adviceButton = await screen.findByRole('button', { name: /get ai advice/i });
+      await user.click(adviceButton);
 
-      await screen.findByText(/Created task/i, {}, { timeout: 10_000 });
+      // Should show toast about advice generated
+      await screen.findByText(/ai advice generated/i, {}, { timeout: 10_000 });
 
+      // The advice panel should now show the new advice
       await waitFor(() => {
-        expect(screen.queryByRole('button', { name: /create a follow-up task/i })).not.toBeInTheDocument();
+        expect(screen.getByText(/rebalancing/i)).toBeInTheDocument();
       }, { timeout: 10_000 });
 
-      const recentTaskCard = await screen.findByTestId('recent-task-card');
-      expect(recentTaskCard).toHaveTextContent('Follow up: Contribution gap detected');
-      expect(recentTaskCard).toContainElement(screen.getByTestId('new-task-indicator'));
+      // Now accept the advice
+      const acceptButton = await screen.findByRole('button', { name: /accept/i });
+      await user.click(acceptButton);
 
-      expect(createdTaskPayload).toMatchObject({
-        userId: 42,
-        title: 'Follow up: Contribution gap detected',
-        description: '401(k) contributions are $150 below target.',
-        priority: 3,
-        sourceAlertId: 77,
-        confidenceScore: 55,
-        type: 1,
-      });
+      // Should show toast about task creation
+      await screen.findByText(/advice accepted/i, {}, { timeout: 10_000 });
 
+      // Verify telemetry events
       const emittedEvents = debugSpy.mock.calls.map(call => call[1]);
-      expect(emittedEvents).toContain('alert_task_create_attempt');
-      expect(emittedEvents).toContain('alert_task_create_success');
+      expect(emittedEvents).toContain('advice_generate_attempt');
+      expect(emittedEvents).toContain('advice_generate_success');
+      expect(emittedEvents).toContain('advice_accept_attempt');
+      expect(emittedEvents).toContain('advice_accept_success');
     } finally {
       debugSpy.mockRestore();
     }
-  });
+  }, 15_000);
 
-  it('rolls back optimistic task when creation fails', async () => {
+  it('shows error toast when advice generation fails', async () => {
     const now = '2025-10-08T12:15:00Z';
-  const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-  mswServer.use(
+    mswServer.use(
       http.get(/\/api\/dashboard\/summary$/, () =>
         HttpResponse.json({
           netWorth: {
@@ -219,8 +243,8 @@ describe('DashboardWave4 alert to task handoff', () => {
       ),
       http.get(/\/api\/advice/i, () => HttpResponse.json([])),
       http.get(/\/api\/tasks/i, () => HttpResponse.json([])),
-      http.post(/\/api\/Tasks$/i, () =>
-        HttpResponse.json({ message: 'failed' }, { status: 500 }),
+      http.post(/\/api\/Alerts\/88\/generate-advice$/i, () =>
+        HttpResponse.json({ message: 'AI service unavailable' }, { status: 500 }),
       ),
     );
 
@@ -229,26 +253,99 @@ describe('DashboardWave4 alert to task handoff', () => {
 
     try {
       await screen.findByTestId('alerts-panel');
-      const createButton = screen.getByRole('button', { name: /create a follow-up task/i });
-      await user.click(createButton);
+      const adviceButton = await screen.findByRole('button', { name: /get ai advice/i });
+      await user.click(adviceButton);
 
-      await screen.findByText(/Couldn't save/i, {}, { timeout: 10_000 });
+      // Should show error toast
+      await screen.findByText(/couldn't generate advice/i, {}, { timeout: 10_000 });
 
+      // Button should still be available for retry
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /create a follow-up task/i })).toBeEnabled();
+        expect(screen.getByRole('button', { name: /get ai advice/i })).toBeEnabled();
       }, { timeout: 10_000 });
-
-      await waitFor(() => {
-        expect(screen.queryByTestId('recent-task-card')).not.toBeInTheDocument();
-      }, { timeout: 10_000 });
-
-      expect(screen.getByTestId('tasks-panel')).toHaveTextContent('No tasks yet');
 
       const emittedEvents = debugSpy.mock.calls.map(call => call[1]);
-      expect(emittedEvents).toContain('alert_task_create_attempt');
-      expect(emittedEvents).toContain('alert_task_create_failure');
+      expect(emittedEvents).toContain('advice_generate_attempt');
+      expect(emittedEvents).toContain('advice_generate_failure');
+    } finally {
+      debugSpy.mockRestore();
+      errorSpy.mockRestore();
+    }
+  }, 15_000);
+
+  it('dismisses advice and shows status chip', async () => {
+    const now = '2025-10-08T12:30:00Z';
+    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+
+    mswServer.use(
+      http.get(/\/api\/dashboard\/summary$/, () =>
+        HttpResponse.json({
+          netWorth: {
+            totalAssets: { amount: 100_000, currency: 'USD' },
+            totalLiabilities: { amount: 20_000, currency: 'USD' },
+            netWorth: { amount: 80_000, currency: 'USD' },
+            lastUpdated: now,
+          },
+          accounts: [],
+          insights: [],
+        }),
+      ),
+      http.get(/\/api\/alerts/i, () => HttpResponse.json([])),
+      http.get(/\/api\/advice/i, () =>
+        HttpResponse.json([
+          {
+            adviceId: 600,
+            userId: 1,
+            theme: 'Tax',
+            status: 'Proposed',
+            consensusText: 'Consider harvesting losses in your taxable brokerage account.',
+            confidenceScore: 76,
+            sourceAlertId: 99,
+            linkedTaskId: null,
+            createdAt: now,
+          },
+        ]),
+      ),
+      http.get(/\/api\/tasks/i, () => HttpResponse.json([])),
+      http.post(/\/api\/Advice\/600\/dismiss$/i, () =>
+        HttpResponse.json({
+          adviceId: 600,
+          userId: 1,
+          theme: 'Tax',
+          status: 'Dismissed',
+          consensusText: 'Consider harvesting losses in your taxable brokerage account.',
+          confidenceScore: 76,
+          sourceAlertId: 99,
+          linkedTaskId: null,
+          createdAt: now,
+          updatedAt: now,
+          dismissedAt: now,
+        }),
+      ),
+    );
+
+    const user = userEvent.setup();
+    renderDashboard();
+
+    try {
+      // Wait for advice panel to render with the Tax theme chip
+      await waitFor(() => {
+        const advicePanel = screen.getByTestId('advice-panel');
+        expect(within(advicePanel).getByText('Tax')).toBeInTheDocument();
+      }, { timeout: 10_000 });
+
+      // Find and click dismiss button
+      const dismissButton = await screen.findByRole('button', { name: /dismiss/i });
+      await user.click(dismissButton);
+
+      // Should show toast
+      await screen.findByText(/advice dismissed/i, {}, { timeout: 10_000 });
+
+      const emittedEvents = debugSpy.mock.calls.map(call => call[1]);
+      expect(emittedEvents).toContain('advice_dismiss_attempt');
+      expect(emittedEvents).toContain('advice_dismiss_success');
     } finally {
       debugSpy.mockRestore();
     }
-  });
+  }, 15_000);
 });

@@ -158,10 +158,10 @@ export interface DashboardService {
 
 export interface CreateFollowUpTaskRequest {
   userId: number;
-  type: number;
+  type: number | string;
   title: string;
   description: string;
-  priority: number;
+  priority: number | string;
   dueDate?: string | null;
   sourceAlertId?: number | null;
   estimatedImpact?: number | null;
