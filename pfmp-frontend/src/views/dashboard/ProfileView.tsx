@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -31,6 +31,7 @@ import Grid from '@mui/material/Grid';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { useSearchParams } from 'react-router-dom';
 import { useDevUserId } from '../../dev/devUserState';
 import { userService } from '../../services/api';
 import type { User } from '../../services/api';
@@ -98,9 +99,19 @@ function fmt$(v: number | null | undefined): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
 }
 
+const TAB_KEYS = ['household', 'risk-goals', 'income', 'tax', 'expenses', 'insurance', 'obligations', 'benefits'] as const;
+
 export function ProfileView() {
   const userId = useDevUserId() ?? 1;
-  const [tab, setTab] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = useMemo(() => {
+    const t = searchParams.get('tab');
+    const idx = TAB_KEYS.indexOf(t as typeof TAB_KEYS[number]);
+    return idx >= 0 ? idx : 0;
+  }, [searchParams]);
+  const setTab = useCallback((index: number) => {
+    setSearchParams({ tab: TAB_KEYS[index] }, { replace: true });
+  }, [setSearchParams]);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; severity: 'success' | 'error' } | null>(null);
@@ -206,7 +217,7 @@ export function ProfileView() {
       <Paper sx={{ mt: 2 }}>
         <Tabs
           value={tab}
-          onChange={(_, v) => setTab(v)}
+          onChange={(_, v: number) => setTab(v)}
           variant="scrollable"
           scrollButtons="auto"
           sx={{ borderBottom: 1, borderColor: 'divider' }}

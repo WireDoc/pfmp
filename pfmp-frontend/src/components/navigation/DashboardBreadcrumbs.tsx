@@ -1,4 +1,4 @@
-import { useLocation, Link as RouterLink } from 'react-router-dom';
+import { useLocation, useSearchParams, Link as RouterLink } from 'react-router-dom';
 import { Breadcrumbs, Link, Typography, Box } from '@mui/material';
 import { NavigateNext as NavigateNextIcon, Home as HomeIcon } from '@mui/icons-material';
 import { useState, useEffect } from 'react';
@@ -26,6 +26,18 @@ const breadcrumbConfigs: Record<string, BreadcrumbConfig> = {
   '/dashboard/admin/scheduler': { path: '/dashboard/admin/scheduler', label: 'Scheduler' },
 };
 
+// Map profile tab query params to display labels
+const profileTabLabels: Record<string, string> = {
+  household: 'Household',
+  'risk-goals': 'Risk & Goals',
+  income: 'Income',
+  tax: 'Tax',
+  expenses: 'Expenses',
+  insurance: 'Insurance',
+  obligations: 'Obligations',
+  benefits: 'Benefits',
+};
+
 /**
  * DashboardBreadcrumbs
  * 
@@ -37,6 +49,7 @@ const breadcrumbConfigs: Record<string, BreadcrumbConfig> = {
  */
 export function DashboardBreadcrumbs() {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [accountName, setAccountName] = useState<string | null>(null);
   
   // Fetch account name if we're on a cash account detail page
@@ -142,8 +155,18 @@ export function DashboardBreadcrumbs() {
         else if (breadcrumbConfigs[secondPath]) {
           breadcrumbs.push(breadcrumbConfigs[secondPath]);
           
+          // Profile tab: append the active tab name from query params
+          if (secondSegment === 'profile') {
+            const tabKey = searchParams.get('tab');
+            if (tabKey && profileTabLabels[tabKey]) {
+              breadcrumbs.push({
+                path: `${secondPath}?tab=${tabKey}`,
+                label: profileTabLabels[tabKey],
+              });
+            }
+          }
           // If there's a third segment (like an ID), add a generic label
-          if (pathSegments.length > 2) {
+          else if (pathSegments.length > 2) {
             const thirdSegment = pathSegments[2];
             breadcrumbs.push({
               path: location.pathname,
