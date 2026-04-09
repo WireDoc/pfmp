@@ -15,6 +15,8 @@ import {
   Alert,
   Skeleton,
   Stack,
+  Button,
+  CircularProgress,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import LinkIcon from '@mui/icons-material/Link';
@@ -23,8 +25,9 @@ import EmailIcon from '@mui/icons-material/Email';
 import BalanceIcon from '@mui/icons-material/Balance';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import DownloadIcon from '@mui/icons-material/Download';
 import { useDevUserId } from '../../dev/devUserState';
-import { userService } from '../../services/api';
+import { userService, accountService, goalService, incomeSourceService } from '../../services/api';
 import type { User } from '../../services/api';
 
 /**
@@ -38,6 +41,7 @@ export function SettingsView() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; severity: 'success' | 'error' } | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,6 +76,60 @@ export function SettingsView() {
       setSaving(false);
     }
   }, [user]);
+
+  const handleExportData = useCallback(async () => {
+    setExporting(true);
+    try {
+      const [accountsRes, goalsRes, incomeRes] = await Promise.all([
+        accountService.getByUser(userId).catch(() => ({ data: [] })),
+        goalService.getByUser(userId).catch(() => ({ data: [] })),
+        incomeSourceService.getByUser(userId).catch(() => ({ data: [] })),
+      ]);
+
+      const lines: string[] = [];
+
+      // Accounts section
+      lines.push('=== Investment Accounts ===');
+      lines.push('Name,Institution,Type,Balance,Category');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const a of accountsRes.data as any[]) {
+        lines.push(`"${a.accountName ?? a.name ?? ''}","${a.institution ?? ''}","${a.accountType ?? ''}",${a.currentBalance ?? a.balance ?? 0},"${a.category ?? ''}"`);
+      }
+
+      // Goals section
+      lines.push('');
+      lines.push('=== Goals ===');
+      lines.push('Name,Type,Target,Current,Status,Target Date');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const g of goalsRes.data as any[]) {
+        lines.push(`"${g.name ?? ''}","${g.type ?? ''}",${g.targetAmount ?? 0},${g.currentAmount ?? 0},"${g.status ?? ''}","${g.targetDate ? new Date(g.targetDate).toLocaleDateString() : ''}"`);
+      }
+
+      // Income section
+      lines.push('');
+      lines.push('=== Income Sources ===');
+      lines.push('Description,Type,Amount,Frequency');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const i of incomeRes.data as any[]) {
+        lines.push(`"${i.description ?? i.sourceType ?? ''}","${i.sourceType ?? ''}",${i.amount ?? 0},"${i.frequency ?? ''}"`);
+      }
+
+      const csv = lines.join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pfmp-export-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      setToast({ message: 'Data exported successfully', severity: 'success' });
+    } catch {
+      setToast({ message: 'Failed to export data', severity: 'error' });
+    } finally {
+      setExporting(false);
+    }
+  }, [userId]);
 
   if (loading) {
     return (
@@ -244,6 +302,34 @@ export function SettingsView() {
           </List>
         </Paper>
       )}
+
+      {/* Data Management */}
+      <Paper sx={{ mt: 3 }}>
+        <Typography variant="h6" sx={{ p: 2, pb: 1 }}>
+          Data Management
+        </Typography>
+        <Divider />
+        <List disablePadding>
+          <ListItem>
+            <ListItemIcon>
+              <DownloadIcon color="primary" />
+            </ListItemIcon>
+            <ListItemText
+              primary="Export Data"
+              secondary="Download your accounts, goals, and income data as CSV"
+            />
+            <Button
+              variant="outlined"
+              size="small"
+              disabled={exporting}
+              startIcon={exporting ? <CircularProgress size={16} /> : <DownloadIcon />}
+              onClick={handleExportData}
+            >
+              {exporting ? 'Exporting…' : 'Export CSV'}
+            </Button>
+          </ListItem>
+        </List>
+      </Paper>
 
       <Snackbar open={!!toast} autoHideDuration={3000} onClose={() => setToast(null)}>
         <Alert severity={toast?.severity ?? 'success'} onClose={() => setToast(null)} variant="filled">{toast?.message}</Alert>

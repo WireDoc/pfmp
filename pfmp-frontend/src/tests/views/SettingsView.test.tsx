@@ -14,10 +14,22 @@ vi.mock('../../dev/devUserState', () => ({
 
 const mockGetById = vi.fn();
 const mockUpdate = vi.fn();
+const mockGetAccounts = vi.fn();
+const mockGetGoals = vi.fn();
+const mockGetIncome = vi.fn();
 vi.mock('../../services/api', () => ({
   userService: {
     getById: (...args: unknown[]) => mockGetById(...args),
     update: (...args: unknown[]) => mockUpdate(...args),
+  },
+  accountService: {
+    getByUser: (...args: unknown[]) => mockGetAccounts(...args),
+  },
+  goalService: {
+    getByUser: (...args: unknown[]) => mockGetGoals(...args),
+  },
+  incomeSourceService: {
+    getByUser: (...args: unknown[]) => mockGetIncome(...args),
   },
 }));
 
@@ -160,5 +172,36 @@ describe('SettingsView', () => {
     await waitFor(() => {
       expect(screen.getByText('Failed to load settings')).toBeInTheDocument();
     });
+  });
+
+  it('renders Data Management section with export button', async () => {
+    renderSettingsView();
+    expect(await screen.findByText('Data Management')).toBeInTheDocument();
+    expect(screen.getByText('Export Data')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /export csv/i })).toBeInTheDocument();
+  });
+
+  it('exports data when Export CSV button is clicked', async () => {
+    const user = userEvent.setup();
+    mockGetAccounts.mockResolvedValue({ data: [{ accountName: 'Savings', institution: 'Bank', accountType: 'Checking', currentBalance: 5000, category: 'Cash' }] });
+    mockGetGoals.mockResolvedValue({ data: [{ name: 'Retirement', type: 'Retirement', targetAmount: 100000, currentAmount: 25000, status: 'Active' }] });
+    mockGetIncome.mockResolvedValue({ data: [{ description: 'Salary', sourceType: 'Employment', amount: 5000, frequency: 'Monthly' }] });
+
+    const createObjectURL = vi.fn(() => 'blob:test');
+    const revokeObjectURL = vi.fn();
+    Object.defineProperty(URL, 'createObjectURL', { value: createObjectURL, writable: true });
+    Object.defineProperty(URL, 'revokeObjectURL', { value: revokeObjectURL, writable: true });
+
+    renderSettingsView();
+    await screen.findByText('Data Management');
+
+    const exportBtn = screen.getByRole('button', { name: /export csv/i });
+    await user.click(exportBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText('Data exported successfully')).toBeInTheDocument();
+    });
+    expect(createObjectURL).toHaveBeenCalled();
+    expect(revokeObjectURL).toHaveBeenCalled();
   });
 });

@@ -7,6 +7,7 @@ import { DashboardNav } from './DashboardNav';
 import { DashboardBreadcrumbs } from '../components/navigation/DashboardBreadcrumbs';
 import { DevUserSwitcher } from '../dev/DevUserSwitcher';
 import { useAuth } from '../contexts/auth/useAuth';
+import { CommandPalette } from '../components/CommandPalette';
 
 /**
  * DashboardLayout
@@ -111,6 +112,9 @@ function DashboardLayoutInner() {
           </Box>
         )}
       </Box>
+
+      {/* Command Palette (Ctrl+K) */}
+      <CommandPalette />
     </>
   );
 }

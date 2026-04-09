@@ -97,7 +97,7 @@ const FAQ_ITEMS = [
 ];
 
 const KEYBOARD_SHORTCUTS = [
-  { keys: 'Ctrl + K', action: 'Quick search (coming soon)' },
+  { keys: 'Ctrl + K', action: 'Open command palette' },
   { keys: 'Ctrl + /', action: 'Toggle sidebar' },
   { keys: 'Esc', action: 'Close dialog / dismiss notification' },
 ];
