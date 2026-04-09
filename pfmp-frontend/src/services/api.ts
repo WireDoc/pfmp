@@ -25,6 +25,14 @@ export interface User {
   vaDisabilityPercentage?: number;
   isGovernmentEmployee: boolean;
   governmentAgency?: string;
+  // Preferences
+  enableRebalancingAlerts?: boolean;
+  rebalancingThreshold?: number;
+  enableTaxOptimization?: boolean;
+  enablePushNotifications?: boolean;
+  enableEmailAlerts?: boolean;
+  // Timestamps
+  lastLoginAt?: string;
   createdAt: string;
   updatedAt: string;
 }

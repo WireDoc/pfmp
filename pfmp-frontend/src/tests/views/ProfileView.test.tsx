@@ -88,9 +88,9 @@ const mockInsurance = { policies: [] };
 const mockObligations = { obligations: [] };
 const mockBenefits = { benefits: [] };
 
-function renderProfileView() {
+function renderProfileView(initialRoute = '/dashboard/profile') {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[initialRoute]}>
       <ProfileView />
     </MemoryRouter>
   );
@@ -232,6 +232,60 @@ describe('ProfileView', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Total:.*\$1,500\/mo/)).toBeInTheDocument();
+    });
+  });
+
+  it('opens the correct tab when ?tab= query param is provided', async () => {
+    renderProfileView('/dashboard/profile?tab=income');
+    await screen.findByText('Financial Profile');
+
+    // Income tab should be active and content visible
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Salary')).toBeInTheDocument();
+    });
+  });
+
+  it('defaults to Household tab when no tab param', async () => {
+    renderProfileView('/dashboard/profile');
+    await screen.findByText('Financial Profile');
+
+    // Household fields should be visible
+    await waitFor(() => {
+      expect(screen.getByLabelText('Preferred Name')).toBeInTheDocument();
+    });
+    // Risk & Goals fields should NOT be visible (hidden tab)
+    expect(screen.queryByLabelText('Risk Tolerance (1-10)')).not.toBeInTheDocument();
+  });
+
+  it('ignores invalid tab param and defaults to first tab', async () => {
+    renderProfileView('/dashboard/profile?tab=invalid');
+    await screen.findByText('Financial Profile');
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Preferred Name')).toBeInTheDocument();
+    });
+  });
+
+  it('shows error toast when profile data fails to load', async () => {
+    mockUserGetById.mockRejectedValue(new Error('Network error'));
+    renderProfileView();
+
+    await waitFor(() => {
+      expect(screen.getByText('Failed to load profile data')).toBeInTheDocument();
+    });
+  });
+
+  it('shows error toast when save fails', async () => {
+    const user = userEvent.setup();
+    mockUpsertHousehold.mockRejectedValue(new Error('Save failed'));
+    renderProfileView();
+    await waitFor(() => expect(mockFetchHousehold).toHaveBeenCalled());
+
+    const saveButtons = await screen.findAllByRole('button', { name: /save/i });
+    await user.click(saveButtons[0]);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Failed to save/i)).toBeInTheDocument();
     });
   });
 });
