@@ -1,7 +1,7 @@
 # Wave 17: Dashboard Expansion & Profile Management
 
 _Created: 2026-04-01_  
-_Status: In Progress_
+_Status: Complete_
 
 ## Overview
 
@@ -295,14 +295,14 @@ Phase 5 — New Features (Part H, as time allows)
 
 ## Metrics
 
-| Metric | Target |
-|--------|--------|
-| Placeholder pages remaining | 0 (currently 8) |
-| Profile sections editable | 8 of 8 |
-| Backend test count | 140+ (currently 126) |
-| Frontend test coverage | New test file per new/modified view |
-| API endpoints added | ~5-8 new |
-| Build errors introduced | 0 |
+| Metric | Target | Actual |
+|--------|--------|--------|
+| Placeholder pages remaining | 0 (currently 8) | **0** ✅ |
+| Profile sections editable | 8 of 8 | **8 of 8** ✅ |
+| Backend test count | 140+ (currently 126) | **140** ✅ |
+| Frontend test coverage | New test file per new/modified view | **71 test files, 485 tests** ✅ |
+| API endpoints added | ~5-8 new | **6 new** ✅ |
+| Build errors introduced | 0 | **0** ✅ |
 
 ---
 
@@ -317,3 +317,4 @@ _Version: 1.1_
 |------|---------|---------|
 | 2026-04-01 | 1.0 | Initial wave plan |
 | 2026-04-08 | 1.1 | Part D rewritten: TasksView → ActionsView (unified Alert/Advice/Task hub). Documented completed Alert → Advice → Task workflow enforcement (commit 44ad9a1). Updated acceptance criteria #6-7, implementation Phase 2, and Should-Have #15. |
+| 2026-04-10 | 1.2 | Wave 17 COMPLETE. PRs #2-5 merged. All Must-Have (#1-10), Should-Have (#11-15), and Nice-to-Have (#16 command palette, #18 goal projections, #19 data export, #20 shortcuts) delivered. 625 total tests (485 FE + 140 BE), 0 failures. Deferred: #17 document attachments (needs new DB table). |

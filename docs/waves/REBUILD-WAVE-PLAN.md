@@ -1,6 +1,6 @@
 # PFMP Rebuild Wave Plan
 
-> Status: Wave 4 (Intelligence Dashboards) IN PROGRESS – Waves 0–3 documentation, routing, onboarding scaffold, and auth/profile UX landed; current focus adds dashboard insights and live obligation signals.
+> Status: Wave 17 (Dashboard Expansion) COMPLETE – All Must-Have, Should-Have, and Nice-to-Have items delivered across PRs #2–#5. Dashboard overview, profile management, command palette, goal projections, data export all shipped. 625 tests (485 frontend + 140 backend), 0 failures.
 
 ## Purpose
 Reconstruct missing frontend orchestration layers (routing shell, onboarding, intelligence dashboards, alerts UI, auth presentation) in controlled, auditable increments while preserving a stable backend and existing leaf feature components. Enables dual-AI evolution without uncontrolled scope creep.
