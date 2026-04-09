@@ -239,6 +239,7 @@ export const taskService = {
   markAsCompleted: (id: number, request: CompleteTaskRequest) => 
     apiClient.patch<Task>(`/tasks/${id}/complete`, request),
   dismiss: (id: number) => apiClient.patch<Task>(`/tasks/${id}/dismiss`),
+  updateProgress: (id: number, progress: number) => apiClient.patch<Task>(`/tasks/${id}/progress`, progress),
   delete: (id: number) => apiClient.delete(`/tasks/${id}`),
 };
 
@@ -287,6 +288,37 @@ export const adviceService = {
   dismiss: (adviceId: number) => apiClient.post<Advice>(`/Advice/${adviceId}/dismiss`, {}),
   // Optionally support un-dismiss (if backend later adds it)
   undismiss: (adviceId: number) => apiClient.post<Advice>(`/Advice/${adviceId}/undismiss`, {}),
+};
+
+// Alert types (Actions Hub)
+export interface AlertItem {
+  alertId: number;
+  userId: number;
+  title: string;
+  message: string;
+  severity: string;
+  category: string;
+  isActionable: boolean;
+  portfolioImpactScore?: number | null;
+  createdAt: string;
+  isRead: boolean;
+  isDismissed: boolean;
+  expiresAt?: string | null;
+  actionUrl?: string | null;
+}
+
+export const alertsService = {
+  getByUser: (userId: number, filters?: { isActive?: boolean; isRead?: boolean; isDismissed?: boolean }) => {
+    const params = new URLSearchParams();
+    params.append('userId', userId.toString());
+    if (filters?.isActive !== undefined) params.append('isActive', String(filters.isActive));
+    if (filters?.isRead !== undefined) params.append('isRead', String(filters.isRead));
+    if (filters?.isDismissed !== undefined) params.append('isDismissed', String(filters.isDismissed));
+    return apiClient.get<AlertItem[]>(`/alerts?${params.toString()}`);
+  },
+  markAsRead: (id: number) => apiClient.patch(`/alerts/${id}/read`),
+  dismiss: (id: number) => apiClient.patch(`/alerts/${id}/dismiss`),
+  undismiss: (id: number) => apiClient.patch(`/alerts/${id}/undismiss`),
 };
 
 export default apiClient;

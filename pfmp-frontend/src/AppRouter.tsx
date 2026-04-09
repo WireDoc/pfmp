@@ -23,6 +23,7 @@ const CreditCardDetailView = lazy(() => import('./views/dashboard/CreditCardDeta
 const DebtPayoffDashboard = lazy(() => import('./views/dashboard/DebtPayoffDashboard'));
 const InsightsView = lazy(() => import('./views/dashboard/InsightsView').then(m => ({ default: m.InsightsView })));
 const TasksView = lazy(() => import('./views/dashboard/TasksView').then(m => ({ default: m.TasksView })));
+const ActionsView = lazy(() => import('./views/dashboard/ActionsView').then(m => ({ default: m.ActionsView })));
 const ProfileView = lazy(() => import('./views/dashboard/ProfileView').then(m => ({ default: m.ProfileView })));
 const SettingsView = lazy(() => import('./views/dashboard/SettingsView').then(m => ({ default: m.SettingsView })));
 const HelpView = lazy(() => import('./views/dashboard/HelpView').then(m => ({ default: m.HelpView })));
@@ -147,6 +148,10 @@ export function AppRouter(props: AppRouterProps) {
         {
           path: 'tasks',
           element: <Suspense fallback={<PageSpinner />}><TasksView /></Suspense>,
+        },
+        {
+          path: 'actions',
+          element: <Suspense fallback={<PageSpinner />}><ActionsView /></Suspense>,
         },
         {
           path: 'profile',

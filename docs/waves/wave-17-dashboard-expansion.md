@@ -71,18 +71,42 @@ Expand InsightsView from placeholder to a full AI insights hub.
 | **Advice feed** | All Advice records (Proposed, Accepted, Dismissed) with accept/dismiss actions |
 | **Confidence indicators** | Agreement score badge + model names used |
 
-### Part D: Tasks Full Page (Priority 4)
+### Part D: Actions Hub — Unified Alert / Advice / Task Management (Priority 4)
 
-Expand TasksView into a task management page.
+Rename `/dashboard/tasks` → `/dashboard/actions` and expand TasksView into a one-stop hub for the full **Alert → Advice → Task** pipeline. Currently alerts and advice are only visible as compact summaries (top 5) on the main dashboard, with no way to see dismissed items, history, or manage the full lifecycle from one place.
 
-| Feature | Description |
-|---------|-------------|
-| **Task board** | Columns or filter tabs: Pending, In Progress, Completed, Dismissed |
-| **Task cards** | Title, priority chip, status chip, progress bar, due date, source (alert/advice link) |
-| **Bulk actions** | Multi-select to dismiss or mark complete |
-| **Task detail** | Expand to see description, notes, completion notes, estimated impact |
-| **Create task** | Manual task creation (not just from alerts) |
-| **Sort and filter** | By priority, status, due date, source type |
+#### Completed (Wave 17E — commit 44ad9a1)
+The Alert → Advice → Task workflow enforcement is done:
+- Dashboard.tsx rewritten: `handleGenerateAdvice`, `handleAcceptAdvice`, `handleDismissAdvice` replace direct task creation
+- AlertsPanel shows "Get AI Advice" button or linked advice status chip per alert
+- AdvicePanel shows Accept/Dismiss buttons for Proposed advice; status chips for Accepted/Dismissed
+- Old bypass path (Alert → Task direct) removed; deprecated endpoint returns 410
+- Integration + unit tests updated (375 passing)
+
+#### Remaining: ActionsView (replaces TasksView)
+
+**Three-tab layout:**
+
+| Tab | Content | Filters |
+|-----|---------|---------|
+| **Alerts** | All user alerts (not capped at 5). Each shows linked advice status. "Get AI Advice" for actionable alerts without advice. | Active / Read / Dismissed / Expired; severity; category |
+| **Advice** | All advice items with Accept/Dismiss for Proposed. Shows linked alert context and linked task ID. | Proposed / Accepted / Dismissed; theme; confidence range |
+| **Tasks** | Current TasksView content + working progress slider (ported from Dashboard). Status tabs. Create Task dialog. | Pending / InProgress / Completed / Dismissed; priority; type; due date |
+
+**Key changes:**
+- Rename `TasksView.tsx` → `ActionsView.tsx`, update route from `tasks` to `actions`
+- Extract `TaskProgressSlider` from Dashboard's TasksPanel into a shared component
+- Add "View all →" links from each dashboard summary panel to the corresponding Actions tab
+- Remove advice accept/dismiss from InsightsView (avoid duplicate UI for same action)
+- Alert tab calls `GET /api/alerts?userId={id}` with `isActive`, `isRead`, `isDismissed` filters
+- Advice tab calls `GET /api/Advice/user/{id}?status={filter}&includeDismissed=true`
+- Sidebar nav label changes from "Tasks" to "Actions"
+
+**UX notes:**
+- Summary chips at top: "3 active alerts · 2 proposed advice · 5 pending tasks"
+- Tab badges show count of actionable items (e.g., alert count, proposed advice count)
+- Breadcrumb: Dashboard › Actions › [Tab Name]
+- Deep-link support: `/dashboard/actions?tab=advice` opens directly to Advice tab
 
 ### Part E: Settings Enhancement (Priority 5)
 
@@ -182,8 +206,8 @@ Uses existing `Goals` table data. New `GET /api/goals/{userId}/projections` endp
 3. Profile edits persist to database and are reflected in AI context on next analysis
 4. AccountsView shows all account types grouped with balances and navigation
 5. InsightsView displays AI analysis results with run-on-demand capability
-6. TasksView shows full task list with status management (advance, dismiss, complete)
-7. SettingsView Notification Preferences section is functional
+6. ActionsView (formerly TasksView) shows alerts, advice, and tasks with full lifecycle management
+7. Alert → Advice → Task workflow enforced in dashboard (no direct alert-to-task bypass) ✅
 8. All new views have corresponding Vitest test files
 9. All new/modified API endpoints have xUnit test coverage
 10. No regressions in existing 126 backend tests
@@ -193,7 +217,7 @@ Uses existing `Goals` table data. New `GET /api/goals/{userId}/projections` endp
 12. Monthly cash flow summary chart
 13. Quick Actions bar on dashboard
 14. HelpView FAQ accordion with real content
-15. Task creation from InsightsView (promote advice → task)
+15. SettingsView Notification Preferences section is functional
 
 ### Nice-to-Have (Future-proof, can defer)
 16. Command palette (Ctrl+K)
@@ -223,9 +247,12 @@ Phase 1 — Profile Management (Part A)
   └─ ProfileView tabs, edit forms, save endpoints
   └─ Reuse onboarding section form components where possible
 
-Phase 2 — Accounts & Tasks (Parts B + D)
+Phase 2 — Accounts & Actions Hub (Parts B + D)
   └─ AccountsView grouped list with navigation
-  └─ TasksView full board with status management
+  └─ ActionsView: rename TasksView, add Alerts + Advice tabs
+  └─ Extract TaskProgressSlider shared component
+  └─ Add "View all" links from dashboard panels → Actions tabs
+  └─ Remove duplicate advice management from InsightsView
 
 Phase 3 — Insights & Overview (Parts C + G)
   └─ InsightsView with AI analysis cards and history
@@ -280,4 +307,13 @@ Phase 5 — New Features (Part H, as time allows)
 ---
 
 _Owner: WireDoc_  
-_Version: 1.0_
+_Version: 1.1_
+
+---
+
+## Changelog
+
+| Date | Version | Changes |
+|------|---------|---------|
+| 2026-04-01 | 1.0 | Initial wave plan |
+| 2026-04-08 | 1.1 | Part D rewritten: TasksView → ActionsView (unified Alert/Advice/Task hub). Documented completed Alert → Advice → Task workflow enforcement (commit 44ad9a1). Updated acceptance criteria #6-7, implementation Phase 2, and Should-Have #15. |

@@ -2,7 +2,7 @@ import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } 
 import { Box, Typography, Paper, Alert, Skeleton, Snackbar } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import { OnboardingContext } from '../onboarding/OnboardingContext.shared';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link as RouterLink } from 'react-router-dom';
 import { useDevUserId } from '../dev/devUserState';
 import { useDashboardData } from '../services/dashboard/useDashboardData';
 import { useDataRefresh } from '../hooks/useDataRefresh';
@@ -32,7 +32,7 @@ import type {
   Insight,
 } from '../services/dashboard';
 import type { OnboardingStepId } from '../onboarding/steps';
-import { adviceService } from '../services/api';
+import { adviceService, alertsService } from '../services/api';
 
 function monotonicNow(): number {
   if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
@@ -235,6 +235,46 @@ export const Dashboard: React.FC = () => {
       });
     } finally {
       setGeneratingAdviceForAlertId(null);
+    }
+  }, [logTelemetry]);
+
+  // -- Alert -> Mark as read ---------------------------------------------------
+  const handleMarkAlertAsRead = useCallback(async (alertId: number) => {
+    try {
+      await alertsService.markAsRead(alertId);
+      setViewData(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          alerts: prev.alerts.map(a =>
+            a.alertId === alertId ? { ...a, isRead: true } : a,
+          ),
+        } satisfies DashboardData;
+      });
+      setToastMessage('Alert marked as read');
+      logTelemetry('alert_mark_read', { alertId });
+    } catch {
+      setToastMessage('Failed to mark alert as read');
+    }
+  }, [logTelemetry]);
+
+  // -- Alert -> Dismiss --------------------------------------------------------
+  const handleDismissAlert = useCallback(async (alertId: number) => {
+    try {
+      await alertsService.dismiss(alertId);
+      setViewData(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          alerts: prev.alerts.map(a =>
+            a.alertId === alertId ? { ...a, isDismissed: true, isRead: true } : a,
+          ),
+        } satisfies DashboardData;
+      });
+      setToastMessage('Alert dismissed');
+      logTelemetry('alert_dismiss', { alertId });
+    } catch {
+      setToastMessage('Failed to dismiss alert');
     }
   }, [logTelemetry]);
 
@@ -714,7 +754,10 @@ export const Dashboard: React.FC = () => {
         </Grid>
         <Grid size={12}>
           <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Typography variant="h6" gutterBottom>Alerts</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="h6" gutterBottom>Alerts</Typography>
+              <Typography variant="body2" component={RouterLink} to="/dashboard/actions?tab=alerts" sx={{ textDecoration: 'none', color: 'primary.main' }}>View all &rarr;</Typography>
+            </Box>
             {loading ? (
               <Skeleton variant="rectangular" height={140} />
             ) : (
@@ -724,13 +767,18 @@ export const Dashboard: React.FC = () => {
                 advice={advice}
                 generatingAdviceForAlertId={generatingAdviceForAlertId}
                 onGenerateAdvice={handleGenerateAdvice}
+                onMarkAsRead={handleMarkAlertAsRead}
+                onDismiss={handleDismissAlert}
               />
             )}
           </Paper>
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
           <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Typography variant="h6" gutterBottom>Advice</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="h6" gutterBottom>Advice</Typography>
+              <Typography variant="body2" component={RouterLink} to="/dashboard/actions?tab=advice" sx={{ textDecoration: 'none', color: 'primary.main' }}>View all &rarr;</Typography>
+            </Box>
             {loading ? <Skeleton variant="rectangular" height={140} /> : (
               <AdvicePanel
                 advice={advice}
@@ -744,7 +792,10 @@ export const Dashboard: React.FC = () => {
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
           <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Typography variant="h6" gutterBottom>Tasks</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Typography variant="h6" gutterBottom>Tasks</Typography>
+              <Typography variant="body2" component={RouterLink} to="/dashboard/actions?tab=tasks" sx={{ textDecoration: 'none', color: 'primary.main' }}>View all &rarr;</Typography>
+            </Box>
             {loading ? (
               <Skeleton variant="rectangular" height={140} />
             ) : (

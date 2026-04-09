@@ -54,7 +54,7 @@ describe('DashboardNav', () => {
       expect(screen.getByText('Dashboard')).toBeInTheDocument();
       expect(screen.getByText('Accounts')).toBeInTheDocument();
       expect(screen.getByText('Insights')).toBeInTheDocument();
-      expect(screen.getByText('Tasks')).toBeInTheDocument();
+      expect(screen.getByText('Actions')).toBeInTheDocument();
     });
 
     it('should render secondary navigation items when expanded', () => {
