@@ -47,7 +47,7 @@ const navigationItems: NavItem[] = [
   { path: '/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
   { path: '/dashboard/accounts', label: 'Accounts', icon: <AccountsIcon /> },
   { path: '/dashboard/insights', label: 'Insights', icon: <InsightsIcon /> },
-  { path: '/dashboard/tasks', label: 'Tasks', icon: <TasksIcon /> },
+  { path: '/dashboard/actions', label: 'Actions', icon: <TasksIcon /> },
 ];
 
 const secondaryItems: NavItem[] = [

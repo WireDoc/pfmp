@@ -5,6 +5,7 @@ import {
   Chip,
   CircularProgress,
   Divider,
+  IconButton,
   Stack,
   Tooltip,
   Typography,
@@ -15,6 +16,8 @@ import {
   InfoOutlined as InfoIcon,
   AutoAwesome as AdviceIcon,
   CheckCircleOutline as SuccessIcon,
+  DoneAll as ReadIcon,
+  RemoveCircleOutline as DismissAlertIcon,
 } from '@mui/icons-material';
 import type { AlertCard, AdviceItem } from '../../services/dashboard';
 
@@ -24,6 +27,8 @@ interface AlertsPanelProps {
   advice?: AdviceItem[];
   generatingAdviceForAlertId?: number | null;
   onGenerateAdvice?: (alert: AlertCard) => void;
+  onMarkAsRead?: (alertId: number) => void;
+  onDismiss?: (alertId: number) => void;
 }
 
 type ChipColor = 'default' | 'success' | 'warning' | 'error' | 'info';
@@ -35,7 +40,7 @@ const severityMeta = {
   Critical: { color: 'error', Icon: ErrorIcon },
 } satisfies Record<AlertCard['severity'], { color: ChipColor; Icon: typeof SuccessIcon }>;
 
-export function AlertsPanel({ alerts, loading, advice = [], generatingAdviceForAlertId, onGenerateAdvice }: AlertsPanelProps) {
+export function AlertsPanel({ alerts, loading, advice = [], generatingAdviceForAlertId, onGenerateAdvice, onMarkAsRead, onDismiss }: AlertsPanelProps) {
   if (loading && alerts.length === 0) {
     return <Typography variant="body2">Loading alerts…</Typography>;
   }
@@ -90,45 +95,71 @@ export function AlertsPanel({ alerts, loading, advice = [], generatingAdviceForA
                 <Typography variant="caption" color="text.disabled">
                   {new Date(alert.createdAt).toLocaleString()}
                 </Typography>
-                {(() => {
-                  const linkedAdvice = advice.find(a => a.sourceAlertId === alert.alertId);
-                  const isGenerating = generatingAdviceForAlertId === alert.alertId;
-                  if (linkedAdvice) {
-                    const label =
-                      linkedAdvice.status === 'Accepted' ? 'Advice accepted' :
-                      linkedAdvice.status === 'Dismissed' ? 'Advice dismissed' :
-                      'Advice generated';
-                    return (
-                      <Button
+                <Box display="flex" gap={0.5} alignItems="center">
+                  {(() => {
+                    const linkedAdvice = advice.find(a => a.sourceAlertId === alert.alertId);
+                    const isGenerating = generatingAdviceForAlertId === alert.alertId;
+                    if (linkedAdvice) {
+                      const label =
+                        linkedAdvice.status === 'Accepted' ? 'Advice accepted' :
+                        linkedAdvice.status === 'Dismissed' ? 'Advice dismissed' :
+                        'Advice generated';
+                      return (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color={linkedAdvice.status === 'Accepted' ? 'success' : linkedAdvice.status === 'Dismissed' ? 'default' : 'info'}
+                          disabled
+                          endIcon={<AdviceIcon fontSize="small" />}
+                        >
+                          {label}
+                        </Button>
+                      );
+                    }
+                    if (actionable && onGenerateAdvice) {
+                      return (
+                        <Tooltip title="Generate AI-verified advice for this alert">
+                          <span>
+                            <Button
+                              size="small"
+                              variant="contained"
+                              endIcon={isGenerating ? <CircularProgress size={16} color="inherit" /> : <AdviceIcon fontSize="small" />}
+                              onClick={() => onGenerateAdvice(alert)}
+                              disabled={isGenerating}
+                            >
+                              {isGenerating ? 'Generating…' : 'Get AI Advice'}
+                            </Button>
+                          </span>
+                        </Tooltip>
+                      );
+                    }
+                    return null;
+                  })()}
+
+                  {!alert.isRead && !alert.isDismissed && onMarkAsRead && (
+                    <Tooltip title="Mark as read">
+                      <IconButton
                         size="small"
-                        variant="outlined"
-                        color={linkedAdvice.status === 'Accepted' ? 'success' : linkedAdvice.status === 'Dismissed' ? 'default' : 'info'}
-                        disabled
-                        endIcon={<AdviceIcon fontSize="small" />}
+                        onClick={() => onMarkAsRead(alert.alertId)}
+                        aria-label="Mark as read"
                       >
-                        {label}
-                      </Button>
-                    );
-                  }
-                  if (actionable && onGenerateAdvice) {
-                    return (
-                      <Tooltip title="Generate AI-verified advice for this alert">
-                        <span>
-                          <Button
-                            size="small"
-                            variant="contained"
-                            endIcon={isGenerating ? <CircularProgress size={16} color="inherit" /> : <AdviceIcon fontSize="small" />}
-                            onClick={() => onGenerateAdvice(alert)}
-                            disabled={isGenerating}
-                          >
-                            {isGenerating ? 'Generating…' : 'Get AI Advice'}
-                          </Button>
-                        </span>
-                      </Tooltip>
-                    );
-                  }
-                  return null;
-                })()}
+                        <ReadIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+
+                  {!alert.isDismissed && onDismiss && (
+                    <Tooltip title="Dismiss alert">
+                      <IconButton
+                        size="small"
+                        onClick={() => onDismiss(alert.alertId)}
+                        aria-label="Dismiss alert"
+                      >
+                        <DismissAlertIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                </Box>
               </Box>
             </Box>
             {idx < Math.min(alerts.length, 5) - 1 && <Divider flexItem light />}

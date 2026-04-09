@@ -194,7 +194,7 @@ public class DashboardController : ControllerBase
                     type = "retirement",
                     balance = new { amount = totalTsp, currency = "USD" },
                     syncStatus = "ok",
-                    lastSync = tspPositions.Max(p => p.DateUpdated) ?? DateTime.UtcNow
+                    lastSync = tspPositions.Max(p => p.LastPricedAsOfUtc) ?? tspPositions.Max(p => p.DateUpdated) ?? DateTime.UtcNow
                 });
             }
 
