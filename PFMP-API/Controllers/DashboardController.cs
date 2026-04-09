@@ -440,6 +440,271 @@ public class DashboardController : ControllerBase
     }
 
     /// <summary>
+    /// Financial Health Score — 0-100 composite score computed from existing user data.
+    /// Weights: Emergency Fund 20%, Debt-to-Income 20%, Savings Rate 20%,
+    ///          Insurance Coverage 15%, Diversification 15%, Goal Progress 10%.
+    /// </summary>
+    [HttpGet("health-score")]
+    public async Task<ActionResult<object>> GetHealthScore([FromQuery] int? userId = null)
+    {
+        try
+        {
+            var effectiveUserId = userId ?? 1;
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == effectiveUserId);
+            if (user == null) return NotFound(new { message = "User not found" });
+
+            // --- data queries ---
+            var expenses = await _context.ExpenseBudgets
+                .Where(e => e.UserId == effectiveUserId).ToListAsync();
+            var income = await _context.IncomeSources
+                .Where(i => i.UserId == effectiveUserId && i.IsActive).ToListAsync();
+            var cashAccounts = await _context.CashAccounts
+                .Where(c => c.UserId == effectiveUserId).ToListAsync();
+            var investmentAccounts = await _context.Accounts
+                .Where(a => a.UserId == effectiveUserId)
+                .Include(a => a.Holdings)
+                .ToListAsync();
+            var liabilities = await _context.LiabilityAccounts
+                .Where(l => l.UserId == effectiveUserId).ToListAsync();
+            var properties = await _context.Properties
+                .Where(p => p.UserId == effectiveUserId).ToListAsync();
+            var goals = await _context.Goals
+                .Where(g => g.UserId == effectiveUserId).ToListAsync();
+            var insurance = await _context.FinancialProfileInsurancePolicies
+                .Where(p => p.UserId == effectiveUserId).ToListAsync();
+
+            var monthlyExpenses = expenses.Sum(e => e.MonthlyAmount);
+            var monthlyIncome = income.Sum(i => i.MonthlyAmount);
+            var totalCash = cashAccounts.Sum(c => c.Balance);
+            var totalDebtPayments = liabilities.Sum(l => l.MinimumPayment ?? 0)
+                + properties.Where(p => p.MonthlyMortgagePayment.HasValue).Sum(p => p.MonthlyMortgagePayment!.Value);
+
+            // --- 1. Emergency Fund (20%) ---
+            // Target: 6 months of expenses in liquid accounts
+            double emergencyFundScore;
+            if (monthlyExpenses <= 0)
+            {
+                emergencyFundScore = totalCash > 0 ? 100 : 50; // No expense data = partial credit
+            }
+            else
+            {
+                var monthsCovered = (double)(totalCash / monthlyExpenses);
+                emergencyFundScore = Math.Min(monthsCovered / 6.0 * 100, 100);
+            }
+
+            // --- 2. Debt-to-Income (20%) ---
+            // DTI < 20% = 100, 20-36% linear, > 50% = 0
+            double debtToIncomeScore;
+            if (monthlyIncome <= 0)
+            {
+                debtToIncomeScore = totalDebtPayments == 0 ? 100 : 0;
+            }
+            else
+            {
+                var dti = (double)(totalDebtPayments / monthlyIncome) * 100;
+                debtToIncomeScore = dti <= 20 ? 100 : dti >= 50 ? 0 : (50 - dti) / 30 * 100;
+            }
+
+            // --- 3. Savings Rate (20%) ---
+            // (Income - Expenses) / Income. Target >= 20%
+            double savingsRateScore;
+            double savingsRatePct;
+            if (monthlyIncome <= 0)
+            {
+                savingsRateScore = 0;
+                savingsRatePct = 0;
+            }
+            else
+            {
+                savingsRatePct = (double)((monthlyIncome - monthlyExpenses) / monthlyIncome) * 100;
+                savingsRatePct = Math.Max(savingsRatePct, 0);
+                savingsRateScore = Math.Min(savingsRatePct / 20 * 100, 100);
+            }
+
+            // --- 4. Insurance Coverage (15%) ---
+            // Score based on how many policies are marked as adequate
+            double insuranceCoverageScore;
+            if (insurance.Count == 0)
+            {
+                insuranceCoverageScore = 0;
+            }
+            else
+            {
+                var adequate = insurance.Count(p => p.IsAdequateCoverage);
+                insuranceCoverageScore = (double)adequate / insurance.Count * 100;
+            }
+
+            // --- 5. Diversification (15%) ---
+            // How many distinct asset classes does the user hold?
+            // Categories: cash, investment, TSP/retirement, property, crypto
+            var assetClasses = new HashSet<string>();
+            if (totalCash > 0) assetClasses.Add("cash");
+            if (investmentAccounts.Any(a => a.Holdings?.Any(h => h.Quantity > 0) == true)) assetClasses.Add("investment");
+            var tspPositions = await _context.TspLifecyclePositions
+                .Where(t => t.UserId == effectiveUserId && t.Units > 0).AnyAsync();
+            if (tspPositions) assetClasses.Add("retirement");
+            if (properties.Any(p => p.EstimatedValue > 0)) assetClasses.Add("property");
+            // 5 classes = 100, 4 = 80, etc.
+            double diversificationScore = Math.Min(assetClasses.Count / 4.0 * 100, 100);
+
+            // --- 6. Goal Progress (10%) ---
+            double goalProgressScore;
+            if (goals.Count == 0)
+            {
+                goalProgressScore = 0;
+            }
+            else
+            {
+                goalProgressScore = goals.Average(g =>
+                    g.TargetAmount > 0
+                        ? Math.Min((double)(g.CurrentAmount / g.TargetAmount) * 100, 100)
+                        : 0);
+            }
+
+            // --- composite ---
+            var overallScore = (int)Math.Round(
+                emergencyFundScore * 0.20 +
+                debtToIncomeScore * 0.20 +
+                savingsRateScore * 0.20 +
+                insuranceCoverageScore * 0.15 +
+                diversificationScore * 0.15 +
+                goalProgressScore * 0.10);
+
+            overallScore = Math.Clamp(overallScore, 0, 100);
+
+            var grade = overallScore switch
+            {
+                >= 80 => "Excellent",
+                >= 60 => "Good",
+                >= 40 => "Fair",
+                _ => "Needs Attention"
+            };
+
+            return Ok(new
+            {
+                overallScore,
+                grade,
+                breakdown = new
+                {
+                    emergencyFund = new { score = (int)Math.Round(emergencyFundScore), weight = 20, monthsCovered = monthlyExpenses > 0 ? Math.Round((double)(totalCash / monthlyExpenses), 1) : (double?)null },
+                    debtToIncome = new { score = (int)Math.Round(debtToIncomeScore), weight = 20, dtiPercent = monthlyIncome > 0 ? Math.Round((double)(totalDebtPayments / monthlyIncome) * 100, 1) : (double?)null },
+                    savingsRate = new { score = (int)Math.Round(savingsRateScore), weight = 20, ratePercent = Math.Round(savingsRatePct, 1) },
+                    insuranceCoverage = new { score = (int)Math.Round(insuranceCoverageScore), weight = 15, policiesCount = insurance.Count, adequateCount = insurance.Count(p => p.IsAdequateCoverage) },
+                    diversification = new { score = (int)Math.Round(diversificationScore), weight = 15, assetClassCount = assetClasses.Count },
+                    goalProgress = new { score = (int)Math.Round(goalProgressScore), weight = 10, goalsCount = goals.Count }
+                },
+                computedAt = DateTime.UtcNow
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error computing health score for user {UserId}", userId);
+            return StatusCode(500, new { message = "Internal server error computing health score" });
+        }
+    }
+
+    /// <summary>
+    /// Monthly cash flow summary from IncomeSources and ExpenseBudgets.
+    /// Returns total income, total expenses, net surplus/deficit, and per-category breakdowns.
+    /// </summary>
+    [HttpGet("cash-flow-summary")]
+    public async Task<ActionResult<object>> GetCashFlowSummary([FromQuery] int? userId = null)
+    {
+        try
+        {
+            var effectiveUserId = userId ?? 1;
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == effectiveUserId);
+            if (user == null) return NotFound(new { message = "User not found" });
+
+            var income = await _context.IncomeSources
+                .Where(i => i.UserId == effectiveUserId && i.IsActive)
+                .ToListAsync();
+            var expenses = await _context.ExpenseBudgets
+                .Where(e => e.UserId == effectiveUserId)
+                .ToListAsync();
+
+            var totalMonthlyIncome = income.Sum(i => i.MonthlyAmount);
+            var totalMonthlyExpenses = expenses.Sum(e => e.MonthlyAmount);
+            var netCashFlow = totalMonthlyIncome - totalMonthlyExpenses;
+
+            var incomeByType = income
+                .GroupBy(i => i.Type.ToString())
+                .Select(g => new { category = g.Key, monthlyAmount = g.Sum(i => i.MonthlyAmount) })
+                .OrderByDescending(x => x.monthlyAmount)
+                .ToList();
+
+            var expensesByCategory = expenses
+                .GroupBy(e => e.Category)
+                .Select(g => new { category = g.Key, monthlyAmount = g.Sum(e => e.MonthlyAmount) })
+                .OrderByDescending(x => x.monthlyAmount)
+                .ToList();
+
+            return Ok(new
+            {
+                totalMonthlyIncome,
+                totalMonthlyExpenses,
+                netCashFlow,
+                savingsRate = totalMonthlyIncome > 0
+                    ? Math.Round((double)(netCashFlow / totalMonthlyIncome) * 100, 1)
+                    : 0,
+                incomeBreakdown = incomeByType,
+                expenseBreakdown = expensesByCategory,
+                computedAt = DateTime.UtcNow
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error computing cash flow summary for user {UserId}", userId);
+            return StatusCode(500, new { message = "Internal server error computing cash flow summary" });
+        }
+    }
+
+    /// <summary>
+    /// Upcoming obligations — next N obligations by target date with funding progress.
+    /// </summary>
+    [HttpGet("upcoming-obligations")]
+    public async Task<ActionResult<object>> GetUpcomingObligations([FromQuery] int? userId = null, [FromQuery] int count = 3)
+    {
+        try
+        {
+            var effectiveUserId = userId ?? 1;
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == effectiveUserId);
+            if (user == null) return NotFound(new { message = "User not found" });
+
+            var obligations = await _context.LongTermObligations
+                .Where(o => o.UserId == effectiveUserId && o.TargetDate.HasValue)
+                .OrderBy(o => o.TargetDate)
+                .Take(Math.Clamp(count, 1, 20))
+                .ToListAsync();
+
+            var items = obligations.Select(o => new
+            {
+                id = o.LongTermObligationId,
+                name = o.ObligationName,
+                type = o.ObligationType,
+                targetDate = o.TargetDate,
+                estimatedCost = o.EstimatedCost ?? 0,
+                fundsAllocated = o.FundsAllocated ?? 0,
+                fundingProgressPct = o.EstimatedCost > 0
+                    ? Math.Round((double)((o.FundsAllocated ?? 0) / o.EstimatedCost.Value) * 100, 1)
+                    : 0,
+                fundingStatus = o.FundingStatus ?? "Unknown",
+                isCritical = o.IsCritical
+            }).ToList();
+
+            return Ok(new { obligations = items, total = items.Count });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching upcoming obligations for user {UserId}", userId);
+            return StatusCode(500, new { message = "Internal server error fetching obligations" });
+        }
+    }
+
+    /// <summary>
     /// Check if a symbol is a TSP fund (handled by separate TspPriceRefreshJob)
     /// </summary>
     private static bool IsTspFund(string? symbol)
