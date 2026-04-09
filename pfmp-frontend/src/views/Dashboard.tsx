@@ -13,6 +13,10 @@ import { ErrorDisplay } from '../components/error/ErrorDisplay';
 import { DashboardErrorBoundary } from '../components/error/DashboardErrorBoundary';
 import { OfflineBanner } from '../components/offline/OfflineBanner';
 import { OverviewPanel } from './dashboard/OverviewPanel';
+import { HealthScoreWidget } from '../components/dashboard/HealthScoreWidget';
+import { CashFlowWidget } from '../components/dashboard/CashFlowWidget';
+import { UpcomingObligationsWidget } from '../components/dashboard/UpcomingObligationsWidget';
+import { QuickActionsBar } from '../components/dashboard/QuickActionsBar';
 import { AccountsPanel } from './dashboard/AccountsPanel';
 import { InsightsPanel } from './dashboard/InsightsPanel';
 import { AlertsPanel } from './dashboard/AlertsPanel';
@@ -719,6 +723,15 @@ export const Dashboard: React.FC = () => {
           </Paper>
         </Grid>
         <Grid size={12}>
+          <QuickActionsBar />
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <HealthScoreWidget />
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <CashFlowWidget />
+        </Grid>
+        <Grid size={12}>
           <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Typography variant="h6" gutterBottom>Quick glance</Typography>
             <QuickStatsPanel data={displayData} loading={loading} />
@@ -751,6 +764,9 @@ export const Dashboard: React.FC = () => {
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
           {loading ? <Skeleton variant="rectangular" height={200} /> : <LiabilitiesPanel liabilities={displayData?.liabilities} loading={loading} />}
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <UpcomingObligationsWidget />
         </Grid>
         <Grid size={12}>
           <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
