@@ -61,6 +61,7 @@ const financialProfileInsuranceMatcher = /\/financial-profile\/\d+\/insurance(?:
 const financialProfileBenefitsMatcher = /\/financial-profile\/\d+\/benefits(?:\?.*)?$/;
 const financialProfileIncomeMatcher = /\/financial-profile\/\d+\/income(?:\?.*)?$/;
 const financialProfileEquityMatcher = /\/financial-profile\/\d+\/equity(?:\?.*)?$/;
+const federalBenefitsMatcher = /\/federalbenefits\/user\/\d+(?:\?.*)?$/;
 const netWorthSparklineMatcher = /\/api\/dashboard\/net-worth\/sparkline(?:\?.*)?$/i;
 
 const createDashboardSummaryHandlers = (
@@ -164,6 +165,7 @@ export const defaultHandlers = [
   ...createSectionHandlers(financialProfileBenefitsMatcher, { benefits: [] }),
   ...createSectionHandlers(financialProfileIncomeMatcher, { streams: [] }),
   ...createSectionHandlers(financialProfileEquityMatcher),
+  ...createSectionHandlers(federalBenefitsMatcher),
   http.get(netWorthSparklineMatcher, () => HttpResponse.json([], { status: 200 })),
   http.options(netWorthSparklineMatcher, () => new HttpResponse(null, { status: 204 })),
 ];

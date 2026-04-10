@@ -1035,6 +1035,70 @@ Your analysis will be reviewed by a backup AI system for validation.",
                 sb.AppendLine();
             }
 
+            // === FEDERAL RETIREMENT BENEFITS ===
+            var fedBenefits = await _context.FederalBenefitsProfiles
+                .FirstOrDefaultAsync(f => f.UserId == userId);
+            if (fedBenefits != null)
+            {
+                sb.AppendLine("=== FEDERAL RETIREMENT BENEFITS ===");
+
+                // FERS/CSRS Pension
+                if (fedBenefits.High3AverageSalary.HasValue)
+                    sb.AppendLine($"High-3 Average Salary: {fedBenefits.High3AverageSalary:C0}");
+                if (fedBenefits.ProjectedMonthlyPension.HasValue)
+                    sb.AppendLine($"Projected Monthly Pension: {fedBenefits.ProjectedMonthlyPension:C0}");
+                if (fedBenefits.ProjectedAnnuity.HasValue)
+                    sb.AppendLine($"Projected Annual Annuity: {fedBenefits.ProjectedAnnuity:C0}");
+                if (fedBenefits.CreditableYearsOfService.HasValue)
+                    sb.AppendLine($"Creditable Service: {fedBenefits.CreditableYearsOfService}y {fedBenefits.CreditableMonthsOfService ?? 0}m");
+                if (fedBenefits.IsEligibleForSpecialRetirementSupplement == true)
+                    sb.AppendLine($"FERS Supplement: Eligible, est. {fedBenefits.EstimatedSupplementMonthly:C0}/mo (ages {fedBenefits.SupplementEligibilityAge}–{fedBenefits.SupplementEndAge})");
+
+                // FEGLI
+                if (fedBenefits.HasFegliBasic)
+                {
+                    sb.Append("FEGLI: Basic");
+                    if (fedBenefits.FegliBasicCoverage.HasValue) sb.Append($" ({fedBenefits.FegliBasicCoverage:C0})");
+                    if (fedBenefits.HasFegliOptionA) sb.Append(" + Option A");
+                    if (fedBenefits.HasFegliOptionB) sb.Append($" + Option B ({fedBenefits.FegliOptionBMultiple}x)");
+                    if (fedBenefits.HasFegliOptionC) sb.Append($" + Option C ({fedBenefits.FegliOptionCMultiple}x)");
+                    if (fedBenefits.FegliTotalMonthlyPremium.HasValue) sb.Append($" — {fedBenefits.FegliTotalMonthlyPremium:C2}/mo");
+                    sb.AppendLine();
+                }
+
+                // FEHB
+                if (!string.IsNullOrEmpty(fedBenefits.FehbPlanName))
+                {
+                    sb.Append($"FEHB: {fedBenefits.FehbPlanName}");
+                    if (!string.IsNullOrEmpty(fedBenefits.FehbCoverageLevel)) sb.Append($" ({fedBenefits.FehbCoverageLevel})");
+                    if (fedBenefits.FehbMonthlyPremium.HasValue) sb.Append($" — {fedBenefits.FehbMonthlyPremium:C2}/mo");
+                    if (fedBenefits.FehbEmployerContribution.HasValue) sb.Append($" (employer pays {fedBenefits.FehbEmployerContribution:C2})");
+                    sb.AppendLine();
+                }
+
+                // FEDVIP / FLTCIP
+                if (fedBenefits.HasFedvipDental)
+                    sb.AppendLine($"FEDVIP Dental: {fedBenefits.FedvipDentalMonthlyPremium:C2}/mo");
+                if (fedBenefits.HasFedvipVision)
+                    sb.AppendLine($"FEDVIP Vision: {fedBenefits.FedvipVisionMonthlyPremium:C2}/mo");
+                if (fedBenefits.HasFltcip)
+                    sb.AppendLine($"FLTCIP (Long-Term Care): {fedBenefits.FltcipMonthlyPremium:C2}/mo");
+
+                // FSA / HSA
+                if (fedBenefits.HasFsa)
+                    sb.AppendLine($"FSA Annual Election: {fedBenefits.FsaAnnualElection:C0}");
+                if (fedBenefits.HasHsa)
+                    sb.AppendLine($"HSA: Balance {fedBenefits.HsaBalance:C0}, Annual Contribution {fedBenefits.HsaAnnualContribution:C0}");
+
+                // Upload dates
+                if (fedBenefits.LastSf50UploadDate.HasValue)
+                    sb.AppendLine($"Last SF-50 uploaded: {fedBenefits.LastSf50UploadDate:yyyy-MM-dd}");
+                if (fedBenefits.LastLesUploadDate.HasValue)
+                    sb.AppendLine($"Last LES uploaded: {fedBenefits.LastLesUploadDate:yyyy-MM-dd}");
+
+                sb.AppendLine();
+            }
+
             return sb.ToString();
         }
 

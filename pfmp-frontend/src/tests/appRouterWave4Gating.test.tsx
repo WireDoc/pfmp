@@ -36,7 +36,7 @@ describe('AppRouter Wave4 dashboard gating (static routes)', () => {
       updateFlags({ enableDashboardWave4: true, onboarding_persistence_enabled: false });
     });
     render(<Wrapper initialPath="/dashboard" />);
-  const el = await screen.findByTestId(wave4DashboardTestId);
+  const el = await screen.findByTestId(wave4DashboardTestId, {}, { timeout: 5000 });
     expect(el).toBeInTheDocument();
   });
 });

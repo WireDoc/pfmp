@@ -10,6 +10,7 @@ import ExpensesSectionForm from './sections/ExpensesSectionForm';
 import TaxPostureSectionForm from './sections/TaxPostureSectionForm';
 import InsuranceSectionForm from './sections/InsuranceSectionForm';
 import BenefitsSectionForm from './sections/BenefitsSectionForm';
+import FederalBenefitsSectionForm from './sections/FederalBenefitsSectionForm';
 import LongTermObligationsSectionForm from './sections/LongTermObligationsSectionForm';
 import IncomeSectionForm from './sections/IncomeSectionForm';
 import EquityPlaceholderPanel from './sections/EquityPlaceholderPanel';
@@ -171,6 +172,13 @@ const stepMeta: Partial<Record<OnboardingStepId, StepMeta>> = {
     apiRoute: '/financial-profile/:userId/benefits',
     supportsOptOut: true,
     analyticsId: 'onboarding.benefits',
+    autoSave: true,
+  },
+  'federal-benefits': {
+    component: FederalBenefitsSectionForm,
+    apiRoute: '/federalbenefits/user/:userId',
+    supportsOptOut: true,
+    analyticsId: 'onboarding.federal_benefits',
     autoSave: true,
   },
   'long-term-obligations': {

@@ -10,7 +10,7 @@ import {
 } from './utils/onboardingTestHelpers';
 
 // End-to-end flow that completes every section (choosing a mix of complete vs opt-out) then finalizes.
-// This is intentionally high timeout because it traverses all 15 sections.
+// This is intentionally high timeout because it traverses all 16 sections.
 
 describe('Onboarding finalize end-to-end', () => {
   it('completes all sections and unlocks dashboard', async () => {
@@ -115,6 +115,15 @@ describe('Onboarding finalize end-to-end', () => {
     await forceFlushAutosaveAct();
   await waitForSectionStatusTransition('benefits', 'opted_out');
     await user.click(screen.getByRole('button', { name: /Next/i }));
+
+  // Federal Benefits (opt-out) — heading appears after Next from prior section
+  await screen.findByRole('heading', { level: 2, name: 'Federal Benefits' }, {}, { timeout: 12000 });
+  await user.click(screen.getByLabelText(/I don.t need federal benefits tracking/i));
+  await user.type(screen.getByLabelText('Why are you opting out?'), 'Not a fed');
+  await waitForAutosaveComplete();
+  await forceFlushAutosaveAct();
+  await waitForSectionStatusTransition('federal-benefits', 'opted_out');
+  await user.click(screen.getByRole('button', { name: /Next/i }));
 
   // Long-Term Obligations (opt-out)
     await robustNavigateToHeading('Long-Term Obligations', /Long-Term Obligations/i);

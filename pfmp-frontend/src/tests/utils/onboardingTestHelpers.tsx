@@ -246,6 +246,7 @@ export async function waitForSectionStatusTransition(stepName: string, expected:
     tax: 'Tax Posture',
     insurance: 'Insurance Coverage',
     benefits: 'Benefits & Programs',
+    'federal-benefits': 'Federal Benefits',
     'long-term-obligations': 'Long-Term Obligations',
     income: 'Income Streams',
     equity: 'Equity & Private Holdings',

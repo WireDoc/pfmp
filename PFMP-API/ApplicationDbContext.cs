@@ -84,6 +84,9 @@ namespace PFMP_API
     // User Notes (Wave 17)
     public DbSet<UserNote> UserNotes { get; set; }
 
+    // Federal Benefits (Wave 18)
+    public DbSet<FederalBenefitsProfile> FederalBenefitsProfiles { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -611,6 +614,17 @@ namespace PFMP_API
                 entity.Property(e => e.EntityType).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.EntityId).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Content).IsRequired().HasMaxLength(2000);
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Federal Benefits (Wave 18)
+            modelBuilder.Entity<FederalBenefitsProfile>(entity =>
+            {
+                entity.HasKey(e => e.FederalBenefitsProfileId);
+                entity.HasIndex(e => e.UserId).IsUnique();
                 entity.HasOne(e => e.User)
                     .WithMany()
                     .HasForeignKey(e => e.UserId)

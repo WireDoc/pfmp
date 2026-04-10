@@ -76,32 +76,38 @@ export const ONBOARDING_STEPS: OnboardingStepDef[] = [
   {
     id: 'benefits',
     title: 'Benefits & Programs',
-    description: 'Capture employer and federal benefits so we can highlight unused perks.',
+    description: 'Capture employer benefits and programs so we can highlight unused perks.',
     order: 11,
+  },
+  {
+    id: 'federal-benefits',
+    title: 'Federal Benefits',
+    description: 'FEGLI, FEHB, FERS pension details, and optional SF-50 / LES upload for auto-fill.',
+    order: 12,
   },
   {
     id: 'long-term-obligations',
     title: 'Long-Term Obligations',
     description: 'Major future purchases and milestones so we can track funding progress.',
-    order: 12,
+    order: 13,
   },
   {
     id: 'income',
     title: 'Income Streams',
     description: 'Salary, VA disability, pensions, and side hustles to chart monthly cashflow.',
-    order: 13,
+    order: 14,
   },
   {
     id: 'equity',
     title: 'Equity & Private Holdings',
     description: 'RSUs, stock options, and private equity support (coming soon) so we can prep guidance.',
-    order: 14,
+    order: 15,
   },
   {
     id: 'review',
     title: 'Review & Finalize',
     description: 'Double-check each section, acknowledge opt-outs, and unlock your dashboard.',
-    order: 15,
+    order: 16,
   },
 ];
 

@@ -14,6 +14,7 @@ export type FinancialProfileSectionKey =
   | 'tax'
   | 'insurance'
   | 'benefits'
+  | 'federal-benefits'
   | 'income'
   | 'equity'
   | 'review';
@@ -333,6 +334,7 @@ function assertSectionKey(value: string): value is FinancialProfileSectionKey {
     value === 'tax' ||
     value === 'insurance' ||
     value === 'benefits' ||
+    value === 'federal-benefits' ||
     value === 'income' ||
     value === 'equity' ||
     value === 'review'

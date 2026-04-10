@@ -57,6 +57,16 @@ namespace PFMP_API.Models
         [Column(TypeName = "decimal(5,2)")]
         public decimal? LiquidityBufferMonths { get; set; }
 
+        // Retirement planning assumptions
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal? InflationAssumptionPercent { get; set; } // Default 3.0 in UI
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? ProjectedMonthlyRetirementExpenses { get; set; }
+
+        [MaxLength(2)]
+        public string? PlannedRetirementState { get; set; } // May differ from current state
+
         // Government Employment
         public bool IsGovernmentEmployee { get; set; } = true;
         public string? GovernmentAgency { get; set; }
