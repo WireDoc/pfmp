@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Box, Paper, Tabs, Tab, Typography, CircularProgress, Button } from '@mui/material';
-import { SwapHoriz as SwapHorizIcon } from '@mui/icons-material';
+import { SwapHoriz as SwapHorizIcon, Edit as EditIcon } from '@mui/icons-material';
 import { TransactionList } from '../../components/cash-accounts/TransactionList';
 import { BalanceTrendChart } from '../../components/cash-accounts/BalanceTrendChart';
 import { AccountDetailsCard } from '../../components/cash-accounts/AccountDetailsCard';
-import { getCashAccount, type CashAccountResponse } from '../../services/cashAccountsApi';
+import { getCashAccount, updateCashAccount, deleteCashAccount, type CashAccountResponse, type CreateCashAccountRequest, type UpdateCashAccountRequest } from '../../services/cashAccountsApi';
 import { TransferFundsDialog } from '../../components/transfers/TransferFundsDialog';
+import { CashAccountModal } from '../../components/accounts/CashAccountModal';
 
 const CashAccountDetailView: React.FC = () => {
   const { cashAccountId } = useParams<{ cashAccountId: string }>();
@@ -16,6 +17,7 @@ const CashAccountDetailView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   // Fetch cash account details
   useEffect(() => {
@@ -40,6 +42,24 @@ const CashAccountDetailView: React.FC = () => {
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setCurrentTab(newValue);
+  };
+
+  const refetchAccount = () => {
+    if (cashAccountId) {
+      getCashAccount(cashAccountId).then(setAccount).catch(() => {});
+    }
+  };
+
+  const handleEditSave = async (request: CreateCashAccountRequest | UpdateCashAccountRequest, accountId?: string) => {
+    if (accountId) {
+      await updateCashAccount(accountId, request as UpdateCashAccountRequest);
+      refetchAccount();
+    }
+  };
+
+  const handleEditDelete = async (accountId: string) => {
+    await deleteCashAccount(accountId);
+    navigate('/dashboard/accounts');
   };
 
   const handleExportTransactions = (transactions: any[]) => {
@@ -106,13 +126,22 @@ const CashAccountDetailView: React.FC = () => {
             {account.institution} • {account.accountType}
           </Typography>
         </Box>
-        <Button
-          variant="outlined"
-          startIcon={<SwapHorizIcon />}
-          onClick={() => setTransferDialogOpen(true)}
-        >
-          Transfer Funds
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            startIcon={<EditIcon />}
+            onClick={() => setEditModalOpen(true)}
+          >
+            Edit Account
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<SwapHorizIcon />}
+            onClick={() => setTransferDialogOpen(true)}
+          >
+            Transfer Funds
+          </Button>
+        </Box>
       </Box>
 
       {/* Account Details Card */}
@@ -160,6 +189,16 @@ const CashAccountDetailView: React.FC = () => {
           currentAccountType="cash"
         />
       )}
+
+      {/* Edit Account Modal */}
+      <CashAccountModal
+        open={editModalOpen}
+        userId={account.userId}
+        account={account}
+        onClose={() => setEditModalOpen(false)}
+        onSave={handleEditSave}
+        onDelete={handleEditDelete}
+      />
     </Box>
   );
 };

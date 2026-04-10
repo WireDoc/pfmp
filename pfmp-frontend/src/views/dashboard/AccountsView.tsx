@@ -19,12 +19,17 @@ import HomeIcon from '@mui/icons-material/Home';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import EditIcon from '@mui/icons-material/Edit';
 import { useNavigate } from 'react-router-dom';
 import { useDevUserId } from '../../dev/devUserState';
 import { useDashboardData } from '../../services/dashboard/useDashboardData';
 import type { AccountSnapshot, PropertySnapshot, LiabilitySnapshot } from '../../services/dashboard';
 import { fetchTspSummaryLite } from '../../services/financialProfileApi';
 import type { TspSummaryLite } from '../../services/financialProfileApi';
+import { CashAccountModal } from '../../components/accounts/CashAccountModal';
+import { AccountModal } from '../../components/accounts/AccountModal';
+import { getCashAccount, updateCashAccount, deleteCashAccount, type CashAccountResponse, type CreateCashAccountRequest, type UpdateCashAccountRequest } from '../../services/cashAccountsApi';
+import { getAccount, updateAccount, deleteAccount, type AccountResponse, type UpdateAccountRequest } from '../../services/accountsApi';
 
 function fmt$(amount: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
@@ -75,13 +80,60 @@ function AccountSection({ title, icon, count, total, children, defaultOpen = tru
 export function AccountsView() {
   const userId = useDevUserId() ?? 1;
   const navigate = useNavigate();
-  const { data, loading, error } = useDashboardData();
+  const { data, loading, error, refetch } = useDashboardData();
   const [tsp, setTsp] = useState<TspSummaryLite | null>(null);
   const [filter, setFilter] = useState('');
+  const [cashModalOpen, setCashModalOpen] = useState(false);
+  const [editingCashAccount, setEditingCashAccount] = useState<CashAccountResponse | null>(null);
+  const [editingAccount, setEditingAccount] = useState<AccountResponse | null>(null);
+  const [loadingEdit, setLoadingEdit] = useState(false);
 
   useEffect(() => {
     fetchTspSummaryLite(userId).then(setTsp).catch(() => {});
   }, [userId]);
+
+  const handleEditAccount = async (account: AccountSnapshot) => {
+    setLoadingEdit(true);
+    try {
+      if (account.isCashAccount) {
+        const fullAccount = await getCashAccount(account.id);
+        setEditingCashAccount(fullAccount);
+        setCashModalOpen(true);
+      } else {
+        const accountIdNum = typeof account.id === 'number' ? account.id : parseInt(account.id, 10);
+        if (!isNaN(accountIdNum)) {
+          const fullAccount = await getAccount(accountIdNum);
+          setEditingAccount(fullAccount);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load account for editing:', err);
+    } finally {
+      setLoadingEdit(false);
+    }
+  };
+
+  const handleCashSave = async (request: CreateCashAccountRequest | UpdateCashAccountRequest, accountId?: string) => {
+    if (accountId) {
+      await updateCashAccount(accountId, request as UpdateCashAccountRequest);
+    }
+    refetch();
+  };
+
+  const handleCashDelete = async (accountId: string) => {
+    await deleteCashAccount(accountId);
+    refetch();
+  };
+
+  const handleAccountSave = async (accountId: number, request: UpdateAccountRequest) => {
+    await updateAccount(accountId, request);
+    refetch();
+  };
+
+  const handleAccountDelete = async (accountId: number) => {
+    await deleteAccount(accountId);
+    refetch();
+  };
 
   if (loading) {
     return (
@@ -178,7 +230,17 @@ export function AccountsView() {
                     <Typography variant="subtitle2">{a.name}</Typography>
                     <Typography variant="caption" color="text.secondary">{a.institution} &middot; {a.type}</Typography>
                   </Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{fmt$(amt(a.balance))}</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => { e.stopPropagation(); handleEditAccount(a); }}
+                      aria-label="Edit account"
+                      disabled={loadingEdit}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{fmt$(amt(a.balance))}</Typography>
+                  </Box>
                 </Box>
               </Paper>
             ))}
@@ -209,7 +271,17 @@ export function AccountsView() {
                     <Typography variant="subtitle2">{a.name}</Typography>
                     <Typography variant="caption" color="text.secondary">{a.institution} &middot; {a.type}</Typography>
                   </Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{fmt$(amt(a.balance))}</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => { e.stopPropagation(); handleEditAccount(a); }}
+                      aria-label="Edit account"
+                      disabled={loadingEdit}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{fmt$(amt(a.balance))}</Typography>
+                  </Box>
                 </Box>
               </Paper>
             ))}
@@ -308,6 +380,23 @@ export function AccountsView() {
           </Stack>
         </AccountSection>
       )}
+
+      <CashAccountModal
+        open={cashModalOpen}
+        userId={userId}
+        account={editingCashAccount}
+        onClose={() => { setCashModalOpen(false); setEditingCashAccount(null); }}
+        onSave={handleCashSave}
+        onDelete={handleCashDelete}
+      />
+
+      <AccountModal
+        open={!!editingAccount}
+        account={editingAccount}
+        onClose={() => setEditingAccount(null)}
+        onSave={handleAccountSave}
+        onDelete={handleAccountDelete}
+      />
     </Box>
   );
 }
