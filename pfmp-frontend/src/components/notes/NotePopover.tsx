@@ -99,7 +99,7 @@ export function NotePopover({ entityType, entityId }: NotePopoverProps) {
   };
 
   return (
-    <>
+    <Box component="span" onClick={e => e.stopPropagation()} sx={{ display: 'inline-flex' }}>
       <Tooltip title={hasNotes ? `${notes.length} note${notes.length !== 1 ? 's' : ''}` : 'Add note'}>
         <IconButton
           size="small"
@@ -189,6 +189,6 @@ export function NotePopover({ entityType, entityId }: NotePopoverProps) {
           )}
         </Box>
       </Popover>
-    </>
+    </Box>
   );
 }

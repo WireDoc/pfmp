@@ -1017,6 +1017,24 @@ Your analysis will be reviewed by a backup AI system for validation.",
             }
             sb.AppendLine();
 
+            // === USER NOTES ===
+            var userNotes = await _context.UserNotes
+                .Where(n => n.UserId == userId)
+                .OrderByDescending(n => n.IsPinned)
+                .ThenByDescending(n => n.UpdatedAt)
+                .ToListAsync();
+            if (userNotes.Any())
+            {
+                sb.AppendLine($"=== USER NOTES ({userNotes.Count} notes) ===");
+                sb.AppendLine("These are the user's own annotations on their financial entities. Pinned notes indicate high importance.");
+                foreach (var n in userNotes)
+                {
+                    var pinned = n.IsPinned ? " [PINNED]" : "";
+                    sb.AppendLine($"• [{n.EntityType}/{n.EntityId}]{pinned}: {n.Content}");
+                }
+                sb.AppendLine();
+            }
+
             return sb.ToString();
         }
 
