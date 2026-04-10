@@ -8,6 +8,7 @@ import { AccountDetailsCard } from '../../components/cash-accounts/AccountDetail
 import { getCashAccount, updateCashAccount, deleteCashAccount, type CashAccountResponse, type CreateCashAccountRequest, type UpdateCashAccountRequest } from '../../services/cashAccountsApi';
 import { TransferFundsDialog } from '../../components/transfers/TransferFundsDialog';
 import { CashAccountModal } from '../../components/accounts/CashAccountModal';
+import { NotePopover } from '../../components/notes/NotePopover';
 
 const CashAccountDetailView: React.FC = () => {
   const { cashAccountId } = useParams<{ cashAccountId: string }>();
@@ -126,7 +127,8 @@ const CashAccountDetailView: React.FC = () => {
             {account.institution} • {account.accountType}
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          {cashAccountId && <NotePopover entityType="cash_account" entityId={cashAccountId} />}
           <Button
             variant="outlined"
             startIcon={<EditIcon />}

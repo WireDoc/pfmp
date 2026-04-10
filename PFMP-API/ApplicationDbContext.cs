@@ -81,6 +81,9 @@ namespace PFMP_API
     // Plaid Investments (Wave 12)
     public DbSet<PlaidSecurity> PlaidSecurities { get; set; }
 
+    // User Notes (Wave 17)
+    public DbSet<UserNote> UserNotes { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -596,6 +599,21 @@ namespace PFMP_API
                 entity.HasOne(e => e.Connection)
                     .WithMany()
                     .HasForeignKey(e => e.ConnectionId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // User Notes (Wave 17)
+            modelBuilder.Entity<UserNote>(entity =>
+            {
+                entity.HasKey(e => e.UserNoteId);
+                entity.HasIndex(e => new { e.UserId, e.EntityType, e.EntityId });
+                entity.HasIndex(e => e.UserId);
+                entity.Property(e => e.EntityType).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.EntityId).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Content).IsRequired().HasMaxLength(2000);
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 

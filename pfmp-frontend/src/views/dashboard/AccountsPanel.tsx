@@ -17,6 +17,7 @@ import { getAccount, updateAccount, deleteAccount, type AccountResponse, type Up
 import axios from 'axios';
 import type { DashboardData } from '../../services/dashboard';
 import type { AccountSnapshot } from '../../services/dashboard/types';
+import { NotePopover } from '../../components/notes/NotePopover';
 
 interface Props { 
   data: DashboardData | null; 
@@ -253,6 +254,7 @@ export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefres
                   </Box>
                   <Box display="flex" alignItems="center" gap={1}>
                     <SyncStatusBadge status={a.syncStatus} lastSync={a.lastSync} />
+                    <NotePopover entityType={a.isCashAccount ? 'cash_account' : 'account'} entityId={String(a.id)} />
                     <IconButton 
                       size="small" 
                       onClick={() => handleViewAccount(a)} 

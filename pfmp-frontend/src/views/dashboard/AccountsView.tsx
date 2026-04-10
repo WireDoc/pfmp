@@ -27,6 +27,7 @@ import type { AccountSnapshot, PropertySnapshot, LiabilitySnapshot } from '../..
 import { fetchTspSummaryLite } from '../../services/financialProfileApi';
 import type { TspSummaryLite } from '../../services/financialProfileApi';
 import { CashAccountModal } from '../../components/accounts/CashAccountModal';
+import { NotePopover } from '../../components/notes/NotePopover';
 import { AccountModal } from '../../components/accounts/AccountModal';
 import { getCashAccount, updateCashAccount, deleteCashAccount, type CashAccountResponse, type CreateCashAccountRequest, type UpdateCashAccountRequest } from '../../services/cashAccountsApi';
 import { getAccount, updateAccount, deleteAccount, type AccountResponse, type UpdateAccountRequest } from '../../services/accountsApi';
@@ -231,6 +232,7 @@ export function AccountsView() {
                     <Typography variant="caption" color="text.secondary">{a.institution} &middot; {a.type}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <NotePopover entityType="cash_account" entityId={String(a.id)} />
                     <IconButton
                       size="small"
                       onClick={(e) => { e.stopPropagation(); handleEditAccount(a); }}
@@ -272,6 +274,7 @@ export function AccountsView() {
                     <Typography variant="caption" color="text.secondary">{a.institution} &middot; {a.type}</Typography>
                   </Box>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <NotePopover entityType="account" entityId={String(a.id)} />
                     <IconButton
                       size="small"
                       onClick={(e) => { e.stopPropagation(); handleEditAccount(a); }}
@@ -339,7 +342,10 @@ export function AccountsView() {
                     <Typography variant="subtitle2">{p.address}</Typography>
                     <Typography variant="caption" color="text.secondary">{p.type} &middot; Equity: {fmt$(amt(p.estimatedValue) - amt(p.mortgageBalance))}</Typography>
                   </Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{fmt$(amt(p.estimatedValue))}</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <NotePopover entityType="property" entityId={String(p.id)} />
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{fmt$(amt(p.estimatedValue))}</Typography>
+                  </Box>
                 </Box>
               </Paper>
             ))}
@@ -373,7 +379,10 @@ export function AccountsView() {
                     <Typography variant="subtitle2">{l.name}</Typography>
                     <Typography variant="caption" color="text.secondary">{l.type} &middot; {l.interestRate?.toFixed(2)}% APR</Typography>
                   </Box>
-                  <Typography variant="subtitle1" color="error" sx={{ fontWeight: 600 }}>{fmt$(amt(l.currentBalance))}</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <NotePopover entityType="liability" entityId={String(l.id)} />
+                    <Typography variant="subtitle1" color="error" sx={{ fontWeight: 600 }}>{fmt$(amt(l.currentBalance))}</Typography>
+                  </Box>
                 </Box>
               </Paper>
             ))}
