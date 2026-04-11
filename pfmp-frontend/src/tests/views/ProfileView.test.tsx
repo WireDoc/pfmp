@@ -60,6 +60,18 @@ vi.mock('../../services/financialProfileApi', () => ({
   upsertBenefitsProfile: (...args: unknown[]) => mockUpsertBenefits(...args),
 }));
 
+const mockFetchFederalBenefits = vi.fn();
+const mockSaveFederalBenefits = vi.fn();
+const mockApplySf50 = vi.fn();
+const mockApplyLes = vi.fn();
+
+vi.mock('../../services/federalBenefitsApi', () => ({
+  fetchFederalBenefits: (...args: unknown[]) => mockFetchFederalBenefits(...args),
+  saveFederalBenefits: (...args: unknown[]) => mockSaveFederalBenefits(...args),
+  applySf50: (...args: unknown[]) => mockApplySf50(...args),
+  applyLes: (...args: unknown[]) => mockApplyLes(...args),
+}));
+
 import { ProfileView } from '../../views/dashboard/ProfileView';
 
 const mockUser = {
@@ -107,6 +119,8 @@ beforeEach(() => {
   mockFetchInsurance.mockResolvedValue(mockInsurance);
   mockFetchObligations.mockResolvedValue(mockObligations);
   mockFetchBenefits.mockResolvedValue(mockBenefits);
+  mockFetchFederalBenefits.mockResolvedValue(null);
+  mockSaveFederalBenefits.mockResolvedValue({});
   mockUpsertHousehold.mockResolvedValue({});
   mockUpsertRiskGoals.mockResolvedValue({});
   mockUserUpdate.mockResolvedValue({});
@@ -126,10 +140,10 @@ describe('ProfileView', () => {
     expect(document.querySelectorAll('.MuiSkeleton-root').length).toBeGreaterThan(0);
   });
 
-  it('renders all 8 tabs', async () => {
+  it('renders all 9 tabs', async () => {
     renderProfileView();
     await screen.findByText('Financial Profile');
-    const tabs = ['Household', 'Risk & Goals', 'Income', 'Tax', 'Expenses', 'Insurance', 'Obligations', 'Benefits'];
+    const tabs = ['Household', 'Risk & Goals', 'Income', 'Tax', 'Expenses', 'Insurance', 'Obligations', 'Benefits', 'Federal Benefits'];
     for (const tab of tabs) {
       expect(screen.getByRole('tab', { name: tab })).toBeInTheDocument();
     }
@@ -242,6 +256,77 @@ describe('ProfileView', () => {
     // Income tab should be active and content visible
     await waitFor(() => {
       expect(screen.getByDisplayValue('Salary')).toBeInTheDocument();
+    });
+  });
+
+  it('can switch to Federal Benefits tab and see form', async () => {
+    const user = userEvent.setup();
+    renderProfileView();
+    await screen.findByText('Financial Profile');
+
+    const fedTab = screen.getByRole('tab', { name: 'Federal Benefits' });
+    await user.click(fedTab);
+
+    await waitFor(() => {
+      expect(screen.getByText('Federal Benefits Profile')).toBeInTheDocument();
+    });
+    expect(screen.getByText('FERS / CSRS Pension')).toBeInTheDocument();
+    expect(screen.getByText('FEGLI (Life Insurance)')).toBeInTheDocument();
+    expect(screen.getByText('FEHB (Health Insurance)')).toBeInTheDocument();
+  });
+
+  it('loads federal benefits data and populates fields', async () => {
+    mockFetchFederalBenefits.mockResolvedValue({
+      federalBenefitsProfileId: 1,
+      userId: 20,
+      high3AverageSalary: 120000,
+      hasFegliBasic: true,
+      fegliBasicCoverage: 125000,
+      hasFegliOptionA: false,
+      hasFegliOptionB: false,
+      hasFegliOptionC: false,
+      fehbPlanName: 'BCBS Standard',
+      fehbCoverageLevel: 'Self and Family',
+      fehbMonthlyPremium: 450,
+      hasFedvipDental: false,
+      hasFedvipVision: false,
+      hasFltcip: false,
+      hasFsa: false,
+      hasHsa: false,
+    });
+    const user = userEvent.setup();
+    renderProfileView();
+    await screen.findByText('Financial Profile');
+
+    await user.click(screen.getByRole('tab', { name: 'Federal Benefits' }));
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('120000')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('BCBS Standard')).toBeInTheDocument();
+    });
+  });
+
+  it('saves federal benefits when clicking save', async () => {
+    const user = userEvent.setup();
+    renderProfileView();
+    await screen.findByText('Financial Profile');
+    await user.click(screen.getByRole('tab', { name: 'Federal Benefits' }));
+
+    await waitFor(() => expect(screen.getByText('Federal Benefits Profile')).toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: /save federal benefits/i }));
+
+    await waitFor(() => {
+      expect(mockSaveFederalBenefits).toHaveBeenCalledWith(20, expect.any(Object));
+    });
+  });
+
+  it('opens Federal Benefits tab via query param', async () => {
+    renderProfileView('/dashboard/profile?tab=federal-benefits');
+    await screen.findByText('Financial Profile');
+
+    await waitFor(() => {
+      expect(screen.getByText('Federal Benefits Profile')).toBeInTheDocument();
     });
   });
 

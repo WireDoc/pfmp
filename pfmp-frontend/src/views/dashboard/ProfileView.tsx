@@ -31,6 +31,8 @@ import Grid from '@mui/material/Grid';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { useSearchParams } from 'react-router-dom';
 import { useDevUserId } from '../../dev/devUserState';
 import { userService } from '../../services/api';
@@ -53,6 +55,14 @@ import {
   fetchBenefitsProfile,
   upsertBenefitsProfile,
 } from '../../services/financialProfileApi';
+import {
+  fetchFederalBenefits,
+  saveFederalBenefits,
+  applySf50,
+  applyLes,
+  type FederalBenefitsProfile,
+  type SaveFederalBenefitsRequest,
+} from '../../services/federalBenefitsApi';
 import type {
   HouseholdProfilePayload,
   RiskGoalsProfilePayload,
@@ -99,7 +109,19 @@ function fmt$(v: number | null | undefined): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
 }
 
-const TAB_KEYS = ['household', 'risk-goals', 'income', 'tax', 'expenses', 'insurance', 'obligations', 'benefits'] as const;
+const TAB_KEYS = ['household', 'risk-goals', 'income', 'tax', 'expenses', 'insurance', 'obligations', 'benefits', 'federal-benefits'] as const;
+
+const COVERAGE_LEVELS = ['Self Only', 'Self Plus One', 'Self and Family'];
+
+function parseNum(v: string): number | null {
+  if (!v.trim()) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function numStr(v: number | null | undefined): string {
+  return v != null ? String(v) : '';
+}
 
 export function ProfileView() {
   const userId = useDevUserId() ?? 1;
@@ -129,13 +151,26 @@ export function ProfileView() {
   const [obligations, setObligations] = useState<LongTermObligationPayload[]>([]);
   const [benefits, setBenefits] = useState<BenefitCoveragePayload[]>([]);
 
+  // Federal benefits
+  const [fedBen, setFedBen] = useState<FederalBenefitsProfile | null>(null);
+  const [fedForm, setFedForm] = useState<SaveFederalBenefitsRequest>({
+    hasFegliBasic: false, hasFegliOptionA: false, hasFegliOptionB: false,
+    hasFegliOptionC: false, hasFedvipDental: false, hasFedvipVision: false,
+    hasFltcip: false, hasFsa: false, hasHsa: false,
+  });
+  const [sf50Status, setSf50Status] = useState<string | null>(null);
+  const [lesStatus, setLesStatus] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const sf50InputRef = React.useRef<HTMLInputElement>(null);
+  const lesInputRef = React.useRef<HTMLInputElement>(null);
+
   // Load all sections on mount
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoading(true);
       try {
-        const [userRes, hh, rg, inc, tax, exp, ins, obl, ben] = await Promise.all([
+        const [userRes, hh, rg, inc, tax, exp, ins, obl, ben, fb] = await Promise.all([
           userService.getById(userId),
           fetchHouseholdProfile(userId),
           fetchRiskGoalsProfile(userId),
@@ -145,6 +180,7 @@ export function ProfileView() {
           fetchInsurancePoliciesProfile(userId),
           fetchLongTermObligationsProfile(userId),
           fetchBenefitsProfile(userId),
+          fetchFederalBenefits(userId),
         ]);
         if (cancelled) return;
         setUserCore(userRes.data);
@@ -156,6 +192,30 @@ export function ProfileView() {
         setInsurance(ins.policies ?? []);
         setObligations(obl.obligations ?? []);
         setBenefits(ben.benefits ?? []);
+        if (fb) {
+          setFedBen(fb);
+          setFedForm({
+            high3AverageSalary: fb.high3AverageSalary,
+            projectedAnnuity: fb.projectedAnnuity,
+            projectedMonthlyPension: fb.projectedMonthlyPension,
+            creditableYearsOfService: fb.creditableYearsOfService,
+            creditableMonthsOfService: fb.creditableMonthsOfService,
+            isEligibleForSpecialRetirementSupplement: fb.isEligibleForSpecialRetirementSupplement ?? false,
+            estimatedSupplementMonthly: fb.estimatedSupplementMonthly,
+            hasFegliBasic: fb.hasFegliBasic, fegliBasicCoverage: fb.fegliBasicCoverage,
+            hasFegliOptionA: fb.hasFegliOptionA, hasFegliOptionB: fb.hasFegliOptionB,
+            fegliOptionBMultiple: fb.fegliOptionBMultiple,
+            hasFegliOptionC: fb.hasFegliOptionC, fegliOptionCMultiple: fb.fegliOptionCMultiple,
+            fegliTotalMonthlyPremium: fb.fegliTotalMonthlyPremium,
+            fehbPlanName: fb.fehbPlanName, fehbCoverageLevel: fb.fehbCoverageLevel,
+            fehbMonthlyPremium: fb.fehbMonthlyPremium, fehbEmployerContribution: fb.fehbEmployerContribution,
+            hasFedvipDental: fb.hasFedvipDental, fedvipDentalMonthlyPremium: fb.fedvipDentalMonthlyPremium,
+            hasFedvipVision: fb.hasFedvipVision, fedvipVisionMonthlyPremium: fb.fedvipVisionMonthlyPremium,
+            hasFltcip: fb.hasFltcip, fltcipMonthlyPremium: fb.fltcipMonthlyPremium,
+            hasFsa: fb.hasFsa, fsaAnnualElection: fb.fsaAnnualElection,
+            hasHsa: fb.hasHsa, hsaBalance: fb.hsaBalance, hsaAnnualContribution: fb.hsaAnnualContribution,
+          });
+        }
       } catch (err) {
         if (!cancelled) setToast({ message: 'Failed to load profile data', severity: 'error' });
       } finally {
@@ -197,6 +257,71 @@ export function ProfileView() {
   const handleSaveObligations = () => saveSection('Obligations', () => upsertLongTermObligationsProfile(userId, { obligations }));
   const handleSaveBenefits = () => saveSection('Benefits', () => upsertBenefitsProfile(userId, { benefits }));
 
+  const applyFedProfile = (p: FederalBenefitsProfile) => {
+    setFedBen(p);
+    setFedForm({
+      high3AverageSalary: p.high3AverageSalary,
+      projectedAnnuity: p.projectedAnnuity,
+      projectedMonthlyPension: p.projectedMonthlyPension,
+      creditableYearsOfService: p.creditableYearsOfService,
+      creditableMonthsOfService: p.creditableMonthsOfService,
+      isEligibleForSpecialRetirementSupplement: p.isEligibleForSpecialRetirementSupplement ?? false,
+      estimatedSupplementMonthly: p.estimatedSupplementMonthly,
+      hasFegliBasic: p.hasFegliBasic, fegliBasicCoverage: p.fegliBasicCoverage,
+      hasFegliOptionA: p.hasFegliOptionA, hasFegliOptionB: p.hasFegliOptionB,
+      fegliOptionBMultiple: p.fegliOptionBMultiple,
+      hasFegliOptionC: p.hasFegliOptionC, fegliOptionCMultiple: p.fegliOptionCMultiple,
+      fegliTotalMonthlyPremium: p.fegliTotalMonthlyPremium,
+      fehbPlanName: p.fehbPlanName, fehbCoverageLevel: p.fehbCoverageLevel,
+      fehbMonthlyPremium: p.fehbMonthlyPremium, fehbEmployerContribution: p.fehbEmployerContribution,
+      hasFedvipDental: p.hasFedvipDental, fedvipDentalMonthlyPremium: p.fedvipDentalMonthlyPremium,
+      hasFedvipVision: p.hasFedvipVision, fedvipVisionMonthlyPremium: p.fedvipVisionMonthlyPremium,
+      hasFltcip: p.hasFltcip, fltcipMonthlyPremium: p.fltcipMonthlyPremium,
+      hasFsa: p.hasFsa, fsaAnnualElection: p.fsaAnnualElection,
+      hasHsa: p.hasHsa, hsaBalance: p.hsaBalance, hsaAnnualContribution: p.hsaAnnualContribution,
+    });
+  };
+
+  const handleSaveFederalBenefits = () => saveSection('Federal Benefits', async () => {
+    const result = await saveFederalBenefits(userId, fedForm);
+    setFedBen(result);
+  });
+
+  const handleSf50Upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadError(null);
+    setSf50Status('Uploading SF-50…');
+    try {
+      const result = await applySf50(userId, file);
+      applyFedProfile(result);
+      setSf50Status(`SF-50 applied — fields updated from ${file.name}`);
+    } catch {
+      setUploadError('Failed to parse SF-50. Ensure it is a valid PDF.');
+      setSf50Status(null);
+    }
+    if (sf50InputRef.current) sf50InputRef.current.value = '';
+  };
+
+  const handleLesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadError(null);
+    setLesStatus('Uploading LES…');
+    try {
+      const result = await applyLes(userId, file);
+      applyFedProfile(result);
+      setLesStatus(`LES applied — deductions updated from ${file.name}`);
+    } catch {
+      setUploadError('Failed to parse LES. Ensure it is a valid PDF.');
+      setLesStatus(null);
+    }
+    if (lesInputRef.current) lesInputRef.current.value = '';
+  };
+
+  const updateFed = <K extends keyof SaveFederalBenefitsRequest>(key: K, value: SaveFederalBenefitsRequest[K]) =>
+    setFedForm(prev => ({ ...prev, [key]: value }));
+
   if (loading) {
     return (
       <Box sx={{ p: 3 }}>
@@ -230,6 +355,7 @@ export function ProfileView() {
           <Tab label="Insurance" />
           <Tab label="Obligations" />
           <Tab label="Benefits" />
+          <Tab label="Federal Benefits" />
         </Tabs>
 
         {/* ─── TAB 0: HOUSEHOLD ─── */}
@@ -586,6 +712,193 @@ export function ProfileView() {
                 </Paper>
               ))}
               <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSaveBenefits} disabled={saving}>Save Benefits</Button>
+            </Stack>
+          </Box>
+        </TabPanel>
+
+        {/* ─── TAB 8: FEDERAL BENEFITS ─── */}
+        <TabPanel value={tab} index={8}>
+          <Box sx={{ p: 3 }}>
+            <Stack spacing={3}>
+              <Typography variant="h6">Federal Benefits Profile</Typography>
+              <Typography variant="body2" color="text.secondary">
+                FEGLI, FEHB, FERS/CSRS pension, and supplemental coverage. Upload an SF-50 or LES to auto-fill.
+              </Typography>
+              {uploadError && <Alert severity="error" onClose={() => setUploadError(null)}>{uploadError}</Alert>}
+
+              {/* PDF Upload */}
+              <Box sx={{ p: 2, borderRadius: 2, border: '1px dashed', borderColor: 'divider', bgcolor: 'action.hover' }}>
+                <Typography variant="subtitle2" gutterBottom>Quick Import from Documents</Typography>
+                <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
+                  <Button variant="outlined" startIcon={<UploadFileIcon />} onClick={() => sf50InputRef.current?.click()} size="small">Upload SF-50</Button>
+                  <input ref={sf50InputRef} type="file" accept=".pdf" hidden onChange={handleSf50Upload} />
+                  <Button variant="outlined" startIcon={<UploadFileIcon />} onClick={() => lesInputRef.current?.click()} size="small">Upload LES</Button>
+                  <input ref={lesInputRef} type="file" accept=".pdf" hidden onChange={handleLesUpload} />
+                </Stack>
+                {sf50Status && <Chip icon={<CheckCircleOutlineIcon />} label={sf50Status} color="success" size="small" sx={{ mt: 1 }} />}
+                {lesStatus && <Chip icon={<CheckCircleOutlineIcon />} label={lesStatus} color="success" size="small" sx={{ mt: 1, ml: 1 }} />}
+                {(fedBen?.lastSf50FileName || fedBen?.lastLesFileName) && (
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                    {fedBen.lastSf50FileName && `Last SF-50: ${fedBen.lastSf50FileName}`}
+                    {fedBen.lastSf50FileName && fedBen.lastLesFileName && ' · '}
+                    {fedBen?.lastLesFileName && `Last LES: ${fedBen.lastLesFileName}`}
+                  </Typography>
+                )}
+              </Box>
+
+              <Divider />
+
+              {/* FERS/CSRS Pension */}
+              <Typography variant="subtitle1" fontWeight={600}>FERS / CSRS Pension</Typography>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField fullWidth label="High-3 Average Salary" type="number" size="small" value={numStr(fedForm.high3AverageSalary)} onChange={e => updateFed('high3AverageSalary', parseNum(e.target.value))} inputProps={{ min: 0 }} />
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField fullWidth label="Projected Annual Annuity" type="number" size="small" value={numStr(fedForm.projectedAnnuity)} onChange={e => updateFed('projectedAnnuity', parseNum(e.target.value))} inputProps={{ min: 0 }} />
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField fullWidth label="Projected Monthly Pension" type="number" size="small" value={numStr(fedForm.projectedMonthlyPension)} onChange={e => updateFed('projectedMonthlyPension', parseNum(e.target.value))} inputProps={{ min: 0 }} />
+                </Grid>
+                <Grid size={{ xs: 6, md: 3 }}>
+                  <TextField fullWidth label="Creditable Years" type="number" size="small" value={numStr(fedForm.creditableYearsOfService)} onChange={e => updateFed('creditableYearsOfService', parseNum(e.target.value) != null ? Math.floor(parseNum(e.target.value)!) : null)} inputProps={{ min: 0 }} />
+                </Grid>
+                <Grid size={{ xs: 6, md: 3 }}>
+                  <TextField fullWidth label="Creditable Months" type="number" size="small" value={numStr(fedForm.creditableMonthsOfService)} onChange={e => updateFed('creditableMonthsOfService', parseNum(e.target.value) != null ? Math.floor(parseNum(e.target.value)!) : null)} inputProps={{ min: 0, max: 11 }} />
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <FormControlLabel control={<Switch checked={fedForm.isEligibleForSpecialRetirementSupplement ?? false} onChange={(_, v) => updateFed('isEligibleForSpecialRetirementSupplement', v)} size="small" />} label="FERS Supplement Eligible" />
+                    {fedForm.isEligibleForSpecialRetirementSupplement && (
+                      <TextField label="Est. Monthly Supplement" type="number" size="small" sx={{ width: 180 }} value={numStr(fedForm.estimatedSupplementMonthly)} onChange={e => updateFed('estimatedSupplementMonthly', parseNum(e.target.value))} inputProps={{ min: 0 }} />
+                    )}
+                  </Stack>
+                </Grid>
+              </Grid>
+
+              <Divider />
+
+              {/* FEGLI */}
+              <Typography variant="subtitle1" fontWeight={600}>FEGLI (Life Insurance)</Typography>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <FormControlLabel control={<Switch checked={fedForm.hasFegliBasic} onChange={(_, v) => updateFed('hasFegliBasic', v)} size="small" />} label="Basic FEGLI" />
+                </Grid>
+                {fedForm.hasFegliBasic && (
+                  <>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                      <TextField fullWidth label="Basic Coverage Amount" type="number" size="small" value={numStr(fedForm.fegliBasicCoverage)} onChange={e => updateFed('fegliBasicCoverage', parseNum(e.target.value))} inputProps={{ min: 0 }} />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                      <TextField fullWidth label="Total Monthly Premium" type="number" size="small" value={numStr(fedForm.fegliTotalMonthlyPremium)} onChange={e => updateFed('fegliTotalMonthlyPremium', parseNum(e.target.value))} inputProps={{ min: 0, step: '0.01' }} />
+                    </Grid>
+                    <Grid size={{ xs: 6, md: 3 }}>
+                      <FormControlLabel control={<Switch checked={fedForm.hasFegliOptionA} onChange={(_, v) => updateFed('hasFegliOptionA', v)} size="small" />} label="Option A" />
+                    </Grid>
+                    <Grid size={{ xs: 6, md: 3 }}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <FormControlLabel control={<Switch checked={fedForm.hasFegliOptionB} onChange={(_, v) => updateFed('hasFegliOptionB', v)} size="small" />} label="Option B" />
+                        {fedForm.hasFegliOptionB && (
+                          <Select value={String(fedForm.fegliOptionBMultiple ?? 1)} onChange={e => updateFed('fegliOptionBMultiple', Number(e.target.value))} size="small" sx={{ width: 80 }}>
+                            {[1,2,3,4,5].map(m => <MenuItem key={m} value={String(m)}>{m}×</MenuItem>)}
+                          </Select>
+                        )}
+                      </Stack>
+                    </Grid>
+                    <Grid size={{ xs: 6, md: 3 }}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <FormControlLabel control={<Switch checked={fedForm.hasFegliOptionC} onChange={(_, v) => updateFed('hasFegliOptionC', v)} size="small" />} label="Option C" />
+                        {fedForm.hasFegliOptionC && (
+                          <Select value={String(fedForm.fegliOptionCMultiple ?? 1)} onChange={e => updateFed('fegliOptionCMultiple', Number(e.target.value))} size="small" sx={{ width: 80 }}>
+                            {[1,2,3,4,5].map(m => <MenuItem key={m} value={String(m)}>{m}×</MenuItem>)}
+                          </Select>
+                        )}
+                      </Stack>
+                    </Grid>
+                  </>
+                )}
+              </Grid>
+
+              <Divider />
+
+              {/* FEHB */}
+              <Typography variant="subtitle1" fontWeight={600}>FEHB (Health Insurance)</Typography>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField fullWidth label="Plan Name" size="small" value={fedForm.fehbPlanName ?? ''} onChange={e => updateFed('fehbPlanName', e.target.value || null)} />
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField fullWidth label="Coverage Level" size="small" select value={fedForm.fehbCoverageLevel ?? ''} onChange={e => updateFed('fehbCoverageLevel', e.target.value || null)}>
+                    <MenuItem value="">—</MenuItem>
+                    {COVERAGE_LEVELS.map(l => <MenuItem key={l} value={l}>{l}</MenuItem>)}
+                  </TextField>
+                </Grid>
+                <Grid size={{ xs: 6, md: 2 }}>
+                  <TextField fullWidth label="Monthly Premium" type="number" size="small" value={numStr(fedForm.fehbMonthlyPremium)} onChange={e => updateFed('fehbMonthlyPremium', parseNum(e.target.value))} inputProps={{ min: 0, step: '0.01' }} />
+                </Grid>
+                <Grid size={{ xs: 6, md: 2 }}>
+                  <TextField fullWidth label="Employer Pays" type="number" size="small" value={numStr(fedForm.fehbEmployerContribution)} onChange={e => updateFed('fehbEmployerContribution', parseNum(e.target.value))} inputProps={{ min: 0, step: '0.01' }} />
+                </Grid>
+              </Grid>
+
+              <Divider />
+
+              {/* FEDVIP / FLTCIP */}
+              <Typography variant="subtitle1" fontWeight={600}>FEDVIP & Long-Term Care</Typography>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Stack>
+                    <FormControlLabel control={<Switch checked={fedForm.hasFedvipDental} onChange={(_, v) => updateFed('hasFedvipDental', v)} size="small" />} label="FEDVIP Dental" />
+                    {fedForm.hasFedvipDental && (
+                      <TextField label="Monthly Premium" type="number" size="small" value={numStr(fedForm.fedvipDentalMonthlyPremium)} onChange={e => updateFed('fedvipDentalMonthlyPremium', parseNum(e.target.value))} inputProps={{ min: 0, step: '0.01' }} />
+                    )}
+                  </Stack>
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Stack>
+                    <FormControlLabel control={<Switch checked={fedForm.hasFedvipVision} onChange={(_, v) => updateFed('hasFedvipVision', v)} size="small" />} label="FEDVIP Vision" />
+                    {fedForm.hasFedvipVision && (
+                      <TextField label="Monthly Premium" type="number" size="small" value={numStr(fedForm.fedvipVisionMonthlyPremium)} onChange={e => updateFed('fedvipVisionMonthlyPremium', parseNum(e.target.value))} inputProps={{ min: 0, step: '0.01' }} />
+                    )}
+                  </Stack>
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Stack>
+                    <FormControlLabel control={<Switch checked={fedForm.hasFltcip} onChange={(_, v) => updateFed('hasFltcip', v)} size="small" />} label="FLTCIP (Long-Term Care)" />
+                    {fedForm.hasFltcip && (
+                      <TextField label="Monthly Premium" type="number" size="small" value={numStr(fedForm.fltcipMonthlyPremium)} onChange={e => updateFed('fltcipMonthlyPremium', parseNum(e.target.value))} inputProps={{ min: 0, step: '0.01' }} />
+                    )}
+                  </Stack>
+                </Grid>
+              </Grid>
+
+              <Divider />
+
+              {/* FSA/HSA */}
+              <Typography variant="subtitle1" fontWeight={600}>FSA & HSA</Typography>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Stack>
+                    <FormControlLabel control={<Switch checked={fedForm.hasFsa} onChange={(_, v) => updateFed('hasFsa', v)} size="small" />} label="FSA Enrolled" />
+                    {fedForm.hasFsa && (
+                      <TextField label="Annual Election" type="number" size="small" value={numStr(fedForm.fsaAnnualElection)} onChange={e => updateFed('fsaAnnualElection', parseNum(e.target.value))} inputProps={{ min: 0 }} />
+                    )}
+                  </Stack>
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Stack>
+                    <FormControlLabel control={<Switch checked={fedForm.hasHsa} onChange={(_, v) => updateFed('hasHsa', v)} size="small" />} label="HSA Enrolled" />
+                    {fedForm.hasHsa && (
+                      <>
+                        <TextField label="HSA Balance" type="number" size="small" sx={{ mb: 1 }} value={numStr(fedForm.hsaBalance)} onChange={e => updateFed('hsaBalance', parseNum(e.target.value))} inputProps={{ min: 0 }} />
+                        <TextField label="Annual Contribution" type="number" size="small" value={numStr(fedForm.hsaAnnualContribution)} onChange={e => updateFed('hsaAnnualContribution', parseNum(e.target.value))} inputProps={{ min: 0 }} />
+                      </>
+                    )}
+                  </Stack>
+                </Grid>
+              </Grid>
+
+              <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSaveFederalBenefits} disabled={saving}>Save Federal Benefits</Button>
             </Stack>
           </Box>
         </TabPanel>
