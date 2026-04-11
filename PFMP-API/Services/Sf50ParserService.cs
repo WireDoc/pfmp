@@ -28,6 +28,18 @@ namespace PFMP_API.Services
 
                 _logger.LogInformation("SF-50 PDF extracted, {Length} chars", fullText.Length);
 
+                // Detect image-based/scanned PDFs that PdfPig can't extract text from
+                if (fullText.Trim().Length < 50)
+                {
+                    _logger.LogWarning("SF-50 PDF appears to be image-based ({Length} chars extracted). OCR not available.",
+                        fullText.Trim().Length);
+                    result.ParsedSuccessfully = false;
+                    result.ErrorMessage = "This SF-50 appears to be a scanned image. " +
+                        "Text-based PDFs (e.g., eOPF downloads) can be parsed automatically. " +
+                        "For scanned documents, please enter your information manually on the Federal Benefits tab.";
+                    return result;
+                }
+
                 // Normalize whitespace for easier matching
                 var text = Regex.Replace(fullText, @"\s+", " ");
 

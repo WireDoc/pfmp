@@ -166,6 +166,39 @@ namespace PFMP_API.Controllers
             }
         }
 
+        // POST: api/FederalBenefits/debug-pdf — returns raw extracted text for parser development
+        [HttpPost("debug-pdf")]
+        public ActionResult DebugPdf(IFormFile file)
+        {
+            var validation = ValidatePdfUpload(file);
+            if (validation != null) return validation;
+
+            try
+            {
+                using var stream = file!.OpenReadStream();
+                using var document = UglyToad.PdfPig.PdfDocument.Open(stream);
+
+                var pages = document.GetPages().Select((p, i) => new
+                {
+                    Page = i + 1,
+                    RawText = p.Text,
+                    Normalized = System.Text.RegularExpressions.Regex.Replace(p.Text, @"\s+", " ").Trim()
+                }).ToList();
+
+                return Ok(new
+                {
+                    FileName = file.FileName,
+                    PageCount = pages.Count,
+                    TotalChars = pages.Sum(p => p.RawText.Length),
+                    Pages = pages
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
         // POST: api/FederalBenefits/upload-les
         [HttpPost("upload-les")]
         public ActionResult<LesUploadResponse> UploadLes(IFormFile file)
