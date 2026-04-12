@@ -136,10 +136,48 @@ Added to Federal Benefits tab in ProfileView:
 
 ---
 
-## Phase 3: Future Enhancements (Not Started)
+## Phase 3: TSP Expansion & Roth/Traditional Split (Not Started)
+
+### Problem
+The current projector treats TSP as a single balance. In reality, Roth withdrawals are tax-free while traditional withdrawals are taxed as ordinary income. The government match always goes traditional regardless of the employee's Roth election. Without this split, the effective after-tax retirement income is understated for employees with significant Roth balances.
+
+### New Fields on `TspProfile` (all nullable — optional)
+| Field | Type | Purpose |
+|-------|------|---------|
+| `RothBalance` | `decimal(18,2)?` | Current Roth TSP balance |
+| `TraditionalBalance` | `decimal(18,2)?` | Current traditional TSP balance |
+| `RothContributionRatePercent` | `decimal(8,4)?` | % of employee contribution going to Roth (remainder is traditional) |
+
+### TSP Benefit Statement Parser
+- Parse TSP participant statements from tsp.gov (PDF download)
+- Extract Roth/traditional balances per fund
+- Extract contribution history and loan balances
+- Auto-populate the new fields (same pattern as SF-50 and LES parsers)
+- All fields optional — users without Roth simply leave them blank
+
+### Projection Logic Changes
+- Project Roth and traditional balances independently
+- Government match always grows in traditional bucket
+- Employee contributions split by `RothContributionRatePercent`
+- Show two withdrawal lines: Roth (tax-free) and traditional (taxable)
+- Apply marginal tax rate estimate to traditional withdrawals for after-tax income
+
+### Retirement Projector Updates
+- Add "TSP Roth/mo" and "TSP Trad/mo" columns (or expandable detail row)
+- Show estimated after-tax total when tax profile data is available
+- Include Roth/traditional split in AI context so advisors can give tax-aware retirement guidance
+
+### AI Context Integration
+- Add Roth vs traditional split to `=== FERS RETIREMENT PROJECTIONS ===` section
+- Include effective after-tax monthly income per scenario
+- Enable AI advisors to recommend Roth conversion strategies based on projected tax brackets
+
+---
+
+## Phase 4: Additional Future Enhancements (Not Started)
 - Custom retirement age scenario (user picks any age)
 - COLA (Cost of Living Adjustment) projections
 - Survivor benefit calculations
 - Retirement income goal gap analysis (projected income vs. target)
 - Tax impact modeling (federal + state tax on pension income)
-- TSP withdrawal strategy integration
+- TSP withdrawal strategy integration (lump sum, annuity, installments)
