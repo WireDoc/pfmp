@@ -192,8 +192,18 @@ namespace PFMP_API.Services
 
                 // FERS Retirement — labeled "RETIRE, FERS" + code
                 result.RetirementDeduction = ExtractDfasDeduction(deductionsSection, @"RETIRE,?\s*(?:FERS|CSRS)[A-Z]?(\d+\.\d{2})(\d+\.\d{2})");
-                // Cumulative (YTD) retirement deduction — the second amount in the pair
-                result.FersCumulativeRetirement = ExtractDfasYtdAmount(deductionsSection, @"RETIRE,?\s*(?:FERS|CSRS)[A-Z]?(\d+\.\d{2})(\d+\.\d{2})");
+
+                // Field 19: Cumulative Retirement — career total from header, NOT the deductions YTD.
+                // In DFAS text: "FERS:11825.86" or "FERS: 11825.86" appears in the header area
+                // near "Cumulative Retirement". The deductions YTD is only the calendar-year amount.
+                var headerSection = dedStart >= 0 ? normalized.Substring(0, dedStart) : normalized;
+                var cumRetMatch = Regex.Match(headerSection, @"FERS:?\s*(\d+\.\d{2})", RegexOptions.IgnoreCase);
+                if (cumRetMatch.Success && decimal.TryParse(cumRetMatch.Groups[1].Value,
+                    NumberStyles.Number, CultureInfo.InvariantCulture, out var cumRet))
+                {
+                    result.FersCumulativeRetirement = cumRet;
+                }
+
                 // Determine retirement system from the label
                 if (Regex.IsMatch(deductionsSection, @"RETIRE,?\s*FERS", RegexOptions.IgnoreCase))
                     result.RetirementSystem = "FERS";
