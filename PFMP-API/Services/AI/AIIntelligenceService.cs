@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using PFMP_API.Controllers;
+using PFMP_API.DTOs;
 using PFMP_API.Models;
 using PFMP_API.Models.FinancialProfile;
 using System.Diagnostics;
@@ -1053,6 +1055,10 @@ Your analysis will be reviewed by a backup AI system for validation.",
                     sb.AppendLine($"Creditable Service: {fedBenefits.CreditableYearsOfService}y {fedBenefits.CreditableMonthsOfService ?? 0}m");
                 if (fedBenefits.IsEligibleForSpecialRetirementSupplement == true)
                     sb.AppendLine($"FERS Supplement: Eligible, est. {fedBenefits.EstimatedSupplementMonthly:C0}/mo (ages {fedBenefits.SupplementEligibilityAge}–{fedBenefits.SupplementEndAge})");
+                if (fedBenefits.FersCumulativeRetirement.HasValue)
+                    sb.AppendLine($"FERS Cumulative Retirement Contributions (YTD): {fedBenefits.FersCumulativeRetirement:C2}");
+                if (fedBenefits.SocialSecurityEstimateAt62.HasValue)
+                    sb.AppendLine($"Social Security Estimate at 62: {fedBenefits.SocialSecurityEstimateAt62:C0}/mo");
 
                 // FEGLI
                 if (fedBenefits.HasFegliBasic)
@@ -1097,6 +1103,45 @@ Your analysis will be reviewed by a backup AI system for validation.",
                     sb.AppendLine($"Last LES uploaded: {fedBenefits.LastLesUploadDate:yyyy-MM-dd}");
 
                 sb.AppendLine();
+
+                // === FERS RETIREMENT PROJECTIONS ===
+                var theUser = await _context.Users.FindAsync(userId);
+                if (theUser?.ServiceComputationDate != null && theUser?.DateOfBirth != null)
+                {
+                    try
+                    {
+                        var projection = FederalBenefitsController.BuildRetirementProjection(fedBenefits, theUser);
+                        if (projection.Scenarios.Any())
+                        {
+                            sb.AppendLine("=== FERS RETIREMENT PROJECTIONS (pre-calculated, do NOT recalculate) ===");
+                            sb.AppendLine("These are OPM-formula projections at various retirement ages. Use as-is for retirement planning advice.");
+                            foreach (var s in projection.Scenarios)
+                            {
+                                sb.Append($"• {s.Label} (age {s.RetirementAge}");
+                                if (s.RetirementAgeMonths > 0) sb.Append($"+{s.RetirementAgeMonths}mo");
+                                sb.Append($"): {s.ProjectedServiceYears}y{s.ProjectedServiceMonths}m service");
+                                sb.Append($", {s.Multiplier * 100:0.0}% multiplier");
+                                sb.Append($", High-3 ${s.ProjectedHigh3:N0}");
+                                sb.Append($", Annuity ${s.AnnualAnnuity:N0}/yr (${s.MonthlyPension:N0}/mo)");
+                                if (s.SupplementEligible)
+                                    sb.Append($", SRS ${s.MonthlySupplementEstimate:N0}/mo for {s.SupplementMonths}mo");
+                                if (s.SocialSecurityMonthly.HasValue)
+                                    sb.Append($", SS ${s.SocialSecurityMonthly:N0}/mo");
+                                sb.Append($", TOTAL ${s.TotalMonthlyRetirementIncome:N0}/mo");
+                                if (!s.IsEligible)
+                                    sb.Append(" [NOT ELIGIBLE]");
+                                if (s.EligibilityNote != null)
+                                    sb.Append($" ({s.EligibilityNote})");
+                                sb.AppendLine();
+                            }
+                            sb.AppendLine();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to build retirement projection for AI context, user {UserId}", userId);
+                    }
+                }
             }
 
             return sb.ToString();

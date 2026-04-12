@@ -60,8 +60,10 @@ import {
   saveFederalBenefits,
   applySf50,
   applyLes,
+  fetchRetirementProjection,
   type FederalBenefitsProfile,
   type SaveFederalBenefitsRequest,
+  type RetirementProjectionResponse,
 } from '../../services/federalBenefitsApi';
 import type {
   HouseholdProfilePayload,
@@ -229,6 +231,8 @@ export function ProfileView() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const sf50InputRef = React.useRef<HTMLInputElement>(null);
   const lesInputRef = React.useRef<HTMLInputElement>(null);
+  const [projection, setProjection] = useState<RetirementProjectionResponse | null>(null);
+  const [projectionLoading, setProjectionLoading] = useState(false);
 
   // Load all sections on mount
   useEffect(() => {
@@ -269,6 +273,8 @@ export function ProfileView() {
             isEligibleForSpecialRetirementSupplement: fb.isEligibleForSpecialRetirementSupplement ?? false,
             estimatedSupplementMonthly: fb.estimatedSupplementMonthly,
             fersCumulativeRetirement: fb.fersCumulativeRetirement,
+            socialSecurityEstimateAt62: fb.socialSecurityEstimateAt62,
+            annualSalaryGrowthRate: fb.annualSalaryGrowthRate,
             hasFegliBasic: fb.hasFegliBasic, fegliBasicCoverage: fb.fegliBasicCoverage,
             hasFegliOptionA: fb.hasFegliOptionA, hasFegliOptionB: fb.hasFegliOptionB,
             fegliOptionBMultiple: fb.fegliOptionBMultiple,
@@ -335,6 +341,8 @@ export function ProfileView() {
       isEligibleForSpecialRetirementSupplement: p.isEligibleForSpecialRetirementSupplement ?? false,
       estimatedSupplementMonthly: p.estimatedSupplementMonthly,
       fersCumulativeRetirement: p.fersCumulativeRetirement,
+      socialSecurityEstimateAt62: p.socialSecurityEstimateAt62,
+      annualSalaryGrowthRate: p.annualSalaryGrowthRate,
       hasFegliBasic: p.hasFegliBasic, fegliBasicCoverage: p.fegliBasicCoverage,
       hasFegliOptionA: p.hasFegliOptionA, hasFegliOptionB: p.hasFegliOptionB,
       fegliOptionBMultiple: p.fegliOptionBMultiple,
@@ -359,7 +367,22 @@ export function ProfileView() {
       const { accounts, ...userPayload } = u as User & { accounts?: unknown };
       await userService.update(u.userId, userPayload as User);
     }
+    // Refresh projection after saving
+    loadProjection();
   });
+
+  const loadProjection = useCallback(async () => {
+    setProjectionLoading(true);
+    try {
+      const proj = await fetchRetirementProjection(userId);
+      setProjection(proj);
+    } catch {
+      // Projection may fail if user hasn't set SCD/DOB yet — that's fine
+      setProjection(null);
+    } finally {
+      setProjectionLoading(false);
+    }
+  }, [userId]);
 
   const handleSf50Upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -395,6 +418,13 @@ export function ProfileView() {
 
   const updateFed = <K extends keyof SaveFederalBenefitsRequest>(key: K, value: SaveFederalBenefitsRequest[K]) =>
     setFedForm(prev => ({ ...prev, [key]: value }));
+
+  // Load retirement projection when Federal Benefits tab is shown
+  useEffect(() => {
+    if (tab === 8 && !projection && !projectionLoading) {
+      loadProjection();
+    }
+  }, [tab, projection, projectionLoading, loadProjection]);
 
   // Auto-calculate FERS pension fields when SCD, DOB, or High-3 change
   useEffect(() => {
@@ -887,6 +917,79 @@ export function ProfileView() {
                   </Grid>
                 )}
               </Grid>
+
+              <Divider />
+
+              {/* FERS Retirement Projector */}
+              <Typography variant="subtitle1" fontWeight={600}>Retirement Projector</Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Compare retirement scenarios at different ages. Projections use OPM FERS formulas. Provide your SS estimate from ssa.gov and salary growth rate for more accurate results.
+              </Typography>
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField fullWidth label="SS Benefit Estimate at 62 ($/mo)" type="number" size="small" value={numStrTrunc(fedForm.socialSecurityEstimateAt62)} onChange={e => updateFed('socialSecurityEstimateAt62', parseNum(e.target.value))} inputProps={{ min: 0 }} helperText="From ssa.gov/myaccount" />
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField fullWidth label="Annual Salary Growth Rate (%)" type="number" size="small" value={numStr(fedForm.annualSalaryGrowthRate)} onChange={e => updateFed('annualSalaryGrowthRate', parseNum(e.target.value))} inputProps={{ min: 0, max: 20, step: '0.1' }} helperText="e.g. 2.5 for 2.5%/yr" />
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Button variant="outlined" size="small" onClick={loadProjection} disabled={projectionLoading} sx={{ mt: 1 }}>
+                    {projectionLoading ? 'Calculating…' : 'Refresh Projections'}
+                  </Button>
+                </Grid>
+              </Grid>
+
+              {projection && projection.scenarios.length > 0 && (
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Scenario</TableCell>
+                        <TableCell align="right">Age</TableCell>
+                        <TableCell align="right">Service</TableCell>
+                        <TableCell align="right">High-3</TableCell>
+                        <TableCell align="right">Annual Annuity</TableCell>
+                        <TableCell align="right">Monthly Pension</TableCell>
+                        <TableCell align="right">Supplement</TableCell>
+                        <TableCell align="right">SS at 62</TableCell>
+                        <TableCell align="right">Total Monthly</TableCell>
+                        <TableCell>Notes</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {projection.scenarios.map((s, i) => (
+                        <TableRow key={i} sx={{ opacity: s.isEligible ? 1 : 0.5 }}>
+                          <TableCell sx={{ fontWeight: 600 }}>{s.label}</TableCell>
+                          <TableCell align="right">{s.retirementAge}{s.retirementAgeMonths > 0 ? `+${s.retirementAgeMonths}mo` : ''}</TableCell>
+                          <TableCell align="right">{s.projectedServiceYears}y {s.projectedServiceMonths}m</TableCell>
+                          <TableCell align="right">{fmt$(s.projectedHigh3)}</TableCell>
+                          <TableCell align="right">{fmt$(s.annualAnnuity)}</TableCell>
+                          <TableCell align="right">{fmt$(s.monthlyPension)}</TableCell>
+                          <TableCell align="right">{s.supplementEligible ? `${fmt$(s.monthlySupplementEstimate)}/mo × ${s.supplementMonths}mo` : '—'}</TableCell>
+                          <TableCell align="right">{s.socialSecurityMonthly != null ? fmt$(s.socialSecurityMonthly) : '—'}</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 600 }}>{fmt$(s.totalMonthlyRetirementIncome)}</TableCell>
+                          <TableCell>
+                            {!s.isEligible && <Chip label="Not eligible" size="small" color="error" variant="outlined" />}
+                            {s.eligibilityNote && <Typography variant="caption" color="text.secondary">{s.eligibilityNote}</Typography>}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+
+              {!projection && !projectionLoading && (userCore as User)?.serviceComputationDate && (userCore as User)?.dateOfBirth && (
+                <Typography variant="body2" color="text.secondary">
+                  Save your profile to generate retirement projections.
+                </Typography>
+              )}
+
+              {!projection && !projectionLoading && (!(userCore as User)?.serviceComputationDate || !(userCore as User)?.dateOfBirth) && (
+                <Typography variant="body2" color="text.secondary">
+                  Set your Date of Birth and Service Computation Date to enable retirement projections.
+                </Typography>
+              )}
 
               <Divider />
 

@@ -40,6 +40,12 @@ namespace PFMP_API.Models.FinancialProfile
         [Column(TypeName = "decimal(18,2)")]
         public decimal? FersCumulativeRetirement { get; set; } // YTD cumulative FERS retirement contributions from LES
 
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? SocialSecurityEstimateAt62 { get; set; } // Monthly SS benefit estimate at 62 from SSA.gov
+
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal? AnnualSalaryGrowthRate { get; set; } // Projected annual salary growth % (e.g. 2.5)
+
         // === FEGLI (Federal Employees' Group Life Insurance) ===
         public bool HasFegliBasic { get; set; }
 

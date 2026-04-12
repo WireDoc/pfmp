@@ -607,6 +607,8 @@ namespace PFMP_API.Controllers
             SupplementEligibilityAge = p.SupplementEligibilityAge,
             SupplementEndAge = p.SupplementEndAge,
             FersCumulativeRetirement = p.FersCumulativeRetirement,
+            SocialSecurityEstimateAt62 = p.SocialSecurityEstimateAt62,
+            AnnualSalaryGrowthRate = p.AnnualSalaryGrowthRate,
             HasFegliBasic = p.HasFegliBasic,
             FegliBasicCoverage = p.FegliBasicCoverage,
             HasFegliOptionA = p.HasFegliOptionA,
@@ -651,6 +653,8 @@ namespace PFMP_API.Controllers
             p.SupplementEligibilityAge = r.SupplementEligibilityAge;
             p.SupplementEndAge = r.SupplementEndAge;
             p.FersCumulativeRetirement = r.FersCumulativeRetirement;
+            p.SocialSecurityEstimateAt62 = r.SocialSecurityEstimateAt62;
+            p.AnnualSalaryGrowthRate = r.AnnualSalaryGrowthRate;
             p.HasFegliBasic = r.HasFegliBasic;
             p.FegliBasicCoverage = r.FegliBasicCoverage;
             p.HasFegliOptionA = r.HasFegliOptionA;
@@ -698,6 +702,249 @@ namespace PFMP_API.Controllers
             if (r.AnnualLeaveBalance.HasValue) count++;
             if (r.SickLeaveBalance.HasValue) count++;
             return count;
+        }
+
+        // ===== FERS Retirement Projection =====
+
+        [HttpGet("user/{userId}/retirement-projection")]
+        public async Task<ActionResult<RetirementProjectionResponse>> GetRetirementProjection(int userId)
+        {
+            try
+            {
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null) return NotFound("User not found");
+
+                var profile = await _context.FederalBenefitsProfiles
+                    .FirstOrDefaultAsync(f => f.UserId == userId);
+
+                if (profile == null)
+                    return NotFound("Federal benefits profile not found");
+
+                if (!user.ServiceComputationDate.HasValue || !user.DateOfBirth.HasValue)
+                    return BadRequest(new { message = "Service Computation Date and Date of Birth are required for projections" });
+
+                var result = BuildRetirementProjection(profile, user);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to generate retirement projection for user {UserId}", userId);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        internal static RetirementProjectionResponse BuildRetirementProjection(
+            FederalBenefitsProfile profile, Models.User user)
+        {
+            var today = DateTime.UtcNow.Date;
+            var dob = user.DateOfBirth!.Value.Date;
+            var scd = user.ServiceComputationDate!.Value.Date;
+
+            // Current age
+            int ageYears = today.Year - dob.Year;
+            if (today < dob.AddYears(ageYears)) ageYears--;
+
+            // Current creditable months from SCD
+            var totalMonthsNow = ((today.Year - scd.Year) * 12) + today.Month - scd.Month;
+            if (today.Day < scd.Day) totalMonthsNow--;
+            if (totalMonthsNow < 0) totalMonthsNow = 0;
+
+            // MRA
+            var mraDate = CalculateMra(dob);
+            int mraAgeYears = mraDate.Year - dob.Year;
+            int mraAgeMonths = mraDate.Month - dob.Month;
+            if (mraAgeMonths < 0) { mraAgeYears--; mraAgeMonths += 12; }
+
+            var currentHigh3 = profile.High3AverageSalary ?? 0m;
+            var growthRate = (profile.AnnualSalaryGrowthRate ?? 0m) / 100m; // e.g. 2.5 -> 0.025
+            var ssAt62 = profile.SocialSecurityEstimateAt62;
+
+            var response = new RetirementProjectionResponse
+            {
+                Inputs = new RetirementProjectionInputs
+                {
+                    High3AverageSalary = profile.High3AverageSalary,
+                    AnnualSalaryGrowthRate = profile.AnnualSalaryGrowthRate,
+                    DateOfBirth = dob,
+                    ServiceComputationDate = scd,
+                    SocialSecurityEstimateAt62 = ssAt62,
+                    CurrentCreditableYears = totalMonthsNow / 12,
+                    CurrentCreditableMonths = totalMonthsNow % 12,
+                    MinimumRetirementAge = mraDate,
+                }
+            };
+
+            // Build scenarios: MRA, MRA+30 (if different), Age 60, Age 62, Age 65
+            var scenarioAges = new List<(string Label, int AgeYears, int AgeMonths)>();
+
+            // MRA scenario
+            scenarioAges.Add(("MRA", mraAgeYears, mraAgeMonths));
+
+            // MRA+30: figure out what age yields 30 years service
+            int monthsToGet30 = (30 * 12) - totalMonthsNow;
+            if (monthsToGet30 > 0)
+            {
+                int ageAt30YrsMonths = (ageYears * 12) + monthsToGet30;
+                int ageAt30Yrs = ageAt30YrsMonths / 12;
+                int ageAt30Mo = ageAt30YrsMonths % 12;
+                if (ageAt30Yrs >= mraAgeYears && !(ageAt30Yrs == mraAgeYears && ageAt30Mo <= mraAgeMonths))
+                    scenarioAges.Add(("MRA + 30 yrs service", ageAt30Yrs, ageAt30Mo));
+            }
+            else if (totalMonthsNow >= 360) // already have 30+ years
+            {
+                // MRA + 30 is just MRA (already added)
+            }
+
+            // Fixed age milestones
+            if (mraAgeYears < 60) scenarioAges.Add(("Age 60", 60, 0));
+            scenarioAges.Add(("Age 62", 62, 0));
+            scenarioAges.Add(("Age 65", 65, 0));
+
+            // Deduplicate by age and sort
+            var seen = new HashSet<int>();
+            var deduped = new List<(string Label, int AgeYears, int AgeMonths)>();
+            foreach (var s in scenarioAges.OrderBy(s => s.AgeYears * 12 + s.AgeMonths))
+            {
+                var key = s.AgeYears * 12 + s.AgeMonths;
+                if (seen.Add(key)) deduped.Add(s);
+            }
+
+            foreach (var (label, retireAgeY, retireAgeM) in deduped)
+            {
+                var scenario = BuildScenario(
+                    label, retireAgeY, retireAgeM,
+                    ageYears, totalMonthsNow, currentHigh3, growthRate,
+                    mraAgeYears, mraAgeMonths, ssAt62, dob, scd);
+                response.Scenarios.Add(scenario);
+            }
+
+            return response;
+        }
+
+        private static RetirementScenario BuildScenario(
+            string label, int retireAgeY, int retireAgeM,
+            int currentAge, int currentServiceMonths,
+            decimal currentHigh3, decimal growthRate,
+            int mraAgeY, int mraAgeM, decimal? ssAt62,
+            DateTime dob, DateTime scd)
+        {
+            int yearsUntilRetire = retireAgeY - currentAge;
+            if (yearsUntilRetire < 0) yearsUntilRetire = 0;
+
+            // Projected service at retirement
+            int projectedServiceMonths = currentServiceMonths + (yearsUntilRetire * 12) + retireAgeM;
+            int svcYears = projectedServiceMonths / 12;
+            int svcMonths = projectedServiceMonths % 12;
+            decimal totalService = svcYears + (svcMonths / 12m);
+
+            // Projected High-3: grow current salary, then average the last 3 years
+            // Simplified: project salary forward, High-3 ≈ salary grown by (yearsUntilRetire - 1.5) years
+            decimal projectedHigh3 = currentHigh3;
+            if (growthRate > 0 && yearsUntilRetire > 0)
+            {
+                decimal yearsForHigh3 = Math.Max(0, yearsUntilRetire - 1.5m);
+                projectedHigh3 = currentHigh3 * (decimal)Math.Pow((double)(1m + growthRate), (double)yearsForHigh3);
+            }
+            projectedHigh3 = Math.Round(projectedHigh3, 2);
+
+            // Multiplier: 1.1% if retiring at 62+ with 20+ years; else 1.0%
+            decimal multiplier = (retireAgeY >= 62 && svcYears >= 20) ? 0.011m : 0.01m;
+
+            decimal annualAnnuity = Math.Round(multiplier * projectedHigh3 * totalService, 2);
+            decimal monthlyPension = Math.Round(annualAnnuity / 12m, 2);
+
+            // Eligibility determination
+            bool isEligible = false;
+            string? eligibilityNote = null;
+            int retireAgeTotalMonths = retireAgeY * 12 + retireAgeM;
+            int mraTotalMonths = mraAgeY * 12 + mraAgeM;
+
+            if (retireAgeY >= 62 && svcYears >= 5)
+            {
+                isEligible = true;
+            }
+            else if (retireAgeTotalMonths >= mraTotalMonths && svcYears >= 30)
+            {
+                isEligible = true;
+                eligibilityNote = "MRA + 30 years — immediate unreduced annuity";
+            }
+            else if (retireAgeY >= 60 && svcYears >= 20)
+            {
+                isEligible = true;
+                eligibilityNote = "Age 60 + 20 years — immediate unreduced annuity";
+            }
+            else if (retireAgeTotalMonths >= mraTotalMonths && svcYears >= 10)
+            {
+                isEligible = true;
+                // Reduced by 5% per year (5/12% per month) before age 62
+                int monthsBelow62 = Math.Max(0, (62 * 12) - retireAgeTotalMonths);
+                decimal reductionPct = Math.Round(monthsBelow62 * (5m / 12m), 1);
+                annualAnnuity = Math.Round(annualAnnuity * (1m - (reductionPct / 100m)), 2);
+                monthlyPension = Math.Round(annualAnnuity / 12m, 2);
+                eligibilityNote = $"MRA + 10 — reduced annuity ({reductionPct:0.#}% reduction)";
+            }
+            else if (retireAgeTotalMonths < mraTotalMonths)
+            {
+                eligibilityNote = "Below MRA — not eligible for voluntary retirement";
+            }
+            else
+            {
+                eligibilityNote = $"Need at least 5 years of service at age 62, or 10 at MRA";
+            }
+
+            // FERS Supplement: available for MRA+30 or 60+20 only (not MRA+10)
+            bool supplementEligible = false;
+            decimal supplementEstimate = 0m;
+            int? supplementMonths = null;
+            if (isEligible && eligibilityNote == null || (eligibilityNote?.Contains("unreduced") == true))
+            {
+                if (retireAgeY < 62)
+                {
+                    supplementEligible = true;
+                    int monthsToAge62 = (62 * 12) - retireAgeTotalMonths;
+                    supplementMonths = Math.Max(0, monthsToAge62);
+
+                    // SRS ≈ SS benefit at 62 × (FERS service years / 40)
+                    if (ssAt62.HasValue && ssAt62.Value > 0)
+                    {
+                        supplementEstimate = Math.Round(ssAt62.Value * (totalService / 40m), 2);
+                    }
+                }
+            }
+
+            // SS at 62 (only applicable if retiring at or after 62)
+            decimal? socialSecurityMonthly = null;
+            if (retireAgeY >= 62 && ssAt62.HasValue && ssAt62.Value > 0)
+            {
+                socialSecurityMonthly = ssAt62.Value;
+            }
+
+            // Total monthly retirement income
+            decimal totalMonthly = monthlyPension;
+            if (supplementEligible && supplementEstimate > 0)
+                totalMonthly += supplementEstimate;
+            if (socialSecurityMonthly.HasValue)
+                totalMonthly += socialSecurityMonthly.Value;
+
+            return new RetirementScenario
+            {
+                Label = label,
+                RetirementAge = retireAgeY,
+                RetirementAgeMonths = retireAgeM,
+                ProjectedServiceYears = svcYears,
+                ProjectedServiceMonths = svcMonths,
+                Multiplier = multiplier,
+                ProjectedHigh3 = projectedHigh3,
+                AnnualAnnuity = annualAnnuity,
+                MonthlyPension = monthlyPension,
+                SupplementEligible = supplementEligible,
+                MonthlySupplementEstimate = supplementEstimate,
+                SupplementMonths = supplementMonths,
+                TotalMonthlyRetirementIncome = Math.Round(totalMonthly, 2),
+                SocialSecurityMonthly = socialSecurityMonthly,
+                IsEligible = isEligible,
+                EligibilityNote = eligibilityNote,
+            };
         }
     }
 }
