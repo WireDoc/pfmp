@@ -26,6 +26,7 @@ namespace PFMP_API.Services.FinancialProfile
         public int? RiskTolerance { get; set; }
         public DateTime? TargetRetirementDate { get; set; }
         public decimal? PassiveIncomeGoal { get; set; }
+        public decimal? InflationAssumptionPercent { get; set; }
         public decimal? LiquidityBufferMonths { get; set; }
         public decimal? EmergencyFundTarget { get; set; }
         public decimal? TransactionalAccountDesiredBalance { get; set; }

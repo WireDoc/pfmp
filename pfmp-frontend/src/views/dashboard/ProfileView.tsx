@@ -554,7 +554,20 @@ export function ProfileView() {
                 <Grid size={{ xs: 12, md: 4 }}>
                   <TextField fullWidth type="number" label="Checking Buffer ($)" value={riskGoals.transactionalAccountDesiredBalance ?? ''} onChange={e => setRiskGoals(p => ({ ...p, transactionalAccountDesiredBalance: Number(e.target.value) || null }))} />
                 </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField fullWidth type="number" label="Inflation Assumption (%)" value={riskGoals.inflationAssumptionPercent ?? ''} onChange={e => setRiskGoals(p => ({ ...p, inflationAssumptionPercent: Number(e.target.value) || null }))} inputProps={{ min: 0, max: 15, step: 0.1 }} helperText="Adjusts projections to nominal dollars" />
+                </Grid>
               </Grid>
+              {riskGoals.passiveIncomeGoal && riskGoals.inflationAssumptionPercent && riskGoals.targetRetirementDate && (() => {
+                const yearsForward = Math.max(0, new Date(riskGoals.targetRetirementDate).getFullYear() - new Date().getFullYear());
+                if (yearsForward <= 0) return null;
+                const inflated = riskGoals.passiveIncomeGoal * Math.pow(1 + riskGoals.inflationAssumptionPercent / 100, yearsForward);
+                return (
+                  <Typography variant="body2" color="text.secondary">
+                    Monthly Passive Income Goal: ${riskGoals.passiveIncomeGoal.toLocaleString()}/mo (${Math.round(inflated).toLocaleString()} inflation-adjusted to {new Date(riskGoals.targetRetirementDate).getFullYear()} at {riskGoals.inflationAssumptionPercent}%)
+                  </Typography>
+                );
+              })()}
               <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSaveRiskGoals} disabled={saving}>Save Risk & Goals</Button>
             </Stack>
           </Box>
@@ -981,6 +994,12 @@ export function ProfileView() {
                     </TableBody>
                   </Table>
                 </TableContainer>
+              )}
+
+              {projection && projection.inputs?.inflationAssumptionPercent != null && projection.inputs.inflationAssumptionPercent > 0 && (
+                <Typography variant="caption" color="text.secondary">
+                  SS and Supplement amounts are inflation-adjusted to nominal dollars at {projection.inputs.inflationAssumptionPercent}%/yr. Set in Risk &amp; Goals tab.
+                </Typography>
               )}
 
               {!projection && !projectionLoading && (userCore as User)?.serviceComputationDate && (userCore as User)?.dateOfBirth && (

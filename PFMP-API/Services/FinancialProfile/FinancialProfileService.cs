@@ -130,6 +130,10 @@ namespace PFMP_API.Services.FinancialProfile
                 {
                     user.TargetMonthlyPassiveIncome = input.PassiveIncomeGoal.Value;
                 }
+                if (input.InflationAssumptionPercent.HasValue)
+                {
+                    user.InflationAssumptionPercent = input.InflationAssumptionPercent.Value;
+                }
                 if (input.EmergencyFundTarget.HasValue)
                 {
                     user.EmergencyFundTarget = input.EmergencyFundTarget.Value;
@@ -746,6 +750,7 @@ namespace PFMP_API.Services.FinancialProfile
                 RiskTolerance = user.RiskTolerance,
                 TargetRetirementDate = user.TargetRetirementDate,
                 PassiveIncomeGoal = user.TargetMonthlyPassiveIncome,
+                InflationAssumptionPercent = user.InflationAssumptionPercent,
                 EmergencyFundTarget = user.EmergencyFundTarget,
                 LiquidityBufferMonths = user.LiquidityBufferMonths,
                 TransactionalAccountDesiredBalance = user.TransactionalAccountDesiredBalance,

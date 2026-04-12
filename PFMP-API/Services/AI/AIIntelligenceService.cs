@@ -674,13 +674,27 @@ Your analysis will be reviewed by a backup AI system for validation.",
                 if (user.RetirementGoalAmount.HasValue)
                     sb.AppendLine($"Retirement Target: ${user.RetirementGoalAmount:N0}");
                 if (user.TargetMonthlyPassiveIncome.HasValue)
-                    sb.AppendLine($"Target Monthly Passive Income: ${user.TargetMonthlyPassiveIncome:N0}");
+                {
+                    var piLine = $"Target Monthly Passive Income: ${user.TargetMonthlyPassiveIncome:N0}";
+                    if (user.InflationAssumptionPercent.HasValue && user.InflationAssumptionPercent > 0 && user.TargetRetirementDate.HasValue)
+                    {
+                        var yearsForward = Math.Max(0, user.TargetRetirementDate.Value.Year - DateTime.UtcNow.Year);
+                        if (yearsForward > 0)
+                        {
+                            var inflated = user.TargetMonthlyPassiveIncome.Value * (decimal)Math.Pow((double)(1m + user.InflationAssumptionPercent.Value / 100m), yearsForward);
+                            piLine += $" (${inflated:N0} inflation-adjusted to {user.TargetRetirementDate.Value.Year} at {user.InflationAssumptionPercent:G}%)";
+                        }
+                    }
+                    sb.AppendLine(piLine);
+                }
                 if (user.EmergencyFundTarget > 0)
                     sb.AppendLine($"Emergency/Savings Fund Target: ${user.EmergencyFundTarget:N0}");
                 if (user.LiquidityBufferMonths.HasValue)
                     sb.AppendLine($"Liquidity Buffer: {user.LiquidityBufferMonths:N1} months");
                 if (user.TransactionalAccountDesiredBalance.HasValue)
                     sb.AppendLine($"Desired Checking Balance: ${user.TransactionalAccountDesiredBalance:N0}");
+                if (user.InflationAssumptionPercent.HasValue && user.InflationAssumptionPercent > 0)
+                    sb.AppendLine($"Inflation Assumption: {user.InflationAssumptionPercent:G}% per year");
                 sb.AppendLine();
             }
 
@@ -1131,6 +1145,8 @@ Your analysis will be reviewed by a backup AI system for validation.",
                         {
                             sb.AppendLine("=== FERS RETIREMENT PROJECTIONS (pre-calculated, do NOT recalculate) ===");
                             sb.AppendLine("These are OPM-formula projections at various retirement ages. Use as-is for retirement planning advice.");
+                            if (projection.Inputs?.InflationAssumptionPercent > 0)
+                                sb.AppendLine($"Note: SS and SRS amounts are inflation-adjusted to nominal dollars at {projection.Inputs.InflationAssumptionPercent:G}%/yr to match pension/TSP projections.");
                             foreach (var s in projection.Scenarios)
                             {
                                 sb.Append($"• {s.Label} (age {s.RetirementAge}");

@@ -220,4 +220,5 @@ public class RetirementProjectionInputs
     public decimal? TspContributionRatePercent { get; set; }
     public decimal? TspEmployerMatchPercent { get; set; }
     public decimal? TspAnnualGrowthRate { get; set; } // default 7%
+    public decimal? InflationAssumptionPercent { get; set; } // default 2.5%
 }

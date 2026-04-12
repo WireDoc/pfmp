@@ -105,6 +105,22 @@ Added to Federal Benefits tab in ProfileView:
 ### EF Migration
 `20260412191828_AddRetirementProjectionFields` — adds `SocialSecurityEstimateAt62` and `AnnualSalaryGrowthRate` columns to `FederalBenefitsProfiles`.
 
+### Inflation Adjustment
+Wires the existing `User.InflationAssumptionPercent` field (decimal(5,2)?, already in DB) into projections and AI context.
+
+**Problem**: Pension and TSP projections are in nominal (future) dollars (using salary growth and market returns), but SSA provides SS estimates in today's purchasing power. Without adjustment, columns aren't comparable.
+
+**Solution**: Inflate SS and SRS by `(1 + inflationRate)^yearsUntilRetire` so all projection columns are in nominal dollars.
+
+**Changes**:
+- `BuildScenario()` accepts `inflationRate` parameter (default 2.5%)
+- SS at 62 and FERS SRS inflated to nominal dollars before display
+- `InflationAssumptionPercent` added to `RetirementProjectionInputs` DTO
+- Risk & Goals tab: new **Inflation Assumption (%)** field saves to `User.InflationAssumptionPercent`
+- Passive Income Goal shows inflation-adjusted display: "$10,000/mo ($13,459 inflation-adjusted to 2041 at 2.5%)"
+- AI context: FINANCIAL GOALS section includes inflation-adjusted passive income and inflation rate
+- AI context: FERS RETIREMENT PROJECTIONS header notes inflation adjustment rate
+
 ---
 
 ## Files Modified (Phase 2)
@@ -112,11 +128,14 @@ Added to Federal Benefits tab in ProfileView:
 | File | Changes |
 |------|---------|
 | `Models/FinancialProfile/FederalBenefitsProfile.cs` | +2 nullable decimal fields |
-| `DTOs/FederalBenefitsDTOs.cs` | +2 fields in Response/Request; +3 new DTOs (RetirementProjectionResponse, RetirementScenario, RetirementProjectionInputs) |
-| `Controllers/FederalBenefitsController.cs` | +GetRetirementProjection endpoint, +BuildRetirementProjection(), +BuildScenario(), +field mapping |
-| `Services/AI/AIIntelligenceService.cs` | +retirement projection section in AI context |
-| `pfmp-frontend/src/services/federalBenefitsApi.ts` | +projection types and fetch function |
-| `pfmp-frontend/src/views/dashboard/ProfileView.tsx` | +Retirement Projector UI section |
+| `DTOs/FederalBenefitsDTOs.cs` | +2 fields in Response/Request; +3 new DTOs; +TSP fields; +InflationAssumptionPercent in Inputs |
+| `Controllers/FederalBenefitsController.cs` | +GetRetirementProjection endpoint, +BuildRetirementProjection(), +BuildScenario() with inflation, +field mapping |
+| `Services/AI/AIIntelligenceService.cs` | +retirement projection section, +inflation-adjusted passive income, +inflation note |
+| `Services/FinancialProfile/FinancialProfileModels.cs` | +InflationAssumptionPercent in RiskGoalsInput |
+| `Services/FinancialProfile/FinancialProfileService.cs` | +save/load InflationAssumptionPercent |
+| `pfmp-frontend/src/services/federalBenefitsApi.ts` | +projection types, +inflationAssumptionPercent |
+| `pfmp-frontend/src/services/financialProfileApi.ts` | +inflationAssumptionPercent in RiskGoalsProfilePayload |
+| `pfmp-frontend/src/views/dashboard/ProfileView.tsx` | +Retirement Projector UI, +inflation field, +inflation-adjusted passive income display |
 
 ---
 

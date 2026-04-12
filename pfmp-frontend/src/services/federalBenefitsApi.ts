@@ -187,6 +187,7 @@ export interface RetirementProjectionInputs {
   tspContributionRatePercent: number | null;
   tspEmployerMatchPercent: number | null;
   tspAnnualGrowthRate: number | null;
+  inflationAssumptionPercent: number | null;
 }
 
 export interface RetirementProjectionResponse {

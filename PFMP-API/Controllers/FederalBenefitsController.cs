@@ -785,6 +785,7 @@ namespace PFMP_API.Controllers
             var tspMatchPct = tspProfile?.EmployerMatchPercent ?? 0m;
             var tspGrowthRate = 0.07m; // 7% default long-term market return
             var annualSalary = currentHigh3; // use current High-3 as salary proxy
+            var inflationRate = (user.InflationAssumptionPercent ?? 2.5m) / 100m; // default 2.5%
 
             var response = new RetirementProjectionResponse
             {
@@ -802,6 +803,7 @@ namespace PFMP_API.Controllers
                     TspContributionRatePercent = tspContribPct > 0 ? tspContribPct : null,
                     TspEmployerMatchPercent = tspMatchPct > 0 ? tspMatchPct : null,
                     TspAnnualGrowthRate = 7m,
+                    InflationAssumptionPercent = user.InflationAssumptionPercent ?? 2.5m,
                 }
             };
 
@@ -846,7 +848,8 @@ namespace PFMP_API.Controllers
                     label, retireAgeY, retireAgeM,
                     ageYears, totalMonthsNow, currentHigh3, growthRate,
                     mraAgeYears, mraAgeMonths, ssAt62, dob, scd,
-                    tspBalance, tspContribPct, tspMatchPct, tspGrowthRate, annualSalary);
+                    tspBalance, tspContribPct, tspMatchPct, tspGrowthRate, annualSalary,
+                    inflationRate);
                 response.Scenarios.Add(scenario);
             }
 
@@ -861,7 +864,7 @@ namespace PFMP_API.Controllers
             DateTime dob, DateTime scd,
             decimal tspBalance = 0m, decimal tspContribPct = 0m,
             decimal tspMatchPct = 0m, decimal tspGrowthRate = 0.07m,
-            decimal annualSalary = 0m)
+            decimal annualSalary = 0m, decimal inflationRate = 0.025m)
         {
             int yearsUntilRetire = retireAgeY - currentAge;
             if (yearsUntilRetire < 0) yearsUntilRetire = 0;
@@ -881,6 +884,14 @@ namespace PFMP_API.Controllers
                 projectedHigh3 = currentHigh3 * (decimal)Math.Pow((double)(1m + growthRate), (double)yearsForHigh3);
             }
             projectedHigh3 = Math.Round(projectedHigh3, 2);
+
+            // Inflate SS estimate to nominal (future) dollars to match pension/TSP projections.
+            // SSA estimates are in today's purchasing power; this adjusts for expected inflation.
+            decimal? inflatedSsAt62 = ssAt62;
+            if (ssAt62.HasValue && ssAt62.Value > 0 && inflationRate > 0 && yearsUntilRetire > 0)
+            {
+                inflatedSsAt62 = Math.Round(ssAt62.Value * (decimal)Math.Pow((double)(1m + inflationRate), yearsUntilRetire), 2);
+            }
 
             // Multiplier: 1.1% if retiring at 62+ with 20+ years; else 1.0%
             decimal multiplier = (retireAgeY >= 62 && svcYears >= 20) ? 0.011m : 0.01m;
@@ -939,19 +950,19 @@ namespace PFMP_API.Controllers
                     int monthsToAge62 = (62 * 12) - retireAgeTotalMonths;
                     supplementMonths = Math.Max(0, monthsToAge62);
 
-                    // SRS ≈ SS benefit at 62 × (FERS service years / 40)
-                    if (ssAt62.HasValue && ssAt62.Value > 0)
+                    // SRS ≈ SS benefit at 62 × (FERS service years / 40), inflation-adjusted
+                    if (inflatedSsAt62.HasValue && inflatedSsAt62.Value > 0)
                     {
-                        supplementEstimate = Math.Round(ssAt62.Value * (totalService / 40m), 2);
+                        supplementEstimate = Math.Round(inflatedSsAt62.Value * (totalService / 40m), 2);
                     }
                 }
             }
 
-            // SS at 62 (only applicable if retiring at or after 62)
+            // SS at 62 (only applicable if retiring at or after 62), inflation-adjusted
             decimal? socialSecurityMonthly = null;
-            if (retireAgeY >= 62 && ssAt62.HasValue && ssAt62.Value > 0)
+            if (retireAgeY >= 62 && inflatedSsAt62.HasValue && inflatedSsAt62.Value > 0)
             {
-                socialSecurityMonthly = ssAt62.Value;
+                socialSecurityMonthly = inflatedSsAt62.Value;
             }
 
             // Total monthly retirement income
