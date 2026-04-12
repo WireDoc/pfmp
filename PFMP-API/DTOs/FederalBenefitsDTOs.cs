@@ -198,6 +198,9 @@ public class RetirementScenario
     public int? SupplementMonths { get; set; } // months of supplement payments
     public decimal TotalMonthlyRetirementIncome { get; set; } // pension + supplement (pre-62) or pension + SS (post-62)
     public decimal? SocialSecurityMonthly { get; set; } // null if not provided
+    // TSP projection (4% safe withdrawal rate)
+    public decimal? ProjectedTspBalance { get; set; } // projected TSP balance at retirement
+    public decimal? MonthlyTspWithdrawal { get; set; } // 4% rule: balance * 0.04 / 12
     public bool IsEligible { get; set; } // whether the user can retire at this point
     public string? EligibilityNote { get; set; } // e.g. "Reduced annuity (5% per year under MRA)"
 }
@@ -212,4 +215,9 @@ public class RetirementProjectionInputs
     public int? CurrentCreditableYears { get; set; }
     public int? CurrentCreditableMonths { get; set; }
     public DateTime? MinimumRetirementAge { get; set; }
+    // TSP inputs
+    public decimal? CurrentTspBalance { get; set; }
+    public decimal? TspContributionRatePercent { get; set; }
+    public decimal? TspEmployerMatchPercent { get; set; }
+    public decimal? TspAnnualGrowthRate { get; set; } // default 7%
 }

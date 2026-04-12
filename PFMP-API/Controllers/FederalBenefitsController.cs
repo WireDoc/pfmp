@@ -723,7 +723,11 @@ namespace PFMP_API.Controllers
                 if (!user.ServiceComputationDate.HasValue || !user.DateOfBirth.HasValue)
                     return BadRequest(new { message = "Service Computation Date and Date of Birth are required for projections" });
 
-                var result = BuildRetirementProjection(profile, user);
+                // Load TSP data for projection
+                var tspProfile = await _context.TspProfiles
+                    .FirstOrDefaultAsync(t => t.UserId == userId && !t.IsOptedOut);
+
+                var result = BuildRetirementProjection(profile, user, tspProfile);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -734,7 +738,8 @@ namespace PFMP_API.Controllers
         }
 
         internal static RetirementProjectionResponse BuildRetirementProjection(
-            FederalBenefitsProfile profile, Models.User user)
+            FederalBenefitsProfile profile, Models.User user,
+            Models.FinancialProfile.TspProfile? tspProfile = null)
         {
             var today = DateTime.UtcNow.Date;
             var dob = user.DateOfBirth!.Value.Date;
@@ -759,6 +764,13 @@ namespace PFMP_API.Controllers
             var growthRate = (profile.AnnualSalaryGrowthRate ?? 0m) / 100m; // e.g. 2.5 -> 0.025
             var ssAt62 = profile.SocialSecurityEstimateAt62;
 
+            // TSP projection inputs
+            var tspBalance = tspProfile?.CurrentBalance ?? tspProfile?.TotalBalance ?? 0m;
+            var tspContribPct = tspProfile?.ContributionRatePercent ?? 0m;
+            var tspMatchPct = tspProfile?.EmployerMatchPercent ?? 0m;
+            var tspGrowthRate = 0.07m; // 7% default long-term market return
+            var annualSalary = currentHigh3; // use current High-3 as salary proxy
+
             var response = new RetirementProjectionResponse
             {
                 Inputs = new RetirementProjectionInputs
@@ -771,6 +783,10 @@ namespace PFMP_API.Controllers
                     CurrentCreditableYears = totalMonthsNow / 12,
                     CurrentCreditableMonths = totalMonthsNow % 12,
                     MinimumRetirementAge = mraDate,
+                    CurrentTspBalance = tspBalance > 0 ? tspBalance : null,
+                    TspContributionRatePercent = tspContribPct > 0 ? tspContribPct : null,
+                    TspEmployerMatchPercent = tspMatchPct > 0 ? tspMatchPct : null,
+                    TspAnnualGrowthRate = 7m,
                 }
             };
 
@@ -814,7 +830,8 @@ namespace PFMP_API.Controllers
                 var scenario = BuildScenario(
                     label, retireAgeY, retireAgeM,
                     ageYears, totalMonthsNow, currentHigh3, growthRate,
-                    mraAgeYears, mraAgeMonths, ssAt62, dob, scd);
+                    mraAgeYears, mraAgeMonths, ssAt62, dob, scd,
+                    tspBalance, tspContribPct, tspMatchPct, tspGrowthRate, annualSalary);
                 response.Scenarios.Add(scenario);
             }
 
@@ -826,7 +843,10 @@ namespace PFMP_API.Controllers
             int currentAge, int currentServiceMonths,
             decimal currentHigh3, decimal growthRate,
             int mraAgeY, int mraAgeM, decimal? ssAt62,
-            DateTime dob, DateTime scd)
+            DateTime dob, DateTime scd,
+            decimal tspBalance = 0m, decimal tspContribPct = 0m,
+            decimal tspMatchPct = 0m, decimal tspGrowthRate = 0.07m,
+            decimal annualSalary = 0m)
         {
             int yearsUntilRetire = retireAgeY - currentAge;
             if (yearsUntilRetire < 0) yearsUntilRetire = 0;
@@ -926,6 +946,25 @@ namespace PFMP_API.Controllers
             if (socialSecurityMonthly.HasValue)
                 totalMonthly += socialSecurityMonthly.Value;
 
+            // TSP projection: future value with annual contributions, then 4% safe withdrawal rate
+            decimal? projectedTspBalance = null;
+            decimal? monthlyTspWithdrawal = null;
+            if (tspBalance > 0 || (tspContribPct > 0 && annualSalary > 0))
+            {
+                // Annual employee + employer contributions based on current salary
+                // (salary grows with growthRate too, but simplified to current salary for contributions)
+                decimal annualContribution = annualSalary * ((tspContribPct + tspMatchPct) / 100m);
+                decimal balance = tspBalance;
+                for (int y = 0; y < yearsUntilRetire; y++)
+                {
+                    balance = (balance + annualContribution) * (1m + tspGrowthRate);
+                }
+                projectedTspBalance = Math.Round(balance, 2);
+                // 4% safe withdrawal rate, divided by 12 for monthly
+                monthlyTspWithdrawal = Math.Round(balance * 0.04m / 12m, 2);
+                totalMonthly += monthlyTspWithdrawal.Value;
+            }
+
             return new RetirementScenario
             {
                 Label = label,
@@ -942,6 +981,8 @@ namespace PFMP_API.Controllers
                 SupplementMonths = supplementMonths,
                 TotalMonthlyRetirementIncome = Math.Round(totalMonthly, 2),
                 SocialSecurityMonthly = socialSecurityMonthly,
+                ProjectedTspBalance = projectedTspBalance,
+                MonthlyTspWithdrawal = monthlyTspWithdrawal,
                 IsEligible = isEligible,
                 EligibilityNote = eligibilityNote,
             };

@@ -168,6 +168,8 @@ export interface RetirementScenario {
   supplementMonths: number | null;
   totalMonthlyRetirementIncome: number;
   socialSecurityMonthly: number | null;
+  projectedTspBalance: number | null;
+  monthlyTspWithdrawal: number | null;
   isEligible: boolean;
   eligibilityNote: string | null;
 }
@@ -181,6 +183,10 @@ export interface RetirementProjectionInputs {
   currentCreditableYears: number | null;
   currentCreditableMonths: number | null;
   minimumRetirementAge: string | null;
+  currentTspBalance: number | null;
+  tspContributionRatePercent: number | null;
+  tspEmployerMatchPercent: number | null;
+  tspAnnualGrowthRate: number | null;
 }
 
 export interface RetirementProjectionResponse {

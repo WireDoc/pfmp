@@ -952,6 +952,8 @@ export function ProfileView() {
                         <TableCell align="right">Monthly Pension</TableCell>
                         <TableCell align="right">Supplement</TableCell>
                         <TableCell align="right">SS at 62</TableCell>
+                        <TableCell align="right">TSP Balance</TableCell>
+                        <TableCell align="right">TSP/mo</TableCell>
                         <TableCell align="right">Total Monthly</TableCell>
                         <TableCell>Notes</TableCell>
                       </TableRow>
@@ -967,6 +969,8 @@ export function ProfileView() {
                           <TableCell align="right">{fmt$(s.monthlyPension)}</TableCell>
                           <TableCell align="right">{s.supplementEligible ? `${fmt$(s.monthlySupplementEstimate)}/mo × ${s.supplementMonths}mo` : '—'}</TableCell>
                           <TableCell align="right">{s.socialSecurityMonthly != null ? fmt$(s.socialSecurityMonthly) : '—'}</TableCell>
+                          <TableCell align="right">{s.projectedTspBalance != null ? fmt$(s.projectedTspBalance) : '—'}</TableCell>
+                          <TableCell align="right">{s.monthlyTspWithdrawal != null ? fmt$(s.monthlyTspWithdrawal) : '—'}</TableCell>
                           <TableCell align="right" sx={{ fontWeight: 600 }}>{fmt$(s.totalMonthlyRetirementIncome)}</TableCell>
                           <TableCell>
                             {!s.isEligible && <Chip label="Not eligible" size="small" color="error" variant="outlined" />}

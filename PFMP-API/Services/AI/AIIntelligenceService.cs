@@ -1127,6 +1127,8 @@ Your analysis will be reviewed by a backup AI system for validation.",
                                     sb.Append($", SRS ${s.MonthlySupplementEstimate:N0}/mo for {s.SupplementMonths}mo");
                                 if (s.SocialSecurityMonthly.HasValue)
                                     sb.Append($", SS ${s.SocialSecurityMonthly:N0}/mo");
+                                if (s.ProjectedTspBalance.HasValue)
+                                    sb.Append($", TSP ${s.ProjectedTspBalance:N0} (${s.MonthlyTspWithdrawal:N0}/mo @ 4%)");
                                 sb.Append($", TOTAL ${s.TotalMonthlyRetirementIncome:N0}/mo");
                                 if (!s.IsEligible)
                                     sb.Append(" [NOT ELIGIBLE]");
