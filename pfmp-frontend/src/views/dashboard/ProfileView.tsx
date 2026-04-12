@@ -60,8 +60,10 @@ import {
   saveFederalBenefits,
   applySf50,
   applyLes,
+  fetchRetirementProjection,
   type FederalBenefitsProfile,
   type SaveFederalBenefitsRequest,
+  type RetirementProjectionResponse,
 } from '../../services/federalBenefitsApi';
 import type {
   HouseholdProfilePayload,
@@ -90,7 +92,7 @@ function TabPanel({ children, value, index }: TabPanelProps) {
 
 const MARITAL_OPTIONS = ['Single', 'Married', 'Divorced', 'Widowed', 'Separated', 'Domestic Partnership'];
 const EMPLOYMENT_TYPES = ['Federal', 'Military', 'Contractor', 'Private'];
-const RETIREMENT_SYSTEMS = ['FERS', 'CSRS', 'Military', 'None'];
+const RETIREMENT_SYSTEMS = ['FERS', 'Military', 'None'];
 const FILING_STATUSES = ['single', 'married_filing_jointly', 'married_filing_separately', 'head_of_household', 'qualifying_widow'];
 const EXPENSE_CATEGORIES = ['Housing', 'Utilities', 'Transportation', 'Food', 'Healthcare', 'Insurance', 'Childcare', 'Entertainment', 'Clothing', 'Personal', 'Subscriptions', 'Debt Payments', 'Charitable', 'Other'];
 const INSURANCE_TYPES = ['Life', 'Disability', 'Health', 'Auto', 'Homeowners', 'Renters', 'Umbrella', 'Professional', 'Travel', 'Other'];
@@ -121,6 +123,72 @@ function parseNum(v: string): number | null {
 
 function numStr(v: number | null | undefined): string {
   return v != null ? String(v) : '';
+}
+
+/** Format a dollar value truncated to the penny (no rounding). 50.905 → "50.90" */
+function numStrTrunc(v: number | null | undefined): string {
+  if (v == null) return '';
+  const s = String(v);
+  const dot = s.indexOf('.');
+  if (dot === -1) return s;
+  return s.slice(0, dot + 3); // keep at most 2 decimal places
+}
+
+/** Calculate creditable service (years + months) from SCD to today */
+function creditableService(scd: string | null | undefined): { years: number; months: number } | null {
+  if (!scd) return null;
+  const scdDate = new Date(scd);
+  if (isNaN(scdDate.getTime())) return null;
+  const today = new Date();
+  let totalMonths = (today.getFullYear() - scdDate.getFullYear()) * 12 + today.getMonth() - scdDate.getMonth();
+  if (today.getDate() < scdDate.getDate()) totalMonths--;
+  if (totalMonths < 0) totalMonths = 0;
+  return { years: Math.floor(totalMonths / 12), months: totalMonths % 12 };
+}
+
+/** OPM Minimum Retirement Age from birth year */
+function getMraAge(birthYear: number): { years: number; months: number } {
+  if (birthYear < 1948) return { years: 55, months: 0 };
+  if (birthYear === 1948) return { years: 55, months: 2 };
+  if (birthYear === 1949) return { years: 55, months: 4 };
+  if (birthYear === 1950) return { years: 55, months: 6 };
+  if (birthYear === 1951) return { years: 55, months: 8 };
+  if (birthYear === 1952) return { years: 55, months: 10 };
+  if (birthYear >= 1953 && birthYear <= 1964) return { years: 56, months: 0 };
+  if (birthYear === 1965) return { years: 56, months: 2 };
+  if (birthYear === 1966) return { years: 56, months: 4 };
+  if (birthYear === 1967) return { years: 56, months: 6 };
+  if (birthYear === 1968) return { years: 56, months: 8 };
+  if (birthYear === 1969) return { years: 56, months: 10 };
+  return { years: 57, months: 0 }; // 1970+
+}
+
+/** Calculate FERS pension projection from High-3, creditable years/months */
+function fersPensionCalc(high3: number | null, creditYears: number, creditMonths: number) {
+  if (!high3 || high3 <= 0) return { annuity: null, monthly: null };
+  const totalService = creditYears + creditMonths / 12;
+  // 1.1% if 20+ years (assumes retiring at 62+), else 1.0%
+  const multiplier = creditYears >= 20 ? 0.011 : 0.01;
+  const annuity = Math.floor(multiplier * high3 * totalService * 100) / 100;
+  const monthly = Math.floor((annuity / 12) * 100) / 100;
+  return { annuity, monthly };
+}
+
+/** Infer FERS supplement eligibility from DOB + creditable years */
+function inferSupplementEligible(dob: string | null | undefined, creditableYears: number): boolean | null {
+  if (!dob || creditableYears <= 0) return null;
+  const dobDate = new Date(dob);
+  if (isNaN(dobDate.getTime())) return null;
+  const today = new Date();
+  let ageToday = today.getFullYear() - dobDate.getFullYear();
+  if (today < new Date(dobDate.getFullYear() + ageToday, dobDate.getMonth(), dobDate.getDate())) ageToday--;
+  const mra = getMraAge(dobDate.getFullYear());
+  const mraAgeYears = mra.years;
+  const yearsUntilMra = Math.max(0, mraAgeYears - ageToday);
+  const projectedYearsAtMra = creditableYears + yearsUntilMra;
+  const yearsUntil60 = Math.max(0, 60 - ageToday);
+  const projectedYearsAt60 = creditableYears + yearsUntil60;
+  return projectedYearsAtMra >= 30 || projectedYearsAt60 >= 20;
 }
 
 export function ProfileView() {
@@ -163,6 +231,8 @@ export function ProfileView() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const sf50InputRef = React.useRef<HTMLInputElement>(null);
   const lesInputRef = React.useRef<HTMLInputElement>(null);
+  const [projection, setProjection] = useState<RetirementProjectionResponse | null>(null);
+  const [projectionLoading, setProjectionLoading] = useState(false);
 
   // Load all sections on mount
   useEffect(() => {
@@ -202,6 +272,9 @@ export function ProfileView() {
             creditableMonthsOfService: fb.creditableMonthsOfService,
             isEligibleForSpecialRetirementSupplement: fb.isEligibleForSpecialRetirementSupplement ?? false,
             estimatedSupplementMonthly: fb.estimatedSupplementMonthly,
+            fersCumulativeRetirement: fb.fersCumulativeRetirement,
+            socialSecurityEstimateAt62: fb.socialSecurityEstimateAt62,
+            annualSalaryGrowthRate: fb.annualSalaryGrowthRate,
             hasFegliBasic: fb.hasFegliBasic, fegliBasicCoverage: fb.fegliBasicCoverage,
             hasFegliOptionA: fb.hasFegliOptionA, hasFegliOptionB: fb.hasFegliOptionB,
             fegliOptionBMultiple: fb.fegliOptionBMultiple,
@@ -267,6 +340,9 @@ export function ProfileView() {
       creditableMonthsOfService: p.creditableMonthsOfService,
       isEligibleForSpecialRetirementSupplement: p.isEligibleForSpecialRetirementSupplement ?? false,
       estimatedSupplementMonthly: p.estimatedSupplementMonthly,
+      fersCumulativeRetirement: p.fersCumulativeRetirement,
+      socialSecurityEstimateAt62: p.socialSecurityEstimateAt62,
+      annualSalaryGrowthRate: p.annualSalaryGrowthRate,
       hasFegliBasic: p.hasFegliBasic, fegliBasicCoverage: p.fegliBasicCoverage,
       hasFegliOptionA: p.hasFegliOptionA, hasFegliOptionB: p.hasFegliOptionB,
       fegliOptionBMultiple: p.fegliOptionBMultiple,
@@ -285,7 +361,28 @@ export function ProfileView() {
   const handleSaveFederalBenefits = () => saveSection('Federal Benefits', async () => {
     const result = await saveFederalBenefits(userId, fedForm);
     setFedBen(result);
+    // Also persist user core fields shown on this tab (agency, pay grade, SCD, retirement system)
+    const u = userCore as User;
+    if (u.userId && u.firstName && u.lastName) {
+      const { accounts, ...userPayload } = u as User & { accounts?: unknown };
+      await userService.update(u.userId, userPayload as User);
+    }
+    // Refresh projection after saving
+    loadProjection();
   });
+
+  const loadProjection = useCallback(async () => {
+    setProjectionLoading(true);
+    try {
+      const proj = await fetchRetirementProjection(userId);
+      setProjection(proj);
+    } catch {
+      // Projection may fail if user hasn't set SCD/DOB yet — that's fine
+      setProjection(null);
+    } finally {
+      setProjectionLoading(false);
+    }
+  }, [userId]);
 
   const handleSf50Upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -321,6 +418,39 @@ export function ProfileView() {
 
   const updateFed = <K extends keyof SaveFederalBenefitsRequest>(key: K, value: SaveFederalBenefitsRequest[K]) =>
     setFedForm(prev => ({ ...prev, [key]: value }));
+
+  // Load retirement projection when Federal Benefits tab is shown
+  useEffect(() => {
+    if (tab === 8 && !projection && !projectionLoading) {
+      loadProjection();
+    }
+  }, [tab, projection, projectionLoading, loadProjection]);
+
+  // Auto-calculate FERS pension fields when SCD, DOB, or High-3 change
+  useEffect(() => {
+    const scd = (userCore as User)?.serviceComputationDate;
+    const dob = (userCore as User)?.dateOfBirth;
+    const high3 = fedForm.high3AverageSalary;
+    if (!scd) return;
+    const cs = creditableService(scd);
+    if (!cs) return;
+    const updates: Partial<SaveFederalBenefitsRequest> = {
+      creditableYearsOfService: cs.years,
+      creditableMonthsOfService: cs.months,
+    };
+    if (high3 != null && high3 > 0) {
+      const calc = fersPensionCalc(high3, cs.years, cs.months);
+      updates.projectedAnnuity = calc.annuity;
+      updates.projectedMonthlyPension = calc.monthly;
+    }
+    if (dob) {
+      const eligible = inferSupplementEligible(dob, cs.years);
+      if (eligible !== null) {
+        updates.isEligibleForSpecialRetirementSupplement = eligible;
+      }
+    }
+    setFedForm(prev => ({ ...prev, ...updates }));
+  }, [(userCore as User)?.serviceComputationDate, (userCore as User)?.dateOfBirth, fedForm.high3AverageSalary]);
 
   if (loading) {
     return (
@@ -389,23 +519,6 @@ export function ProfileView() {
                   </FormControl>
                 </Grid>
                 <Grid size={{ xs: 12, md: 4 }}>
-                  <TextField fullWidth label="Government Agency" value={userCore.governmentAgency ?? ''} onChange={e => setUserCore(p => ({ ...p, governmentAgency: e.target.value }))} />
-                </Grid>
-                <Grid size={{ xs: 12, md: 4 }}>
-                  <TextField fullWidth label="Pay Grade" value={userCore.payGrade ?? ''} onChange={e => setUserCore(p => ({ ...p, payGrade: e.target.value }))} placeholder="e.g. GS-13" />
-                </Grid>
-                <Grid size={{ xs: 12, md: 4 }}>
-                  <FormControl fullWidth>
-                    <InputLabel>Retirement System</InputLabel>
-                    <Select value={userCore.retirementSystem ?? ''} label="Retirement System" onChange={e => setUserCore(p => ({ ...p, retirementSystem: e.target.value }))}>
-                      {RETIREMENT_SYSTEMS.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid size={{ xs: 12, md: 4 }}>
-                  <TextField fullWidth type="date" label="Service Computation Date" value={userCore.serviceComputationDate?.split('T')[0] ?? ''} onChange={e => setUserCore(p => ({ ...p, serviceComputationDate: e.target.value }))} slotProps={{ inputLabel: { shrink: true } }} />
-                </Grid>
-                <Grid size={{ xs: 12, md: 4 }}>
                   <TextField fullWidth type="number" label="VA Disability %" value={userCore.vaDisabilityPercentage ?? ''} onChange={e => setUserCore(p => ({ ...p, vaDisabilityPercentage: Number(e.target.value) || undefined }))} inputProps={{ min: 0, max: 100 }} />
                 </Grid>
                 <Grid size={{ xs: 12, md: 4 }}>
@@ -441,7 +554,20 @@ export function ProfileView() {
                 <Grid size={{ xs: 12, md: 4 }}>
                   <TextField fullWidth type="number" label="Checking Buffer ($)" value={riskGoals.transactionalAccountDesiredBalance ?? ''} onChange={e => setRiskGoals(p => ({ ...p, transactionalAccountDesiredBalance: Number(e.target.value) || null }))} />
                 </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField fullWidth type="number" label="Inflation Assumption (%)" value={riskGoals.inflationAssumptionPercent ?? ''} onChange={e => setRiskGoals(p => ({ ...p, inflationAssumptionPercent: Number(e.target.value) || null }))} inputProps={{ min: 0, max: 15, step: 0.1 }} helperText="Adjusts projections to nominal dollars" />
+                </Grid>
               </Grid>
+              {riskGoals.passiveIncomeGoal && riskGoals.inflationAssumptionPercent && riskGoals.targetRetirementDate && (() => {
+                const yearsForward = Math.max(0, new Date(riskGoals.targetRetirementDate).getFullYear() - new Date().getFullYear());
+                if (yearsForward <= 0) return null;
+                const inflated = riskGoals.passiveIncomeGoal * Math.pow(1 + riskGoals.inflationAssumptionPercent / 100, yearsForward);
+                return (
+                  <Typography variant="body2" color="text.secondary">
+                    Monthly Passive Income Goal: ${riskGoals.passiveIncomeGoal.toLocaleString()}/mo (${Math.round(inflated).toLocaleString()} inflation-adjusted to {new Date(riskGoals.targetRetirementDate).getFullYear()} at {riskGoals.inflationAssumptionPercent}%)
+                  </Typography>
+                );
+              })()}
               <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSaveRiskGoals} disabled={saving}>Save Risk & Goals</Button>
             </Stack>
           </Box>
@@ -722,7 +848,7 @@ export function ProfileView() {
             <Stack spacing={3}>
               <Typography variant="h6">Federal Benefits Profile</Typography>
               <Typography variant="body2" color="text.secondary">
-                FEGLI, FEHB, FERS/CSRS pension, and supplemental coverage. Upload an SF-50 or LES to auto-fill.
+                FEGLI, FEHB, FERS pension, and supplemental coverage. Upload an SF-50 or LES to auto-fill.
               </Typography>
               {uploadError && <Alert severity="error" onClose={() => setUploadError(null)}>{uploadError}</Alert>}
 
@@ -748,33 +874,145 @@ export function ProfileView() {
 
               <Divider />
 
-              {/* FERS/CSRS Pension */}
-              <Typography variant="subtitle1" fontWeight={600}>FERS / CSRS Pension</Typography>
+              {/* Federal Employment Info */}
+              <Typography variant="subtitle1" fontWeight={600}>Federal Employment</Typography>
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12, md: 4 }}>
-                  <TextField fullWidth label="High-3 Average Salary" type="number" size="small" value={numStr(fedForm.high3AverageSalary)} onChange={e => updateFed('high3AverageSalary', parseNum(e.target.value))} inputProps={{ min: 0 }} />
+                  <TextField fullWidth label="Government Agency" size="small" value={userCore.governmentAgency ?? ''} onChange={e => setUserCore(p => ({ ...p, governmentAgency: e.target.value }))} />
                 </Grid>
                 <Grid size={{ xs: 12, md: 4 }}>
-                  <TextField fullWidth label="Projected Annual Annuity" type="number" size="small" value={numStr(fedForm.projectedAnnuity)} onChange={e => updateFed('projectedAnnuity', parseNum(e.target.value))} inputProps={{ min: 0 }} />
+                  <TextField fullWidth label="Pay Grade" size="small" value={userCore.payGrade ?? ''} onChange={e => setUserCore(p => ({ ...p, payGrade: e.target.value }))} placeholder="e.g. GS-13" />
                 </Grid>
                 <Grid size={{ xs: 12, md: 4 }}>
-                  <TextField fullWidth label="Projected Monthly Pension" type="number" size="small" value={numStr(fedForm.projectedMonthlyPension)} onChange={e => updateFed('projectedMonthlyPension', parseNum(e.target.value))} inputProps={{ min: 0 }} />
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Retirement System</InputLabel>
+                    <Select value={userCore.retirementSystem ?? ''} label="Retirement System" onChange={e => setUserCore(p => ({ ...p, retirementSystem: e.target.value }))}>
+                      {RETIREMENT_SYSTEMS.map(o => <MenuItem key={o} value={o}>{o}</MenuItem>)}
+                    </Select>
+                  </FormControl>
                 </Grid>
-                <Grid size={{ xs: 6, md: 3 }}>
-                  <TextField fullWidth label="Creditable Years" type="number" size="small" value={numStr(fedForm.creditableYearsOfService)} onChange={e => updateFed('creditableYearsOfService', parseNum(e.target.value) != null ? Math.floor(parseNum(e.target.value)!) : null)} inputProps={{ min: 0 }} />
-                </Grid>
-                <Grid size={{ xs: 6, md: 3 }}>
-                  <TextField fullWidth label="Creditable Months" type="number" size="small" value={numStr(fedForm.creditableMonthsOfService)} onChange={e => updateFed('creditableMonthsOfService', parseNum(e.target.value) != null ? Math.floor(parseNum(e.target.value)!) : null)} inputProps={{ min: 0, max: 11 }} />
-                </Grid>
-                <Grid size={{ xs: 12, md: 6 }}>
-                  <Stack direction="row" spacing={2} alignItems="center">
-                    <FormControlLabel control={<Switch checked={fedForm.isEligibleForSpecialRetirementSupplement ?? false} onChange={(_, v) => updateFed('isEligibleForSpecialRetirementSupplement', v)} size="small" />} label="FERS Supplement Eligible" />
-                    {fedForm.isEligibleForSpecialRetirementSupplement && (
-                      <TextField label="Est. Monthly Supplement" type="number" size="small" sx={{ width: 180 }} value={numStr(fedForm.estimatedSupplementMonthly)} onChange={e => updateFed('estimatedSupplementMonthly', parseNum(e.target.value))} inputProps={{ min: 0 }} />
-                    )}
-                  </Stack>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField fullWidth type="date" label="Service Computation Date" size="small" value={userCore.serviceComputationDate?.split('T')[0] ?? ''} onChange={e => setUserCore(p => ({ ...p, serviceComputationDate: e.target.value }))} slotProps={{ inputLabel: { shrink: true } }} />
                 </Grid>
               </Grid>
+
+              <Divider />
+
+              {/* FERS Pension */}
+              <Typography variant="subtitle1" fontWeight={600}>FERS Pension</Typography>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField fullWidth label="High-3 Average Salary" type="number" size="small" value={numStrTrunc(fedForm.high3AverageSalary)} onChange={e => updateFed('high3AverageSalary', parseNum(e.target.value))} inputProps={{ min: 0 }} />
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField fullWidth label="Projected Annual Annuity" type="number" size="small" value={numStrTrunc(fedForm.projectedAnnuity)} onChange={e => updateFed('projectedAnnuity', parseNum(e.target.value))} inputProps={{ min: 0 }} helperText={(userCore as User)?.serviceComputationDate && fedForm.high3AverageSalary ? 'Auto-calculated' : undefined} />
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField fullWidth label="Projected Monthly Pension" type="number" size="small" value={numStrTrunc(fedForm.projectedMonthlyPension)} onChange={e => updateFed('projectedMonthlyPension', parseNum(e.target.value))} inputProps={{ min: 0 }} helperText={(userCore as User)?.serviceComputationDate && fedForm.high3AverageSalary ? 'Auto-calculated' : undefined} />
+                </Grid>
+                <Grid size={{ xs: 6, md: 3 }}>
+                  <TextField fullWidth label="Creditable Years" type="number" size="small" value={numStr(fedForm.creditableYearsOfService)} onChange={e => updateFed('creditableYearsOfService', parseNum(e.target.value) != null ? Math.floor(parseNum(e.target.value)!) : null)} inputProps={{ min: 0 }} helperText={(userCore as User)?.serviceComputationDate ? 'From SCD' : undefined} />
+                </Grid>
+                <Grid size={{ xs: 6, md: 3 }}>
+                  <TextField fullWidth label="Creditable Months" type="number" size="small" value={numStr(fedForm.creditableMonthsOfService)} onChange={e => updateFed('creditableMonthsOfService', parseNum(e.target.value) != null ? Math.floor(parseNum(e.target.value)!) : null)} inputProps={{ min: 0, max: 11 }} helperText={(userCore as User)?.serviceComputationDate ? 'From SCD' : undefined} />
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <TextField fullWidth label="FERS Cumulative Retirement" type="number" size="small" value={numStrTrunc(fedForm.fersCumulativeRetirement)} onChange={e => updateFed('fersCumulativeRetirement', parseNum(e.target.value))} inputProps={{ min: 0 }} helperText="YTD from LES" />
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <FormControlLabel control={<Switch checked={fedForm.isEligibleForSpecialRetirementSupplement ?? false} onChange={(_, v) => updateFed('isEligibleForSpecialRetirementSupplement', v)} size="small" />} label="FERS Supplement Eligible" />
+                  </Stack>
+                </Grid>
+                {fedForm.isEligibleForSpecialRetirementSupplement && (
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <TextField fullWidth label="Est. Monthly Supplement" type="number" size="small" value={numStrTrunc(fedForm.estimatedSupplementMonthly)} onChange={e => updateFed('estimatedSupplementMonthly', parseNum(e.target.value))} inputProps={{ min: 0 }} />
+                  </Grid>
+                )}
+              </Grid>
+
+              <Divider />
+
+              {/* FERS Retirement Projector */}
+              <Typography variant="subtitle1" fontWeight={600}>Retirement Projector</Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Compare retirement scenarios at different ages. Projections use OPM FERS formulas. Provide your SS estimate from ssa.gov and salary growth rate for more accurate results.
+              </Typography>
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField fullWidth label="SS Benefit Estimate at 62 ($/mo)" type="number" size="small" value={numStrTrunc(fedForm.socialSecurityEstimateAt62)} onChange={e => updateFed('socialSecurityEstimateAt62', parseNum(e.target.value))} inputProps={{ min: 0 }} helperText="From ssa.gov/myaccount" />
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField fullWidth label="Annual Salary Growth Rate (%)" type="number" size="small" value={numStr(fedForm.annualSalaryGrowthRate)} onChange={e => updateFed('annualSalaryGrowthRate', parseNum(e.target.value))} inputProps={{ min: 0, max: 20, step: '0.1' }} helperText="e.g. 2.5 for 2.5%/yr" />
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <Button variant="outlined" size="small" onClick={loadProjection} disabled={projectionLoading} sx={{ mt: 1 }}>
+                    {projectionLoading ? 'Calculating…' : 'Refresh Projections'}
+                  </Button>
+                </Grid>
+              </Grid>
+
+              {projection && projection.scenarios.length > 0 && (
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Scenario</TableCell>
+                        <TableCell align="right">Age</TableCell>
+                        <TableCell align="right">Service</TableCell>
+                        <TableCell align="right">High-3</TableCell>
+                        <TableCell align="right">Annual Annuity</TableCell>
+                        <TableCell align="right">Monthly Pension</TableCell>
+                        <TableCell align="right">Supplement</TableCell>
+                        <TableCell align="right">SS at 62</TableCell>
+                        <TableCell align="right">TSP Balance</TableCell>
+                        <TableCell align="right">TSP/mo</TableCell>
+                        <TableCell align="right">Total Monthly</TableCell>
+                        <TableCell>Notes</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {projection.scenarios.map((s, i) => (
+                        <TableRow key={i} sx={{ opacity: s.isEligible ? 1 : 0.5 }}>
+                          <TableCell sx={{ fontWeight: 600 }}>{s.label}</TableCell>
+                          <TableCell align="right">{s.retirementAge}{s.retirementAgeMonths > 0 ? `+${s.retirementAgeMonths}mo` : ''}</TableCell>
+                          <TableCell align="right">{s.projectedServiceYears}y {s.projectedServiceMonths}m</TableCell>
+                          <TableCell align="right">{fmt$(s.projectedHigh3)}</TableCell>
+                          <TableCell align="right">{fmt$(s.annualAnnuity)}</TableCell>
+                          <TableCell align="right">{fmt$(s.monthlyPension)}</TableCell>
+                          <TableCell align="right">{s.supplementEligible ? `${fmt$(s.monthlySupplementEstimate)}/mo × ${s.supplementMonths}mo` : '—'}</TableCell>
+                          <TableCell align="right">{s.socialSecurityMonthly != null ? fmt$(s.socialSecurityMonthly) : '—'}</TableCell>
+                          <TableCell align="right">{s.projectedTspBalance != null ? fmt$(s.projectedTspBalance) : '—'}</TableCell>
+                          <TableCell align="right">{s.monthlyTspWithdrawal != null ? fmt$(s.monthlyTspWithdrawal) : '—'}</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 600 }}>{fmt$(s.totalMonthlyRetirementIncome)}</TableCell>
+                          <TableCell>
+                            {!s.isEligible && <Chip label="Not eligible" size="small" color="error" variant="outlined" />}
+                            {s.eligibilityNote && <Typography variant="caption" color="text.secondary">{s.eligibilityNote}</Typography>}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+
+              {projection && projection.inputs?.inflationAssumptionPercent != null && projection.inputs.inflationAssumptionPercent > 0 && (
+                <Typography variant="caption" color="text.secondary">
+                  SS and Supplement amounts are inflation-adjusted to nominal dollars at {projection.inputs.inflationAssumptionPercent}%/yr. Set in Risk &amp; Goals tab.
+                </Typography>
+              )}
+
+              {!projection && !projectionLoading && (userCore as User)?.serviceComputationDate && (userCore as User)?.dateOfBirth && (
+                <Typography variant="body2" color="text.secondary">
+                  Save your profile to generate retirement projections.
+                </Typography>
+              )}
+
+              {!projection && !projectionLoading && (!(userCore as User)?.serviceComputationDate || !(userCore as User)?.dateOfBirth) && (
+                <Typography variant="body2" color="text.secondary">
+                  Set your Date of Birth and Service Computation Date to enable retirement projections.
+                </Typography>
+              )}
 
               <Divider />
 
@@ -787,10 +1025,10 @@ export function ProfileView() {
                 {fedForm.hasFegliBasic && (
                   <>
                     <Grid size={{ xs: 12, md: 4 }}>
-                      <TextField fullWidth label="Basic Coverage Amount" type="number" size="small" value={numStr(fedForm.fegliBasicCoverage)} onChange={e => updateFed('fegliBasicCoverage', parseNum(e.target.value))} inputProps={{ min: 0 }} />
+                      <TextField fullWidth label="Basic Coverage Amount" type="number" size="small" value={numStrTrunc(fedForm.fegliBasicCoverage)} onChange={e => updateFed('fegliBasicCoverage', parseNum(e.target.value))} inputProps={{ min: 0 }} />
                     </Grid>
                     <Grid size={{ xs: 12, md: 4 }}>
-                      <TextField fullWidth label="Total Monthly Premium" type="number" size="small" value={numStr(fedForm.fegliTotalMonthlyPremium)} onChange={e => updateFed('fegliTotalMonthlyPremium', parseNum(e.target.value))} inputProps={{ min: 0, step: '0.01' }} />
+                      <TextField fullWidth label="Total Monthly Premium" type="number" size="small" value={numStrTrunc(fedForm.fegliTotalMonthlyPremium)} onChange={e => updateFed('fegliTotalMonthlyPremium', parseNum(e.target.value))} inputProps={{ min: 0, step: '0.01' }} />
                     </Grid>
                     <Grid size={{ xs: 6, md: 3 }}>
                       <FormControlLabel control={<Switch checked={fedForm.hasFegliOptionA} onChange={(_, v) => updateFed('hasFegliOptionA', v)} size="small" />} label="Option A" />
@@ -834,10 +1072,10 @@ export function ProfileView() {
                   </TextField>
                 </Grid>
                 <Grid size={{ xs: 6, md: 2 }}>
-                  <TextField fullWidth label="Monthly Premium" type="number" size="small" value={numStr(fedForm.fehbMonthlyPremium)} onChange={e => updateFed('fehbMonthlyPremium', parseNum(e.target.value))} inputProps={{ min: 0, step: '0.01' }} />
+                  <TextField fullWidth label="Monthly Premium" type="number" size="small" value={numStrTrunc(fedForm.fehbMonthlyPremium)} onChange={e => updateFed('fehbMonthlyPremium', parseNum(e.target.value))} inputProps={{ min: 0, step: '0.01' }} />
                 </Grid>
                 <Grid size={{ xs: 6, md: 2 }}>
-                  <TextField fullWidth label="Employer Pays" type="number" size="small" value={numStr(fedForm.fehbEmployerContribution)} onChange={e => updateFed('fehbEmployerContribution', parseNum(e.target.value))} inputProps={{ min: 0, step: '0.01' }} />
+                  <TextField fullWidth label="Employer Pays" type="number" size="small" value={numStrTrunc(fedForm.fehbEmployerContribution)} onChange={e => updateFed('fehbEmployerContribution', parseNum(e.target.value))} inputProps={{ min: 0, step: '0.01' }} />
                 </Grid>
               </Grid>
 
@@ -850,7 +1088,7 @@ export function ProfileView() {
                   <Stack>
                     <FormControlLabel control={<Switch checked={fedForm.hasFedvipDental} onChange={(_, v) => updateFed('hasFedvipDental', v)} size="small" />} label="FEDVIP Dental" />
                     {fedForm.hasFedvipDental && (
-                      <TextField label="Monthly Premium" type="number" size="small" value={numStr(fedForm.fedvipDentalMonthlyPremium)} onChange={e => updateFed('fedvipDentalMonthlyPremium', parseNum(e.target.value))} inputProps={{ min: 0, step: '0.01' }} />
+                      <TextField label="Monthly Premium" type="number" size="small" value={numStrTrunc(fedForm.fedvipDentalMonthlyPremium)} onChange={e => updateFed('fedvipDentalMonthlyPremium', parseNum(e.target.value))} inputProps={{ min: 0, step: '0.01' }} />
                     )}
                   </Stack>
                 </Grid>
@@ -858,7 +1096,7 @@ export function ProfileView() {
                   <Stack>
                     <FormControlLabel control={<Switch checked={fedForm.hasFedvipVision} onChange={(_, v) => updateFed('hasFedvipVision', v)} size="small" />} label="FEDVIP Vision" />
                     {fedForm.hasFedvipVision && (
-                      <TextField label="Monthly Premium" type="number" size="small" value={numStr(fedForm.fedvipVisionMonthlyPremium)} onChange={e => updateFed('fedvipVisionMonthlyPremium', parseNum(e.target.value))} inputProps={{ min: 0, step: '0.01' }} />
+                      <TextField label="Monthly Premium" type="number" size="small" value={numStrTrunc(fedForm.fedvipVisionMonthlyPremium)} onChange={e => updateFed('fedvipVisionMonthlyPremium', parseNum(e.target.value))} inputProps={{ min: 0, step: '0.01' }} />
                     )}
                   </Stack>
                 </Grid>
@@ -866,7 +1104,7 @@ export function ProfileView() {
                   <Stack>
                     <FormControlLabel control={<Switch checked={fedForm.hasFltcip} onChange={(_, v) => updateFed('hasFltcip', v)} size="small" />} label="FLTCIP (Long-Term Care)" />
                     {fedForm.hasFltcip && (
-                      <TextField label="Monthly Premium" type="number" size="small" value={numStr(fedForm.fltcipMonthlyPremium)} onChange={e => updateFed('fltcipMonthlyPremium', parseNum(e.target.value))} inputProps={{ min: 0, step: '0.01' }} />
+                      <TextField label="Monthly Premium" type="number" size="small" value={numStrTrunc(fedForm.fltcipMonthlyPremium)} onChange={e => updateFed('fltcipMonthlyPremium', parseNum(e.target.value))} inputProps={{ min: 0, step: '0.01' }} />
                     )}
                   </Stack>
                 </Grid>
@@ -881,7 +1119,7 @@ export function ProfileView() {
                   <Stack>
                     <FormControlLabel control={<Switch checked={fedForm.hasFsa} onChange={(_, v) => updateFed('hasFsa', v)} size="small" />} label="FSA Enrolled" />
                     {fedForm.hasFsa && (
-                      <TextField label="Annual Election" type="number" size="small" value={numStr(fedForm.fsaAnnualElection)} onChange={e => updateFed('fsaAnnualElection', parseNum(e.target.value))} inputProps={{ min: 0 }} />
+                      <TextField label="Annual Election" type="number" size="small" value={numStrTrunc(fedForm.fsaAnnualElection)} onChange={e => updateFed('fsaAnnualElection', parseNum(e.target.value))} inputProps={{ min: 0 }} />
                     )}
                   </Stack>
                 </Grid>
@@ -890,8 +1128,8 @@ export function ProfileView() {
                     <FormControlLabel control={<Switch checked={fedForm.hasHsa} onChange={(_, v) => updateFed('hasHsa', v)} size="small" />} label="HSA Enrolled" />
                     {fedForm.hasHsa && (
                       <>
-                        <TextField label="HSA Balance" type="number" size="small" sx={{ mb: 1 }} value={numStr(fedForm.hsaBalance)} onChange={e => updateFed('hsaBalance', parseNum(e.target.value))} inputProps={{ min: 0 }} />
-                        <TextField label="Annual Contribution" type="number" size="small" value={numStr(fedForm.hsaAnnualContribution)} onChange={e => updateFed('hsaAnnualContribution', parseNum(e.target.value))} inputProps={{ min: 0 }} />
+                        <TextField label="HSA Balance" type="number" size="small" sx={{ mb: 1 }} value={numStrTrunc(fedForm.hsaBalance)} onChange={e => updateFed('hsaBalance', parseNum(e.target.value))} inputProps={{ min: 0 }} />
+                        <TextField label="Annual Contribution" type="number" size="small" value={numStrTrunc(fedForm.hsaAnnualContribution)} onChange={e => updateFed('hsaAnnualContribution', parseNum(e.target.value))} inputProps={{ min: 0 }} />
                       </>
                     )}
                   </Stack>

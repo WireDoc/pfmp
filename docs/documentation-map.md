@@ -80,7 +80,9 @@ This index lists every active document under `docs/` following the subject-first
 ## 🌊 waves
 
 ### Active Wave Plans
-- `docs/waves/wave-17-dashboard-expansion.md` – **Wave 17 In Progress** (Apr 2026) - Dashboard Expansion & Profile Management
+- `docs/waves/wave-17-dashboard-expansion.md` – **Wave 17 Complete** (Apr 2026) - Dashboard Expansion & Profile Management
+- `docs/waves/wave-18-federal-benefits.md` – **Wave 18 Complete** (Apr 2026) - Federal Benefits Deep Dive & FERS Retirement Projector
+- `docs/waves/wave-19-retirement-planning-advanced.md` – **Wave 19 Planned** - Advanced Retirement Planning (TSP Roth/Trad, Tax Modeling, COLA)
 - `docs/waves/wave-11-account-linking-strategy.md` – Wave 11-13: Full account linking strategy reference
 - Wave 13: Crypto Integration – Documented in `docs/history/roadmap.md`
 - Wave 14: Spending Analysis – Documented in `docs/history/roadmap.md`

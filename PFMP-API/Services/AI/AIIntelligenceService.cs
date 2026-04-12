@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using PFMP_API.Controllers;
+using PFMP_API.DTOs;
 using PFMP_API.Models;
 using PFMP_API.Models.FinancialProfile;
 using System.Diagnostics;
@@ -672,13 +674,27 @@ Your analysis will be reviewed by a backup AI system for validation.",
                 if (user.RetirementGoalAmount.HasValue)
                     sb.AppendLine($"Retirement Target: ${user.RetirementGoalAmount:N0}");
                 if (user.TargetMonthlyPassiveIncome.HasValue)
-                    sb.AppendLine($"Target Monthly Passive Income: ${user.TargetMonthlyPassiveIncome:N0}");
+                {
+                    var piLine = $"Target Monthly Passive Income: ${user.TargetMonthlyPassiveIncome:N0}";
+                    if (user.InflationAssumptionPercent.HasValue && user.InflationAssumptionPercent > 0 && user.TargetRetirementDate.HasValue)
+                    {
+                        var yearsForward = Math.Max(0, user.TargetRetirementDate.Value.Year - DateTime.UtcNow.Year);
+                        if (yearsForward > 0)
+                        {
+                            var inflated = user.TargetMonthlyPassiveIncome.Value * (decimal)Math.Pow((double)(1m + user.InflationAssumptionPercent.Value / 100m), yearsForward);
+                            piLine += $" (${inflated:N0} inflation-adjusted to {user.TargetRetirementDate.Value.Year} at {user.InflationAssumptionPercent:G}%)";
+                        }
+                    }
+                    sb.AppendLine(piLine);
+                }
                 if (user.EmergencyFundTarget > 0)
                     sb.AppendLine($"Emergency/Savings Fund Target: ${user.EmergencyFundTarget:N0}");
                 if (user.LiquidityBufferMonths.HasValue)
                     sb.AppendLine($"Liquidity Buffer: {user.LiquidityBufferMonths:N1} months");
                 if (user.TransactionalAccountDesiredBalance.HasValue)
                     sb.AppendLine($"Desired Checking Balance: ${user.TransactionalAccountDesiredBalance:N0}");
+                if (user.InflationAssumptionPercent.HasValue && user.InflationAssumptionPercent > 0)
+                    sb.AppendLine($"Inflation Assumption: {user.InflationAssumptionPercent:G}% per year");
                 sb.AppendLine();
             }
 
@@ -1042,7 +1058,7 @@ Your analysis will be reviewed by a backup AI system for validation.",
             {
                 sb.AppendLine("=== FEDERAL RETIREMENT BENEFITS ===");
 
-                // FERS/CSRS Pension
+                // FERS Pension
                 if (fedBenefits.High3AverageSalary.HasValue)
                     sb.AppendLine($"High-3 Average Salary: {fedBenefits.High3AverageSalary:C0}");
                 if (fedBenefits.ProjectedMonthlyPension.HasValue)
@@ -1053,6 +1069,10 @@ Your analysis will be reviewed by a backup AI system for validation.",
                     sb.AppendLine($"Creditable Service: {fedBenefits.CreditableYearsOfService}y {fedBenefits.CreditableMonthsOfService ?? 0}m");
                 if (fedBenefits.IsEligibleForSpecialRetirementSupplement == true)
                     sb.AppendLine($"FERS Supplement: Eligible, est. {fedBenefits.EstimatedSupplementMonthly:C0}/mo (ages {fedBenefits.SupplementEligibilityAge}–{fedBenefits.SupplementEndAge})");
+                if (fedBenefits.FersCumulativeRetirement.HasValue)
+                    sb.AppendLine($"FERS Cumulative Retirement Contributions (YTD): {fedBenefits.FersCumulativeRetirement:C2}");
+                if (fedBenefits.SocialSecurityEstimateAt62.HasValue)
+                    sb.AppendLine($"Social Security Estimate at 62: {fedBenefits.SocialSecurityEstimateAt62:C0}/mo");
 
                 // FEGLI
                 if (fedBenefits.HasFegliBasic)
@@ -1097,6 +1117,65 @@ Your analysis will be reviewed by a backup AI system for validation.",
                     sb.AppendLine($"Last LES uploaded: {fedBenefits.LastLesUploadDate:yyyy-MM-dd}");
 
                 sb.AppendLine();
+
+                // === FERS RETIREMENT PROJECTIONS ===
+                var theUser = await _context.Users.FindAsync(userId);
+                if (theUser?.ServiceComputationDate != null && theUser?.DateOfBirth != null)
+                {
+                    try
+                    {
+                        // Load TSP data for projections
+                        var tspProf = await _context.TspProfiles
+                            .FirstOrDefaultAsync(t => t.UserId == userId && !t.IsOptedOut);
+                        decimal tspBal = 0m;
+                        if (tspProf != null)
+                        {
+                            tspBal = tspProf.TotalBalance ?? 0m;
+                            if (tspBal == 0m) tspBal = tspProf.CurrentBalance;
+                            if (tspBal == 0m)
+                            {
+                                tspBal = await _context.TspLifecyclePositions
+                                    .Where(p => p.UserId == userId && p.CurrentMarketValue > 0)
+                                    .SumAsync(p => p.CurrentMarketValue ?? 0m);
+                            }
+                        }
+
+                        var projection = FederalBenefitsController.BuildRetirementProjection(fedBenefits, theUser, tspProf, tspBal);
+                        if (projection.Scenarios.Any())
+                        {
+                            sb.AppendLine("=== FERS RETIREMENT PROJECTIONS (pre-calculated, do NOT recalculate) ===");
+                            sb.AppendLine("These are OPM-formula projections at various retirement ages. Use as-is for retirement planning advice.");
+                            if (projection.Inputs?.InflationAssumptionPercent > 0)
+                                sb.AppendLine($"Note: SS and SRS amounts are inflation-adjusted to nominal dollars at {projection.Inputs.InflationAssumptionPercent:G}%/yr to match pension/TSP projections.");
+                            foreach (var s in projection.Scenarios)
+                            {
+                                sb.Append($"• {s.Label} (age {s.RetirementAge}");
+                                if (s.RetirementAgeMonths > 0) sb.Append($"+{s.RetirementAgeMonths}mo");
+                                sb.Append($"): {s.ProjectedServiceYears}y{s.ProjectedServiceMonths}m service");
+                                sb.Append($", {s.Multiplier * 100:0.0}% multiplier");
+                                sb.Append($", High-3 ${s.ProjectedHigh3:N0}");
+                                sb.Append($", Annuity ${s.AnnualAnnuity:N0}/yr (${s.MonthlyPension:N0}/mo)");
+                                if (s.SupplementEligible)
+                                    sb.Append($", SRS ${s.MonthlySupplementEstimate:N0}/mo for {s.SupplementMonths}mo");
+                                if (s.SocialSecurityMonthly.HasValue)
+                                    sb.Append($", SS ${s.SocialSecurityMonthly:N0}/mo");
+                                if (s.ProjectedTspBalance.HasValue)
+                                    sb.Append($", TSP ${s.ProjectedTspBalance:N0} (${s.MonthlyTspWithdrawal:N0}/mo @ 4%)");
+                                sb.Append($", TOTAL ${s.TotalMonthlyRetirementIncome:N0}/mo");
+                                if (!s.IsEligible)
+                                    sb.Append(" [NOT ELIGIBLE]");
+                                if (s.EligibilityNote != null)
+                                    sb.Append($" ({s.EligibilityNote})");
+                                sb.AppendLine();
+                            }
+                            sb.AppendLine();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to build retirement projection for AI context, user {UserId}", userId);
+                    }
+                }
             }
 
             return sb.ToString();

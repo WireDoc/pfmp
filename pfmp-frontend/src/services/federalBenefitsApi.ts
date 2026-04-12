@@ -6,7 +6,7 @@ export interface FederalBenefitsProfile {
   federalBenefitsProfileId: number;
   userId: number;
 
-  // FERS/CSRS Pension
+  // FERS Pension
   high3AverageSalary: number | null;
   projectedAnnuity: number | null;
   projectedMonthlyPension: number | null;
@@ -17,6 +17,9 @@ export interface FederalBenefitsProfile {
   estimatedSupplementMonthly: number | null;
   supplementEligibilityAge: number | null;
   supplementEndAge: number | null;
+  fersCumulativeRetirement: number | null;
+  socialSecurityEstimateAt62: number | null;
+  annualSalaryGrowthRate: number | null;
 
   // FEGLI
   hasFegliBasic: boolean;
@@ -72,6 +75,9 @@ export interface SaveFederalBenefitsRequest {
   estimatedSupplementMonthly?: number | null;
   supplementEligibilityAge?: number | null;
   supplementEndAge?: number | null;
+  fersCumulativeRetirement?: number | null;
+  socialSecurityEstimateAt62?: number | null;
+  annualSalaryGrowthRate?: number | null;
 
   hasFegliBasic: boolean;
   fegliBasicCoverage?: number | null;
@@ -138,12 +144,55 @@ export interface LesUploadResponse {
   tspCatchUpDeduction: number | null;
   tspAgencyMatch: number | null;
   retirementDeduction: number | null;
+  fersCumulativeRetirement: number | null;
   federalTaxWithholding: number | null;
   stateTaxWithholding: number | null;
   oasdiDeduction: number | null;
   medicareDeduction: number | null;
   annualLeaveBalance: number | null;
   sickLeaveBalance: number | null;
+}
+
+export interface RetirementScenario {
+  label: string;
+  retirementAge: number;
+  retirementAgeMonths: number;
+  projectedServiceYears: number;
+  projectedServiceMonths: number;
+  multiplier: number;
+  projectedHigh3: number;
+  annualAnnuity: number;
+  monthlyPension: number;
+  supplementEligible: boolean;
+  monthlySupplementEstimate: number;
+  supplementMonths: number | null;
+  totalMonthlyRetirementIncome: number;
+  socialSecurityMonthly: number | null;
+  projectedTspBalance: number | null;
+  monthlyTspWithdrawal: number | null;
+  isEligible: boolean;
+  eligibilityNote: string | null;
+}
+
+export interface RetirementProjectionInputs {
+  high3AverageSalary: number | null;
+  annualSalaryGrowthRate: number | null;
+  dateOfBirth: string | null;
+  serviceComputationDate: string | null;
+  socialSecurityEstimateAt62: number | null;
+  currentCreditableYears: number | null;
+  currentCreditableMonths: number | null;
+  minimumRetirementAge: string | null;
+  currentTspBalance: number | null;
+  tspContributionRatePercent: number | null;
+  tspEmployerMatchPercent: number | null;
+  tspAnnualGrowthRate: number | null;
+  inflationAssumptionPercent: number | null;
+}
+
+export interface RetirementProjectionResponse {
+  scenarios: RetirementScenario[];
+  inputs: RetirementProjectionInputs;
 }
 
 // ── API Calls ──
@@ -194,5 +243,10 @@ export async function applyLes(userId: number, file: File): Promise<FederalBenef
   const { data } = await apiClient.post(`/federalbenefits/user/${userId}/apply-les`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
+  return data;
+}
+
+export async function fetchRetirementProjection(userId: number): Promise<RetirementProjectionResponse> {
+  const { data } = await apiClient.get(`/federalbenefits/user/${userId}/retirement-projection`);
   return data;
 }

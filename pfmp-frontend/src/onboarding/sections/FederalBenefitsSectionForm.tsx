@@ -331,8 +331,8 @@ export default function FederalBenefitsSectionForm({ userId, onStatusChange, cur
 
       <Divider />
 
-      {/* ── FERS/CSRS Pension ── */}
-      <Typography variant="subtitle1" fontWeight={600}>FERS / CSRS Pension</Typography>
+      {/* ── FERS Pension ── */}
+      <Typography variant="subtitle1" fontWeight={600}>FERS Pension</Typography>
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, md: 4 }}>
           <TextField

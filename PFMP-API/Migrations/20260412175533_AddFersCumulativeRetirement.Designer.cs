@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PFMP_API;
@@ -12,9 +13,11 @@ using PFMP_API;
 namespace PFMP_API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260412175533_AddFersCumulativeRetirement")]
+    partial class AddFersCumulativeRetirement
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -932,9 +935,6 @@ namespace PFMP_API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("FederalBenefitsProfileId"));
 
-                    b.Property<decimal?>("AnnualSalaryGrowthRate")
-                        .HasColumnType("decimal(5,2)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1048,9 +1048,6 @@ namespace PFMP_API.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("ProjectedMonthlyPension")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal?>("SocialSecurityEstimateAt62")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("SupplementEligibilityAge")
