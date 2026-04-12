@@ -233,6 +233,9 @@ namespace PFMP_API.Controllers
                     BiweeklyGross = parseResult.BiweeklyGross,
                     BiweeklyNet = parseResult.BiweeklyNet,
                     FegliDeduction = parseResult.FegliDeduction,
+                    FegliBasicCode = parseResult.FegliBasicCode,
+                    FegliOptionalCode = parseResult.FegliOptionalCode,
+                    FegliOptionalDeduction = parseResult.FegliOptionalDeduction,
                     FehbDeduction = parseResult.FehbDeduction,
                     FedvipDentalDeduction = parseResult.FedvipDentalDeduction,
                     FedvipVisionDeduction = parseResult.FedvipVisionDeduction,
@@ -244,6 +247,7 @@ namespace PFMP_API.Controllers
                     TspCatchUpDeduction = parseResult.TspCatchUpDeduction,
                     TspAgencyMatch = parseResult.TspAgencyMatch,
                     RetirementDeduction = parseResult.RetirementDeduction,
+                    FersCumulativeRetirement = parseResult.FersCumulativeRetirement,
                     FederalTaxWithholding = parseResult.FederalTaxWithholding,
                     StateTaxWithholding = parseResult.StateTaxWithholding,
                     OasdiDeduction = parseResult.OasdiDeduction,
@@ -312,6 +316,9 @@ namespace PFMP_API.Controllers
                     if (parseResult.RetirementPlan != null)
                         user.RetirementSystem = parseResult.RetirementPlan;
                     user.UpdatedAt = DateTime.UtcNow;
+
+                    // Auto-calculate FERS pension fields from SCD and DOB
+                    ComputeFersPension(profile, user);
                 }
 
                 await _context.SaveChangesAsync();
@@ -355,33 +362,64 @@ namespace PFMP_API.Controllers
                 }
 
                 // Apply LES deductions to federal benefits profile
+                // Biweekly → monthly: × 26 pay periods / 12 months (exact conversion)
                 if (parseResult.FegliDeduction.HasValue)
                 {
                     profile.HasFegliBasic = true;
-                    profile.FegliTotalMonthlyPremium = parseResult.FegliDeduction * 2.17m; // Biweekly → monthly
+                    var fegliBasicBiweekly = parseResult.FegliDeduction.Value;
+                    var fegliOptionalBiweekly = parseResult.FegliOptionalDeduction ?? 0m;
+                    profile.FegliTotalMonthlyPremium = (fegliBasicBiweekly + fegliOptionalBiweekly) * 26m / 12m;
+
+                    // Compute BIA (Basic Insurance Amount) = salary rounded up to next $1,000 + $2,000
+                    if (parseResult.AnnualBasicPay.HasValue)
+                    {
+                        profile.FegliBasicCoverage = Math.Ceiling(parseResult.AnnualBasicPay.Value / 1000m) * 1000m + 2000m;
+                    }
+
+                    // Parse FEGLI optional code (e.g., "AC") to set option toggles
+                    if (!string.IsNullOrEmpty(parseResult.FegliOptionalCode))
+                    {
+                        var optCode = parseResult.FegliOptionalCode.ToUpperInvariant();
+                        profile.HasFegliOptionA = optCode.Contains('A');
+                        profile.HasFegliOptionB = optCode.Contains('B');
+                        profile.HasFegliOptionC = optCode.Contains('C');
+                    }
+
+                    // Parse FEGLI basic code digit (e.g., "F5" → 5) for option multiples
+                    if (!string.IsNullOrEmpty(parseResult.FegliBasicCode))
+                    {
+                        var digitChar = parseResult.FegliBasicCode.LastOrDefault(c => char.IsDigit(c));
+                        if (digitChar != default && int.TryParse(digitChar.ToString(), out var multiple) && multiple >= 1 && multiple <= 5)
+                        {
+                            if (profile.HasFegliOptionC)
+                                profile.FegliOptionCMultiple = multiple;
+                            else if (profile.HasFegliOptionB)
+                                profile.FegliOptionBMultiple = multiple;
+                        }
+                    }
                 }
 
                 if (parseResult.FehbDeduction.HasValue)
                 {
-                    profile.FehbMonthlyPremium = parseResult.FehbDeduction * 2.17m;
+                    profile.FehbMonthlyPremium = parseResult.FehbDeduction * 26m / 12m;
                 }
 
                 if (parseResult.FedvipDentalDeduction.HasValue)
                 {
                     profile.HasFedvipDental = true;
-                    profile.FedvipDentalMonthlyPremium = parseResult.FedvipDentalDeduction * 2.17m;
+                    profile.FedvipDentalMonthlyPremium = parseResult.FedvipDentalDeduction * 26m / 12m;
                 }
 
                 if (parseResult.FedvipVisionDeduction.HasValue)
                 {
                     profile.HasFedvipVision = true;
-                    profile.FedvipVisionMonthlyPremium = parseResult.FedvipVisionDeduction * 2.17m;
+                    profile.FedvipVisionMonthlyPremium = parseResult.FedvipVisionDeduction * 26m / 12m;
                 }
 
                 if (parseResult.FltcipDeduction.HasValue)
                 {
                     profile.HasFltcip = true;
-                    profile.FltcipMonthlyPremium = parseResult.FltcipDeduction * 2.17m;
+                    profile.FltcipMonthlyPremium = parseResult.FltcipDeduction * 26m / 12m;
                 }
 
                 if (parseResult.FsaDeduction.HasValue)
@@ -399,9 +437,26 @@ namespace PFMP_API.Controllers
                 if (parseResult.AnnualBasicPay.HasValue)
                     profile.High3AverageSalary = parseResult.AnnualBasicPay;
 
+                // Cumulative FERS retirement contributions from LES YTD column
+                if (parseResult.FersCumulativeRetirement.HasValue)
+                    profile.FersCumulativeRetirement = parseResult.FersCumulativeRetirement;
+
                 profile.LastLesUploadDate = DateTime.UtcNow;
                 profile.LastLesFileName = file.FileName;
                 profile.UpdatedAt = DateTime.UtcNow;
+
+                // Also update User model fields that LES provides
+                var user = await _context.Users.FindAsync(userId);
+                if (user != null)
+                {
+                    if (parseResult.PayGrade != null) user.PayGrade = parseResult.PayGrade;
+                    if (parseResult.RetirementSystem != null) user.RetirementSystem = parseResult.RetirementSystem;
+                    if (parseResult.AnnualBasicPay.HasValue) user.AnnualIncome = parseResult.AnnualBasicPay;
+                    user.UpdatedAt = DateTime.UtcNow;
+
+                    // Auto-calculate FERS pension fields from SCD and DOB
+                    ComputeFersPension(profile, user);
+                }
 
                 await _context.SaveChangesAsync();
 
@@ -429,6 +484,114 @@ namespace PFMP_API.Controllers
             return null;
         }
 
+        /// <summary>
+        /// Compute FERS pension fields from the User's SCD, DOB, and High-3 salary.
+        /// OPM rules: https://www.opm.gov/retirement-center/fers-information/computation/
+        /// </summary>
+        private static void ComputeFersPension(FederalBenefitsProfile profile, Models.User user)
+        {
+            var today = DateTime.UtcNow.Date;
+
+            // --- Creditable service from SCD ---
+            if (user.ServiceComputationDate.HasValue)
+            {
+                var scd = user.ServiceComputationDate.Value.Date;
+                var totalMonths = ((today.Year - scd.Year) * 12) + today.Month - scd.Month;
+                if (today.Day < scd.Day) totalMonths--; // partial month not counted
+                if (totalMonths < 0) totalMonths = 0;
+
+                profile.CreditableYearsOfService = totalMonths / 12;
+                profile.CreditableMonthsOfService = totalMonths % 12;
+            }
+
+            // --- MRA from DOB (OPM birth-year table) ---
+            if (user.DateOfBirth.HasValue)
+            {
+                var mra = CalculateMra(user.DateOfBirth.Value);
+                profile.MinimumRetirementAge = mra;
+            }
+
+            // --- FERS Supplement eligibility ---
+            // Eligible if: (1) MRA + 30 years service, or (2) age 60 + 20 years service
+            // NOT eligible under MRA+10 (reduced benefit) provision
+            if (user.DateOfBirth.HasValue && profile.CreditableYearsOfService.HasValue)
+            {
+                var creditableYears = profile.CreditableYearsOfService.Value;
+                var mra = CalculateMra(user.DateOfBirth.Value);
+
+                // Check if the user currently meets or will meet a supplement-eligible retirement scenario.
+                // We project: at MRA, how many years of service will they have?
+                // For now, use current creditable years as the baseline.
+                var ageToday = today.Year - user.DateOfBirth.Value.Year;
+                if (today < user.DateOfBirth.Value.AddYears(ageToday)) ageToday--;
+
+                // MRA + 30: will they have 30 years at MRA?
+                int mraAgeYears = mra.Year - user.DateOfBirth.Value.Year;
+                if (mra < user.DateOfBirth.Value.AddYears(mraAgeYears)) mraAgeYears--;
+                int yearsUntilMra = Math.Max(0, mraAgeYears - ageToday);
+                int projectedYearsAtMra = creditableYears + yearsUntilMra;
+
+                // Age 60 + 20: will they have 20 years at age 60?
+                int yearsUntil60 = Math.Max(0, 60 - ageToday);
+                int projectedYearsAt60 = creditableYears + yearsUntil60;
+
+                bool supplementEligible = projectedYearsAtMra >= 30 || projectedYearsAt60 >= 20;
+                profile.IsEligibleForSpecialRetirementSupplement = supplementEligible;
+
+                if (supplementEligible)
+                {
+                    profile.SupplementEligibilityAge = mraAgeYears;
+                    profile.SupplementEndAge = 62;
+                }
+            }
+
+            // --- Projected annuity ---
+            // Formula: multiplier × High-3 × total creditable service (years + months/12)
+            // Multiplier: 1.1% if retiring at age 62+ with 20+ years; else 1.0%
+            if (profile.High3AverageSalary.HasValue && profile.CreditableYearsOfService.HasValue)
+            {
+                var high3 = profile.High3AverageSalary.Value;
+                var years = profile.CreditableYearsOfService.Value;
+                var months = profile.CreditableMonthsOfService ?? 0;
+                var totalService = years + (months / 12m);
+
+                // Determine multiplier: use 1.1% if user will be 62+ with 20+ years,
+                // otherwise 1.0%. For projection, check if they have 20+ years already
+                // (most typical FERS employees intend to reach 62 with 20+ years).
+                decimal multiplier = (years >= 20) ? 0.011m : 0.01m;
+
+                profile.ProjectedAnnuity = Math.Round(multiplier * high3 * totalService, 2);
+                profile.ProjectedMonthlyPension = Math.Round((profile.ProjectedAnnuity ?? 0) / 12m, 2);
+            }
+        }
+
+        /// <summary>
+        /// Calculate OPM Minimum Retirement Age from date of birth.
+        /// MRA depends on birth year per the OPM table.
+        /// </summary>
+        private static DateTime CalculateMra(DateTime dateOfBirth)
+        {
+            int birthYear = dateOfBirth.Year;
+            int mraYears;
+            int mraMonths;
+
+            if (birthYear < 1948) { mraYears = 55; mraMonths = 0; }
+            else if (birthYear == 1948) { mraYears = 55; mraMonths = 2; }
+            else if (birthYear == 1949) { mraYears = 55; mraMonths = 4; }
+            else if (birthYear == 1950) { mraYears = 55; mraMonths = 6; }
+            else if (birthYear == 1951) { mraYears = 55; mraMonths = 8; }
+            else if (birthYear == 1952) { mraYears = 55; mraMonths = 10; }
+            else if (birthYear >= 1953 && birthYear <= 1964) { mraYears = 56; mraMonths = 0; }
+            else if (birthYear == 1965) { mraYears = 56; mraMonths = 2; }
+            else if (birthYear == 1966) { mraYears = 56; mraMonths = 4; }
+            else if (birthYear == 1967) { mraYears = 56; mraMonths = 6; }
+            else if (birthYear == 1968) { mraYears = 56; mraMonths = 8; }
+            else if (birthYear == 1969) { mraYears = 56; mraMonths = 10; }
+            else { mraYears = 57; mraMonths = 0; } // 1970 and after
+
+            return dateOfBirth.AddYears(mraYears).AddMonths(mraMonths);
+        }
+
         private static FederalBenefitsResponse MapToResponse(FederalBenefitsProfile p) => new()
         {
             FederalBenefitsProfileId = p.FederalBenefitsProfileId,
@@ -443,6 +606,7 @@ namespace PFMP_API.Controllers
             EstimatedSupplementMonthly = p.EstimatedSupplementMonthly,
             SupplementEligibilityAge = p.SupplementEligibilityAge,
             SupplementEndAge = p.SupplementEndAge,
+            FersCumulativeRetirement = p.FersCumulativeRetirement,
             HasFegliBasic = p.HasFegliBasic,
             FegliBasicCoverage = p.FegliBasicCoverage,
             HasFegliOptionA = p.HasFegliOptionA,
@@ -486,6 +650,7 @@ namespace PFMP_API.Controllers
             p.EstimatedSupplementMonthly = r.EstimatedSupplementMonthly;
             p.SupplementEligibilityAge = r.SupplementEligibilityAge;
             p.SupplementEndAge = r.SupplementEndAge;
+            p.FersCumulativeRetirement = r.FersCumulativeRetirement;
             p.HasFegliBasic = r.HasFegliBasic;
             p.FegliBasicCoverage = r.FegliBasicCoverage;
             p.HasFegliOptionA = r.HasFegliOptionA;
@@ -525,6 +690,7 @@ namespace PFMP_API.Controllers
             if (r.TspEmployeeDeduction.HasValue) count++;
             if (r.TspAgencyMatch.HasValue) count++;
             if (r.RetirementDeduction.HasValue) count++;
+            if (r.FersCumulativeRetirement.HasValue) count++;
             if (r.FederalTaxWithholding.HasValue) count++;
             if (r.StateTaxWithholding.HasValue) count++;
             if (r.OasdiDeduction.HasValue) count++;

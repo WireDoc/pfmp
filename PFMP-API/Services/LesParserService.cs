@@ -151,9 +151,12 @@ namespace PFMP_API.Services
                 // FEGLI Basic — labeled "FEGLI" followed by a code letter+digit (e.g., "F5")
                 // Must NOT match "FEGLI OPTNL" which is the optional coverage
                 result.FegliDeduction = ExtractDfasDeduction(deductionsSection, @"FEGLI([A-Z]\d)(\d+\.\d{2})(\d+\.\d{2})");
+                result.FegliBasicCode = ExtractDfasCode(deductionsSection, @"FEGLI([A-Z]\d)\d+\.\d{2}");
 
                 // FEGLI Optional — labeled "FEGLI OPTNL" with code (e.g., "AC")
-                var fegliOptional = ExtractDfasDeduction(deductionsSection, @"FEGLI\s*OPTNL([A-Z]{1,2})(\d+\.\d{2})(\d+\.\d{2})");
+                result.FegliOptionalDeduction = ExtractDfasDeduction(deductionsSection, @"FEGLI\s*OPTNL([A-Z]{1,3})(\d+\.\d{2})(\d+\.\d{2})");
+                result.FegliOptionalCode = ExtractDfasCode(deductionsSection, @"FEGLI\s*OPTNL([A-Z]{1,3})\d+\.\d{2}");
+
                 // If basic fegli not found via specific pattern, try generic
                 if (!result.FegliDeduction.HasValue)
                     result.FegliDeduction = ExtractDfasDeduction(deductionsSection, @"FEGLI[A-Z]\d(\d+\.\d{2})(\d+\.\d{2})");
@@ -187,8 +190,13 @@ namespace PFMP_API.Services
                 // Medicare
                 result.MedicareDeduction = ExtractDfasDeduction(deductionsSection, @"MEDICARE(\d+\.\d{2})(\d+\.\d{2})");
 
-                // FERS/CSRS Retirement — labeled "RETIRE, FERS" or "RETIRE, CSRS" + code
+                // FERS Retirement — labeled "RETIRE, FERS" + code
                 result.RetirementDeduction = ExtractDfasDeduction(deductionsSection, @"RETIRE,?\s*(?:FERS|CSRS)[A-Z]?(\d+\.\d{2})(\d+\.\d{2})");
+                // Cumulative (YTD) retirement deduction — the second amount in the pair
+                result.FersCumulativeRetirement = ExtractDfasYtdAmount(deductionsSection, @"RETIRE,?\s*(?:FERS|CSRS)[A-Z]?(\d+\.\d{2})(\d+\.\d{2})");
+                // Determine retirement system from the label
+                if (Regex.IsMatch(deductionsSection, @"RETIRE,?\s*FERS", RegexOptions.IgnoreCase))
+                    result.RetirementSystem = "FERS";
 
                 // TSP deductions — Roth or traditional
                 result.TspEmployeeDeduction = ExtractDfasDeduction(deductionsSection, @"TSP(?!\s*(?:MATCH|BASIC))[\s,]*(?!ROTH)(\d+\.\d{2})(\d+\.\d{2})");
@@ -255,6 +263,42 @@ namespace PFMP_API.Services
                 }
             }
             return null;
+        }
+
+        /// <summary>
+        /// Extract the YTD (second) amount from a DFAS deduction line.
+        /// Pattern should capture: (current_amount)(ytd_amount) where amounts are ###.## format.
+        /// Returns the second numeric capture group (YTD amount).
+        /// </summary>
+        private decimal? ExtractDfasYtdAmount(string text, string pattern)
+        {
+            var match = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
+            if (!match.Success) return null;
+
+            int found = 0;
+            for (int i = 1; i <= match.Groups.Count - 1; i++)
+            {
+                var val = match.Groups[i].Value;
+                if (Regex.IsMatch(val, @"^\d+\.\d{2}$") &&
+                    decimal.TryParse(val, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount) &&
+                    amount > 0)
+                {
+                    found++;
+                    if (found == 2) return amount; // second match = YTD
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Extract the alpha/alphanumeric code from a DFAS deduction label.
+        /// Returns the first capture group that is NOT a pure decimal amount.
+        /// </summary>
+        private string? ExtractDfasCode(string text, string pattern)
+        {
+            var match = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
+            if (!match.Success || match.Groups.Count < 2) return null;
+            return match.Groups[1].Value;
         }
 
         /// <summary>
@@ -345,6 +389,7 @@ namespace PFMP_API.Services
             if (result.BiweeklyGross.HasValue) count++;
             if (result.BiweeklyNet.HasValue) count++;
             if (result.FegliDeduction.HasValue) count++;
+            if (result.FegliOptionalDeduction.HasValue) count++;
             if (result.FehbDeduction.HasValue) count++;
             if (result.FedvipDentalDeduction.HasValue) count++;
             if (result.FedvipVisionDeduction.HasValue) count++;
@@ -378,6 +423,9 @@ namespace PFMP_API.Services
 
         // Benefit deductions (biweekly amounts)
         public decimal? FegliDeduction { get; set; }
+        public string? FegliBasicCode { get; set; }
+        public decimal? FegliOptionalDeduction { get; set; }
+        public string? FegliOptionalCode { get; set; }
         public decimal? FehbDeduction { get; set; }
         public decimal? FedvipDentalDeduction { get; set; }
         public decimal? FedvipVisionDeduction { get; set; }
@@ -392,7 +440,9 @@ namespace PFMP_API.Services
         public decimal? TspAgencyMatch { get; set; }
 
         // Tax deductions (biweekly)
-        public decimal? RetirementDeduction { get; set; }  // FERS/CSRS
+        public decimal? RetirementDeduction { get; set; }  // FERS
+        public decimal? FersCumulativeRetirement { get; set; }  // YTD cumulative FERS retirement contributions
+        public string? RetirementSystem { get; set; }  // Detected from deduction label (e.g., "FERS")
         public decimal? FederalTaxWithholding { get; set; }
         public decimal? StateTaxWithholding { get; set; }
         public decimal? OasdiDeduction { get; set; }

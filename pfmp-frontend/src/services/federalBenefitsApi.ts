@@ -6,7 +6,7 @@ export interface FederalBenefitsProfile {
   federalBenefitsProfileId: number;
   userId: number;
 
-  // FERS/CSRS Pension
+  // FERS Pension
   high3AverageSalary: number | null;
   projectedAnnuity: number | null;
   projectedMonthlyPension: number | null;
@@ -17,6 +17,7 @@ export interface FederalBenefitsProfile {
   estimatedSupplementMonthly: number | null;
   supplementEligibilityAge: number | null;
   supplementEndAge: number | null;
+  fersCumulativeRetirement: number | null;
 
   // FEGLI
   hasFegliBasic: boolean;
@@ -72,6 +73,7 @@ export interface SaveFederalBenefitsRequest {
   estimatedSupplementMonthly?: number | null;
   supplementEligibilityAge?: number | null;
   supplementEndAge?: number | null;
+  fersCumulativeRetirement?: number | null;
 
   hasFegliBasic: boolean;
   fegliBasicCoverage?: number | null;
@@ -138,6 +140,7 @@ export interface LesUploadResponse {
   tspCatchUpDeduction: number | null;
   tspAgencyMatch: number | null;
   retirementDeduction: number | null;
+  fersCumulativeRetirement: number | null;
   federalTaxWithholding: number | null;
   stateTaxWithholding: number | null;
   oasdiDeduction: number | null;

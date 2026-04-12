@@ -5,7 +5,7 @@ public class FederalBenefitsResponse
     public int FederalBenefitsProfileId { get; set; }
     public int UserId { get; set; }
 
-    // FERS/CSRS Pension
+    // FERS Pension
     public decimal? High3AverageSalary { get; set; }
     public decimal? ProjectedAnnuity { get; set; }
     public decimal? ProjectedMonthlyPension { get; set; }
@@ -16,6 +16,7 @@ public class FederalBenefitsResponse
     public decimal? EstimatedSupplementMonthly { get; set; }
     public int? SupplementEligibilityAge { get; set; }
     public int? SupplementEndAge { get; set; }
+    public decimal? FersCumulativeRetirement { get; set; }
 
     // FEGLI
     public bool HasFegliBasic { get; set; }
@@ -62,7 +63,7 @@ public class FederalBenefitsResponse
 
 public class SaveFederalBenefitsRequest
 {
-    // FERS/CSRS Pension
+    // FERS Pension
     public decimal? High3AverageSalary { get; set; }
     public decimal? ProjectedAnnuity { get; set; }
     public decimal? ProjectedMonthlyPension { get; set; }
@@ -73,6 +74,7 @@ public class SaveFederalBenefitsRequest
     public decimal? EstimatedSupplementMonthly { get; set; }
     public int? SupplementEligibilityAge { get; set; }
     public int? SupplementEndAge { get; set; }
+    public decimal? FersCumulativeRetirement { get; set; }
 
     // FEGLI
     public bool HasFegliBasic { get; set; }
@@ -141,6 +143,9 @@ public class LesUploadResponse
 
     // Benefit deductions (biweekly amounts)
     public decimal? FegliDeduction { get; set; }
+    public string? FegliBasicCode { get; set; }
+    public decimal? FegliOptionalDeduction { get; set; }
+    public string? FegliOptionalCode { get; set; }
     public decimal? FehbDeduction { get; set; }
     public decimal? FedvipDentalDeduction { get; set; }
     public decimal? FedvipVisionDeduction { get; set; }
@@ -156,6 +161,7 @@ public class LesUploadResponse
 
     // Tax / retirement
     public decimal? RetirementDeduction { get; set; }
+    public decimal? FersCumulativeRetirement { get; set; }
     public decimal? FederalTaxWithholding { get; set; }
     public decimal? StateTaxWithholding { get; set; }
     public decimal? OasdiDeduction { get; set; }

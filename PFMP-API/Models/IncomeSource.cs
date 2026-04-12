@@ -87,8 +87,8 @@ namespace PFMP_API.Models
         {
             return Frequency switch
             {
-                IncomeFrequency.Weekly => Amount * 4.33m,
-                IncomeFrequency.BiWeekly => Amount * 2.17m,
+                IncomeFrequency.Weekly => Amount * 52m / 12m,
+                IncomeFrequency.BiWeekly => Amount * 26m / 12m,
                 IncomeFrequency.SemiMonthly => Amount * 2m,
                 IncomeFrequency.Monthly => Amount,
                 IncomeFrequency.Quarterly => Amount / 3m,

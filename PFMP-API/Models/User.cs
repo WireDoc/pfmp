@@ -89,7 +89,7 @@ namespace PFMP_API.Models
         public string? PayGrade { get; set; } // GS-12, O-4, E-6, etc.
         [Column(TypeName = "decimal(18,2)")]
         public decimal? AnnualIncome { get; set; }
-        public string? RetirementSystem { get; set; } // FERS, CSRS, Military
+        public string? RetirementSystem { get; set; } // FERS, Military
 
         // Setup Workflow Status
         public bool ProfileSetupComplete { get; set; } = false;

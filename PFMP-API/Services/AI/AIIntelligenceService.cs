@@ -1042,7 +1042,7 @@ Your analysis will be reviewed by a backup AI system for validation.",
             {
                 sb.AppendLine("=== FEDERAL RETIREMENT BENEFITS ===");
 
-                // FERS/CSRS Pension
+                // FERS Pension
                 if (fedBenefits.High3AverageSalary.HasValue)
                     sb.AppendLine($"High-3 Average Salary: {fedBenefits.High3AverageSalary:C0}");
                 if (fedBenefits.ProjectedMonthlyPension.HasValue)

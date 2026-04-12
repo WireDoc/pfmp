@@ -12,7 +12,7 @@ namespace PFMP_API.Models.FinancialProfile
         [Required]
         public int UserId { get; set; }
 
-        // === FERS/CSRS Pension ===
+        // === FERS Pension ===
         [Column(TypeName = "decimal(18,2)")]
         public decimal? High3AverageSalary { get; set; }
 
@@ -36,6 +36,9 @@ namespace PFMP_API.Models.FinancialProfile
         public int? SupplementEligibilityAge { get; set; } // Age when supplement starts (usually MRA)
 
         public int? SupplementEndAge { get; set; } // Always 62
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? FersCumulativeRetirement { get; set; } // YTD cumulative FERS retirement contributions from LES
 
         // === FEGLI (Federal Employees' Group Life Insurance) ===
         public bool HasFegliBasic { get; set; }

@@ -270,7 +270,8 @@ describe('ProfileView', () => {
     await waitFor(() => {
       expect(screen.getByText('Federal Benefits Profile')).toBeInTheDocument();
     });
-    expect(screen.getByText('FERS / CSRS Pension')).toBeInTheDocument();
+    expect(screen.getByText('Federal Employment')).toBeInTheDocument();
+    expect(screen.getByText('FERS Pension')).toBeInTheDocument();
     expect(screen.getByText('FEGLI (Life Insurance)')).toBeInTheDocument();
     expect(screen.getByText('FEHB (Health Insurance)')).toBeInTheDocument();
   });

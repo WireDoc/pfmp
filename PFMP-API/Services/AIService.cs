@@ -636,7 +636,7 @@ namespace PFMP_API.Services
                 if (!string.IsNullOrEmpty(user.EmploymentType))
                 {
                     if (user.EmploymentType.Contains("Military") || user.EmploymentType.Contains("Federal"))
-                        prompt += "- Government employee: Consider TSP benefits, FERS/CSRS implications, and federal-specific advantages\n";
+                        prompt += "- Government employee: Consider TSP benefits, FERS implications, and federal-specific advantages\n";
                 }
 
                 if (user.VADisabilityPercentage.HasValue && user.VADisabilityPercentage > 0)
