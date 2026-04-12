@@ -727,7 +727,21 @@ namespace PFMP_API.Controllers
                 var tspProfile = await _context.TspProfiles
                     .FirstOrDefaultAsync(t => t.UserId == userId && !t.IsOptedOut);
 
-                var result = BuildRetirementProjection(profile, user, tspProfile);
+                // Resolve actual TSP balance: prefer TotalBalance/CurrentBalance, fall back to sum of positions
+                decimal tspBalance = 0m;
+                if (tspProfile != null)
+                {
+                    tspBalance = tspProfile.TotalBalance ?? 0m;
+                    if (tspBalance == 0m) tspBalance = tspProfile.CurrentBalance;
+                    if (tspBalance == 0m)
+                    {
+                        tspBalance = await _context.TspLifecyclePositions
+                            .Where(p => p.UserId == userId && p.CurrentMarketValue > 0)
+                            .SumAsync(p => p.CurrentMarketValue ?? 0m);
+                    }
+                }
+
+                var result = BuildRetirementProjection(profile, user, tspProfile, tspBalance);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -739,7 +753,8 @@ namespace PFMP_API.Controllers
 
         internal static RetirementProjectionResponse BuildRetirementProjection(
             FederalBenefitsProfile profile, Models.User user,
-            Models.FinancialProfile.TspProfile? tspProfile = null)
+            Models.FinancialProfile.TspProfile? tspProfile = null,
+            decimal resolvedTspBalance = 0m)
         {
             var today = DateTime.UtcNow.Date;
             var dob = user.DateOfBirth!.Value.Date;
@@ -765,7 +780,7 @@ namespace PFMP_API.Controllers
             var ssAt62 = profile.SocialSecurityEstimateAt62;
 
             // TSP projection inputs
-            var tspBalance = tspProfile?.CurrentBalance ?? tspProfile?.TotalBalance ?? 0m;
+            var tspBalance = resolvedTspBalance;
             var tspContribPct = tspProfile?.ContributionRatePercent ?? 0m;
             var tspMatchPct = tspProfile?.EmployerMatchPercent ?? 0m;
             var tspGrowthRate = 0.07m; // 7% default long-term market return

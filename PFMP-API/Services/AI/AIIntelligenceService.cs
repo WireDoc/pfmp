@@ -1110,7 +1110,23 @@ Your analysis will be reviewed by a backup AI system for validation.",
                 {
                     try
                     {
-                        var projection = FederalBenefitsController.BuildRetirementProjection(fedBenefits, theUser);
+                        // Load TSP data for projections
+                        var tspProf = await _context.TspProfiles
+                            .FirstOrDefaultAsync(t => t.UserId == userId && !t.IsOptedOut);
+                        decimal tspBal = 0m;
+                        if (tspProf != null)
+                        {
+                            tspBal = tspProf.TotalBalance ?? 0m;
+                            if (tspBal == 0m) tspBal = tspProf.CurrentBalance;
+                            if (tspBal == 0m)
+                            {
+                                tspBal = await _context.TspLifecyclePositions
+                                    .Where(p => p.UserId == userId && p.CurrentMarketValue > 0)
+                                    .SumAsync(p => p.CurrentMarketValue ?? 0m);
+                            }
+                        }
+
+                        var projection = FederalBenefitsController.BuildRetirementProjection(fedBenefits, theUser, tspProf, tspBal);
                         if (projection.Scenarios.Any())
                         {
                             sb.AppendLine("=== FERS RETIREMENT PROJECTIONS (pre-calculated, do NOT recalculate) ===");
