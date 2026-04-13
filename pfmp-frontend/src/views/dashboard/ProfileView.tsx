@@ -163,12 +163,13 @@ function getMraAge(birthYear: number): { years: number; months: number } {
   return { years: 57, months: 0 }; // 1970+
 }
 
-/** Calculate FERS pension projection from High-3, creditable years/months */
+/** Calculate FERS pension projection from High-3, creditable years/months.
+ *  Uses 1.0% multiplier (today's snapshot). The 1.1% multiplier (age 62+ with 20+ yrs)
+ *  is only applied in the Retirement Projector scenarios where age is known. */
 function fersPensionCalc(high3: number | null, creditYears: number, creditMonths: number) {
   if (!high3 || high3 <= 0) return { annuity: null, monthly: null };
   const totalService = creditYears + creditMonths / 12;
-  // 1.1% if 20+ years (assumes retiring at 62+), else 1.0%
-  const multiplier = creditYears >= 20 ? 0.011 : 0.01;
+  const multiplier = 0.01;
   const annuity = Math.floor(multiplier * high3 * totalService * 100) / 100;
   const monthly = Math.floor((annuity / 12) * 100) / 100;
   return { annuity, monthly };
@@ -426,11 +427,12 @@ export function ProfileView() {
     }
   }, [tab, projection, projectionLoading, loadProjection]);
 
-  // Auto-calculate FERS pension fields when SCD, DOB, or High-3 change
+  // Auto-calculate FERS pension fields when SCD, DOB, High-3, or SS estimate change
   useEffect(() => {
     const scd = (userCore as User)?.serviceComputationDate;
     const dob = (userCore as User)?.dateOfBirth;
     const high3 = fedForm.high3AverageSalary;
+    const ssAt62 = fedForm.socialSecurityEstimateAt62;
     if (!scd) return;
     const cs = creditableService(scd);
     if (!cs) return;
@@ -449,8 +451,13 @@ export function ProfileView() {
         updates.isEligibleForSpecialRetirementSupplement = eligible;
       }
     }
+    // Auto-calculate SRS estimate: ssAt62 × (serviceYears / 40)
+    if (ssAt62 != null && ssAt62 > 0) {
+      const totalService = cs.years + cs.months / 12;
+      updates.estimatedSupplementMonthly = Math.round(ssAt62 * (totalService / 40) * 100) / 100;
+    }
     setFedForm(prev => ({ ...prev, ...updates }));
-  }, [(userCore as User)?.serviceComputationDate, (userCore as User)?.dateOfBirth, fedForm.high3AverageSalary]);
+  }, [(userCore as User)?.serviceComputationDate, (userCore as User)?.dateOfBirth, fedForm.high3AverageSalary, fedForm.socialSecurityEstimateAt62]);
 
   if (loading) {
     return (
@@ -905,7 +912,7 @@ export function ProfileView() {
                   <TextField fullWidth label="High-3 Average Salary" type="number" size="small" value={numStrTrunc(fedForm.high3AverageSalary)} onChange={e => updateFed('high3AverageSalary', parseNum(e.target.value))} inputProps={{ min: 0 }} />
                 </Grid>
                 <Grid size={{ xs: 12, md: 4 }}>
-                  <TextField fullWidth label="Projected Annual Annuity" type="number" size="small" value={numStrTrunc(fedForm.projectedAnnuity)} onChange={e => updateFed('projectedAnnuity', parseNum(e.target.value))} inputProps={{ min: 0 }} helperText={(userCore as User)?.serviceComputationDate && fedForm.high3AverageSalary ? 'Auto-calculated' : undefined} />
+                  <TextField fullWidth label="Projected Annual Annuity" type="number" size="small" value={numStrTrunc(fedForm.projectedAnnuity)} onChange={e => updateFed('projectedAnnuity', parseNum(e.target.value))} inputProps={{ min: 0 }} helperText={(userCore as User)?.serviceComputationDate && fedForm.high3AverageSalary ? '1.0% × High-3 × service (today)' : undefined} />
                 </Grid>
                 <Grid size={{ xs: 12, md: 4 }}>
                   <TextField fullWidth label="Projected Monthly Pension" type="number" size="small" value={numStrTrunc(fedForm.projectedMonthlyPension)} onChange={e => updateFed('projectedMonthlyPension', parseNum(e.target.value))} inputProps={{ min: 0 }} helperText={(userCore as User)?.serviceComputationDate && fedForm.high3AverageSalary ? 'Auto-calculated' : undefined} />
@@ -926,7 +933,7 @@ export function ProfileView() {
                 </Grid>
                 {fedForm.isEligibleForSpecialRetirementSupplement && (
                   <Grid size={{ xs: 12, md: 4 }}>
-                    <TextField fullWidth label="Est. Monthly Supplement" type="number" size="small" value={numStrTrunc(fedForm.estimatedSupplementMonthly)} onChange={e => updateFed('estimatedSupplementMonthly', parseNum(e.target.value))} inputProps={{ min: 0 }} />
+                    <TextField fullWidth label="Est. Monthly Supplement" type="number" size="small" value={numStrTrunc(fedForm.estimatedSupplementMonthly)} onChange={e => updateFed('estimatedSupplementMonthly', parseNum(e.target.value))} inputProps={{ min: 0 }} helperText={fedForm.socialSecurityEstimateAt62 ? 'SS × (service/40)' : 'Enter SS estimate below'} />
                   </Grid>
                 )}
               </Grid>
