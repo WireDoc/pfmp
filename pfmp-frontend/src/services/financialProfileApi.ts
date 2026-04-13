@@ -583,6 +583,7 @@ export async function fetchRiskGoalsProfile(userId: number): Promise<RiskGoalsPr
     liquidityBufferMonths: data?.liquidityBufferMonths ?? null,
     emergencyFundTarget: data?.emergencyFundTarget ?? null,
     transactionalAccountDesiredBalance: data?.transactionalAccountDesiredBalance ?? null,
+    inflationAssumptionPercent: data?.inflationAssumptionPercent ?? null,
     optOut: normalizeOptOut(data?.optOut ?? null),
   };
 }
