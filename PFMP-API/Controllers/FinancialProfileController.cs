@@ -350,6 +350,7 @@ namespace PFMP_API.Controllers
         public int? RiskTolerance { get; set; }
         public DateTime? TargetRetirementDate { get; set; }
         public decimal? PassiveIncomeGoal { get; set; }
+        public decimal? InflationAssumptionPercent { get; set; }
         public decimal? LiquidityBufferMonths { get; set; }
         public decimal? EmergencyFundTarget { get; set; }
         public decimal? TransactionalAccountDesiredBalance { get; set; }
@@ -360,6 +361,7 @@ namespace PFMP_API.Controllers
             RiskTolerance = RiskTolerance,
             TargetRetirementDate = TargetRetirementDate,
             PassiveIncomeGoal = PassiveIncomeGoal,
+            InflationAssumptionPercent = InflationAssumptionPercent,
             LiquidityBufferMonths = LiquidityBufferMonths,
             EmergencyFundTarget = EmergencyFundTarget,
             TransactionalAccountDesiredBalance = TransactionalAccountDesiredBalance,
