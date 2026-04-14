@@ -787,6 +787,11 @@ namespace PFMP_API.Controllers
             var annualSalary = currentHigh3; // use current High-3 as salary proxy
             var inflationRate = (user.InflationAssumptionPercent ?? 2.5m) / 100m; // default 2.5%
 
+            // Roth/Traditional split
+            var tspRothBalance = tspProfile?.RothBalance ?? 0m;
+            var tspTradBalance = tspProfile?.TraditionalBalance ?? 0m;
+            var tspRothContribPct = tspProfile?.RothContributionRatePercent; // % of employee contrib going to Roth
+
             var response = new RetirementProjectionResponse
             {
                 Inputs = new RetirementProjectionInputs
@@ -800,8 +805,11 @@ namespace PFMP_API.Controllers
                     CurrentCreditableMonths = totalMonthsNow % 12,
                     MinimumRetirementAge = mraDate,
                     CurrentTspBalance = tspBalance > 0 ? tspBalance : null,
+                    CurrentTspRothBalance = tspRothBalance > 0 ? tspRothBalance : null,
+                    CurrentTspTraditionalBalance = tspTradBalance > 0 ? tspTradBalance : null,
                     TspContributionRatePercent = tspContribPct > 0 ? tspContribPct : null,
                     TspEmployerMatchPercent = tspMatchPct > 0 ? tspMatchPct : null,
+                    TspRothContributionRatePercent = tspRothContribPct,
                     TspAnnualGrowthRate = 7m,
                     InflationAssumptionPercent = user.InflationAssumptionPercent ?? 2.5m,
                 }
@@ -849,7 +857,8 @@ namespace PFMP_API.Controllers
                     ageYears, totalMonthsNow, currentHigh3, growthRate,
                     mraAgeYears, mraAgeMonths, ssAt62, dob, scd,
                     tspBalance, tspContribPct, tspMatchPct, tspGrowthRate, annualSalary,
-                    inflationRate);
+                    inflationRate,
+                    tspRothBalance, tspTradBalance, tspRothContribPct);
                 response.Scenarios.Add(scenario);
             }
 
@@ -864,7 +873,9 @@ namespace PFMP_API.Controllers
             DateTime dob, DateTime scd,
             decimal tspBalance = 0m, decimal tspContribPct = 0m,
             decimal tspMatchPct = 0m, decimal tspGrowthRate = 0.07m,
-            decimal annualSalary = 0m, decimal inflationRate = 0.025m)
+            decimal annualSalary = 0m, decimal inflationRate = 0.025m,
+            decimal tspRothBalance = 0m, decimal tspTradBalance = 0m,
+            decimal? tspRothContribPct = null)
         {
             int yearsUntilRetire = retireAgeY - currentAge;
             if (yearsUntilRetire < 0) yearsUntilRetire = 0;
@@ -975,20 +986,47 @@ namespace PFMP_API.Controllers
             // TSP projection: future value with annual contributions, then 4% safe withdrawal rate
             decimal? projectedTspBalance = null;
             decimal? monthlyTspWithdrawal = null;
+            decimal? projectedRothBalance = null;
+            decimal? projectedTradBalance = null;
+            decimal? monthlyRothWithdrawal = null;
+            decimal? monthlyTradWithdrawal = null;
             if (tspBalance > 0 || (tspContribPct > 0 && annualSalary > 0))
             {
-                // Annual employee + employer contributions based on current salary
-                // (salary grows with growthRate too, but simplified to current salary for contributions)
-                decimal annualContribution = annualSalary * ((tspContribPct + tspMatchPct) / 100m);
+                decimal annualEmployeeContrib = annualSalary * (tspContribPct / 100m);
+                decimal annualMatchContrib = annualSalary * (tspMatchPct / 100m); // always goes traditional
+
+                // Determine Roth/Traditional split of employee contributions
+                decimal rothPct = tspRothContribPct ?? 0m; // 0-100: % of employee contrib to Roth
+                decimal annualRothContrib = annualEmployeeContrib * (rothPct / 100m);
+                decimal annualTradContrib = annualEmployeeContrib - annualRothContrib + annualMatchContrib;
+
+                bool hasSplit = tspRothBalance > 0 || tspTradBalance > 0;
+
                 decimal balance = tspBalance;
+                decimal rothBal = tspRothBalance;
+                decimal tradBal = tspTradBalance;
+
                 for (int y = 0; y < yearsUntilRetire; y++)
                 {
-                    balance = (balance + annualContribution) * (1m + tspGrowthRate);
+                    balance = (balance + annualEmployeeContrib + annualMatchContrib) * (1m + tspGrowthRate);
+                    if (hasSplit)
+                    {
+                        rothBal = (rothBal + annualRothContrib) * (1m + tspGrowthRate);
+                        tradBal = (tradBal + annualTradContrib) * (1m + tspGrowthRate);
+                    }
                 }
+
                 projectedTspBalance = Math.Round(balance, 2);
-                // 4% safe withdrawal rate, divided by 12 for monthly
                 monthlyTspWithdrawal = Math.Round(balance * 0.04m / 12m, 2);
                 totalMonthly += monthlyTspWithdrawal.Value;
+
+                if (hasSplit)
+                {
+                    projectedRothBalance = Math.Round(rothBal, 2);
+                    projectedTradBalance = Math.Round(tradBal, 2);
+                    monthlyRothWithdrawal = Math.Round(rothBal * 0.04m / 12m, 2);
+                    monthlyTradWithdrawal = Math.Round(tradBal * 0.04m / 12m, 2);
+                }
             }
 
             return new RetirementScenario
@@ -1009,6 +1047,10 @@ namespace PFMP_API.Controllers
                 SocialSecurityMonthly = socialSecurityMonthly,
                 ProjectedTspBalance = projectedTspBalance,
                 MonthlyTspWithdrawal = monthlyTspWithdrawal,
+                ProjectedTspRothBalance = projectedRothBalance,
+                ProjectedTspTraditionalBalance = projectedTradBalance,
+                MonthlyTspRothWithdrawal = monthlyRothWithdrawal,
+                MonthlyTspTraditionalWithdrawal = monthlyTradWithdrawal,
                 IsEligible = isEligible,
                 EligibilityNote = eligibilityNote,
             };

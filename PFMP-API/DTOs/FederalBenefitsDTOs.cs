@@ -201,6 +201,10 @@ public class RetirementScenario
     // TSP projection (4% safe withdrawal rate)
     public decimal? ProjectedTspBalance { get; set; } // projected TSP balance at retirement
     public decimal? MonthlyTspWithdrawal { get; set; } // 4% rule: balance * 0.04 / 12
+    public decimal? ProjectedTspRothBalance { get; set; } // Roth portion (tax-free withdrawals)
+    public decimal? ProjectedTspTraditionalBalance { get; set; } // Traditional portion (taxable withdrawals)
+    public decimal? MonthlyTspRothWithdrawal { get; set; } // Roth 4% rule
+    public decimal? MonthlyTspTraditionalWithdrawal { get; set; } // Traditional 4% rule
     public bool IsEligible { get; set; } // whether the user can retire at this point
     public string? EligibilityNote { get; set; } // e.g. "Reduced annuity (5% per year under MRA)"
 }
@@ -217,8 +221,11 @@ public class RetirementProjectionInputs
     public DateTime? MinimumRetirementAge { get; set; }
     // TSP inputs
     public decimal? CurrentTspBalance { get; set; }
+    public decimal? CurrentTspRothBalance { get; set; }
+    public decimal? CurrentTspTraditionalBalance { get; set; }
     public decimal? TspContributionRatePercent { get; set; }
     public decimal? TspEmployerMatchPercent { get; set; }
+    public decimal? TspRothContributionRatePercent { get; set; } // % of employee contrib going to Roth
     public decimal? TspAnnualGrowthRate { get; set; } // default 7%
     public decimal? InflationAssumptionPercent { get; set; } // default 2.5%
 }

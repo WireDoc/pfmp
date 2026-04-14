@@ -356,6 +356,51 @@ export const TspDetailView: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
+        {(data?.profile?.rothBalance != null || data?.profile?.traditionalBalance != null) && (
+          <>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Card>
+                <CardContent>
+                  <Typography variant="overline" color="text.secondary">
+                    Roth Balance
+                  </Typography>
+                  <Typography variant="h4" fontWeight={600} color="success.main">
+                    {formatCurrency(data?.profile?.rothBalance ?? 0)}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">Tax-free withdrawals</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Card>
+                <CardContent>
+                  <Typography variant="overline" color="text.secondary">
+                    Traditional Balance
+                  </Typography>
+                  <Typography variant="h4" fontWeight={600}>
+                    {formatCurrency(data?.profile?.traditionalBalance ?? 0)}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">Taxable at withdrawal</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            {data?.profile?.rothContributionRatePercent != null && (
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="overline" color="text.secondary">
+                      Roth Contribution %
+                    </Typography>
+                    <Typography variant="h4" fontWeight={600}>
+                      {data.profile.rothContributionRatePercent}%
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">of employee contribution to Roth</Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )}
+          </>
+        )}
       </Grid>
 
       {/* Your Positions Table */}

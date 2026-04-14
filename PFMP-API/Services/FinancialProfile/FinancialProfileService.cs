@@ -184,6 +184,9 @@ namespace PFMP_API.Services.FinancialProfile
                 tsp.EmployerMatchPercent = Math.Min(5m, auto1 + match);
                 tsp.CurrentBalance = input.CurrentBalance;
                 tsp.TargetBalance = input.TargetBalance;
+                tsp.RothBalance = input.RothBalance;
+                tsp.TraditionalBalance = input.TraditionalBalance;
+                tsp.RothContributionRatePercent = input.RothContributionRatePercent;
                 tsp.GFundPercent = input.GFundPercent;
                 tsp.FFundPercent = input.FFundPercent;
                 tsp.CFundPercent = input.CFundPercent;
@@ -779,6 +782,9 @@ namespace PFMP_API.Services.FinancialProfile
                 EmployerMatchPercent = profile?.EmployerMatchPercent ?? 0m,
                 CurrentBalance = profile?.CurrentBalance ?? 0m,
                 TargetBalance = profile?.TargetBalance ?? 0m,
+                RothBalance = profile?.RothBalance,
+                TraditionalBalance = profile?.TraditionalBalance,
+                RothContributionRatePercent = profile?.RothContributionRatePercent,
                 GFundPercent = profile?.GFundPercent ?? 0m,
                 FFundPercent = profile?.FFundPercent ?? 0m,
                 CFundPercent = profile?.CFundPercent ?? 0m,
@@ -898,6 +904,9 @@ namespace PFMP_API.Services.FinancialProfile
                     EmployerMatchPercent = p.EmployerMatchPercent,
                     TotalBalance = p.TotalBalance,
                     TargetBalance = p.TargetBalance,
+                    RothBalance = p.RothBalance,
+                    TraditionalBalance = p.TraditionalBalance,
+                    RothContributionRatePercent = p.RothContributionRatePercent,
                     UpdatedAt = p.LastUpdatedAt
                 })
                 .FirstOrDefaultAsync(ct);

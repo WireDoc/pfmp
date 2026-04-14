@@ -989,8 +989,22 @@ export function ProfileView() {
                           <TableCell align="right">{fmt$(s.monthlyPension)}</TableCell>
                           <TableCell align="right">{s.supplementEligible ? `${fmt$(s.monthlySupplementEstimate)}/mo × ${s.supplementMonths}mo` : '—'}</TableCell>
                           <TableCell align="right">{s.socialSecurityMonthly != null ? fmt$(s.socialSecurityMonthly) : '—'}</TableCell>
-                          <TableCell align="right">{s.projectedTspBalance != null ? fmt$(s.projectedTspBalance) : '—'}</TableCell>
-                          <TableCell align="right">{s.monthlyTspWithdrawal != null ? fmt$(s.monthlyTspWithdrawal) : '—'}</TableCell>
+                          <TableCell align="right">
+                            {s.projectedTspBalance != null ? fmt$(s.projectedTspBalance) : '—'}
+                            {s.projectedTspRothBalance != null && (
+                              <Typography variant="caption" display="block" color="text.secondary">
+                                Roth: {fmt$(s.projectedTspRothBalance)} · Trad: {fmt$(s.projectedTspTraditionalBalance ?? 0)}
+                              </Typography>
+                            )}
+                          </TableCell>
+                          <TableCell align="right">
+                            {s.monthlyTspWithdrawal != null ? fmt$(s.monthlyTspWithdrawal) : '—'}
+                            {s.monthlyTspRothWithdrawal != null && (
+                              <Typography variant="caption" display="block" color="text.secondary">
+                                Roth: {fmt$(s.monthlyTspRothWithdrawal)}/mo · Trad: {fmt$(s.monthlyTspTraditionalWithdrawal ?? 0)}/mo
+                              </Typography>
+                            )}
+                          </TableCell>
                           <TableCell align="right" sx={{ fontWeight: 600 }}>{fmt$(s.totalMonthlyRetirementIncome)}</TableCell>
                           <TableCell>
                             {!s.isEligible && <Chip label="Not eligible" size="small" color="error" variant="outlined" />}

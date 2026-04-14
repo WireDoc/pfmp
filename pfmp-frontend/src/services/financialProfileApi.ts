@@ -63,6 +63,9 @@ export interface TspProfilePayload {
   employerMatchPercent?: number | null;
   currentBalance?: number | null;
   targetBalance?: number | null;
+  rothBalance?: number | null;
+  traditionalBalance?: number | null;
+  rothContributionRatePercent?: number | null;
   gFundPercent?: number | null;
   fFundPercent?: number | null;
   cFundPercent?: number | null;
@@ -420,6 +423,9 @@ export interface TspProfileInfo {
   employerMatchPercent: number | null;
   totalBalance: number | null;
   targetBalance: number | null;
+  rothBalance: number | null;
+  traditionalBalance: number | null;
+  rothContributionRatePercent: number | null;
   updatedAt: string | null;
 }
 

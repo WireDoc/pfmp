@@ -39,6 +39,9 @@ namespace PFMP_API.Services.FinancialProfile
         public decimal EmployerMatchPercent { get; set; }
         public decimal CurrentBalance { get; set; }
         public decimal TargetBalance { get; set; }
+        public decimal? RothBalance { get; set; }
+        public decimal? TraditionalBalance { get; set; }
+        public decimal? RothContributionRatePercent { get; set; }
         public decimal GFundPercent { get; set; }
         public decimal FFundPercent { get; set; }
         public decimal CFundPercent { get; set; }
@@ -349,6 +352,9 @@ namespace PFMP_API.Services.FinancialProfile
         public decimal? EmployerMatchPercent { get; set; }
         public decimal? TotalBalance { get; set; }
         public decimal? TargetBalance { get; set; }
+        public decimal? RothBalance { get; set; }
+        public decimal? TraditionalBalance { get; set; }
+        public decimal? RothContributionRatePercent { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }
 }

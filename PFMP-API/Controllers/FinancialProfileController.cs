@@ -375,6 +375,9 @@ namespace PFMP_API.Controllers
         public decimal EmployerMatchPercent { get; set; }
         public decimal CurrentBalance { get; set; }
         public decimal TargetBalance { get; set; }
+        public decimal? RothBalance { get; set; }
+        public decimal? TraditionalBalance { get; set; }
+        public decimal? RothContributionRatePercent { get; set; }
         public decimal GFundPercent { get; set; }
         public decimal FFundPercent { get; set; }
         public decimal CFundPercent { get; set; }
@@ -391,6 +394,9 @@ namespace PFMP_API.Controllers
             EmployerMatchPercent = EmployerMatchPercent,
             CurrentBalance = CurrentBalance,
             TargetBalance = TargetBalance,
+            RothBalance = RothBalance,
+            TraditionalBalance = TraditionalBalance,
+            RothContributionRatePercent = RothContributionRatePercent,
             GFundPercent = GFundPercent,
             FFundPercent = FFundPercent,
             CFundPercent = CFundPercent,

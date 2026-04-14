@@ -834,6 +834,18 @@ Your analysis will be reviewed by a backup AI system for validation.",
                 sb.AppendLine("=== TSP (Federal Thrift Savings Plan) ===");
                 sb.AppendLine($"Balance: ${totalBalance:N0} | Contribution Rate: {tsp.ContributionRatePercent:F1}% | Employer Match: {tsp.EmployerMatchPercent:F1}%");
 
+                // Roth/Traditional split
+                if (tsp.RothBalance.HasValue || tsp.TraditionalBalance.HasValue)
+                {
+                    var rothBal = tsp.RothBalance ?? 0;
+                    var tradBal = tsp.TraditionalBalance ?? 0;
+                    sb.Append($"Roth Balance: ${rothBal:N0} | Traditional Balance: ${tradBal:N0}");
+                    if (tsp.RothContributionRatePercent.HasValue)
+                        sb.Append($" | Roth Contribution: {tsp.RothContributionRatePercent:F0}% of employee contrib");
+                    sb.AppendLine();
+                    sb.AppendLine("Note: Employer match always goes to Traditional. Roth withdrawals are tax-free; Traditional are taxable.");
+                }
+
                 // Fund allocation percentages (from profile settings)
                 var allocParts = new List<string>();
                 if (tsp.GFundPercent > 0) allocParts.Add($"G Fund {tsp.GFundPercent:F0}% (${totalBalance * tsp.GFundPercent / 100:N0})");
@@ -1233,7 +1245,11 @@ Your analysis will be reviewed by a backup AI system for validation.",
                                 if (s.SocialSecurityMonthly.HasValue)
                                     sb.Append($", SS ${s.SocialSecurityMonthly:N0}/mo");
                                 if (s.ProjectedTspBalance.HasValue)
+                                {
                                     sb.Append($", TSP ${s.ProjectedTspBalance:N0} (${s.MonthlyTspWithdrawal:N0}/mo @ 4%)");
+                                    if (s.ProjectedTspRothBalance.HasValue)
+                                        sb.Append($" [Roth ${s.ProjectedTspRothBalance:N0}=${s.MonthlyTspRothWithdrawal:N0}/mo tax-free, Trad ${s.ProjectedTspTraditionalBalance:N0}=${s.MonthlyTspTraditionalWithdrawal:N0}/mo taxable]");
+                                }
                                 sb.Append($", TOTAL ${s.TotalMonthlyRetirementIncome:N0}/mo");
                                 if (!s.IsEligible)
                                     sb.Append(" [NOT ELIGIBLE]");

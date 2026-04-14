@@ -46,6 +46,16 @@ namespace PFMP_API.Models.FinancialProfile
         [Column(TypeName = "decimal(8,4)")]
         public decimal? LifecyclePercent { get; set; }
 
+        // Roth / Traditional split (nullable — optional; sum should ≈ CurrentBalance)
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? RothBalance { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? TraditionalBalance { get; set; }
+
+        [Column(TypeName = "decimal(8,4)")]
+        public decimal? RothContributionRatePercent { get; set; }
+
         public DateTime LastUpdatedAt { get; set; } = DateTime.UtcNow;
 
         public bool IsOptedOut { get; set; }
