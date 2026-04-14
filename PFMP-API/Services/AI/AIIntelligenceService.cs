@@ -1158,12 +1158,13 @@ Your analysis will be reviewed by a backup AI system for validation.",
                     sb.AppendLine();
                 }
 
-                // FEHB
-                if (!string.IsNullOrEmpty(fedBenefits.FehbPlanName))
+                // FEHB — show if plan name OR premium exists (premium auto-populated from LES)
+                if (!string.IsNullOrEmpty(fedBenefits.FehbPlanName) || fedBenefits.FehbMonthlyPremium.HasValue)
                 {
-                    sb.Append($"FEHB: {fedBenefits.FehbPlanName}");
+                    sb.Append("FEHB:");
+                    if (!string.IsNullOrEmpty(fedBenefits.FehbPlanName)) sb.Append($" {fedBenefits.FehbPlanName}");
                     if (!string.IsNullOrEmpty(fedBenefits.FehbCoverageLevel)) sb.Append($" ({fedBenefits.FehbCoverageLevel})");
-                    if (fedBenefits.FehbMonthlyPremium.HasValue) sb.Append($" — {fedBenefits.FehbMonthlyPremium:C2}/mo");
+                    if (fedBenefits.FehbMonthlyPremium.HasValue) sb.Append($" — {fedBenefits.FehbMonthlyPremium:C2}/mo employee premium");
                     if (fedBenefits.FehbEmployerContribution.HasValue) sb.Append($" (employer pays {fedBenefits.FehbEmployerContribution:C2})");
                     sb.AppendLine();
                 }
