@@ -621,6 +621,31 @@ Your analysis will be reviewed by a backup AI system for validation.",
         {
             var sb = new StringBuilder();
 
+            // Pre-load user notes grouped by entity for inline rendering
+            var userNotes = await _context.UserNotes
+                .Where(n => n.UserId == userId)
+                .OrderByDescending(n => n.IsPinned)
+                .ThenByDescending(n => n.UpdatedAt)
+                .ToListAsync();
+            var notesByEntity = userNotes
+                .GroupBy(n => $"{n.EntityType}/{n.EntityId}")
+                .ToDictionary(g => g.Key, g => g.ToList());
+            var inlinedNoteKeys = new HashSet<string>();
+
+            void AppendNotesForEntity(string entityType, string entityId)
+            {
+                var key = $"{entityType}/{entityId}";
+                if (notesByEntity.TryGetValue(key, out var notes))
+                {
+                    foreach (var n in notes)
+                    {
+                        var pinned = n.IsPinned ? " [PINNED]" : "";
+                        sb.AppendLine($"  Note{pinned}: {n.Content}");
+                    }
+                    inlinedNoteKeys.Add(key);
+                }
+            }
+
             // === USER PROFILE ===
             var user = await _context.Users.FindAsync(userId);
             if (user != null)
@@ -712,6 +737,7 @@ Your analysis will be reviewed by a backup AI system for validation.",
                     var efTag = ca.IsEmergencyFund ? " [EMERGENCY FUND]" : "";
                     var purpose = !string.IsNullOrEmpty(ca.Purpose) ? $" | Purpose: {ca.Purpose}" : "";
                     sb.AppendLine($"• {ca.Nickname} | {ca.AccountType} | {apr} | ${ca.Balance:N0}{efTag}{purpose}");
+                    AppendNotesForEntity("cash_account", ca.CashAccountId.ToString());
                 }
                 sb.AppendLine();
             }
@@ -762,6 +788,7 @@ Your analysis will be reviewed by a backup AI system for validation.",
                     sb.AppendLine($"• {acct.AccountName} | {acct.Institution} | {acct.AccountType} | ${totalAccountValue:N0}{cashNote}");
                     if (!string.IsNullOrWhiteSpace(acct.Purpose))
                         sb.AppendLine($"  Purpose: {acct.Purpose}");
+                    AppendNotesForEntity("account", acct.AccountId.ToString());
 
                     foreach (var h in acctHoldings)
                     {
@@ -889,6 +916,7 @@ Your analysis will be reviewed by a backup AI system for validation.",
                         sb.AppendLine($"  Est. Payoff: {prop.EstimatedPayoffDate.Value:yyyy-MM}");
                     if (!string.IsNullOrEmpty(prop.Purpose))
                         sb.AppendLine($"  Purpose: {prop.Purpose}");
+                    AppendNotesForEntity("property", prop.PropertyId.ToString());
                 }
                 sb.AppendLine();
             }
@@ -1033,17 +1061,13 @@ Your analysis will be reviewed by a backup AI system for validation.",
             }
             sb.AppendLine();
 
-            // === USER NOTES ===
-            var userNotes = await _context.UserNotes
-                .Where(n => n.UserId == userId)
-                .OrderByDescending(n => n.IsPinned)
-                .ThenByDescending(n => n.UpdatedAt)
-                .ToListAsync();
-            if (userNotes.Any())
+            // === USER NOTES (only notes not already shown inline with their entity) ===
+            var remainingNotes = userNotes.Where(n => !inlinedNoteKeys.Contains($"{n.EntityType}/{n.EntityId}")).ToList();
+            if (remainingNotes.Any())
             {
-                sb.AppendLine($"=== USER NOTES ({userNotes.Count} notes) ===");
+                sb.AppendLine($"=== USER NOTES ({remainingNotes.Count} notes) ===");
                 sb.AppendLine("These are the user's own annotations on their financial entities. Pinned notes indicate high importance.");
-                foreach (var n in userNotes)
+                foreach (var n in remainingNotes)
                 {
                     var pinned = n.IsPinned ? " [PINNED]" : "";
                     sb.AppendLine($"• [{n.EntityType}/{n.EntityId}]{pinned}: {n.Content}");
@@ -1065,10 +1089,58 @@ Your analysis will be reviewed by a backup AI system for validation.",
                     sb.AppendLine($"Projected Monthly Pension: {fedBenefits.ProjectedMonthlyPension:C0}");
                 if (fedBenefits.ProjectedAnnuity.HasValue)
                     sb.AppendLine($"Projected Annual Annuity: {fedBenefits.ProjectedAnnuity:C0}");
-                if (fedBenefits.CreditableYearsOfService.HasValue)
-                    sb.AppendLine($"Creditable Service: {fedBenefits.CreditableYearsOfService}y {fedBenefits.CreditableMonthsOfService ?? 0}m");
+
+                // Compute creditable service from SCD (authoritative) instead of potentially stale DB value
+                int? computedSvcYears = null;
+                int? computedSvcMonths = null;
+                if (user?.ServiceComputationDate.HasValue == true)
+                {
+                    var today = DateTime.UtcNow.Date;
+                    var scd = user.ServiceComputationDate!.Value.Date;
+                    var totalMonths = ((today.Year - scd.Year) * 12) + today.Month - scd.Month;
+                    if (today.Day < scd.Day) totalMonths--;
+                    if (totalMonths < 0) totalMonths = 0;
+                    computedSvcYears = totalMonths / 12;
+                    computedSvcMonths = totalMonths % 12;
+                    sb.AppendLine($"Creditable Service: {computedSvcYears}y {computedSvcMonths}m");
+                }
+                else if (fedBenefits.CreditableYearsOfService.HasValue)
+                {
+                    computedSvcYears = fedBenefits.CreditableYearsOfService;
+                    computedSvcMonths = fedBenefits.CreditableMonthsOfService ?? 0;
+                    sb.AppendLine($"Creditable Service: {computedSvcYears}y {computedSvcMonths}m");
+                }
+
+                // FERS Supplement — compute from SS estimate if DB fields are null
                 if (fedBenefits.IsEligibleForSpecialRetirementSupplement == true)
-                    sb.AppendLine($"FERS Supplement: Eligible, est. {fedBenefits.EstimatedSupplementMonthly:C0}/mo (ages {fedBenefits.SupplementEligibilityAge}–{fedBenefits.SupplementEndAge})");
+                {
+                    var supplementMonthly = fedBenefits.EstimatedSupplementMonthly;
+                    var suppStartAge = fedBenefits.SupplementEligibilityAge;
+                    var suppEndAge = fedBenefits.SupplementEndAge ?? 62;
+
+                    // Compute supplement estimate: ssAt62 × (totalService / 40)
+                    if (!supplementMonthly.HasValue && fedBenefits.SocialSecurityEstimateAt62.HasValue
+                        && computedSvcYears.HasValue && computedSvcYears > 0)
+                    {
+                        var totalSvc = computedSvcYears.Value + (computedSvcMonths ?? 0) / 12m;
+                        supplementMonthly = Math.Round(fedBenefits.SocialSecurityEstimateAt62.Value * (totalSvc / 40m), 2);
+                    }
+
+                    // Compute supplement start age from DOB
+                    if (!suppStartAge.HasValue && user?.DateOfBirth.HasValue == true)
+                    {
+                        int birthYear = user.DateOfBirth!.Value.Year;
+                        if (birthYear >= 1970) suppStartAge = 57;
+                        else if (birthYear >= 1965) suppStartAge = 56;
+                        else suppStartAge = 55;
+                    }
+
+                    if (supplementMonthly.HasValue)
+                        sb.AppendLine($"FERS Supplement: Eligible, est. {supplementMonthly:C0}/mo (ages {suppStartAge}–{suppEndAge})");
+                    else
+                        sb.AppendLine("FERS Supplement: Eligible (unable to estimate — missing SS data)");
+                }
+
                 if (fedBenefits.FersCumulativeRetirement.HasValue)
                     sb.AppendLine($"FERS Cumulative Retirement Contributions (YTD): {fedBenefits.FersCumulativeRetirement:C2}");
                 if (fedBenefits.SocialSecurityEstimateAt62.HasValue)
