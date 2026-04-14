@@ -1251,6 +1251,14 @@ Your analysis will be reviewed by a backup AI system for validation.",
                                         sb.Append($" [Roth ${s.ProjectedTspRothBalance:N0}=${s.MonthlyTspRothWithdrawal:N0}/mo tax-free, Trad ${s.ProjectedTspTraditionalBalance:N0}=${s.MonthlyTspTraditionalWithdrawal:N0}/mo taxable]");
                                 }
                                 sb.Append($", TOTAL ${s.TotalMonthlyRetirementIncome:N0}/mo");
+                                if (s.MonthlyPensionAge85WithCola.HasValue)
+                                    sb.Append($", Pension@85 w/ {s.ColaRatePercent}% COLA: ${s.MonthlyPensionAge85WithCola:N0}/mo");
+                                if (!string.IsNullOrEmpty(s.SurvivorElection) && s.SurvivorElection != "none")
+                                    sb.Append($", Survivor: {s.SurvivorElection} election (−{s.SurvivorBenefitReduction * 100:0}% pension, spouse gets ${s.SurvivorBenefitMonthly:N0}/mo)");
+                                if (s.AfterTaxMonthlyIncome.HasValue)
+                                    sb.Append($", After-tax: ${s.AfterTaxMonthlyIncome:N0}/mo (fed ${s.EstimatedFederalTaxMonthly:N0} + state ${s.EstimatedStateTaxMonthly:N0})");
+                                if (s.MonthlyIncomeGap.HasValue)
+                                    sb.Append($", Gap vs ${s.MonthlyIncomeGoal:N0} goal: {(s.MonthlyIncomeGap >= 0 ? "+" : "")}${s.MonthlyIncomeGap:N0}/mo");
                                 if (!s.IsEligible)
                                     sb.Append(" [NOT ELIGIBLE]");
                                 if (s.EligibilityNote != null)

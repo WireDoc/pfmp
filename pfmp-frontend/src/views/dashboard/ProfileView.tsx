@@ -64,6 +64,7 @@ import {
   type FederalBenefitsProfile,
   type SaveFederalBenefitsRequest,
   type RetirementProjectionResponse,
+  type RetirementProjectionParams,
 } from '../../services/federalBenefitsApi';
 import type {
   HouseholdProfilePayload,
@@ -235,6 +236,11 @@ export function ProfileView() {
   const [projection, setProjection] = useState<RetirementProjectionResponse | null>(null);
   const [projectionLoading, setProjectionLoading] = useState(false);
 
+  // Phase 2: Retirement Projector advanced controls
+  const [projParams, setProjParams] = useState<RetirementProjectionParams>({});
+  const updateProjParam = <K extends keyof RetirementProjectionParams>(key: K, value: RetirementProjectionParams[K]) =>
+    setProjParams(prev => ({ ...prev, [key]: value }));
+
   // Load all sections on mount
   useEffect(() => {
     let cancelled = false;
@@ -375,7 +381,7 @@ export function ProfileView() {
   const loadProjection = useCallback(async () => {
     setProjectionLoading(true);
     try {
-      const proj = await fetchRetirementProjection(userId);
+      const proj = await fetchRetirementProjection(userId, projParams);
       setProjection(proj);
     } catch {
       // Projection may fail if user hasn't set SCD/DOB yet — that's fine
@@ -383,7 +389,7 @@ export function ProfileView() {
     } finally {
       setProjectionLoading(false);
     }
-  }, [userId]);
+  }, [userId, projParams]);
 
   const handleSf50Upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -953,13 +959,37 @@ export function ProfileView() {
                   <TextField fullWidth label="Annual Salary Growth Rate (%)" type="number" size="small" value={numStr(fedForm.annualSalaryGrowthRate)} onChange={e => updateFed('annualSalaryGrowthRate', parseNum(e.target.value))} inputProps={{ min: 0, max: 20, step: '0.1' }} helperText="e.g. 2.5 for 2.5%/yr" />
                 </Grid>
                 <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField fullWidth label="Custom Retirement Age" type="number" size="small" value={projParams.customAge ?? ''} onChange={e => updateProjParam('customAge', e.target.value ? Number(e.target.value) : undefined)} inputProps={{ min: 50, max: 80 }} helperText="Add a what-if age (50–80)" />
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Survivor Benefit</InputLabel>
+                    <Select label="Survivor Benefit" value={projParams.survivorElection ?? 'none'} onChange={e => updateProjParam('survivorElection', e.target.value === 'none' ? undefined : e.target.value)}>
+                      <MenuItem value="none">None</MenuItem>
+                      <MenuItem value="25%">25% (−5% pension)</MenuItem>
+                      <MenuItem value="50%">50% (−10% pension)</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <TextField fullWidth label="COLA Rate (%)" type="number" size="small" value={projParams.colaRate ?? ''} onChange={e => updateProjParam('colaRate', e.target.value ? Number(e.target.value) : undefined)} inputProps={{ min: 0, max: 10, step: '0.1' }} helperText="Default 1.5%/yr" />
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <TextField fullWidth label="Monthly Income Goal ($)" type="number" size="small" value={projParams.incomeGoal ?? ''} onChange={e => updateProjParam('incomeGoal', e.target.value ? Number(e.target.value) : undefined)} inputProps={{ min: 0 }} helperText="Target retirement income" />
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
                   <Button variant="outlined" size="small" onClick={loadProjection} disabled={projectionLoading} sx={{ mt: 1 }}>
                     {projectionLoading ? 'Calculating…' : 'Refresh Projections'}
                   </Button>
                 </Grid>
               </Grid>
 
-              {projection && projection.scenarios.length > 0 && (
+              {projection && projection.scenarios.length > 0 && (() => {
+                const hasCola = projection.scenarios.some(s => s.monthlyPensionAge85WithCola != null);
+                const hasSurvivor = projection.scenarios.some(s => s.survivorElection && s.survivorElection !== 'none');
+                const hasTax = projection.scenarios.some(s => s.afterTaxMonthlyIncome != null);
+                const hasGap = projection.scenarios.some(s => s.monthlyIncomeGap != null);
+                return (
                 <TableContainer>
                   <Table size="small">
                     <TableHead>
@@ -970,11 +1000,15 @@ export function ProfileView() {
                         <TableCell align="right">High-3</TableCell>
                         <TableCell align="right">Annual Annuity</TableCell>
                         <TableCell align="right">Monthly Pension</TableCell>
+                        {hasCola && <TableCell align="right">Pension@85</TableCell>}
+                        {hasSurvivor && <TableCell align="right">Survivor</TableCell>}
                         <TableCell align="right">Supplement</TableCell>
                         <TableCell align="right">SS at 62</TableCell>
                         <TableCell align="right">TSP Balance</TableCell>
                         <TableCell align="right">TSP/mo</TableCell>
                         <TableCell align="right">Total Monthly</TableCell>
+                        {hasTax && <TableCell align="right">After-Tax</TableCell>}
+                        {hasGap && <TableCell align="right">Income Gap</TableCell>}
                         <TableCell>Notes</TableCell>
                       </TableRow>
                     </TableHead>
@@ -986,7 +1020,38 @@ export function ProfileView() {
                           <TableCell align="right">{s.projectedServiceYears}y {s.projectedServiceMonths}m</TableCell>
                           <TableCell align="right">{fmt$(s.projectedHigh3)}</TableCell>
                           <TableCell align="right">{fmt$(s.annualAnnuity)}</TableCell>
-                          <TableCell align="right">{fmt$(s.monthlyPension)}</TableCell>
+                          <TableCell align="right">
+                            {fmt$(s.monthlyPension)}
+                            {hasSurvivor && s.survivorBenefitReduction != null && s.survivorBenefitReduction > 0 && (
+                              <Typography variant="caption" display="block" color="warning.main">
+                                −{(s.survivorBenefitReduction * 100).toFixed(0)}% elected
+                              </Typography>
+                            )}
+                          </TableCell>
+                          {hasCola && (
+                            <TableCell align="right">
+                              {s.monthlyPensionAge85WithCola != null ? (
+                                <>
+                                  {fmt$(s.monthlyPensionAge85WithCola)}
+                                  <Typography variant="caption" display="block" color="text.secondary">
+                                    {s.colaRatePercent ?? 1.5}%/yr COLA
+                                  </Typography>
+                                </>
+                              ) : '—'}
+                            </TableCell>
+                          )}
+                          {hasSurvivor && (
+                            <TableCell align="right">
+                              {s.survivorBenefitMonthly != null && s.survivorBenefitMonthly > 0 ? (
+                                <>
+                                  {fmt$(s.survivorBenefitMonthly)}/mo
+                                  <Typography variant="caption" display="block" color="text.secondary">
+                                    {s.survivorElection} to spouse
+                                  </Typography>
+                                </>
+                              ) : '—'}
+                            </TableCell>
+                          )}
                           <TableCell align="right">{s.supplementEligible ? `${fmt$(s.monthlySupplementEstimate)}/mo × ${s.supplementMonths}mo` : '—'}</TableCell>
                           <TableCell align="right">{s.socialSecurityMonthly != null ? fmt$(s.socialSecurityMonthly) : '—'}</TableCell>
                           <TableCell align="right">
@@ -1006,6 +1071,30 @@ export function ProfileView() {
                             )}
                           </TableCell>
                           <TableCell align="right" sx={{ fontWeight: 600 }}>{fmt$(s.totalMonthlyRetirementIncome)}</TableCell>
+                          {hasTax && (
+                            <TableCell align="right">
+                              {s.afterTaxMonthlyIncome != null ? (
+                                <>
+                                  {fmt$(s.afterTaxMonthlyIncome)}
+                                  <Typography variant="caption" display="block" color="text.secondary">
+                                    Fed: {fmt$(s.estimatedFederalTaxMonthly ?? 0)} · St: {fmt$(s.estimatedStateTaxMonthly ?? 0)}
+                                  </Typography>
+                                </>
+                              ) : '—'}
+                            </TableCell>
+                          )}
+                          {hasGap && (
+                            <TableCell align="right">
+                              {s.monthlyIncomeGap != null ? (
+                                <Chip
+                                  size="small"
+                                  label={`${s.monthlyIncomeGap >= 0 ? '+' : ''}${fmt$(s.monthlyIncomeGap)}`}
+                                  color={s.monthlyIncomeGap >= 0 ? 'success' : 'error'}
+                                  variant="outlined"
+                                />
+                              ) : '—'}
+                            </TableCell>
+                          )}
                           <TableCell>
                             {!s.isEligible && <Chip label="Not eligible" size="small" color="error" variant="outlined" />}
                             {s.eligibilityNote && <Typography variant="caption" color="text.secondary">{s.eligibilityNote}</Typography>}
@@ -1015,7 +1104,8 @@ export function ProfileView() {
                     </TableBody>
                   </Table>
                 </TableContainer>
-              )}
+                );
+              })()}
 
               {projection && projection.inputs?.inflationAssumptionPercent != null && projection.inputs.inflationAssumptionPercent > 0 && (
                 <Typography variant="caption" color="text.secondary">

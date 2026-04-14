@@ -707,7 +707,12 @@ namespace PFMP_API.Controllers
         // ===== FERS Retirement Projection =====
 
         [HttpGet("user/{userId}/retirement-projection")]
-        public async Task<ActionResult<RetirementProjectionResponse>> GetRetirementProjection(int userId)
+        public async Task<ActionResult<RetirementProjectionResponse>> GetRetirementProjection(
+            int userId,
+            [FromQuery] int? customAge = null,
+            [FromQuery] string? survivorElection = null,
+            [FromQuery] decimal? colaRate = null,
+            [FromQuery] decimal? incomeGoal = null)
         {
             try
             {
@@ -741,7 +746,16 @@ namespace PFMP_API.Controllers
                     }
                 }
 
-                var result = BuildRetirementProjection(profile, user, tspProfile, tspBalance);
+                // Load tax snapshot for tax impact modeling
+                var taxSnapshot = await _context.FinancialProfileSnapshots
+                    .FirstOrDefaultAsync(s => s.UserId == userId);
+
+                var result = BuildRetirementProjection(
+                    profile, user, tspProfile, tspBalance,
+                    customAge, survivorElection, colaRate,
+                    taxSnapshot?.MarginalTaxRatePercent,
+                    taxSnapshot?.EffectiveTaxRatePercent,
+                    incomeGoal);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -754,7 +768,11 @@ namespace PFMP_API.Controllers
         internal static RetirementProjectionResponse BuildRetirementProjection(
             FederalBenefitsProfile profile, Models.User user,
             Models.FinancialProfile.TspProfile? tspProfile = null,
-            decimal resolvedTspBalance = 0m)
+            decimal resolvedTspBalance = 0m,
+            int? customAge = null, string? survivorElection = null,
+            decimal? colaRateOverride = null,
+            decimal? marginalTaxRate = null, decimal? effectiveTaxRate = null,
+            decimal? incomeGoal = null)
         {
             var today = DateTime.UtcNow.Date;
             var dob = user.DateOfBirth!.Value.Date;
@@ -812,8 +830,20 @@ namespace PFMP_API.Controllers
                     TspRothContributionRatePercent = tspRothContribPct,
                     TspAnnualGrowthRate = 7m,
                     InflationAssumptionPercent = user.InflationAssumptionPercent ?? 2.5m,
+                    ColaRatePercent = colaRateOverride ?? 1.5m,
+                    SurvivorElection = survivorElection ?? "none",
+                    MarginalTaxRatePercent = marginalTaxRate,
+                    StateTaxRatePercent = effectiveTaxRate, // use effective as rough state proxy
+                    MonthlyRetirementIncomeGoal = incomeGoal,
+                    CustomRetirementAge = customAge,
                 }
             };
+
+            // Phase 2 parameters
+            decimal colaRate = (colaRateOverride ?? 1.5m) / 100m; // default FERS COLA 1.5%
+            string survivor = survivorElection ?? "none";
+            decimal fedTaxRate = (marginalTaxRate ?? 0m) / 100m;
+            decimal stateTaxRate = (effectiveTaxRate ?? 0m) / 100m; // rough proxy
 
             // Build scenarios: MRA, MRA+30 (if different), Age 60, Age 62, Age 65
             var scenarioAges = new List<(string Label, int AgeYears, int AgeMonths)>();
@@ -841,6 +871,10 @@ namespace PFMP_API.Controllers
             scenarioAges.Add(("Age 62", 62, 0));
             scenarioAges.Add(("Age 65", 65, 0));
 
+            // Custom retirement age (if provided)
+            if (customAge.HasValue && customAge.Value >= 50 && customAge.Value <= 80)
+                scenarioAges.Add(($"Age {customAge.Value} (custom)", customAge.Value, 0));
+
             // Deduplicate by age and sort
             var seen = new HashSet<int>();
             var deduped = new List<(string Label, int AgeYears, int AgeMonths)>();
@@ -858,7 +892,8 @@ namespace PFMP_API.Controllers
                     mraAgeYears, mraAgeMonths, ssAt62, dob, scd,
                     tspBalance, tspContribPct, tspMatchPct, tspGrowthRate, annualSalary,
                     inflationRate,
-                    tspRothBalance, tspTradBalance, tspRothContribPct);
+                    tspRothBalance, tspTradBalance, tspRothContribPct,
+                    colaRate, survivor, fedTaxRate, stateTaxRate, incomeGoal);
                 response.Scenarios.Add(scenario);
             }
 
@@ -875,7 +910,10 @@ namespace PFMP_API.Controllers
             decimal tspMatchPct = 0m, decimal tspGrowthRate = 0.07m,
             decimal annualSalary = 0m, decimal inflationRate = 0.025m,
             decimal tspRothBalance = 0m, decimal tspTradBalance = 0m,
-            decimal? tspRothContribPct = null)
+            decimal? tspRothContribPct = null,
+            decimal colaRate = 0.015m, string survivorElection = "none",
+            decimal fedTaxRate = 0m, decimal stateTaxRate = 0m,
+            decimal? incomeGoal = null)
         {
             int yearsUntilRetire = retireAgeY - currentAge;
             if (yearsUntilRetire < 0) yearsUntilRetire = 0;
@@ -1029,6 +1067,75 @@ namespace PFMP_API.Controllers
                 }
             }
 
+            // === Phase 2: COLA projection ===
+            // FERS COLA: applied annually starting 1 year after retirement, project to age 85
+            decimal? pensionAt85WithCola = null;
+            if (colaRate > 0 && monthlyPension > 0)
+            {
+                int yearsToAge85 = Math.Max(0, 85 - retireAgeY);
+                var pensionWithCola = monthlyPension;
+                for (int y = 0; y < yearsToAge85; y++)
+                    pensionWithCola *= (1m + colaRate);
+                pensionAt85WithCola = Math.Round(pensionWithCola, 2);
+            }
+
+            // === Phase 2: Survivor benefit ===
+            decimal? survivorReduction = null;
+            decimal? survivorBenefitMonthly = null;
+            decimal adjustedPension = monthlyPension;
+            if (survivorElection == "50%" && monthlyPension > 0)
+            {
+                // 50% survivor: pension reduced by ~10% (max full effect), spouse gets 50%
+                survivorReduction = Math.Round(monthlyPension * 0.10m, 2);
+                adjustedPension = monthlyPension - survivorReduction.Value;
+                survivorBenefitMonthly = Math.Round(monthlyPension * 0.50m, 2);
+            }
+            else if (survivorElection == "25%" && monthlyPension > 0)
+            {
+                // 25% survivor: pension reduced by ~5%, spouse gets 25%
+                survivorReduction = Math.Round(monthlyPension * 0.05m, 2);
+                adjustedPension = monthlyPension - survivorReduction.Value;
+                survivorBenefitMonthly = Math.Round(monthlyPension * 0.25m, 2);
+            }
+
+            // Recalculate total with adjusted pension if survivor elected
+            if (survivorReduction.HasValue)
+            {
+                totalMonthly = adjustedPension;
+                if (supplementEligible && supplementEstimate > 0)
+                    totalMonthly += supplementEstimate;
+                if (socialSecurityMonthly.HasValue)
+                    totalMonthly += socialSecurityMonthly.Value;
+                if (monthlyTspWithdrawal.HasValue)
+                    totalMonthly += monthlyTspWithdrawal.Value;
+            }
+
+            // === Phase 2: Tax impact modeling ===
+            decimal? estFedTax = null;
+            decimal? estStateTax = null;
+            decimal? afterTaxIncome = null;
+            if (fedTaxRate > 0 || stateTaxRate > 0)
+            {
+                // Taxable income: pension + traditional TSP + supplement (SS taxed at ~85% for most feds)
+                decimal taxablePension = adjustedPension;
+                decimal taxableTsp = monthlyTradWithdrawal ?? monthlyTspWithdrawal ?? 0m;
+                decimal taxableSs = (socialSecurityMonthly ?? 0m) * 0.85m;
+                decimal taxableSupplement = supplementEligible ? supplementEstimate : 0m;
+                decimal totalTaxable = taxablePension + taxableTsp + taxableSs + taxableSupplement;
+
+                estFedTax = fedTaxRate > 0 ? Math.Round(totalTaxable * fedTaxRate, 2) : null;
+                estStateTax = stateTaxRate > 0 ? Math.Round(totalTaxable * stateTaxRate, 2) : null;
+                afterTaxIncome = Math.Round(totalMonthly - (estFedTax ?? 0m) - (estStateTax ?? 0m), 2);
+            }
+
+            // === Phase 2: Income gap analysis ===
+            decimal? monthlyGap = null;
+            if (incomeGoal.HasValue && incomeGoal.Value > 0)
+            {
+                var effectiveIncome = afterTaxIncome ?? totalMonthly;
+                monthlyGap = Math.Round(effectiveIncome - incomeGoal.Value, 2);
+            }
+
             return new RetirementScenario
             {
                 Label = label,
@@ -1039,7 +1146,7 @@ namespace PFMP_API.Controllers
                 Multiplier = multiplier,
                 ProjectedHigh3 = projectedHigh3,
                 AnnualAnnuity = annualAnnuity,
-                MonthlyPension = monthlyPension,
+                MonthlyPension = survivorReduction.HasValue ? adjustedPension : monthlyPension,
                 SupplementEligible = supplementEligible,
                 MonthlySupplementEstimate = supplementEstimate,
                 SupplementMonths = supplementMonths,
@@ -1051,6 +1158,16 @@ namespace PFMP_API.Controllers
                 ProjectedTspTraditionalBalance = projectedTradBalance,
                 MonthlyTspRothWithdrawal = monthlyRothWithdrawal,
                 MonthlyTspTraditionalWithdrawal = monthlyTradWithdrawal,
+                MonthlyPensionAge85WithCola = pensionAt85WithCola,
+                ColaRatePercent = colaRate * 100m,
+                SurvivorBenefitReduction = survivorReduction,
+                SurvivorBenefitMonthly = survivorBenefitMonthly,
+                SurvivorElection = survivorElection != "none" ? survivorElection : null,
+                EstimatedFederalTaxMonthly = estFedTax,
+                EstimatedStateTaxMonthly = estStateTax,
+                AfterTaxMonthlyIncome = afterTaxIncome,
+                MonthlyIncomeGoal = incomeGoal,
+                MonthlyIncomeGap = monthlyGap,
                 IsEligible = isEligible,
                 EligibilityNote = eligibilityNote,
             };

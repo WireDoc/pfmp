@@ -205,6 +205,20 @@ public class RetirementScenario
     public decimal? ProjectedTspTraditionalBalance { get; set; } // Traditional portion (taxable withdrawals)
     public decimal? MonthlyTspRothWithdrawal { get; set; } // Roth 4% rule
     public decimal? MonthlyTspTraditionalWithdrawal { get; set; } // Traditional 4% rule
+    // COLA projections – pension adjusted through age 85
+    public decimal? MonthlyPensionAge85WithCola { get; set; } // pension at 85 after COLA
+    public decimal ColaRatePercent { get; set; } // applied COLA rate
+    // Survivor benefit election
+    public decimal? SurvivorBenefitReduction { get; set; } // monthly pension reduction
+    public decimal? SurvivorBenefitMonthly { get; set; } // monthly survivor annuity for spouse
+    public string? SurvivorElection { get; set; } // "none", "25%", "50%"
+    // Tax impact modeling
+    public decimal? EstimatedFederalTaxMonthly { get; set; } // fed tax on taxable income
+    public decimal? EstimatedStateTaxMonthly { get; set; } // state tax
+    public decimal? AfterTaxMonthlyIncome { get; set; } // total after taxes
+    // Income gap analysis
+    public decimal? MonthlyIncomeGoal { get; set; } // user target
+    public decimal? MonthlyIncomeGap { get; set; } // positive = surplus, negative = shortfall
     public bool IsEligible { get; set; } // whether the user can retire at this point
     public string? EligibilityNote { get; set; } // e.g. "Reduced annuity (5% per year under MRA)"
 }
@@ -228,4 +242,10 @@ public class RetirementProjectionInputs
     public decimal? TspRothContributionRatePercent { get; set; } // % of employee contrib going to Roth
     public decimal? TspAnnualGrowthRate { get; set; } // default 7%
     public decimal? InflationAssumptionPercent { get; set; } // default 2.5%
+    public decimal? ColaRatePercent { get; set; } // FERS COLA rate, default 1.5%
+    public string? SurvivorElection { get; set; } // "none", "25%", "50%"
+    public decimal? MarginalTaxRatePercent { get; set; } // fed marginal rate
+    public decimal? StateTaxRatePercent { get; set; } // state tax rate
+    public decimal? MonthlyRetirementIncomeGoal { get; set; } // target monthly income
+    public int? CustomRetirementAge { get; set; } // user-specified custom age
 }

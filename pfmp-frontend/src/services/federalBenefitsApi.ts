@@ -174,6 +174,17 @@ export interface RetirementScenario {
   projectedTspTraditionalBalance: number | null;
   monthlyTspRothWithdrawal: number | null;
   monthlyTspTraditionalWithdrawal: number | null;
+  // Phase 2: COLA, survivor, tax, gap
+  monthlyPensionAge85WithCola: number | null;
+  colaRatePercent: number;
+  survivorBenefitReduction: number | null;
+  survivorBenefitMonthly: number | null;
+  survivorElection: string | null;
+  estimatedFederalTaxMonthly: number | null;
+  estimatedStateTaxMonthly: number | null;
+  afterTaxMonthlyIncome: number | null;
+  monthlyIncomeGoal: number | null;
+  monthlyIncomeGap: number | null;
   isEligible: boolean;
   eligibilityNote: string | null;
 }
@@ -195,6 +206,12 @@ export interface RetirementProjectionInputs {
   tspRothContributionRatePercent: number | null;
   tspAnnualGrowthRate: number | null;
   inflationAssumptionPercent: number | null;
+  colaRatePercent: number | null;
+  survivorElection: string | null;
+  marginalTaxRatePercent: number | null;
+  stateTaxRatePercent: number | null;
+  monthlyRetirementIncomeGoal: number | null;
+  customRetirementAge: number | null;
 }
 
 export interface RetirementProjectionResponse {
@@ -253,7 +270,24 @@ export async function applyLes(userId: number, file: File): Promise<FederalBenef
   return data;
 }
 
-export async function fetchRetirementProjection(userId: number): Promise<RetirementProjectionResponse> {
-  const { data } = await apiClient.get(`/federalbenefits/user/${userId}/retirement-projection`);
+export interface RetirementProjectionParams {
+  customAge?: number;
+  survivorElection?: string;
+  colaRate?: number;
+  incomeGoal?: number;
+}
+
+export async function fetchRetirementProjection(
+  userId: number,
+  params?: RetirementProjectionParams,
+): Promise<RetirementProjectionResponse> {
+  const { data } = await apiClient.get(`/federalbenefits/user/${userId}/retirement-projection`, {
+    params: params ? {
+      customAge: params.customAge,
+      survivorElection: params.survivorElection,
+      colaRate: params.colaRate,
+      incomeGoal: params.incomeGoal,
+    } : undefined,
+  });
   return data;
 }
