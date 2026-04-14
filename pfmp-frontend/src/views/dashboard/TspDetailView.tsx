@@ -32,7 +32,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchTspDetail, upsertTspProfile, type TspDetailResponse } from '../../services/financialProfileApi';
 import { useDevUserId } from '../../dev/devUserState';
 import { useAuth } from '../../contexts/auth/useAuth';
-import { TspPositionsEditor, type TspPositionInput } from '../../components/tsp/TspPositionsEditor';
+import { TspPositionsEditor, type TspPositionInput, type TspRothTraditionalInput } from '../../components/tsp/TspPositionsEditor';
 
 // TSP Fund names for display
 const TSP_FUND_NAMES: Record<string, string> = {
@@ -128,12 +128,15 @@ export const TspDetailView: React.FC = () => {
     }
   };
 
-  const handleSavePositions = async (positions: TspPositionInput[], contributionRate: number) => {
+  const handleSavePositions = async (positions: TspPositionInput[], contributionRate: number, rothTrad?: TspRothTraditionalInput) => {
     if (!userId) throw new Error('No user ID');
     
     // Convert to the API payload format
     const payload = {
       contributionRatePercent: contributionRate,
+      rothBalance: rothTrad?.rothBalance,
+      traditionalBalance: rothTrad?.traditionalBalance,
+      rothContributionRatePercent: rothTrad?.rothContributionRatePercent,
       lifecyclePositions: positions.map(p => ({
         fundCode: p.fundCode,
         contributionPercent: p.contributionPercent,
@@ -296,6 +299,11 @@ export const TspDetailView: React.FC = () => {
           })) ?? []}
           onSave={handleSavePositions}
           contributionRate={data?.profile?.contributionRatePercent ?? 0}
+          rothTraditional={{
+            rothBalance: data?.profile?.rothBalance,
+            traditionalBalance: data?.profile?.traditionalBalance,
+            rothContributionRatePercent: data?.profile?.rothContributionRatePercent,
+          }}
           showContributionPercent={true}
           showUnits={true}
           title="Edit TSP Positions"

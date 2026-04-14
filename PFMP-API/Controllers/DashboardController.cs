@@ -197,6 +197,32 @@ public class DashboardController : ControllerBase
                     lastSync = tspPositions.Max(p => p.LastPricedAsOfUtc) ?? tspPositions.Max(p => p.DateUpdated) ?? DateTime.UtcNow
                 });
             }
+            else
+            {
+                // Fallback: show TSP from TspProfile even without lifecycle positions
+                var tspProfile = await _context.TspProfiles
+                    .FirstOrDefaultAsync(t => t.UserId == effectiveUserId && !t.IsOptedOut);
+                if (tspProfile != null)
+                {
+                    var profileBalance = tspProfile.TotalBalance ?? tspProfile.CurrentBalance;
+                    if (profileBalance == 0 && (tspProfile.RothBalance ?? 0) + (tspProfile.TraditionalBalance ?? 0) > 0)
+                        profileBalance = (tspProfile.RothBalance ?? 0) + (tspProfile.TraditionalBalance ?? 0);
+                    if (profileBalance > 0)
+                    {
+                        totalTsp = profileBalance;
+                        accountsList.Add(new
+                        {
+                            id = "tsp_aggregate",
+                            name = "Thrift Savings Plan",
+                            institution = "TSP",
+                            type = "retirement",
+                            balance = new { amount = profileBalance, currency = "USD" },
+                            syncStatus = "ok",
+                            lastSync = tspProfile.LastUpdatedAt
+                        });
+                    }
+                }
+            }
 
             // Build insights
             var insights = new List<object>();

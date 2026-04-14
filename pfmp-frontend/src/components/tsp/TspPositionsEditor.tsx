@@ -35,13 +35,21 @@ export interface TspPositionInput {
 /**
  * Props for the TspPositionsEditor component
  */
+export interface TspRothTraditionalInput {
+  rothBalance?: number | null;
+  traditionalBalance?: number | null;
+  rothContributionRatePercent?: number | null;
+}
+
 interface TspPositionsEditorProps {
   /** Initial positions to display */
   positions: TspPositionInput[];
   /** Callback when positions are saved */
-  onSave: (positions: TspPositionInput[], contributionRate: number) => Promise<void>;
+  onSave: (positions: TspPositionInput[], contributionRate: number, rothTrad?: TspRothTraditionalInput) => Promise<void>;
   /** Initial contribution rate */
   contributionRate?: number;
+  /** Initial Roth/Traditional data */
+  rothTraditional?: TspRothTraditionalInput;
   /** Whether the component is in loading state */
   loading?: boolean;
   /** Read-only mode - hides save button and disables editing */
@@ -94,6 +102,7 @@ export const TspPositionsEditor: React.FC<TspPositionsEditorProps> = ({
   positions: initialPositions,
   onSave,
   contributionRate: initialContributionRate = 0,
+  rothTraditional: initialRothTrad,
   loading = false,
   readOnly = false,
   showContributionPercent = true,
@@ -102,6 +111,7 @@ export const TspPositionsEditor: React.FC<TspPositionsEditorProps> = ({
 }) => {
   const [positions, setPositions] = useState<TspPositionInput[]>(initialPositions);
   const [contributionRate, setContributionRate] = useState(initialContributionRate);
+  const [rothTrad, setRothTrad] = useState<TspRothTraditionalInput>(initialRothTrad ?? {});
   const [fundToAdd, setFundToAdd] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -152,7 +162,7 @@ export const TspPositionsEditor: React.FC<TspPositionsEditorProps> = ({
     setError(null);
     setSuccess(false);
     try {
-      await onSave(positions, contributionRate);
+      await onSave(positions, contributionRate, rothTrad);
       setSuccess(true);
     } catch (err) {
       console.error('Failed to save TSP positions:', err);
@@ -160,7 +170,7 @@ export const TspPositionsEditor: React.FC<TspPositionsEditorProps> = ({
     } finally {
       setSaving(false);
     }
-  }, [positions, contributionRate, onSave]);
+  }, [positions, contributionRate, rothTrad, onSave]);
 
   if (loading) {
     return (
@@ -202,6 +212,60 @@ export const TspPositionsEditor: React.FC<TspPositionsEditorProps> = ({
               disabled={readOnly}
               helperText="Percentage of salary you contribute to TSP"
             />
+          </Box>
+        )}
+
+        {/* Roth / Traditional Split */}
+        {!readOnly && (
+          <Box mb={3}>
+            <Typography variant="subtitle2" gutterBottom>Roth / Traditional Split</Typography>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, sm: 4 }}>
+                <TextField
+                  type="number"
+                  label="Roth Balance ($)"
+                  value={rothTrad.rothBalance ?? ''}
+                  onChange={(e) => {
+                    setRothTrad(prev => ({ ...prev, rothBalance: parseNumber(e.target.value) ?? null }));
+                    setSuccess(false);
+                  }}
+                  inputProps={{ min: 0, step: 100 }}
+                  size="small"
+                  fullWidth
+                  helperText="Tax-free at withdrawal"
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 4 }}>
+                <TextField
+                  type="number"
+                  label="Traditional Balance ($)"
+                  value={rothTrad.traditionalBalance ?? ''}
+                  onChange={(e) => {
+                    setRothTrad(prev => ({ ...prev, traditionalBalance: parseNumber(e.target.value) ?? null }));
+                    setSuccess(false);
+                  }}
+                  inputProps={{ min: 0, step: 100 }}
+                  size="small"
+                  fullWidth
+                  helperText="Taxable at withdrawal"
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 4 }}>
+                <TextField
+                  type="number"
+                  label="Roth Contribution %"
+                  value={rothTrad.rothContributionRatePercent ?? ''}
+                  onChange={(e) => {
+                    setRothTrad(prev => ({ ...prev, rothContributionRatePercent: parseNumber(e.target.value) ?? null }));
+                    setSuccess(false);
+                  }}
+                  inputProps={{ min: 0, max: 100, step: 1 }}
+                  size="small"
+                  fullWidth
+                  helperText="% of your contribution going to Roth"
+                />
+              </Grid>
+            </Grid>
           </Box>
         )}
 
