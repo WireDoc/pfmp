@@ -294,7 +294,7 @@ export const TspDetailView: React.FC = () => {
         <TspPositionsEditor
           positions={data?.positions.map(p => ({
             fundCode: p.fundCode,
-            contributionPercent: p.currentMixPercent ?? undefined,
+            contributionPercent: p.contributionPercent ?? p.currentMixPercent ?? undefined,
             units: p.units,
           })) ?? []}
           onSave={handleSavePositions}

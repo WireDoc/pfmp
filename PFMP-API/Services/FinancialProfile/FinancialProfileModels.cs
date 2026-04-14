@@ -285,6 +285,7 @@ namespace PFMP_API.Services.FinancialProfile
         public decimal Units { get; set; }
         public decimal? CurrentMarketValue { get; set; }
         public decimal? CurrentMixPercent { get; set; }
+        public decimal ContributionPercent { get; set; }
     }
 
     // Lightweight metadata about the latest captured TSP snapshot

@@ -369,6 +369,7 @@ export interface TspSummaryLiteItem {
   units: number;
   currentMarketValue: number | null;
   currentMixPercent: number | null;
+  contributionPercent: number | null;
 }
 export interface TspSummaryLite {
   items: TspSummaryLiteItem[];
@@ -379,7 +380,7 @@ export interface TspSummaryLite {
 export async function fetchTspSummaryLite(userId: number): Promise<TspSummaryLite> {
   const resp = await apiClient.get(`/financial-profile/${userId}/tsp/summary-lite`);
   const dto = resp.data as {
-    items?: Array<{ fundCode?: string; currentPrice?: number | null; units?: number | null; currentMarketValue?: number | null; currentMixPercent?: number | null }>;
+    items?: Array<{ fundCode?: string; currentPrice?: number | null; units?: number | null; currentMarketValue?: number | null; currentMixPercent?: number | null; contributionPercent?: number | null }>;
     totalBalance?: number | null;
     asOfUtc?: string | null;
   };
@@ -390,6 +391,7 @@ export async function fetchTspSummaryLite(userId: number): Promise<TspSummaryLit
       units: Number(i.units ?? 0),
       currentMarketValue: i.currentMarketValue ?? null,
       currentMixPercent: i.currentMixPercent ?? null,
+      contributionPercent: i.contributionPercent ?? null,
     })),
     totalBalance: dto.totalBalance ?? null,
     asOfUtc: dto.asOfUtc ?? null,
@@ -447,6 +449,7 @@ export async function fetchTspDetail(userId: number): Promise<TspDetailResponse>
       units: Number(i.units ?? 0),
       currentMarketValue: i.currentMarketValue ?? null,
       currentMixPercent: i.currentMixPercent ?? null,
+      contributionPercent: i.contributionPercent ?? null,
     })),
     allFundPrices: dto.allFundPrices ?? {
       priceDate: '',

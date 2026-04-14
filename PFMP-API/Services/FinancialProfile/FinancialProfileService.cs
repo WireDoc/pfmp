@@ -822,7 +822,8 @@ namespace PFMP_API.Services.FinancialProfile
                     CurrentPrice = p.CurrentPrice,
                     Units = p.Units,
                     CurrentMarketValue = p.CurrentMarketValue,
-                    CurrentMixPercent = p.CurrentMixPercent
+                    CurrentMixPercent = p.CurrentMixPercent,
+                    ContributionPercent = p.ContributionPercent
                 })
                 .ToListAsync(ct);
 
@@ -864,7 +865,8 @@ namespace PFMP_API.Services.FinancialProfile
                     CurrentPrice = p.CurrentPrice,
                     Units = p.Units,
                     CurrentMarketValue = p.CurrentMarketValue,
-                    CurrentMixPercent = p.CurrentMixPercent
+                    CurrentMixPercent = p.CurrentMixPercent,
+                    ContributionPercent = p.ContributionPercent
                 })
                 .ToListAsync(ct);
 
