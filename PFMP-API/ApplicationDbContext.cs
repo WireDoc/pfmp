@@ -87,6 +87,26 @@ namespace PFMP_API
     // Federal Benefits (Wave 18)
     public DbSet<FederalBenefitsProfile> FederalBenefitsProfiles { get; set; }
 
+        /// <summary>
+        /// Normalise all DateTime values to UTC before persisting.
+        /// Npgsql 6+ rejects Kind=Unspecified for timestamptz columns.
+        /// </summary>
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            foreach (var entry in ChangeTracker.Entries())
+            {
+                if (entry.State == EntityState.Added || entry.State == EntityState.Modified)
+                {
+                    foreach (var prop in entry.Properties)
+                    {
+                        if (prop.CurrentValue is DateTime dt && dt.Kind == DateTimeKind.Unspecified)
+                            prop.CurrentValue = DateTime.SpecifyKind(dt, DateTimeKind.Utc);
+                    }
+                }
+            }
+            return await base.SaveChangesAsync(cancellationToken);
+        }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

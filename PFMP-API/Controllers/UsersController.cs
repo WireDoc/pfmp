@@ -93,14 +93,6 @@ namespace PFMP_API.Controllers
                 entry.CurrentValues.SetValues(user);
                 existing.CreatedAt = originalCreatedAt; // Never overwrite audit timestamp
 
-                // Npgsql requires DateTime values have Kind=Utc for timestamptz columns.
-                // JSON deserialization often produces Kind=Unspecified; normalise them here.
-                foreach (var prop in entry.Properties)
-                {
-                    if (prop.CurrentValue is DateTime dt && dt.Kind == DateTimeKind.Unspecified)
-                        prop.CurrentValue = DateTime.SpecifyKind(dt, DateTimeKind.Utc);
-                }
-
                 foreach (var prop in entry.Properties)
                 {
                     if (!prop.IsModified || prop.Metadata.Name == "UpdatedAt" || prop.Metadata.Name == "CreatedAt")
