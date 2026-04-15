@@ -15,6 +15,7 @@ import {
   Tooltip,
   Tabs,
   Tab,
+  TextField,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
@@ -26,6 +27,8 @@ import AllInclusiveIcon from '@mui/icons-material/AllInclusive';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import ClearIcon from '@mui/icons-material/Clear';
 import { useDevUserId } from '../../dev/devUserState';
 import { useDashboardData } from '../../services/dashboard/useDashboardData';
 import type { AdviceItem } from '../../services/dashboard';
@@ -37,16 +40,17 @@ interface AnalysisType {
   key: string;
   label: string;
   endpoint: string;
+  previewType: string;
   icon: React.ReactNode;
   description: string;
 }
 
 const ANALYSIS_TYPES: AnalysisType[] = [
-  { key: 'cash', label: 'Cash Optimization', endpoint: 'cash-optimization', icon: <MonetizationOnIcon />, description: 'Analyze cash positions and optimize yield across savings, money market, and CDs' },
-  { key: 'rebalancing', label: 'Portfolio Rebalancing', endpoint: 'rebalancing', icon: <BalanceIcon />, description: 'Evaluate asset allocation drift and suggest rebalancing trades' },
-  { key: 'tsp', label: 'TSP Analysis', endpoint: 'tsp', icon: <AccountBalanceIcon />, description: 'Review TSP fund allocation and contribution strategy' },
-  { key: 'risk', label: 'Risk Assessment', endpoint: 'risk', icon: <ShieldIcon />, description: 'Assess overall portfolio risk vs your risk tolerance profile' },
-  { key: 'full', label: 'Full Analysis', endpoint: 'full', icon: <AllInclusiveIcon />, description: 'Comprehensive financial review covering all areas' },
+  { key: 'cash', label: 'Cash Optimization', endpoint: 'cash-optimization', previewType: 'cash', icon: <MonetizationOnIcon />, description: 'Analyze cash positions and optimize yield across savings, money market, and CDs' },
+  { key: 'rebalancing', label: 'Portfolio Rebalancing', endpoint: 'rebalancing', previewType: 'portfolio', icon: <BalanceIcon />, description: 'Evaluate asset allocation drift and suggest rebalancing trades' },
+  { key: 'tsp', label: 'TSP Analysis', endpoint: 'tsp', previewType: 'tsp', icon: <AccountBalanceIcon />, description: 'Review TSP fund allocation and contribution strategy' },
+  { key: 'risk', label: 'Risk Assessment', endpoint: 'risk', previewType: 'risk', icon: <ShieldIcon />, description: 'Assess overall portfolio risk vs your risk tolerance profile' },
+  { key: 'full', label: 'Full Analysis', endpoint: 'full', previewType: 'full', icon: <AllInclusiveIcon />, description: 'Comprehensive financial review covering all areas' },
 ];
 
 interface AnalysisResult {
@@ -77,6 +81,9 @@ export function InsightsView() {
   const [toast, setToast] = useState('');
   const [tab, setTab] = useState(0);
   const abortCtrl = useRef<AbortController | null>(null);
+  const [previewText, setPreviewText] = useState('');
+  const [previewLabel, setPreviewLabel] = useState('');
+  const [simulating, setSimulating] = useState<Record<string, boolean>>({});
 
   const advice = data?.advice ?? [];
   const insights = data?.insights ?? [];
@@ -104,6 +111,24 @@ export function InsightsView() {
       setRunning(r => ({ ...r, [at.key]: false }));
     }
   }, [userId, refetch]);
+
+  const simulatePreview = useCallback(async (at: AnalysisType) => {
+    setSimulating(s => ({ ...s, [at.key]: true }));
+    try {
+      const resp = await fetch(`${API_BASE_URL}/ai/preview/${userId}/${at.previewType}`);
+      if (!resp.ok) throw new Error(`Preview failed (${resp.status})`);
+      const body = await resp.json();
+      setPreviewText(body.fullPrompt ?? '');
+      setPreviewLabel(`${at.label} — ${body.estimatedTokens?.toLocaleString() ?? '?'} estimated tokens`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unknown error';
+      setPreviewText(`Error: ${msg}`);
+      setPreviewLabel(`${at.label} — Error`);
+      setToast(`Simulate ${at.label} failed: ${msg}`);
+    } finally {
+      setSimulating(s => ({ ...s, [at.key]: false }));
+    }
+  }, [userId]);
 
   const handleAcceptAdvice = useCallback(async (id: number) => {
     try {
@@ -142,6 +167,7 @@ export function InsightsView() {
 
       {/* Tab 0 — Run Analysis */}
       {tab === 0 && (
+        <>
         <Grid container spacing={2}>
           {ANALYSIS_TYPES.map(at => {
             const isRunning = running[at.key];
@@ -171,20 +197,54 @@ export function InsightsView() {
                     <Alert severity="error" sx={{ mb: 1.5 }}>{result.error}</Alert>
                   )}
 
-                  <Button
-                    variant="contained"
-                    startIcon={isRunning ? <CircularProgress size={16} color="inherit" /> : <AutoAwesomeIcon />}
-                    onClick={() => runAnalysis(at)}
-                    disabled={isRunning}
-                    fullWidth
-                  >
-                    {isRunning ? 'Analyzing…' : 'Run Analysis'}
-                  </Button>
+                  <Stack direction="row" spacing={1}>
+                    <Button
+                      variant="contained"
+                      startIcon={isRunning ? <CircularProgress size={16} color="inherit" /> : <AutoAwesomeIcon />}
+                      onClick={() => runAnalysis(at)}
+                      disabled={isRunning}
+                      fullWidth
+                    >
+                      {isRunning ? 'Analyzing…' : 'Run Analysis'}
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      startIcon={simulating[at.key] ? <CircularProgress size={16} /> : <VisibilityIcon />}
+                      onClick={() => simulatePreview(at)}
+                      disabled={!!simulating[at.key]}
+                      sx={{ minWidth: 120 }}
+                    >
+                      {simulating[at.key] ? 'Loading…' : 'Simulate'}
+                    </Button>
+                  </Stack>
                 </Paper>
               </Grid>
             );
           })}
         </Grid>
+
+        {previewText && (
+          <Paper sx={{ mt: 3, p: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+              <Typography variant="subtitle1" fontWeight={600}>{previewLabel}</Typography>
+              <Button
+                size="small"
+                startIcon={<ClearIcon />}
+                onClick={() => { setPreviewText(''); setPreviewLabel(''); }}
+              >
+                Clear
+              </Button>
+            </Box>
+            <TextField
+              value={previewText}
+              multiline
+              rows={20}
+              fullWidth
+              slotProps={{ input: { readOnly: true, sx: { fontFamily: 'monospace', fontSize: '0.85rem' } } }}
+            />
+          </Paper>
+        )}
+        </>
       )}
 
       {/* Tab 1 — Advice Feed */}
