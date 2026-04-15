@@ -17,6 +17,10 @@ namespace PFMP_API
     {
         public static async Task Main(string[] args)
         {
+            // Npgsql 6+ rejects DateTime with Kind=Unspecified for timestamptz columns.
+            // Enable legacy behavior so Unspecified is treated as UTC.
+            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
             var builder = WebApplication.CreateBuilder(args);
 
             // Explicitly load local configuration file for development secrets
