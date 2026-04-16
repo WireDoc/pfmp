@@ -12,18 +12,15 @@ namespace PFMP_API.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<FederalBenefitsController> _logger;
-        private readonly Sf50ParserService _sf50Parser;
         private readonly LesParserService _lesParser;
 
         public FederalBenefitsController(
             ApplicationDbContext context,
             ILogger<FederalBenefitsController> logger,
-            Sf50ParserService sf50Parser,
             LesParserService lesParser)
         {
             _context = context;
             _logger = logger;
-            _sf50Parser = sf50Parser;
             _lesParser = lesParser;
         }
 
@@ -107,65 +104,6 @@ namespace PFMP_API.Controllers
             }
         }
 
-        // POST: api/FederalBenefits/upload-sf50
-        [HttpPost("upload-sf50")]
-        public ActionResult<Sf50UploadResponse> UploadSf50(IFormFile file)
-        {
-            var validation = ValidatePdfUpload(file);
-            if (validation != null) return validation;
-
-            try
-            {
-                using var stream = file!.OpenReadStream();
-                var parseResult = _sf50Parser.Parse(stream);
-
-                if (!parseResult.ParsedSuccessfully)
-                    return BadRequest(new Sf50UploadResponse
-                    {
-                        ParsedSuccessfully = false,
-                        ErrorMessage = parseResult.ErrorMessage ?? "Could not parse SF-50 document"
-                    });
-
-                int fieldsExtracted = 0;
-                if (parseResult.PayGrade != null) fieldsExtracted++;
-                if (parseResult.AnnualBasicPay.HasValue) fieldsExtracted++;
-                if (parseResult.PayBasis != null) fieldsExtracted++;
-                if (parseResult.Agency != null) fieldsExtracted++;
-                if (parseResult.RetirementPlan != null) fieldsExtracted++;
-                if (parseResult.ServiceComputationDate.HasValue) fieldsExtracted++;
-                if (parseResult.DateOfBirth.HasValue) fieldsExtracted++;
-                if (parseResult.PositionTitle != null) fieldsExtracted++;
-                if (parseResult.FegliCode != null) fieldsExtracted++;
-
-                _logger.LogInformation("SF-50 parsed: {Count} fields from {FileName}",
-                    fieldsExtracted, file.FileName);
-
-                return Ok(new Sf50UploadResponse
-                {
-                    ParsedSuccessfully = true,
-                    FieldsExtracted = fieldsExtracted,
-                    PayGrade = parseResult.PayGrade,
-                    AnnualBasicPay = parseResult.AnnualBasicPay,
-                    PayBasis = parseResult.PayBasis,
-                    Agency = parseResult.Agency,
-                    RetirementPlan = parseResult.RetirementPlan,
-                    ServiceComputationDate = parseResult.ServiceComputationDate,
-                    DateOfBirth = parseResult.DateOfBirth,
-                    PositionTitle = parseResult.PositionTitle,
-                    FegliCode = parseResult.FegliCode,
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to process SF-50 upload");
-                return StatusCode(500, new Sf50UploadResponse
-                {
-                    ParsedSuccessfully = false,
-                    ErrorMessage = "Failed to process the uploaded file"
-                });
-            }
-        }
-
         // POST: api/FederalBenefits/debug-pdf — returns raw extracted text for parser development
         [HttpPost("debug-pdf")]
         public ActionResult DebugPdf(IFormFile file)
@@ -232,6 +170,7 @@ namespace PFMP_API.Controllers
                     AnnualBasicPay = parseResult.AnnualBasicPay,
                     BiweeklyGross = parseResult.BiweeklyGross,
                     BiweeklyNet = parseResult.BiweeklyNet,
+                    ServiceComputationDate = parseResult.ServiceComputationDate,
                     FegliDeduction = parseResult.FegliDeduction,
                     FegliBasicCode = parseResult.FegliBasicCode,
                     FegliOptionalCode = parseResult.FegliOptionalCode,
@@ -264,72 +203,6 @@ namespace PFMP_API.Controllers
                     ParsedSuccessfully = false,
                     ErrorMessage = "Failed to process the uploaded file"
                 });
-            }
-        }
-
-        // POST: api/FederalBenefits/user/{userId}/apply-sf50
-        [HttpPost("user/{userId}/apply-sf50")]
-        public async Task<ActionResult<FederalBenefitsResponse>> ApplySf50(int userId, IFormFile file)
-        {
-            var validation = ValidatePdfUpload(file);
-            if (validation != null) return validation;
-
-            try
-            {
-                using var stream = file!.OpenReadStream();
-                var parseResult = _sf50Parser.Parse(stream);
-
-                if (!parseResult.ParsedSuccessfully)
-                    return BadRequest(new { message = parseResult.ErrorMessage ?? "Could not parse SF-50" });
-
-                var profile = await _context.FederalBenefitsProfiles
-                    .FirstOrDefaultAsync(f => f.UserId == userId);
-
-                if (profile == null)
-                {
-                    profile = new FederalBenefitsProfile
-                    {
-                        UserId = userId,
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    _context.FederalBenefitsProfiles.Add(profile);
-                }
-
-                // Apply parsed SF-50 fields
-                if (parseResult.AnnualBasicPay.HasValue)
-                    profile.High3AverageSalary = parseResult.AnnualBasicPay; // Current salary as starting point
-
-                if (parseResult.FegliCode != null)
-                    profile.HasFegliBasic = true; // SF-50 FEGLI code presence means enrolled
-
-                profile.LastSf50UploadDate = DateTime.UtcNow;
-                profile.LastSf50FileName = file.FileName;
-                profile.UpdatedAt = DateTime.UtcNow;
-
-                // Also update the User model fields that SF-50 provides
-                var user = await _context.Users.FindAsync(userId);
-                if (user != null)
-                {
-                    if (parseResult.PayGrade != null) user.PayGrade = parseResult.PayGrade;
-                    if (parseResult.ServiceComputationDate.HasValue)
-                        user.ServiceComputationDate = parseResult.ServiceComputationDate;
-                    if (parseResult.RetirementPlan != null)
-                        user.RetirementSystem = parseResult.RetirementPlan;
-                    user.UpdatedAt = DateTime.UtcNow;
-
-                    // Auto-calculate FERS pension fields from SCD and DOB
-                    ComputeFersPension(profile, user);
-                }
-
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation("SF-50 applied for user {UserId}: {FileName}", userId, file.FileName);
-                return Ok(MapToResponse(profile));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to apply SF-50 for user {UserId}", userId);
-                return StatusCode(500, "Internal server error");
             }
         }
 
@@ -452,6 +325,8 @@ namespace PFMP_API.Controllers
                     if (parseResult.PayGrade != null) user.PayGrade = parseResult.PayGrade;
                     if (parseResult.RetirementSystem != null) user.RetirementSystem = parseResult.RetirementSystem;
                     if (parseResult.AnnualBasicPay.HasValue) user.AnnualIncome = parseResult.AnnualBasicPay;
+                    if (parseResult.ServiceComputationDate.HasValue)
+                        user.ServiceComputationDate = parseResult.ServiceComputationDate;
                     user.UpdatedAt = DateTime.UtcNow;
 
                     // Auto-calculate FERS pension fields from SCD and DOB
@@ -632,8 +507,6 @@ namespace PFMP_API.Controllers
             HasHsa = p.HasHsa,
             HsaBalance = p.HsaBalance,
             HsaAnnualContribution = p.HsaAnnualContribution,
-            LastSf50UploadDate = p.LastSf50UploadDate,
-            LastSf50FileName = p.LastSf50FileName,
             LastLesUploadDate = p.LastLesUploadDate,
             LastLesFileName = p.LastLesFileName,
             CreatedAt = p.CreatedAt,
@@ -687,6 +560,7 @@ namespace PFMP_API.Controllers
             if (r.AnnualBasicPay.HasValue) count++;
             if (r.BiweeklyGross.HasValue) count++;
             if (r.BiweeklyNet.HasValue) count++;
+            if (r.ServiceComputationDate.HasValue) count++;
             if (r.FegliDeduction.HasValue) count++;
             if (r.FehbDeduction.HasValue) count++;
             if (r.FedvipDentalDeduction.HasValue) count++;

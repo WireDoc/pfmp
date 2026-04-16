@@ -109,12 +109,7 @@ namespace PFMP_API.Models.FinancialProfile
         [Column(TypeName = "decimal(18,2)")]
         public decimal? HsaAnnualContribution { get; set; }
 
-        // === SF-50 / LES Upload Metadata ===
-        public DateTime? LastSf50UploadDate { get; set; }
-
-        [MaxLength(200)]
-        public string? LastSf50FileName { get; set; }
-
+        // === LES Upload Metadata ===
         public DateTime? LastLesUploadDate { get; set; }
 
         [MaxLength(200)]

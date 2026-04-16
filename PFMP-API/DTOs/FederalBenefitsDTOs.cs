@@ -54,8 +54,6 @@ public class FederalBenefitsResponse
     public decimal? HsaAnnualContribution { get; set; }
 
     // Upload metadata
-    public DateTime? LastSf50UploadDate { get; set; }
-    public string? LastSf50FileName { get; set; }
     public DateTime? LastLesUploadDate { get; set; }
     public string? LastLesFileName { get; set; }
 
@@ -114,24 +112,6 @@ public class SaveFederalBenefitsRequest
     public decimal? HsaAnnualContribution { get; set; }
 }
 
-public class Sf50UploadResponse
-{
-    public bool ParsedSuccessfully { get; set; }
-    public string? ErrorMessage { get; set; }
-    public int FieldsExtracted { get; set; }
-
-    // Parsed fields the user can review before saving
-    public string? PayGrade { get; set; }
-    public decimal? AnnualBasicPay { get; set; }
-    public string? PayBasis { get; set; }
-    public string? Agency { get; set; }
-    public string? RetirementPlan { get; set; }
-    public DateTime? ServiceComputationDate { get; set; }
-    public DateTime? DateOfBirth { get; set; }
-    public string? PositionTitle { get; set; }
-    public string? FegliCode { get; set; }
-}
-
 public class LesUploadResponse
 {
     public bool ParsedSuccessfully { get; set; }
@@ -144,6 +124,7 @@ public class LesUploadResponse
     public decimal? AnnualBasicPay { get; set; }
     public decimal? BiweeklyGross { get; set; }
     public decimal? BiweeklyNet { get; set; }
+    public DateTime? ServiceComputationDate { get; set; }
 
     // Benefit deductions (biweekly amounts)
     public decimal? FegliDeduction { get; set; }

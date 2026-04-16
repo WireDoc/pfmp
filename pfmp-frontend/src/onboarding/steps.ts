@@ -82,7 +82,7 @@ export const ONBOARDING_STEPS: OnboardingStepDef[] = [
   {
     id: 'federal-benefits',
     title: 'Federal Benefits',
-    description: 'FEGLI, FEHB, FERS pension details, and optional SF-50 / LES upload for auto-fill.',
+    description: 'FEGLI, FEHB, FERS pension details, and optional LES upload for auto-fill.',
     order: 12,
   },
   {

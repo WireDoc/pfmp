@@ -1196,10 +1196,11 @@ Your analysis will be reviewed by a backup AI system for validation.",
                     sb.AppendLine($"HSA: Balance {fedBenefits.HsaBalance:C0}, Annual Contribution {fedBenefits.HsaAnnualContribution:C0}");
 
                 // Upload dates
-                if (fedBenefits.LastSf50UploadDate.HasValue)
-                    sb.AppendLine($"Last SF-50 uploaded: {fedBenefits.LastSf50UploadDate:yyyy-MM-dd}");
                 if (fedBenefits.LastLesUploadDate.HasValue)
                     sb.AppendLine($"Last LES uploaded: {fedBenefits.LastLesUploadDate:yyyy-MM-dd}");
+
+                if (user?.ProjectedMonthlyRetirementExpenses.HasValue == true)
+                    sb.AppendLine($"Projected Monthly Retirement Expenses: {user.ProjectedMonthlyRetirementExpenses:C0}");
 
                 sb.AppendLine();
 

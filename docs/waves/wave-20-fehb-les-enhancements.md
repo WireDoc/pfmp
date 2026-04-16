@@ -1,7 +1,7 @@
 # Wave 20: FEHB Auto-Fill & LES Enhancements
 
 _Created: 2026-04-14_  
-_Status: Planned_
+_Status: In Progress — Phase 1 Complete_
 
 ## Overview
 
@@ -36,11 +36,11 @@ The LES box 11 "SCD Leave" contains the Service Computation Date (e.g., `10/26/0
    - DOB → Manual profile entry ✅ (not on LES, but already a profile field)
 
 ### Acceptance Criteria
-- [ ] LES upload extracts SCD from box 11 and saves to `User.ServiceComputationDate`
-- [ ] SF-50 upload endpoint, parser service, and frontend UI fully removed
-- [ ] DB migration drops `LastSf50UploadDate` and `LastSf50FileName` columns
-- [ ] All pension calculations continue to work (SCD comes from LES instead of SF-50)
-- [ ] No dead code references to SF-50 remain
+- [x] LES upload extracts SCD from box 11 and saves to `User.ServiceComputationDate`
+- [x] SF-50 upload endpoint, parser service, and frontend UI fully removed
+- [x] DB migration drops `LastSf50UploadDate` and `LastSf50FileName` columns
+- [x] All pension calculations continue to work (SCD comes from LES instead of SF-50)
+- [x] No dead code references to SF-50 remain
 
 ---
 

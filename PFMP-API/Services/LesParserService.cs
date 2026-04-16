@@ -67,6 +67,16 @@ namespace PFMP_API.Services
                     result.PayPeriod = ppMatch.Groups[1].Value;
                 }
 
+                // SCD Leave — Box 11 in DFAS LES format: "SCD LEAVE10/26/02" or "SCD LEAVE 10/26/02"
+                var scdMatch = Regex.Match(normalized, @"SCD\s*LEAVE\s*(\d{1,2}/\d{1,2}/\d{2,4})", RegexOptions.IgnoreCase);
+                if (scdMatch.Success && DateTime.TryParse(scdMatch.Groups[1].Value, CultureInfo.InvariantCulture,
+                    DateTimeStyles.None, out var scdDate))
+                {
+                    // Two-digit years < 50 are 2000s, >= 50 are 1900s (standard .NET behavior)
+                    result.ServiceComputationDate = scdDate.Kind == DateTimeKind.Utc
+                        ? scdDate : DateTime.SpecifyKind(scdDate, DateTimeKind.Utc);
+                }
+
                 // Annual Basic Pay — appears as the adjusted basic pay amount (e.g., "142476.00")
                 // In DFAS format: the pay fields appear after GS grade/step.
                 // Pattern: after the grade+step, the format is: AnnualPay.00 OTRate.00 AdjustedPay.00
@@ -430,6 +440,7 @@ namespace PFMP_API.Services
         public decimal? AnnualBasicPay { get; set; }
         public decimal? BiweeklyGross { get; set; }
         public decimal? BiweeklyNet { get; set; }
+        public DateTime? ServiceComputationDate { get; set; }
 
         // Benefit deductions (biweekly amounts)
         public decimal? FegliDeduction { get; set; }

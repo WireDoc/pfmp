@@ -48,7 +48,6 @@ public class FederalBenefitsControllerTests : IClassFixture<TestingWebAppFactory
         bool HasFltcip,
         bool HasFsa,
         bool HasHsa,
-        string? LastSf50FileName,
         string? LastLesFileName
     );
 
@@ -226,41 +225,12 @@ public class FederalBenefitsControllerTests : IClassFixture<TestingWebAppFactory
     }
 
     [Fact]
-    public async Task UploadSf50_ReturnsBadRequest_NoPdf()
-    {
-        var client = _factory.CreateClient();
-
-        // Send without file
-        var content = new MultipartFormDataContent();
-        var resp = await client.PostAsync("/api/FederalBenefits/upload-sf50", content);
-        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
-    }
-
-    [Fact]
     public async Task UploadLes_ReturnsBadRequest_NoPdf()
     {
         var client = _factory.CreateClient();
 
         var content = new MultipartFormDataContent();
         var resp = await client.PostAsync("/api/FederalBenefits/upload-les", content);
-        Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
-    }
-
-    [Fact]
-    public async Task UploadSf50_ReturnsBadRequest_WrongFileType()
-    {
-        var client = _factory.CreateClient();
-
-        var content = new MultipartFormDataContent();
-        var fileContent = new ByteArrayContent(new byte[] { 1, 2, 3, 4 });
-        fileContent.Headers.ContentDisposition = new System.Net.Http.Headers.ContentDispositionHeaderValue("form-data")
-        {
-            Name = "\"file\"",
-            FileName = "\"test.txt\""
-        };
-        content.Add(fileContent);
-
-        var resp = await client.PostAsync("/api/FederalBenefits/upload-sf50", content);
         Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
     }
 }

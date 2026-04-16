@@ -59,8 +59,6 @@ const mockProfile: FederalBenefitsProfile = {
   hasHsa: false,
   hsaBalance: null,
   hsaAnnualContribution: null,
-  lastSf50UploadDate: null,
-  lastSf50FileName: null,
   lastLesUploadDate: null,
   lastLesFileName: null,
   createdAt: '2025-01-01T00:00:00Z',
@@ -152,7 +150,6 @@ describe('FederalBenefitsSectionForm', () => {
 
   it('renders PDF upload buttons', () => {
     renderForm();
-    expect(screen.getByText('Upload SF-50')).toBeInTheDocument();
     expect(screen.getByText('Upload LES')).toBeInTheDocument();
     expect(screen.getByText(/Quick Import from Documents/)).toBeInTheDocument();
   });

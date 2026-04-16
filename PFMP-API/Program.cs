@@ -125,7 +125,6 @@ namespace PFMP_API
             builder.Services.AddScoped<IPropertyTaskService, PropertyTaskService>();
 
             // Federal Benefits / PDF Parsers (Wave 18)
-            builder.Services.AddScoped<Sf50ParserService>();
             builder.Services.AddScoped<LesParserService>();
 
             // Property Valuation & Address Services (Wave 15)

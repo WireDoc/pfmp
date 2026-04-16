@@ -55,8 +55,6 @@ export interface FederalBenefitsProfile {
   hsaAnnualContribution: number | null;
 
   // Upload metadata
-  lastSf50UploadDate: string | null;
-  lastSf50FileName: string | null;
   lastLesUploadDate: string | null;
   lastLesFileName: string | null;
 
@@ -108,21 +106,6 @@ export interface SaveFederalBenefitsRequest {
   hsaAnnualContribution?: number | null;
 }
 
-export interface Sf50UploadResponse {
-  parsedSuccessfully: boolean;
-  errorMessage: string | null;
-  fieldsExtracted: number;
-  payGrade: string | null;
-  annualBasicPay: number | null;
-  payBasis: string | null;
-  agency: string | null;
-  retirementPlan: string | null;
-  serviceComputationDate: string | null;
-  dateOfBirth: string | null;
-  positionTitle: string | null;
-  fegliCode: string | null;
-}
-
 export interface LesUploadResponse {
   parsedSuccessfully: boolean;
   errorMessage: string | null;
@@ -132,6 +115,7 @@ export interface LesUploadResponse {
   annualBasicPay: number | null;
   biweeklyGross: number | null;
   biweeklyNet: number | null;
+  serviceComputationDate: string | null;
   fegliDeduction: number | null;
   fehbDeduction: number | null;
   fedvipDentalDeduction: number | null;
@@ -234,28 +218,10 @@ export async function saveFederalBenefits(
   return data;
 }
 
-export async function uploadSf50(file: File): Promise<Sf50UploadResponse> {
-  const formData = new FormData();
-  formData.append('file', file);
-  const { data } = await apiClient.post('/federalbenefits/upload-sf50', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return data;
-}
-
 export async function uploadLes(file: File): Promise<LesUploadResponse> {
   const formData = new FormData();
   formData.append('file', file);
   const { data } = await apiClient.post('/federalbenefits/upload-les', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return data;
-}
-
-export async function applySf50(userId: number, file: File): Promise<FederalBenefitsProfile> {
-  const formData = new FormData();
-  formData.append('file', file);
-  const { data } = await apiClient.post(`/federalbenefits/user/${userId}/apply-sf50`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return data;

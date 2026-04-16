@@ -20,7 +20,6 @@ import type { FinancialProfileSectionStatusValue } from '../../services/financia
 import {
   fetchFederalBenefits,
   saveFederalBenefits,
-  applySf50,
   applyLes,
   type SaveFederalBenefitsRequest,
   type FederalBenefitsProfile,
@@ -103,12 +102,9 @@ export default function FederalBenefitsSectionForm({ userId, onStatusChange, cur
   const [hsaContribution, setHsaContribution] = useState('');
 
   // Upload state
-  const [sf50Status, setSf50Status] = useState<string | null>(null);
   const [lesStatus, setLesStatus] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [lastSf50, setLastSf50] = useState<string | null>(null);
   const [lastLes, setLastLes] = useState<string | null>(null);
-  const sf50InputRef = useRef<HTMLInputElement>(null);
   const lesInputRef = useRef<HTMLInputElement>(null);
 
   // ── Hydration ──
@@ -149,7 +145,6 @@ export default function FederalBenefitsSectionForm({ userId, onStatusChange, cur
     setHsaBalance(numStr(p.hsaBalance));
     setHsaContribution(numStr(p.hsaAnnualContribution));
 
-    setLastSf50(p.lastSf50FileName);
     setLastLes(p.lastLesFileName);
   }, []);
 
@@ -228,23 +223,6 @@ export default function FederalBenefitsSectionForm({ userId, onStatusChange, cur
   });
 
   // ── PDF Upload Handlers ──
-  const handleSf50Upload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadError(null);
-    setSf50Status('Uploading SF-50…');
-    try {
-      const result = await applySf50(userId, file);
-      applyProfile(result);
-      setSf50Status(`SF-50 applied — fields updated from ${file.name}`);
-      setLastSf50(file.name);
-    } catch {
-      setUploadError('Failed to parse SF-50. Ensure it is a valid PDF.');
-      setSf50Status(null);
-    }
-    if (sf50InputRef.current) sf50InputRef.current.value = '';
-  }, [userId, applyProfile]);
-
   const handleLesUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -293,19 +271,9 @@ export default function FederalBenefitsSectionForm({ userId, onStatusChange, cur
       <Box sx={{ p: 2, borderRadius: 2, border: '1px dashed', borderColor: 'divider', bgcolor: 'action.hover' }}>
         <Typography variant="subtitle2" gutterBottom>Quick Import from Documents</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Upload your SF-50 or LES (PDF) to auto-fill fields. You can still edit values manually after import.
+          Upload your LES (PDF) to auto-fill fields. You can still edit values manually after import.
         </Typography>
         <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
-          <Button
-            variant="outlined"
-            startIcon={<UploadFileIcon />}
-            onClick={() => sf50InputRef.current?.click()}
-            size="small"
-          >
-            Upload SF-50
-          </Button>
-          <input ref={sf50InputRef} type="file" accept=".pdf" hidden onChange={handleSf50Upload} />
-
           <Button
             variant="outlined"
             startIcon={<UploadFileIcon />}
@@ -316,15 +284,12 @@ export default function FederalBenefitsSectionForm({ userId, onStatusChange, cur
           </Button>
           <input ref={lesInputRef} type="file" accept=".pdf" hidden onChange={handleLesUpload} />
         </Stack>
-        {sf50Status && (
-          <Chip icon={<CheckCircleOutlineIcon />} label={sf50Status} color="success" size="small" sx={{ mt: 1 }} />
-        )}
         {lesStatus && (
-          <Chip icon={<CheckCircleOutlineIcon />} label={lesStatus} color="success" size="small" sx={{ mt: 1, ml: 1 }} />
+          <Chip icon={<CheckCircleOutlineIcon />} label={lesStatus} color="success" size="small" sx={{ mt: 1 }} />
         )}
-        {(lastSf50 || lastLes) && (
+        {lastLes && (
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-            {lastSf50 && `Last SF-50: ${lastSf50}`}{lastSf50 && lastLes && ' · '}{lastLes && `Last LES: ${lastLes}`}
+            Last LES: {lastLes}
           </Typography>
         )}
       </Box>

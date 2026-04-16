@@ -62,13 +62,11 @@ vi.mock('../../services/financialProfileApi', () => ({
 
 const mockFetchFederalBenefits = vi.fn();
 const mockSaveFederalBenefits = vi.fn();
-const mockApplySf50 = vi.fn();
 const mockApplyLes = vi.fn();
 
 vi.mock('../../services/federalBenefitsApi', () => ({
   fetchFederalBenefits: (...args: unknown[]) => mockFetchFederalBenefits(...args),
   saveFederalBenefits: (...args: unknown[]) => mockSaveFederalBenefits(...args),
-  applySf50: (...args: unknown[]) => mockApplySf50(...args),
   applyLes: (...args: unknown[]) => mockApplyLes(...args),
 }));
 
