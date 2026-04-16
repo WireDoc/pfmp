@@ -44,6 +44,7 @@ const mockProfile: FederalBenefitsProfile = {
   hasFegliOptionC: false,
   fegliOptionCMultiple: null,
   fegliTotalMonthlyPremium: 42.50,
+  fehbEnrollmentCode: '105',
   fehbPlanName: 'Blue Cross Standard',
   fehbCoverageLevel: 'Self Plus One',
   fehbMonthlyPremium: 350,

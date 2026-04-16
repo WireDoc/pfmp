@@ -284,6 +284,7 @@ describe('ProfileView', () => {
       hasFegliOptionA: false,
       hasFegliOptionB: false,
       hasFegliOptionC: false,
+      fehbEnrollmentCode: '104',
       fehbPlanName: 'BCBS Standard',
       fehbCoverageLevel: 'Self and Family',
       fehbMonthlyPremium: 450,

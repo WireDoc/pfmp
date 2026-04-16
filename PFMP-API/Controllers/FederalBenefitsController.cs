@@ -13,15 +13,18 @@ namespace PFMP_API.Controllers
         private readonly ApplicationDbContext _context;
         private readonly ILogger<FederalBenefitsController> _logger;
         private readonly LesParserService _lesParser;
+        private readonly FehbPlanLookupService _fehbLookup;
 
         public FederalBenefitsController(
             ApplicationDbContext context,
             ILogger<FederalBenefitsController> logger,
-            LesParserService lesParser)
+            LesParserService lesParser,
+            FehbPlanLookupService fehbLookup)
         {
             _context = context;
             _logger = logger;
             _lesParser = lesParser;
+            _fehbLookup = fehbLookup;
         }
 
         // GET: api/FederalBenefits/user/{userId}
@@ -161,6 +164,17 @@ namespace PFMP_API.Controllers
                 _logger.LogInformation("LES parsed: {Count} fields from {FileName}",
                     fieldsExtracted, file.FileName);
 
+                // Look up FEHB plan info for the upload response
+                var fehbPlanInfo = _fehbLookup.Lookup(parseResult.FehbEnrollmentCode);
+                decimal? fehbGovtMonthly = null;
+                if (parseResult.FehbDeduction.HasValue && fehbPlanInfo != null)
+                {
+                    var govtBiweekly = _fehbLookup.ComputeBiweeklyGovernmentShare(
+                        parseResult.FehbDeduction.Value, fehbPlanInfo.CoverageLevel);
+                    if (govtBiweekly.HasValue)
+                        fehbGovtMonthly = govtBiweekly.Value * 26m / 12m;
+                }
+
                 return Ok(new LesUploadResponse
                 {
                     ParsedSuccessfully = true,
@@ -176,6 +190,10 @@ namespace PFMP_API.Controllers
                     FegliOptionalCode = parseResult.FegliOptionalCode,
                     FegliOptionalDeduction = parseResult.FegliOptionalDeduction,
                     FehbDeduction = parseResult.FehbDeduction,
+                    FehbEnrollmentCode = parseResult.FehbEnrollmentCode,
+                    FehbPlanName = fehbPlanInfo?.PlanName,
+                    FehbCoverageLevel = fehbPlanInfo?.CoverageLevel,
+                    FehbEmployerContribution = fehbGovtMonthly,
                     FedvipDentalDeduction = parseResult.FedvipDentalDeduction,
                     FedvipVisionDeduction = parseResult.FedvipVisionDeduction,
                     FltcipDeduction = parseResult.FltcipDeduction,
@@ -275,6 +293,25 @@ namespace PFMP_API.Controllers
                 if (parseResult.FehbDeduction.HasValue)
                 {
                     profile.FehbMonthlyPremium = parseResult.FehbDeduction * 26m / 12m;
+
+                    // Look up plan details from enrollment code
+                    if (!string.IsNullOrEmpty(parseResult.FehbEnrollmentCode))
+                    {
+                        profile.FehbEnrollmentCode = parseResult.FehbEnrollmentCode;
+                        var planInfo = _fehbLookup.Lookup(parseResult.FehbEnrollmentCode);
+                        if (planInfo != null)
+                        {
+                            profile.FehbPlanName = planInfo.PlanName;
+                            profile.FehbCoverageLevel = planInfo.CoverageLevel;
+
+                            var govtShare = _fehbLookup.ComputeBiweeklyGovernmentShare(
+                                parseResult.FehbDeduction.Value, planInfo.CoverageLevel);
+                            if (govtShare.HasValue)
+                            {
+                                profile.FehbEmployerContribution = govtShare.Value * 26m / 12m;
+                            }
+                        }
+                    }
                 }
 
                 if (parseResult.FedvipDentalDeduction.HasValue)
@@ -492,6 +529,7 @@ namespace PFMP_API.Controllers
             HasFegliOptionC = p.HasFegliOptionC,
             FegliOptionCMultiple = p.FegliOptionCMultiple,
             FegliTotalMonthlyPremium = p.FegliTotalMonthlyPremium,
+            FehbEnrollmentCode = p.FehbEnrollmentCode,
             FehbPlanName = p.FehbPlanName,
             FehbCoverageLevel = p.FehbCoverageLevel,
             FehbMonthlyPremium = p.FehbMonthlyPremium,
@@ -536,6 +574,7 @@ namespace PFMP_API.Controllers
             p.HasFegliOptionC = r.HasFegliOptionC;
             p.FegliOptionCMultiple = r.FegliOptionCMultiple;
             p.FegliTotalMonthlyPremium = r.FegliTotalMonthlyPremium;
+            p.FehbEnrollmentCode = r.FehbEnrollmentCode;
             p.FehbPlanName = r.FehbPlanName;
             p.FehbCoverageLevel = r.FehbCoverageLevel;
             p.FehbMonthlyPremium = r.FehbMonthlyPremium;
@@ -563,6 +602,7 @@ namespace PFMP_API.Controllers
             if (r.ServiceComputationDate.HasValue) count++;
             if (r.FegliDeduction.HasValue) count++;
             if (r.FehbDeduction.HasValue) count++;
+            if (!string.IsNullOrEmpty(r.FehbEnrollmentCode)) count++;
             if (r.FedvipDentalDeduction.HasValue) count++;
             if (r.FedvipVisionDeduction.HasValue) count++;
             if (r.TspEmployeeDeduction.HasValue) count++;

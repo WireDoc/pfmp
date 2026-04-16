@@ -101,6 +101,9 @@ export default function FederalBenefitsSectionForm({ userId, onStatusChange, cur
   const [hsaBalance, setHsaBalance] = useState('');
   const [hsaContribution, setHsaContribution] = useState('');
 
+  // LES-derived (not user-editable, preserved on save)
+  const fehbEnrollmentCodeRef = useRef<string | null>(null);
+
   // Upload state
   const [lesStatus, setLesStatus] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -127,6 +130,7 @@ export default function FederalBenefitsSectionForm({ userId, onStatusChange, cur
     setFegliPremium(numStr(p.fegliTotalMonthlyPremium));
 
     setFehbPlan(p.fehbPlanName ?? '');
+    fehbEnrollmentCodeRef.current = p.fehbEnrollmentCode ?? null;
     setFehbCoverage(p.fehbCoverageLevel ?? '');
     setFehbPremium(numStr(p.fehbMonthlyPremium));
     setFehbEmployer(numStr(p.fehbEmployerContribution));
@@ -176,6 +180,7 @@ export default function FederalBenefitsSectionForm({ userId, onStatusChange, cur
     fegliTotalMonthlyPremium: parseNum(fegliPremium),
 
     fehbPlanName: fehbPlan || null,
+    fehbEnrollmentCode: fehbEnrollmentCodeRef.current,
     fehbCoverageLevel: fehbCoverage || null,
     fehbMonthlyPremium: parseNum(fehbPremium),
     fehbEmployerContribution: parseNum(fehbEmployer),

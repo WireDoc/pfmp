@@ -28,6 +28,7 @@ public class FederalBenefitsControllerTests : IClassFixture<TestingWebAppFactory
         string? FehbPlanName = null,
         string? FehbCoverageLevel = null,
         decimal? FehbMonthlyPremium = null,
+        string? FehbEnrollmentCode = null,
         decimal? FegliBasicCoverage = null,
         decimal? FegliTotalMonthlyPremium = null
     );
@@ -43,6 +44,7 @@ public class FederalBenefitsControllerTests : IClassFixture<TestingWebAppFactory
         string? FehbPlanName,
         string? FehbCoverageLevel,
         decimal? FehbMonthlyPremium,
+        string? FehbEnrollmentCode,
         bool HasFedvipDental,
         bool HasFedvipVision,
         bool HasFltcip,

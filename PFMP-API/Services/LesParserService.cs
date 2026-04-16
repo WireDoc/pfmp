@@ -174,7 +174,9 @@ namespace PFMP_API.Services
                 // FEHB — labeled "FEHB" followed by a numeric code (e.g., "111")
                 // The tricky part: "FEHB111133.77895.17" → code=111, current=133.77, YTD=895.17
                 // Code is typically 2-3 alphanumeric chars. We need to find where the decimal amount starts.
-                result.FehbDeduction = ExtractFehbDeduction(deductionsSection);
+                var fehbResult = ExtractFehbDeduction(deductionsSection);
+                result.FehbDeduction = fehbResult.Amount;
+                result.FehbEnrollmentCode = fehbResult.EnrollmentCode;
 
                 // DENTAL (FEDVIP Dental) — labeled "DENTAL"
                 result.FedvipDentalDeduction = ExtractDfasDeduction(deductionsSection, @"DENTAL(\d+\.\d{2})(\d+\.\d{2})");
@@ -327,19 +329,20 @@ namespace PFMP_API.Services
         /// The trick is finding where the code ends and the dollar amount starts.
         /// We use the decimal point as anchor — amounts always have .XX format.
         /// Example: "FEHB111133.77895.17" → code=111, current=133.77, YTD=895.17
+        /// Returns (biweeklyAmount, enrollmentCode).
         /// </summary>
-        private decimal? ExtractFehbDeduction(string section)
+        private (decimal? Amount, string? EnrollmentCode) ExtractFehbDeduction(string section)
         {
             // Find "FEHB" in the deductions section
             var fehbPos = section.IndexOf("FEHB", StringComparison.OrdinalIgnoreCase);
-            if (fehbPos < 0) return null;
+            if (fehbPos < 0) return (null, null);
 
             // Get text after "FEHB"
             var after = section.Substring(fehbPos + 4);
 
             // Find the first decimal point — this anchors us to the first amount
             var firstDot = after.IndexOf('.');
-            if (firstDot < 1) return null;
+            if (firstDot < 1) return (null, null);
 
             // The character after the decimal point + 2 digits is the end of the first amount.
             // E.g., in "111133.77895.17", firstDot=6, chars at 7-8 are "77"
@@ -358,11 +361,14 @@ namespace PFMP_API.Services
                 if (decimal.TryParse(candidate, NumberStyles.Number,
                     CultureInfo.InvariantCulture, out var val) && val >= 1 && val <= 2000)
                 {
-                    return val;
+                    // Everything before the dollar amount start is the enrollment code
+                    var code = startIdx > 0 ? after.Substring(0, startIdx).Trim() : null;
+                    if (string.IsNullOrEmpty(code)) code = null;
+                    return (val, code);
                 }
             }
 
-            return null;
+            return (null, null);
         }
 
         /// <summary>
@@ -448,6 +454,7 @@ namespace PFMP_API.Services
         public decimal? FegliOptionalDeduction { get; set; }
         public string? FegliOptionalCode { get; set; }
         public decimal? FehbDeduction { get; set; }
+        public string? FehbEnrollmentCode { get; set; }
         public decimal? FedvipDentalDeduction { get; set; }
         public decimal? FedvipVisionDeduction { get; set; }
         public decimal? FltcipDeduction { get; set; }

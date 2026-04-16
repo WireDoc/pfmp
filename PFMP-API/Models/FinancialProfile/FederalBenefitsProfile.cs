@@ -66,6 +66,9 @@ namespace PFMP_API.Models.FinancialProfile
         public decimal? FegliTotalMonthlyPremium { get; set; }
 
         // === FEHB (Federal Employees Health Benefits) ===
+        [MaxLength(10)]
+        public string? FehbEnrollmentCode { get; set; }
+
         [MaxLength(200)]
         public string? FehbPlanName { get; set; }
 

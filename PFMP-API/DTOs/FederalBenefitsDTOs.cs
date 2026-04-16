@@ -31,6 +31,7 @@ public class FederalBenefitsResponse
     public decimal? FegliTotalMonthlyPremium { get; set; }
 
     // FEHB
+    public string? FehbEnrollmentCode { get; set; }
     public string? FehbPlanName { get; set; }
     public string? FehbCoverageLevel { get; set; }
     public decimal? FehbMonthlyPremium { get; set; }
@@ -89,6 +90,7 @@ public class SaveFederalBenefitsRequest
     public decimal? FegliTotalMonthlyPremium { get; set; }
 
     // FEHB
+    public string? FehbEnrollmentCode { get; set; }
     public string? FehbPlanName { get; set; }
     public string? FehbCoverageLevel { get; set; }
     public decimal? FehbMonthlyPremium { get; set; }
@@ -132,6 +134,10 @@ public class LesUploadResponse
     public decimal? FegliOptionalDeduction { get; set; }
     public string? FegliOptionalCode { get; set; }
     public decimal? FehbDeduction { get; set; }
+    public string? FehbEnrollmentCode { get; set; }
+    public string? FehbPlanName { get; set; }
+    public string? FehbCoverageLevel { get; set; }
+    public decimal? FehbEmployerContribution { get; set; }
     public decimal? FedvipDentalDeduction { get; set; }
     public decimal? FedvipVisionDeduction { get; set; }
     public decimal? FltcipDeduction { get; set; }

@@ -126,6 +126,7 @@ namespace PFMP_API
 
             // Federal Benefits / PDF Parsers (Wave 18)
             builder.Services.AddScoped<LesParserService>();
+            builder.Services.AddSingleton<FehbPlanLookupService>();
 
             // Property Valuation & Address Services (Wave 15)
             builder.Services.AddScoped<PFMP_API.Services.Properties.IAddressValidationService, PFMP_API.Services.Properties.UspsAddressValidationService>();

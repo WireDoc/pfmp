@@ -1175,9 +1175,10 @@ Your analysis will be reviewed by a backup AI system for validation.",
                 {
                     sb.Append("FEHB:");
                     if (!string.IsNullOrEmpty(fedBenefits.FehbPlanName)) sb.Append($" {fedBenefits.FehbPlanName}");
-                    if (!string.IsNullOrEmpty(fedBenefits.FehbCoverageLevel)) sb.Append($" ({fedBenefits.FehbCoverageLevel})");
+                    if (!string.IsNullOrEmpty(fedBenefits.FehbEnrollmentCode)) sb.Append($" (code {fedBenefits.FehbEnrollmentCode})");
+                    if (!string.IsNullOrEmpty(fedBenefits.FehbCoverageLevel)) sb.Append($" [{fedBenefits.FehbCoverageLevel}]");
                     if (fedBenefits.FehbMonthlyPremium.HasValue) sb.Append($" — {fedBenefits.FehbMonthlyPremium:C2}/mo employee premium");
-                    if (fedBenefits.FehbEmployerContribution.HasValue) sb.Append($" (employer pays {fedBenefits.FehbEmployerContribution:C2})");
+                    if (fedBenefits.FehbEmployerContribution.HasValue) sb.Append($" (employer pays {fedBenefits.FehbEmployerContribution:C2}/mo)");
                     sb.AppendLine();
                 }
 

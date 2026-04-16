@@ -32,6 +32,7 @@ export interface FederalBenefitsProfile {
   fegliTotalMonthlyPremium: number | null;
 
   // FEHB
+  fehbEnrollmentCode: string | null;
   fehbPlanName: string | null;
   fehbCoverageLevel: string | null;
   fehbMonthlyPremium: number | null;
@@ -86,6 +87,7 @@ export interface SaveFederalBenefitsRequest {
   fegliOptionCMultiple?: number | null;
   fegliTotalMonthlyPremium?: number | null;
 
+  fehbEnrollmentCode?: string | null;
   fehbPlanName?: string | null;
   fehbCoverageLevel?: string | null;
   fehbMonthlyPremium?: number | null;
@@ -118,6 +120,10 @@ export interface LesUploadResponse {
   serviceComputationDate: string | null;
   fegliDeduction: number | null;
   fehbDeduction: number | null;
+  fehbEnrollmentCode: string | null;
+  fehbPlanName: string | null;
+  fehbCoverageLevel: string | null;
+  fehbEmployerContribution: number | null;
   fedvipDentalDeduction: number | null;
   fedvipVisionDeduction: number | null;
   fltcipDeduction: number | null;
