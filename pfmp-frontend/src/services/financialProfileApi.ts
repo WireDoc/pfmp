@@ -54,6 +54,7 @@ export interface RiskGoalsProfilePayload {
   liquidityBufferMonths?: number | null;
   emergencyFundTarget?: number | null;
   transactionalAccountDesiredBalance?: number | null;
+  projectedMonthlyRetirementExpenses?: number | null;
   inflationAssumptionPercent?: number | null;
   optOut?: SectionOptOutPayload | null;
 }

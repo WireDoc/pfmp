@@ -146,6 +146,10 @@ namespace PFMP_API.Services.FinancialProfile
                 {
                     user.TransactionalAccountDesiredBalance = input.TransactionalAccountDesiredBalance.Value;
                 }
+                if (input.ProjectedMonthlyRetirementExpenses.HasValue)
+                {
+                    user.ProjectedMonthlyRetirementExpenses = input.ProjectedMonthlyRetirementExpenses.Value;
+                }
             }
 
             user.UpdatedAt = DateTime.UtcNow;
@@ -757,6 +761,7 @@ namespace PFMP_API.Services.FinancialProfile
                 EmergencyFundTarget = user.EmergencyFundTarget,
                 LiquidityBufferMonths = user.LiquidityBufferMonths,
                 TransactionalAccountDesiredBalance = user.TransactionalAccountDesiredBalance,
+                ProjectedMonthlyRetirementExpenses = user.ProjectedMonthlyRetirementExpenses,
                 OptOut = optOut
             };
         }

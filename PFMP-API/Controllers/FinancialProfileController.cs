@@ -354,6 +354,7 @@ namespace PFMP_API.Controllers
         public decimal? LiquidityBufferMonths { get; set; }
         public decimal? EmergencyFundTarget { get; set; }
         public decimal? TransactionalAccountDesiredBalance { get; set; }
+        public decimal? ProjectedMonthlyRetirementExpenses { get; set; }
         public SectionOptOutRequest? OptOut { get; set; }
 
         public RiskGoalsInput ToInput() => new()
@@ -365,6 +366,7 @@ namespace PFMP_API.Controllers
             LiquidityBufferMonths = LiquidityBufferMonths,
             EmergencyFundTarget = EmergencyFundTarget,
             TransactionalAccountDesiredBalance = TransactionalAccountDesiredBalance,
+            ProjectedMonthlyRetirementExpenses = ProjectedMonthlyRetirementExpenses,
             OptOut = OptOut?.ToOptOut()
         };
     }

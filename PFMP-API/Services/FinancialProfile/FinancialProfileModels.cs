@@ -30,6 +30,7 @@ namespace PFMP_API.Services.FinancialProfile
         public decimal? LiquidityBufferMonths { get; set; }
         public decimal? EmergencyFundTarget { get; set; }
         public decimal? TransactionalAccountDesiredBalance { get; set; }
+        public decimal? ProjectedMonthlyRetirementExpenses { get; set; }
         public SectionOptOut? OptOut { get; set; }
     }
 

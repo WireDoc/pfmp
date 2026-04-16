@@ -1,7 +1,9 @@
 # Wave 19: Advanced Retirement Planning
 
 _Created: 2026-04-12_  
-_Status: Planned_
+_Status: COMPLETE_  
+_Phase 1 committed: 234c046 (TSP Roth/Traditional Split)_  
+_Phase 2 committed: 5762b50 (COLA, custom age, survivor benefit, tax modeling, income gap)_
 
 ## Overview
 
@@ -57,3 +59,11 @@ The current projector treats TSP as a single balance. In reality, Roth withdrawa
 - Retirement income goal gap analysis (projected income vs. target)
 - Tax impact modeling (federal + state tax on pension income)
 - TSP withdrawal strategy integration (lump sum, annuity, installments)
+
+---
+
+## Post-Wave Enhancement: Projected Retirement Expenses in AI Context
+
+- Wired `User.ProjectedMonthlyRetirementExpenses` into `AIIntelligenceService` federal benefits context section
+- Field already existed on User model (added in Wave 18 migration) but was never emitted to the AI prompt
+- AI can now compare projected retirement income against projected expenses for gap analysis
