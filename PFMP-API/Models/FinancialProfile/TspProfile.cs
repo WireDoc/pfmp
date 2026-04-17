@@ -56,6 +56,19 @@ namespace PFMP_API.Models.FinancialProfile
         [Column(TypeName = "decimal(8,4)")]
         public decimal? RothContributionRatePercent { get; set; }
 
+        // Biweekly contribution amounts (from LES)
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? EmployeeContributionBiweekly { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? RothContributionBiweekly { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? CatchUpContributionBiweekly { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? AgencyMatchBiweekly { get; set; }
+
         public DateTime LastUpdatedAt { get; set; } = DateTime.UtcNow;
 
         public bool IsOptedOut { get; set; }

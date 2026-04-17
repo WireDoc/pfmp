@@ -30,7 +30,13 @@ public class FederalBenefitsControllerTests : IClassFixture<TestingWebAppFactory
         decimal? FehbMonthlyPremium = null,
         string? FehbEnrollmentCode = null,
         decimal? FegliBasicCoverage = null,
-        decimal? FegliTotalMonthlyPremium = null
+        decimal? FegliTotalMonthlyPremium = null,
+        decimal? AnnualLeaveBalance = null,
+        decimal? SickLeaveBalance = null,
+        decimal? FederalTaxWithholdingBiweekly = null,
+        decimal? StateTaxWithholdingBiweekly = null,
+        decimal? OasdiDeductionBiweekly = null,
+        decimal? MedicareDeductionBiweekly = null
     );
 
     private record FederalBenefitsDto(
@@ -50,7 +56,13 @@ public class FederalBenefitsControllerTests : IClassFixture<TestingWebAppFactory
         bool HasFltcip,
         bool HasFsa,
         bool HasHsa,
-        string? LastLesFileName
+        string? LastLesFileName,
+        decimal? AnnualLeaveBalance = null,
+        decimal? SickLeaveBalance = null,
+        decimal? FederalTaxWithholdingBiweekly = null,
+        decimal? StateTaxWithholdingBiweekly = null,
+        decimal? OasdiDeductionBiweekly = null,
+        decimal? MedicareDeductionBiweekly = null
     );
 
     private async Task<int> CreateTestUser(HttpClient client)
@@ -234,5 +246,52 @@ public class FederalBenefitsControllerTests : IClassFixture<TestingWebAppFactory
         var content = new MultipartFormDataContent();
         var resp = await client.PostAsync("/api/FederalBenefits/upload-les", content);
         Assert.Equal(HttpStatusCode.BadRequest, resp.StatusCode);
+    }
+
+    [Fact]
+    public async Task Save_PersistsLeaveAndTaxFields()
+    {
+        var client = _factory.CreateClient();
+        var userId = await CreateTestUser(client);
+
+        var request = new SaveRequest(
+            High3AverageSalary: 110000m,
+            HasFegliBasic: false,
+            HasFegliOptionA: false,
+            HasFegliOptionB: false,
+            HasFegliOptionC: false,
+            HasFedvipDental: false,
+            HasFedvipVision: false,
+            HasFltcip: false,
+            HasFsa: false,
+            HasHsa: false,
+            AnnualLeaveBalance: 160m,
+            SickLeaveBalance: 800m,
+            FederalTaxWithholdingBiweekly: 450.25m,
+            StateTaxWithholdingBiweekly: 120.50m,
+            OasdiDeductionBiweekly: 285.00m,
+            MedicareDeductionBiweekly: 66.75m
+        );
+
+        var resp = await client.PostAsJsonAsync($"/api/FederalBenefits/user/{userId}", request);
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+
+        var result = await resp.Content.ReadFromJsonAsync<FederalBenefitsDto>();
+        Assert.NotNull(result);
+        Assert.Equal(160m, result!.AnnualLeaveBalance);
+        Assert.Equal(800m, result.SickLeaveBalance);
+        Assert.Equal(450.25m, result.FederalTaxWithholdingBiweekly);
+        Assert.Equal(120.50m, result.StateTaxWithholdingBiweekly);
+        Assert.Equal(285.00m, result.OasdiDeductionBiweekly);
+        Assert.Equal(66.75m, result.MedicareDeductionBiweekly);
+
+        // Verify GET returns same values
+        var getResp = await client.GetAsync($"/api/FederalBenefits/user/{userId}");
+        Assert.Equal(HttpStatusCode.OK, getResp.StatusCode);
+        var getResult = await getResp.Content.ReadFromJsonAsync<FederalBenefitsDto>();
+        Assert.NotNull(getResult);
+        Assert.Equal(160m, getResult!.AnnualLeaveBalance);
+        Assert.Equal(800m, getResult.SickLeaveBalance);
+        Assert.Equal(450.25m, getResult.FederalTaxWithholdingBiweekly);
     }
 }

@@ -54,6 +54,16 @@ public class FederalBenefitsResponse
     public decimal? HsaBalance { get; set; }
     public decimal? HsaAnnualContribution { get; set; }
 
+    // Leave balances (from LES)
+    public decimal? AnnualLeaveBalance { get; set; }
+    public decimal? SickLeaveBalance { get; set; }
+
+    // Tax withholding (biweekly from LES)
+    public decimal? FederalTaxWithholdingBiweekly { get; set; }
+    public decimal? StateTaxWithholdingBiweekly { get; set; }
+    public decimal? OasdiDeductionBiweekly { get; set; }
+    public decimal? MedicareDeductionBiweekly { get; set; }
+
     // Upload metadata
     public DateTime? LastLesUploadDate { get; set; }
     public string? LastLesFileName { get; set; }
@@ -112,6 +122,16 @@ public class SaveFederalBenefitsRequest
     public bool HasHsa { get; set; }
     public decimal? HsaBalance { get; set; }
     public decimal? HsaAnnualContribution { get; set; }
+
+    // Leave balances
+    public decimal? AnnualLeaveBalance { get; set; }
+    public decimal? SickLeaveBalance { get; set; }
+
+    // Tax withholding (biweekly)
+    public decimal? FederalTaxWithholdingBiweekly { get; set; }
+    public decimal? StateTaxWithholdingBiweekly { get; set; }
+    public decimal? OasdiDeductionBiweekly { get; set; }
+    public decimal? MedicareDeductionBiweekly { get; set; }
 }
 
 public class LesUploadResponse

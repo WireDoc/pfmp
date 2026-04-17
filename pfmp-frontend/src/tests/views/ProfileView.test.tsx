@@ -293,6 +293,12 @@ describe('ProfileView', () => {
       hasFltcip: false,
       hasFsa: false,
       hasHsa: false,
+      annualLeaveBalance: null,
+      sickLeaveBalance: null,
+      federalTaxWithholdingBiweekly: null,
+      stateTaxWithholdingBiweekly: null,
+      oasdiDeductionBiweekly: null,
+      medicareDeductionBiweekly: null,
     });
     const user = userEvent.setup();
     renderProfileView();

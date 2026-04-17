@@ -292,6 +292,11 @@ export function ProfileView() {
             hasFltcip: fb.hasFltcip, fltcipMonthlyPremium: fb.fltcipMonthlyPremium,
             hasFsa: fb.hasFsa, fsaAnnualElection: fb.fsaAnnualElection,
             hasHsa: fb.hasHsa, hsaBalance: fb.hsaBalance, hsaAnnualContribution: fb.hsaAnnualContribution,
+            annualLeaveBalance: fb.annualLeaveBalance, sickLeaveBalance: fb.sickLeaveBalance,
+            federalTaxWithholdingBiweekly: fb.federalTaxWithholdingBiweekly,
+            stateTaxWithholdingBiweekly: fb.stateTaxWithholdingBiweekly,
+            oasdiDeductionBiweekly: fb.oasdiDeductionBiweekly,
+            medicareDeductionBiweekly: fb.medicareDeductionBiweekly,
           });
         }
       } catch (err) {
@@ -361,6 +366,11 @@ export function ProfileView() {
       hasFltcip: p.hasFltcip, fltcipMonthlyPremium: p.fltcipMonthlyPremium,
       hasFsa: p.hasFsa, fsaAnnualElection: p.fsaAnnualElection,
       hasHsa: p.hasHsa, hsaBalance: p.hsaBalance, hsaAnnualContribution: p.hsaAnnualContribution,
+      annualLeaveBalance: p.annualLeaveBalance, sickLeaveBalance: p.sickLeaveBalance,
+      federalTaxWithholdingBiweekly: p.federalTaxWithholdingBiweekly,
+      stateTaxWithholdingBiweekly: p.stateTaxWithholdingBiweekly,
+      oasdiDeductionBiweekly: p.oasdiDeductionBiweekly,
+      medicareDeductionBiweekly: p.medicareDeductionBiweekly,
     });
   };
 
@@ -1225,6 +1235,40 @@ export function ProfileView() {
                       </>
                     )}
                   </Stack>
+                </Grid>
+              </Grid>
+
+              <Divider />
+
+              {/* Leave Balances */}
+              <Typography variant="subtitle1" fontWeight={600}>Leave Balances</Typography>
+              <Typography variant="caption" color="text.secondary">From most recent LES upload. Sick leave is credited toward FERS retirement service.</Typography>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField label="Annual Leave (hours)" type="number" size="small" fullWidth value={numStrTrunc(fedForm.annualLeaveBalance)} onChange={e => updateFed('annualLeaveBalance', parseNum(e.target.value))} inputProps={{ min: 0 }} />
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <TextField label="Sick Leave (hours)" type="number" size="small" fullWidth value={numStrTrunc(fedForm.sickLeaveBalance)} onChange={e => updateFed('sickLeaveBalance', parseNum(e.target.value))} inputProps={{ min: 0 }} />
+                </Grid>
+              </Grid>
+
+              <Divider />
+
+              {/* Tax Withholding */}
+              <Typography variant="subtitle1" fontWeight={600}>Tax Withholding (Biweekly)</Typography>
+              <Typography variant="caption" color="text.secondary">Biweekly deduction amounts from LES. Used by AI advisor for tax analysis.</Typography>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <TextField label="Federal Tax" type="number" size="small" fullWidth value={numStrTrunc(fedForm.federalTaxWithholdingBiweekly)} onChange={e => updateFed('federalTaxWithholdingBiweekly', parseNum(e.target.value))} inputProps={{ min: 0 }} />
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <TextField label="State Tax" type="number" size="small" fullWidth value={numStrTrunc(fedForm.stateTaxWithholdingBiweekly)} onChange={e => updateFed('stateTaxWithholdingBiweekly', parseNum(e.target.value))} inputProps={{ min: 0 }} />
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <TextField label="OASDI (Social Security)" type="number" size="small" fullWidth value={numStrTrunc(fedForm.oasdiDeductionBiweekly)} onChange={e => updateFed('oasdiDeductionBiweekly', parseNum(e.target.value))} inputProps={{ min: 0 }} />
+                </Grid>
+                <Grid size={{ xs: 12, md: 3 }}>
+                  <TextField label="Medicare" type="number" size="small" fullWidth value={numStrTrunc(fedForm.medicareDeductionBiweekly)} onChange={e => updateFed('medicareDeductionBiweekly', parseNum(e.target.value))} inputProps={{ min: 0 }} />
                 </Grid>
               </Grid>
 

@@ -59,6 +59,16 @@ export interface FederalBenefitsProfile {
   lastLesUploadDate: string | null;
   lastLesFileName: string | null;
 
+  // Leave balances (from LES)
+  annualLeaveBalance: number | null;
+  sickLeaveBalance: number | null;
+
+  // Tax withholding (biweekly from LES)
+  federalTaxWithholdingBiweekly: number | null;
+  stateTaxWithholdingBiweekly: number | null;
+  oasdiDeductionBiweekly: number | null;
+  medicareDeductionBiweekly: number | null;
+
   createdAt: string;
   updatedAt: string;
 }
@@ -106,6 +116,16 @@ export interface SaveFederalBenefitsRequest {
   hasHsa: boolean;
   hsaBalance?: number | null;
   hsaAnnualContribution?: number | null;
+
+  // Leave balances
+  annualLeaveBalance?: number | null;
+  sickLeaveBalance?: number | null;
+
+  // Tax withholding (biweekly)
+  federalTaxWithholdingBiweekly?: number | null;
+  stateTaxWithholdingBiweekly?: number | null;
+  oasdiDeductionBiweekly?: number | null;
+  medicareDeductionBiweekly?: number | null;
 }
 
 export interface LesUploadResponse {

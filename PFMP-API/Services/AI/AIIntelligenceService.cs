@@ -834,6 +834,24 @@ Your analysis will be reviewed by a backup AI system for validation.",
                 sb.AppendLine("=== TSP (Federal Thrift Savings Plan) ===");
                 sb.AppendLine($"Balance: ${totalBalance:N0} | Contribution Rate: {tsp.ContributionRatePercent:F1}% | Employer Match: {tsp.EmployerMatchPercent:F1}%");
 
+                // Biweekly contribution amounts from LES
+                if (tsp.EmployeeContributionBiweekly.HasValue || tsp.RothContributionBiweekly.HasValue
+                    || tsp.CatchUpContributionBiweekly.HasValue || tsp.AgencyMatchBiweekly.HasValue)
+                {
+                    var contribParts = new List<string>();
+                    if (tsp.EmployeeContributionBiweekly.HasValue)
+                        contribParts.Add($"Employee: {tsp.EmployeeContributionBiweekly:C2}/pp");
+                    if (tsp.RothContributionBiweekly.HasValue)
+                        contribParts.Add($"Roth: {tsp.RothContributionBiweekly:C2}/pp");
+                    if (tsp.CatchUpContributionBiweekly.HasValue)
+                        contribParts.Add($"Catch-Up: {tsp.CatchUpContributionBiweekly:C2}/pp");
+                    if (tsp.AgencyMatchBiweekly.HasValue)
+                        contribParts.Add($"Agency Match: {tsp.AgencyMatchBiweekly:C2}/pp");
+                    var totalBiweekly = (tsp.EmployeeContributionBiweekly ?? 0) + (tsp.RothContributionBiweekly ?? 0)
+                        + (tsp.CatchUpContributionBiweekly ?? 0) + (tsp.AgencyMatchBiweekly ?? 0);
+                    sb.AppendLine($"Biweekly Contributions: {string.Join(" | ", contribParts)} (${totalBiweekly * 26:N0}/yr total)");
+                }
+
                 // Roth/Traditional split
                 if (tsp.RothBalance.HasValue || tsp.TraditionalBalance.HasValue)
                 {
@@ -1195,6 +1213,32 @@ Your analysis will be reviewed by a backup AI system for validation.",
                     sb.AppendLine($"FSA Annual Election: {fedBenefits.FsaAnnualElection:C0}");
                 if (fedBenefits.HasHsa)
                     sb.AppendLine($"HSA: Balance {fedBenefits.HsaBalance:C0}, Annual Contribution {fedBenefits.HsaAnnualContribution:C0}");
+
+                // Leave balances (from most recent LES)
+                if (fedBenefits.AnnualLeaveBalance.HasValue || fedBenefits.SickLeaveBalance.HasValue)
+                {
+                    sb.Append("Leave Balances:");
+                    if (fedBenefits.AnnualLeaveBalance.HasValue)
+                        sb.Append($" Annual: {fedBenefits.AnnualLeaveBalance:F0}h");
+                    if (fedBenefits.SickLeaveBalance.HasValue)
+                        sb.Append($" | Sick: {fedBenefits.SickLeaveBalance:F0}h (OPM credits sick leave toward retirement service)");
+                    sb.AppendLine();
+                }
+
+                // Tax withholding (biweekly → annualized)
+                if (fedBenefits.FederalTaxWithholdingBiweekly.HasValue || fedBenefits.StateTaxWithholdingBiweekly.HasValue)
+                {
+                    sb.Append("Tax Withholding (annualized):");
+                    if (fedBenefits.FederalTaxWithholdingBiweekly.HasValue)
+                        sb.Append($" Federal: {fedBenefits.FederalTaxWithholdingBiweekly * 26:C0}/yr");
+                    if (fedBenefits.StateTaxWithholdingBiweekly.HasValue)
+                        sb.Append($" | State: {fedBenefits.StateTaxWithholdingBiweekly * 26:C0}/yr");
+                    if (fedBenefits.OasdiDeductionBiweekly.HasValue)
+                        sb.Append($" | OASDI: {fedBenefits.OasdiDeductionBiweekly * 26:C0}/yr");
+                    if (fedBenefits.MedicareDeductionBiweekly.HasValue)
+                        sb.Append($" | Medicare: {fedBenefits.MedicareDeductionBiweekly * 26:C0}/yr");
+                    sb.AppendLine();
+                }
 
                 // Upload dates
                 if (fedBenefits.LastLesUploadDate.HasValue)

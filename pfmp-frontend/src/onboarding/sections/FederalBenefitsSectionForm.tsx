@@ -103,6 +103,12 @@ export default function FederalBenefitsSectionForm({ userId, onStatusChange, cur
 
   // LES-derived (not user-editable, preserved on save)
   const fehbEnrollmentCodeRef = useRef<string | null>(null);
+  const annualLeaveRef = useRef<number | null>(null);
+  const sickLeaveRef = useRef<number | null>(null);
+  const fedTaxRef = useRef<number | null>(null);
+  const stateTaxRef = useRef<number | null>(null);
+  const oasdiRef = useRef<number | null>(null);
+  const medicareRef = useRef<number | null>(null);
 
   // Upload state
   const [lesStatus, setLesStatus] = useState<string | null>(null);
@@ -131,6 +137,12 @@ export default function FederalBenefitsSectionForm({ userId, onStatusChange, cur
 
     setFehbPlan(p.fehbPlanName ?? '');
     fehbEnrollmentCodeRef.current = p.fehbEnrollmentCode ?? null;
+    annualLeaveRef.current = p.annualLeaveBalance ?? null;
+    sickLeaveRef.current = p.sickLeaveBalance ?? null;
+    fedTaxRef.current = p.federalTaxWithholdingBiweekly ?? null;
+    stateTaxRef.current = p.stateTaxWithholdingBiweekly ?? null;
+    oasdiRef.current = p.oasdiDeductionBiweekly ?? null;
+    medicareRef.current = p.medicareDeductionBiweekly ?? null;
     setFehbCoverage(p.fehbCoverageLevel ?? '');
     setFehbPremium(numStr(p.fehbMonthlyPremium));
     setFehbEmployer(numStr(p.fehbEmployerContribution));
@@ -198,6 +210,12 @@ export default function FederalBenefitsSectionForm({ userId, onStatusChange, cur
     hasHsa,
     hsaBalance: parseNum(hsaBalance),
     hsaAnnualContribution: parseNum(hsaContribution),
+    annualLeaveBalance: annualLeaveRef.current,
+    sickLeaveBalance: sickLeaveRef.current,
+    federalTaxWithholdingBiweekly: fedTaxRef.current,
+    stateTaxWithholdingBiweekly: stateTaxRef.current,
+    oasdiDeductionBiweekly: oasdiRef.current,
+    medicareDeductionBiweekly: medicareRef.current,
   }), [
     high3, projectedAnnuity, projectedMonthlyPension, creditableYears, creditableMonths,
     supplementEligible, supplementMonthly, hasFegliBasic, fegliBasicCoverage, hasFegliA,

@@ -351,6 +351,22 @@ namespace PFMP_API.Controllers
                 if (parseResult.FersCumulativeRetirement.HasValue)
                     profile.FersCumulativeRetirement = parseResult.FersCumulativeRetirement;
 
+                // Leave balances (snapshot from most recent LES)
+                if (parseResult.AnnualLeaveBalance.HasValue)
+                    profile.AnnualLeaveBalance = parseResult.AnnualLeaveBalance;
+                if (parseResult.SickLeaveBalance.HasValue)
+                    profile.SickLeaveBalance = parseResult.SickLeaveBalance;
+
+                // Tax withholding (biweekly amounts from LES)
+                if (parseResult.FederalTaxWithholding.HasValue)
+                    profile.FederalTaxWithholdingBiweekly = parseResult.FederalTaxWithholding;
+                if (parseResult.StateTaxWithholding.HasValue)
+                    profile.StateTaxWithholdingBiweekly = parseResult.StateTaxWithholding;
+                if (parseResult.OasdiDeduction.HasValue)
+                    profile.OasdiDeductionBiweekly = parseResult.OasdiDeduction;
+                if (parseResult.MedicareDeduction.HasValue)
+                    profile.MedicareDeductionBiweekly = parseResult.MedicareDeduction;
+
                 profile.LastLesUploadDate = DateTime.UtcNow;
                 profile.LastLesFileName = file.FileName;
                 profile.UpdatedAt = DateTime.UtcNow;
@@ -368,6 +384,27 @@ namespace PFMP_API.Controllers
 
                     // Auto-calculate FERS pension fields from SCD and DOB
                     ComputeFersPension(profile, user);
+                }
+
+                // TSP biweekly contribution amounts from LES
+                if (parseResult.TspEmployeeDeduction.HasValue || parseResult.TspRothDeduction.HasValue
+                    || parseResult.TspCatchUpDeduction.HasValue || parseResult.TspAgencyMatch.HasValue)
+                {
+                    var tspProfile = await _context.TspProfiles
+                        .FirstOrDefaultAsync(t => t.UserId == userId);
+
+                    if (tspProfile != null)
+                    {
+                        if (parseResult.TspEmployeeDeduction.HasValue)
+                            tspProfile.EmployeeContributionBiweekly = parseResult.TspEmployeeDeduction;
+                        if (parseResult.TspRothDeduction.HasValue)
+                            tspProfile.RothContributionBiweekly = parseResult.TspRothDeduction;
+                        if (parseResult.TspCatchUpDeduction.HasValue)
+                            tspProfile.CatchUpContributionBiweekly = parseResult.TspCatchUpDeduction;
+                        if (parseResult.TspAgencyMatch.HasValue)
+                            tspProfile.AgencyMatchBiweekly = parseResult.TspAgencyMatch;
+                        tspProfile.LastUpdatedAt = DateTime.UtcNow;
+                    }
                 }
 
                 await _context.SaveChangesAsync();
@@ -545,6 +582,12 @@ namespace PFMP_API.Controllers
             HasHsa = p.HasHsa,
             HsaBalance = p.HsaBalance,
             HsaAnnualContribution = p.HsaAnnualContribution,
+            AnnualLeaveBalance = p.AnnualLeaveBalance,
+            SickLeaveBalance = p.SickLeaveBalance,
+            FederalTaxWithholdingBiweekly = p.FederalTaxWithholdingBiweekly,
+            StateTaxWithholdingBiweekly = p.StateTaxWithholdingBiweekly,
+            OasdiDeductionBiweekly = p.OasdiDeductionBiweekly,
+            MedicareDeductionBiweekly = p.MedicareDeductionBiweekly,
             LastLesUploadDate = p.LastLesUploadDate,
             LastLesFileName = p.LastLesFileName,
             CreatedAt = p.CreatedAt,
@@ -590,6 +633,12 @@ namespace PFMP_API.Controllers
             p.HasHsa = r.HasHsa;
             p.HsaBalance = r.HsaBalance;
             p.HsaAnnualContribution = r.HsaAnnualContribution;
+            p.AnnualLeaveBalance = r.AnnualLeaveBalance;
+            p.SickLeaveBalance = r.SickLeaveBalance;
+            p.FederalTaxWithholdingBiweekly = r.FederalTaxWithholdingBiweekly;
+            p.StateTaxWithholdingBiweekly = r.StateTaxWithholdingBiweekly;
+            p.OasdiDeductionBiweekly = r.OasdiDeductionBiweekly;
+            p.MedicareDeductionBiweekly = r.MedicareDeductionBiweekly;
         }
 
         private static int CountLesFields(LesParseResult r)

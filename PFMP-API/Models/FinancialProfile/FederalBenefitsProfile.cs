@@ -112,6 +112,26 @@ namespace PFMP_API.Models.FinancialProfile
         [Column(TypeName = "decimal(18,2)")]
         public decimal? HsaAnnualContribution { get; set; }
 
+        // === Leave Balances (from LES) ===
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal? AnnualLeaveBalance { get; set; } // hours
+
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal? SickLeaveBalance { get; set; } // hours
+
+        // === Tax Withholding (biweekly from LES) ===
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? FederalTaxWithholdingBiweekly { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? StateTaxWithholdingBiweekly { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? OasdiDeductionBiweekly { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? MedicareDeductionBiweekly { get; set; }
+
         // === LES Upload Metadata ===
         public DateTime? LastLesUploadDate { get; set; }
 
