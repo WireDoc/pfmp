@@ -178,6 +178,7 @@ export interface RetirementScenario {
   supplementMonths: number | null;
   totalMonthlyRetirementIncome: number;
   socialSecurityMonthly: number | null;
+  vaDisabilityMonthly: number | null;
   projectedTspBalance: number | null;
   monthlyTspWithdrawal: number | null;
   projectedTspRothBalance: number | null;
@@ -222,6 +223,8 @@ export interface RetirementProjectionInputs {
   stateTaxRatePercent: number | null;
   monthlyRetirementIncomeGoal: number | null;
   customRetirementAge: number | null;
+  vaDisabilityMonthlyAmount: number | null;
+  includeVaDisabilityInProjections: boolean;
 }
 
 export interface RetirementProjectionResponse {

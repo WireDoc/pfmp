@@ -773,6 +773,10 @@ namespace PFMP_API.Controllers
             var tspTradBalance = tspProfile?.TraditionalBalance ?? 0m;
             var tspRothContribPct = tspProfile?.RothContributionRatePercent; // % of employee contrib going to Roth
 
+            // VA disability
+            var includeVa = user.IncludeVaDisabilityInProjections && user.VADisabilityMonthlyAmount.HasValue && user.VADisabilityMonthlyAmount.Value > 0;
+            var vaMonthly = includeVa ? user.VADisabilityMonthlyAmount!.Value : 0m;
+
             var response = new RetirementProjectionResponse
             {
                 Inputs = new RetirementProjectionInputs
@@ -799,6 +803,8 @@ namespace PFMP_API.Controllers
                     StateTaxRatePercent = effectiveTaxRate, // use effective as rough state proxy
                     MonthlyRetirementIncomeGoal = incomeGoal,
                     CustomRetirementAge = customAge,
+                    VaDisabilityMonthlyAmount = includeVa ? vaMonthly : null,
+                    IncludeVaDisabilityInProjections = includeVa,
                 }
             };
 
@@ -856,7 +862,8 @@ namespace PFMP_API.Controllers
                     tspBalance, tspContribPct, tspMatchPct, tspGrowthRate, annualSalary,
                     inflationRate,
                     tspRothBalance, tspTradBalance, tspRothContribPct,
-                    colaRate, survivor, fedTaxRate, stateTaxRate, incomeGoal);
+                    colaRate, survivor, fedTaxRate, stateTaxRate, incomeGoal,
+                    vaMonthly);
                 response.Scenarios.Add(scenario);
             }
 
@@ -876,7 +883,8 @@ namespace PFMP_API.Controllers
             decimal? tspRothContribPct = null,
             decimal colaRate = 0.015m, string survivorElection = "none",
             decimal fedTaxRate = 0m, decimal stateTaxRate = 0m,
-            decimal? incomeGoal = null)
+            decimal? incomeGoal = null,
+            decimal vaMonthly = 0m)
         {
             int yearsUntilRetire = retireAgeY - currentAge;
             if (yearsUntilRetire < 0) yearsUntilRetire = 0;
@@ -977,12 +985,25 @@ namespace PFMP_API.Controllers
                 socialSecurityMonthly = inflatedSsAt62.Value;
             }
 
+            // VA disability: flat amount today, adjusted by COLA (follows SS COLA) to nominal dollars at retirement
+            // Unlike SS, VA disability doesn't change with claiming age — it's the same from day one
+            decimal? vaDisabilityMonthly = null;
+            if (vaMonthly > 0 && yearsUntilRetire >= 0)
+            {
+                // Apply inflation/COLA to bring today's dollars to nominal future dollars (same approach as SS)
+                vaDisabilityMonthly = yearsUntilRetire > 0
+                    ? Math.Round(vaMonthly * (decimal)Math.Pow((double)(1m + inflationRate), yearsUntilRetire), 2)
+                    : vaMonthly;
+            }
+
             // Total monthly retirement income
             decimal totalMonthly = monthlyPension;
             if (supplementEligible && supplementEstimate > 0)
                 totalMonthly += supplementEstimate;
             if (socialSecurityMonthly.HasValue)
                 totalMonthly += socialSecurityMonthly.Value;
+            if (vaDisabilityMonthly.HasValue)
+                totalMonthly += vaDisabilityMonthly.Value;
 
             // TSP projection: future value with annual contributions, then 4% safe withdrawal rate
             decimal? projectedTspBalance = null;
@@ -1069,6 +1090,8 @@ namespace PFMP_API.Controllers
                     totalMonthly += supplementEstimate;
                 if (socialSecurityMonthly.HasValue)
                     totalMonthly += socialSecurityMonthly.Value;
+                if (vaDisabilityMonthly.HasValue)
+                    totalMonthly += vaDisabilityMonthly.Value;
                 if (monthlyTspWithdrawal.HasValue)
                     totalMonthly += monthlyTspWithdrawal.Value;
             }
@@ -1115,6 +1138,7 @@ namespace PFMP_API.Controllers
                 SupplementMonths = supplementMonths,
                 TotalMonthlyRetirementIncome = Math.Round(totalMonthly, 2),
                 SocialSecurityMonthly = socialSecurityMonthly,
+                VaDisabilityMonthly = vaDisabilityMonthly,
                 ProjectedTspBalance = projectedTspBalance,
                 MonthlyTspWithdrawal = monthlyTspWithdrawal,
                 ProjectedTspRothBalance = projectedRothBalance,

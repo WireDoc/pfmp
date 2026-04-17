@@ -23,6 +23,7 @@ export interface User {
   emergencyFundTarget: number;
   vaDisabilityMonthlyAmount?: number;
   vaDisabilityPercentage?: number;
+  includeVaDisabilityInProjections?: boolean;
   isGovernmentEmployee: boolean;
   governmentAgency?: string;
   // Preferences

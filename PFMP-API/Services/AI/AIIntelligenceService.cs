@@ -1277,7 +1277,7 @@ Your analysis will be reviewed by a backup AI system for validation.",
                             sb.AppendLine("=== FERS RETIREMENT PROJECTIONS (pre-calculated, do NOT recalculate) ===");
                             sb.AppendLine("These are OPM-formula projections at various retirement ages. Use as-is for retirement planning advice.");
                             if (projection.Inputs?.InflationAssumptionPercent > 0)
-                                sb.AppendLine($"Note: SS and SRS amounts are inflation-adjusted to nominal dollars at {projection.Inputs.InflationAssumptionPercent:G}%/yr to match pension/TSP projections.");
+                                sb.AppendLine($"Note: SS, SRS, and VA disability amounts are inflation-adjusted to nominal dollars at {projection.Inputs.InflationAssumptionPercent:G}%/yr to match pension/TSP projections.");
                             foreach (var s in projection.Scenarios)
                             {
                                 sb.Append($"• {s.Label} (age {s.RetirementAge}");
@@ -1290,6 +1290,8 @@ Your analysis will be reviewed by a backup AI system for validation.",
                                     sb.Append($", SRS ${s.MonthlySupplementEstimate:N0}/mo for {s.SupplementMonths}mo");
                                 if (s.SocialSecurityMonthly.HasValue)
                                     sb.Append($", SS ${s.SocialSecurityMonthly:N0}/mo");
+                                if (s.VaDisabilityMonthly.HasValue)
+                                    sb.Append($", VA Disability ${s.VaDisabilityMonthly:N0}/mo (tax-free, COLA-adjusted)");
                                 if (s.ProjectedTspBalance.HasValue)
                                 {
                                     sb.Append($", TSP ${s.ProjectedTspBalance:N0} (${s.MonthlyTspWithdrawal:N0}/mo @ 4%)");

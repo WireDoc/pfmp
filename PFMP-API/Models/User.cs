@@ -81,6 +81,7 @@ namespace PFMP_API.Models
         public int? VADisabilityPercentage { get; set; }
         [Column(TypeName = "decimal(18,2)")]
         public decimal? VADisabilityMonthlyAmount { get; set; }
+        public bool IncludeVaDisabilityInProjections { get; set; } = false;
 
         // Profile & Demographics (NEW FIELDS)
         public DateTime? DateOfBirth { get; set; }

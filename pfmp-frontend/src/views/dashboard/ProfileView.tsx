@@ -530,6 +530,9 @@ export function ProfileView() {
                 <Grid size={{ xs: 12, md: 4 }}>
                   <TextField fullWidth type="number" label="VA Monthly Amount" value={userCore.vaDisabilityMonthlyAmount ?? ''} onChange={e => setUserCore(p => ({ ...p, vaDisabilityMonthlyAmount: Number(e.target.value) || undefined }))} inputProps={{ min: 0 }} />
                 </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <FormControlLabel control={<Switch checked={userCore.includeVaDisabilityInProjections ?? false} onChange={(_, v) => setUserCore(p => ({ ...p, includeVaDisabilityInProjections: v }))} size="small" />} label="Include VA disability in retirement projections" />
+                </Grid>
               </Grid>
               <TextField fullWidth multiline rows={2} label="Household Notes" value={household.serviceNotes ?? ''} onChange={e => setHousehold(p => ({ ...p, serviceNotes: e.target.value }))} />
               <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSaveHousehold} disabled={saving}>Save Household</Button>
@@ -980,6 +983,7 @@ export function ProfileView() {
                 const hasSurvivor = projection.scenarios.some(s => s.survivorElection && s.survivorElection !== 'none');
                 const hasTax = projection.scenarios.some(s => s.afterTaxMonthlyIncome != null);
                 const hasGap = projection.scenarios.some(s => s.monthlyIncomeGap != null);
+                const hasVa = projection.scenarios.some(s => s.vaDisabilityMonthly != null);
                 return (
                 <TableContainer>
                   <Table size="small">
@@ -995,6 +999,7 @@ export function ProfileView() {
                         {hasSurvivor && <TableCell align="right">Survivor</TableCell>}
                         <TableCell align="right">Supplement</TableCell>
                         <TableCell align="right">SS at 62</TableCell>
+                        {hasVa && <TableCell align="right">VA Disability</TableCell>}
                         <TableCell align="right">TSP Balance</TableCell>
                         <TableCell align="right">TSP/mo</TableCell>
                         <TableCell align="right">Total Monthly</TableCell>
@@ -1045,6 +1050,16 @@ export function ProfileView() {
                           )}
                           <TableCell align="right">{s.supplementEligible ? `${fmt$(s.monthlySupplementEstimate)}/mo × ${s.supplementMonths}mo` : '—'}</TableCell>
                           <TableCell align="right">{s.socialSecurityMonthly != null ? fmt$(s.socialSecurityMonthly) : '—'}</TableCell>
+                          {hasVa && (
+                            <TableCell align="right">
+                              {s.vaDisabilityMonthly != null ? (
+                                <>
+                                  {fmt$(s.vaDisabilityMonthly)}
+                                  <Typography variant="caption" display="block" color="text.secondary">tax-free</Typography>
+                                </>
+                              ) : '—'}
+                            </TableCell>
+                          )}
                           <TableCell align="right">
                             {s.projectedTspBalance != null ? fmt$(s.projectedTspBalance) : '—'}
                             {s.projectedTspRothBalance != null && (
@@ -1100,7 +1115,7 @@ export function ProfileView() {
 
               {projection && projection.inputs?.inflationAssumptionPercent != null && projection.inputs.inflationAssumptionPercent > 0 && (
                 <Typography variant="caption" color="text.secondary">
-                  SS and Supplement amounts are inflation-adjusted to nominal dollars at {projection.inputs.inflationAssumptionPercent}%/yr. Set in Risk &amp; Goals tab.
+                  SS, Supplement, and VA disability amounts are inflation-adjusted to nominal dollars at {projection.inputs.inflationAssumptionPercent}%/yr. Set in Risk &amp; Goals tab.
                 </Typography>
               )}
 

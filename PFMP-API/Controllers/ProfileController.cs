@@ -77,6 +77,7 @@ namespace PFMP_API.Controllers
                     user.GovernmentAgency,
                     user.VADisabilityPercentage,
                     user.VADisabilityMonthlyAmount,
+                    user.IncludeVaDisabilityInProjections,
                     
                     // Risk & Goals
                     user.RiskTolerance,
@@ -165,6 +166,8 @@ namespace PFMP_API.Controllers
                     user.VADisabilityPercentage = request.VADisabilityPercentage.Value;
                 if (request.VADisabilityMonthlyAmount.HasValue)
                     user.VADisabilityMonthlyAmount = request.VADisabilityMonthlyAmount.Value;
+                if (request.IncludeVaDisabilityInProjections.HasValue)
+                    user.IncludeVaDisabilityInProjections = request.IncludeVaDisabilityInProjections.Value;
 
                 // Update risk & goals
                 if (request.RiskTolerance.HasValue)
@@ -413,6 +416,7 @@ namespace PFMP_API.Controllers
         public string? GovernmentAgency { get; set; }
         public int? VADisabilityPercentage { get; set; }
         public decimal? VADisabilityMonthlyAmount { get; set; }
+        public bool? IncludeVaDisabilityInProjections { get; set; }
         
         [Range(1, 10)]
         public int? RiskTolerance { get; set; }

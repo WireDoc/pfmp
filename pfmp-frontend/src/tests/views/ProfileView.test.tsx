@@ -85,6 +85,7 @@ const mockUser = {
     serviceComputationDate: '2010-01-15',
     vaDisabilityPercentage: 30,
     vaDisabilityMonthlyAmount: 500,
+    includeVaDisabilityInProjections: false,
     householdNotes: 'Test notes',
   },
 };

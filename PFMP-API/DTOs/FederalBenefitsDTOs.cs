@@ -205,6 +205,8 @@ public class RetirementScenario
     public int? SupplementMonths { get; set; } // months of supplement payments
     public decimal TotalMonthlyRetirementIncome { get; set; } // pension + supplement (pre-62) or pension + SS (post-62)
     public decimal? SocialSecurityMonthly { get; set; } // null if not provided
+    // VA disability (COLA-adjusted, tax-free)
+    public decimal? VaDisabilityMonthly { get; set; } // null if not included or not set
     // TSP projection (4% safe withdrawal rate)
     public decimal? ProjectedTspBalance { get; set; } // projected TSP balance at retirement
     public decimal? MonthlyTspWithdrawal { get; set; } // 4% rule: balance * 0.04 / 12
@@ -255,4 +257,7 @@ public class RetirementProjectionInputs
     public decimal? StateTaxRatePercent { get; set; } // state tax rate
     public decimal? MonthlyRetirementIncomeGoal { get; set; } // target monthly income
     public int? CustomRetirementAge { get; set; } // user-specified custom age
+    // VA disability
+    public decimal? VaDisabilityMonthlyAmount { get; set; } // current monthly amount
+    public bool IncludeVaDisabilityInProjections { get; set; } // user toggle
 }
