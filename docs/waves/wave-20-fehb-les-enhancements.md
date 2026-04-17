@@ -1,7 +1,7 @@
 # Wave 20: FEHB Auto-Fill & LES Enhancements
 
 _Created: 2026-04-14_  
-_Status: In Progress — Phase 1 Complete_
+_Status: Complete — All Phases Done_
 
 ## Overview
 
@@ -95,10 +95,10 @@ The LES parser extracts many fields that aren't yet persisted or displayed: biwe
 4. **Include new fields in AI prompt** — Extend the `BuildFullFinancialContextAsync` to include leave balances, tax estimates, and detailed TSP contributions.
 
 ### Acceptance Criteria
-- [ ] Leave balances persisted and displayed on Federal Benefits tab
-- [ ] Tax withholding data persisted and available to AI advisor
-- [ ] TSP deduction breakdown persisted to TspProfile
-- [ ] AI prompt includes leave balances, tax withholding summary, TSP contribution details
+- [x] Leave balances persisted and displayed on Federal Benefits tab
+- [x] Tax withholding data persisted and available to AI advisor
+- [x] TSP deduction breakdown persisted to TspProfile
+- [x] AI prompt includes leave balances, tax withholding summary, TSP contribution details
 
 ---
 
