@@ -1323,6 +1323,64 @@ Your analysis will be reviewed by a backup AI system for validation.",
                 }
             }
 
+            // === ESTATE PLANNING ===
+            var estatePlan = await _context.EstatePlanningProfiles
+                .FirstOrDefaultAsync(e => e.UserId == userId);
+            if (estatePlan != null)
+            {
+                sb.AppendLine("=== ESTATE PLANNING ===");
+                var docs = new List<string>();
+                if (estatePlan.HasWill) docs.Add($"Will (last reviewed: {estatePlan.WillLastReviewedDate?.ToString("yyyy-MM-dd") ?? "unknown"})");
+                if (estatePlan.HasTrust) docs.Add($"Trust ({estatePlan.TrustType ?? "type unknown"}, last reviewed: {estatePlan.TrustLastReviewedDate?.ToString("yyyy-MM-dd") ?? "unknown"})");
+                if (estatePlan.HasFinancialPOA) docs.Add("Financial Power of Attorney");
+                if (estatePlan.HasHealthcarePOA) docs.Add("Healthcare Power of Attorney");
+                if (estatePlan.HasAdvanceDirective) docs.Add("Advance Directive / Living Will");
+
+                if (docs.Count > 0)
+                    sb.AppendLine($"Documents in place: {string.Join(", ", docs)}");
+                else
+                    sb.AppendLine("No estate planning documents on file.");
+
+                var missing = new List<string>();
+                if (!estatePlan.HasWill) missing.Add("Will");
+                if (!estatePlan.HasFinancialPOA) missing.Add("Financial POA");
+                if (!estatePlan.HasHealthcarePOA) missing.Add("Healthcare POA");
+                if (!estatePlan.HasAdvanceDirective) missing.Add("Advance Directive");
+                if (missing.Count > 0)
+                    sb.AppendLine($"Missing documents: {string.Join(", ", missing)}");
+
+                if (!string.IsNullOrEmpty(estatePlan.AttorneyName))
+                    sb.AppendLine($"Attorney: {estatePlan.AttorneyName} (last consult: {estatePlan.AttorneyLastConsultDate?.ToString("yyyy-MM-dd") ?? "unknown"})");
+
+                // Beneficiary designations summary
+                var beneficiaryLines = new List<string>();
+                var fedBen = await _context.FederalBenefitsProfiles.FirstOrDefaultAsync(f => f.UserId == userId);
+                if (fedBen != null)
+                {
+                    beneficiaryLines.Add($"TSP beneficiary: {(fedBen.HasTspBeneficiaryDesignation ? "designated" : "NOT SET")}");
+                    beneficiaryLines.Add($"FEGLI beneficiary: {(fedBen.HasFegliBeneficiaryDesignation ? "designated" : "NOT SET")}");
+                }
+
+                var estateAccounts = await _context.Accounts
+                    .Where(a => a.UserId == userId && a.IsActive)
+                    .ToListAsync();
+                var withBene = estateAccounts.Count(a => a.HasBeneficiaryDesignation);
+                var withoutBene = estateAccounts.Count(a => !a.HasBeneficiaryDesignation);
+                if (estateAccounts.Count > 0)
+                    beneficiaryLines.Add($"Account beneficiaries: {withBene}/{estateAccounts.Count} accounts designated ({withoutBene} missing)");
+
+                if (beneficiaryLines.Count > 0)
+                {
+                    sb.AppendLine("Beneficiary Designations:");
+                    foreach (var line in beneficiaryLines)
+                        sb.AppendLine($"  {line}");
+                }
+
+                if (!string.IsNullOrEmpty(estatePlan.Notes))
+                    sb.AppendLine($"Notes: {estatePlan.Notes}");
+                sb.AppendLine();
+            }
+
             return sb.ToString();
         }
 

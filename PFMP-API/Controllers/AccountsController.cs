@@ -90,6 +90,7 @@ namespace PFMP_API.Controllers
                 existingAccount.CurrentBalance = updateRequest.Balance;
                 existingAccount.AccountNumber = updateRequest.AccountNumber;
                 existingAccount.Purpose = updateRequest.Purpose;
+                existingAccount.HasBeneficiaryDesignation = updateRequest.HasBeneficiaryDesignation;
                 existingAccount.UpdatedAt = DateTime.UtcNow;
                 existingAccount.LastBalanceUpdate = DateTime.UtcNow;
 

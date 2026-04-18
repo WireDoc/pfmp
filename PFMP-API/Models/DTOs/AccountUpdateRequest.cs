@@ -28,5 +28,7 @@ namespace PFMP_API.Models.DTOs
 
         [MaxLength(500)]
         public string? Purpose { get; set; }
+
+        public bool HasBeneficiaryDesignation { get; set; }
     }
 }

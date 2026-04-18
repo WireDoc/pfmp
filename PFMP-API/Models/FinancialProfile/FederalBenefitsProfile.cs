@@ -132,6 +132,10 @@ namespace PFMP_API.Models.FinancialProfile
         [Column(TypeName = "decimal(18,2)")]
         public decimal? MedicareDeductionBiweekly { get; set; }
 
+        // === Beneficiary Designations ===
+        public bool HasTspBeneficiaryDesignation { get; set; }
+        public bool HasFegliBeneficiaryDesignation { get; set; }
+
         // === LES Upload Metadata ===
         public DateTime? LastLesUploadDate { get; set; }
 
