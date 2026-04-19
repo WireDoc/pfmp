@@ -588,6 +588,8 @@ namespace PFMP_API.Controllers
             StateTaxWithholdingBiweekly = p.StateTaxWithholdingBiweekly,
             OasdiDeductionBiweekly = p.OasdiDeductionBiweekly,
             MedicareDeductionBiweekly = p.MedicareDeductionBiweekly,
+            HasTspBeneficiaryDesignation = p.HasTspBeneficiaryDesignation,
+            HasFegliBeneficiaryDesignation = p.HasFegliBeneficiaryDesignation,
             LastLesUploadDate = p.LastLesUploadDate,
             LastLesFileName = p.LastLesFileName,
             CreatedAt = p.CreatedAt,
@@ -639,6 +641,8 @@ namespace PFMP_API.Controllers
             p.StateTaxWithholdingBiweekly = r.StateTaxWithholdingBiweekly;
             p.OasdiDeductionBiweekly = r.OasdiDeductionBiweekly;
             p.MedicareDeductionBiweekly = r.MedicareDeductionBiweekly;
+            p.HasTspBeneficiaryDesignation = r.HasTspBeneficiaryDesignation;
+            p.HasFegliBeneficiaryDesignation = r.HasFegliBeneficiaryDesignation;
         }
 
         private static int CountLesFields(LesParseResult r)

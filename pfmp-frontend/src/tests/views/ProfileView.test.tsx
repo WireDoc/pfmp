@@ -70,6 +70,14 @@ vi.mock('../../services/federalBenefitsApi', () => ({
   applyLes: (...args: unknown[]) => mockApplyLes(...args),
 }));
 
+const mockFetchEstatePlanning = vi.fn();
+const mockSaveEstatePlanning = vi.fn();
+
+vi.mock('../../services/estatePlanningApi', () => ({
+  fetchEstatePlanning: (...args: unknown[]) => mockFetchEstatePlanning(...args),
+  saveEstatePlanning: (...args: unknown[]) => mockSaveEstatePlanning(...args),
+}));
+
 import { ProfileView } from '../../views/dashboard/ProfileView';
 
 const mockUser = {
@@ -120,6 +128,8 @@ beforeEach(() => {
   mockFetchBenefits.mockResolvedValue(mockBenefits);
   mockFetchFederalBenefits.mockResolvedValue(null);
   mockSaveFederalBenefits.mockResolvedValue({});
+  mockFetchEstatePlanning.mockResolvedValue(null);
+  mockSaveEstatePlanning.mockResolvedValue({});
   mockUpsertHousehold.mockResolvedValue({});
   mockUpsertRiskGoals.mockResolvedValue({});
   mockUserUpdate.mockResolvedValue({});
@@ -139,10 +149,10 @@ describe('ProfileView', () => {
     expect(document.querySelectorAll('.MuiSkeleton-root').length).toBeGreaterThan(0);
   });
 
-  it('renders all 9 tabs', async () => {
+  it('renders all 10 tabs', async () => {
     renderProfileView();
     await screen.findByText('Financial Profile');
-    const tabs = ['Household', 'Risk & Goals', 'Income', 'Tax', 'Expenses', 'Insurance', 'Obligations', 'Benefits', 'Federal Benefits'];
+    const tabs = ['Household', 'Risk & Goals', 'Income', 'Tax', 'Expenses', 'Insurance', 'Obligations', 'Benefits', 'Federal Benefits', 'Estate Planning'];
     for (const tab of tabs) {
       expect(screen.getByRole('tab', { name: tab })).toBeInTheDocument();
     }
@@ -378,6 +388,82 @@ describe('ProfileView', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Failed to save/i)).toBeInTheDocument();
+    });
+  });
+
+  // === Estate Planning Tab ===
+
+  it('navigates to estate planning tab via query param', async () => {
+    renderProfileView('/dashboard/profile?tab=estate-planning');
+    await waitFor(() => {
+      expect(screen.getByText('Estate Planning Documents')).toBeInTheDocument();
+    });
+  });
+
+  it('renders estate planning document checklist', async () => {
+    const user = userEvent.setup();
+    renderProfileView();
+    await screen.findByText('Financial Profile');
+
+    await user.click(screen.getByRole('tab', { name: 'Estate Planning' }));
+    await waitFor(() => {
+      expect(screen.getByText('Estate Planning Documents')).toBeInTheDocument();
+      expect(screen.getByText('Powers of Attorney & Directives')).toBeInTheDocument();
+      expect(screen.getByText('Attorney Information')).toBeInTheDocument();
+    });
+  });
+
+  it('loads and displays existing estate planning data', async () => {
+    mockFetchEstatePlanning.mockResolvedValue({
+      estatePlanningProfileId: 1,
+      userId: 20,
+      hasWill: true,
+      willLastReviewedDate: '2024-06-15',
+      hasTrust: false,
+      trustType: null,
+      trustLastReviewedDate: null,
+      hasFinancialPOA: true,
+      hasHealthcarePOA: false,
+      hasAdvanceDirective: true,
+      attorneyName: 'Jane Smith',
+      attorneyLastConsultDate: null,
+      notes: 'Review annually',
+      createdAt: '2024-01-01',
+      updatedAt: '2024-06-15',
+    });
+
+    renderProfileView('/dashboard/profile?tab=estate-planning');
+    await waitFor(() => {
+      expect(screen.getByText('Estate Planning Documents')).toBeInTheDocument();
+    });
+
+    // Attorney name should be populated
+    const attorneyField = screen.getByLabelText('Attorney Name') as HTMLInputElement;
+    expect(attorneyField.value).toBe('Jane Smith');
+
+    // Notes should be populated
+    const notesField = screen.getByLabelText('Estate Planning Notes') as HTMLInputElement;
+    expect(notesField.value).toBe('Review annually');
+  });
+
+  it('saves estate planning data on button click', async () => {
+    const user = userEvent.setup();
+    mockSaveEstatePlanning.mockResolvedValue({});
+    renderProfileView('/dashboard/profile?tab=estate-planning');
+    await waitFor(() => {
+      expect(screen.getByText('Estate Planning Documents')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /save estate planning/i }));
+
+    await waitFor(() => {
+      expect(mockSaveEstatePlanning).toHaveBeenCalledWith(20, expect.objectContaining({
+        hasWill: false,
+        hasTrust: false,
+        hasFinancialPOA: false,
+        hasHealthcarePOA: false,
+        hasAdvanceDirective: false,
+      }));
     });
   });
 });

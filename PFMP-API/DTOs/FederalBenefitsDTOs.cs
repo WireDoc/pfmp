@@ -64,6 +64,10 @@ public class FederalBenefitsResponse
     public decimal? OasdiDeductionBiweekly { get; set; }
     public decimal? MedicareDeductionBiweekly { get; set; }
 
+    // Beneficiary Designations
+    public bool HasTspBeneficiaryDesignation { get; set; }
+    public bool HasFegliBeneficiaryDesignation { get; set; }
+
     // Upload metadata
     public DateTime? LastLesUploadDate { get; set; }
     public string? LastLesFileName { get; set; }
@@ -126,6 +130,10 @@ public class SaveFederalBenefitsRequest
     // Leave balances
     public decimal? AnnualLeaveBalance { get; set; }
     public decimal? SickLeaveBalance { get; set; }
+
+    // Beneficiary Designations
+    public bool HasTspBeneficiaryDesignation { get; set; }
+    public bool HasFegliBeneficiaryDesignation { get; set; }
 
     // Tax withholding (biweekly)
     public decimal? FederalTaxWithholdingBiweekly { get; set; }

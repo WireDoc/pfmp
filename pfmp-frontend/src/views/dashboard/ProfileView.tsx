@@ -65,6 +65,12 @@ import {
   type RetirementProjectionResponse,
   type RetirementProjectionParams,
 } from '../../services/federalBenefitsApi';
+import {
+  fetchEstatePlanning,
+  saveEstatePlanning,
+  type EstatePlanningResponse,
+  type SaveEstatePlanningRequest,
+} from '../../services/estatePlanningApi';
 import type {
   HouseholdProfilePayload,
   RiskGoalsProfilePayload,
@@ -111,7 +117,7 @@ function fmt$(v: number | null | undefined): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(v);
 }
 
-const TAB_KEYS = ['household', 'risk-goals', 'income', 'tax', 'expenses', 'insurance', 'obligations', 'benefits', 'federal-benefits'] as const;
+const TAB_KEYS = ['household', 'risk-goals', 'income', 'tax', 'expenses', 'insurance', 'obligations', 'benefits', 'federal-benefits', 'estate-planning'] as const;
 
 const COVERAGE_LEVELS = ['Self Only', 'Self Plus One', 'Self and Family'];
 
@@ -238,13 +244,23 @@ export function ProfileView() {
   const updateProjParam = <K extends keyof RetirementProjectionParams>(key: K, value: RetirementProjectionParams[K]) =>
     setProjParams(prev => ({ ...prev, [key]: value }));
 
+  // Estate Planning
+  const [estateForm, setEstateForm] = useState<SaveEstatePlanningRequest>({
+    hasWill: false, willLastReviewedDate: null,
+    hasTrust: false, trustType: null, trustLastReviewedDate: null,
+    hasFinancialPOA: false, hasHealthcarePOA: false, hasAdvanceDirective: false,
+    attorneyName: null, attorneyLastConsultDate: null, notes: null,
+  });
+  const updateEstate = <K extends keyof SaveEstatePlanningRequest>(key: K, value: SaveEstatePlanningRequest[K]) =>
+    setEstateForm(prev => ({ ...prev, [key]: value }));
+
   // Load all sections on mount
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoading(true);
       try {
-        const [userRes, hh, rg, inc, tax, exp, ins, obl, ben, fb] = await Promise.all([
+        const [userRes, hh, rg, inc, tax, exp, ins, obl, ben, fb, ep] = await Promise.all([
           userService.getById(userId),
           fetchHouseholdProfile(userId),
           fetchRiskGoalsProfile(userId),
@@ -255,6 +271,7 @@ export function ProfileView() {
           fetchLongTermObligationsProfile(userId),
           fetchBenefitsProfile(userId),
           fetchFederalBenefits(userId),
+          fetchEstatePlanning(userId),
         ]);
         if (cancelled) return;
         setUserCore(userRes.data);
@@ -299,6 +316,16 @@ export function ProfileView() {
             medicareDeductionBiweekly: fb.medicareDeductionBiweekly,
           });
         }
+        if (ep) {
+          setEstateForm({
+            hasWill: ep.hasWill, willLastReviewedDate: ep.willLastReviewedDate,
+            hasTrust: ep.hasTrust, trustType: ep.trustType, trustLastReviewedDate: ep.trustLastReviewedDate,
+            hasFinancialPOA: ep.hasFinancialPOA, hasHealthcarePOA: ep.hasHealthcarePOA,
+            hasAdvanceDirective: ep.hasAdvanceDirective,
+            attorneyName: ep.attorneyName, attorneyLastConsultDate: ep.attorneyLastConsultDate,
+            notes: ep.notes,
+          });
+        }
       } catch (err) {
         if (!cancelled) setToast({ message: 'Failed to load profile data', severity: 'error' });
       } finally {
@@ -339,6 +366,7 @@ export function ProfileView() {
   const handleSaveInsurance = () => saveSection('Insurance', () => upsertInsurancePoliciesProfile(userId, { policies: insurance }));
   const handleSaveObligations = () => saveSection('Obligations', () => upsertLongTermObligationsProfile(userId, { obligations }));
   const handleSaveBenefits = () => saveSection('Benefits', () => upsertBenefitsProfile(userId, { benefits }));
+  const handleSaveEstatePlanning = () => saveSection('Estate Planning', () => saveEstatePlanning(userId, estateForm));
 
   const applyFedProfile = (p: FederalBenefitsProfile) => {
     setFedBen(p);
@@ -492,6 +520,7 @@ export function ProfileView() {
           <Tab label="Obligations" />
           <Tab label="Benefits" />
           <Tab label="Federal Benefits" />
+          <Tab label="Estate Planning" />
         </Tabs>
 
         {/* ─── TAB 0: HOUSEHOLD ─── */}
@@ -1288,6 +1317,143 @@ export function ProfileView() {
               </Grid>
 
               <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSaveFederalBenefits} disabled={saving}>Save Federal Benefits</Button>
+            </Stack>
+          </Box>
+        </TabPanel>
+
+        {/* ─── TAB 9: ESTATE PLANNING ─── */}
+        <TabPanel value={tab} index={9}>
+          <Box sx={{ p: 3 }}>
+            <Stack spacing={3}>
+              <Typography variant="h6">Estate Planning Documents</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Track which essential estate planning documents you have in place. This helps identify gaps and feeds your AI advisor.
+              </Typography>
+
+              {/* Document Checklist */}
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Stack spacing={1}>
+                    <FormControlLabel
+                      control={<Switch checked={estateForm.hasWill} onChange={(_, v) => updateEstate('hasWill', v)} />}
+                      label="Last Will & Testament"
+                    />
+                    {estateForm.hasWill && (
+                      <TextField
+                        label="Last Reviewed"
+                        type="date"
+                        size="small"
+                        fullWidth
+                        slotProps={{ inputLabel: { shrink: true } }}
+                        value={estateForm.willLastReviewedDate?.slice(0, 10) ?? ''}
+                        onChange={e => updateEstate('willLastReviewedDate', e.target.value || null)}
+                      />
+                    )}
+                  </Stack>
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <Stack spacing={1}>
+                    <FormControlLabel
+                      control={<Switch checked={estateForm.hasTrust} onChange={(_, v) => updateEstate('hasTrust', v)} />}
+                      label="Trust"
+                    />
+                    {estateForm.hasTrust && (
+                      <>
+                        <FormControl size="small" fullWidth>
+                          <InputLabel>Trust Type</InputLabel>
+                          <Select
+                            label="Trust Type"
+                            value={estateForm.trustType ?? ''}
+                            onChange={e => updateEstate('trustType', e.target.value || null)}
+                          >
+                            <MenuItem value="Revocable">Revocable</MenuItem>
+                            <MenuItem value="Irrevocable">Irrevocable</MenuItem>
+                          </Select>
+                        </FormControl>
+                        <TextField
+                          label="Last Reviewed"
+                          type="date"
+                          size="small"
+                          fullWidth
+                          slotProps={{ inputLabel: { shrink: true } }}
+                          value={estateForm.trustLastReviewedDate?.slice(0, 10) ?? ''}
+                          onChange={e => updateEstate('trustLastReviewedDate', e.target.value || null)}
+                        />
+                      </>
+                    )}
+                  </Stack>
+                </Grid>
+              </Grid>
+
+              <Divider />
+
+              {/* Powers of Attorney & Directives */}
+              <Typography variant="subtitle1" fontWeight={600}>Powers of Attorney & Directives</Typography>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <FormControlLabel
+                    control={<Switch checked={estateForm.hasFinancialPOA} onChange={(_, v) => updateEstate('hasFinancialPOA', v)} />}
+                    label="Financial Power of Attorney"
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <FormControlLabel
+                    control={<Switch checked={estateForm.hasHealthcarePOA} onChange={(_, v) => updateEstate('hasHealthcarePOA', v)} />}
+                    label="Healthcare Power of Attorney"
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <FormControlLabel
+                    control={<Switch checked={estateForm.hasAdvanceDirective} onChange={(_, v) => updateEstate('hasAdvanceDirective', v)} />}
+                    label="Advance Directive / Living Will"
+                  />
+                </Grid>
+              </Grid>
+
+              <Divider />
+
+              {/* Attorney Info */}
+              <Typography variant="subtitle1" fontWeight={600}>Attorney Information</Typography>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    label="Attorney Name"
+                    size="small"
+                    fullWidth
+                    value={estateForm.attorneyName ?? ''}
+                    onChange={e => updateEstate('attorneyName', e.target.value || null)}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField
+                    label="Last Consultation Date"
+                    type="date"
+                    size="small"
+                    fullWidth
+                    slotProps={{ inputLabel: { shrink: true } }}
+                    value={estateForm.attorneyLastConsultDate?.slice(0, 10) ?? ''}
+                    onChange={e => updateEstate('attorneyLastConsultDate', e.target.value || null)}
+                  />
+                </Grid>
+              </Grid>
+
+              <Divider />
+
+              {/* Notes */}
+              <TextField
+                label="Estate Planning Notes"
+                multiline
+                minRows={3}
+                maxRows={6}
+                fullWidth
+                value={estateForm.notes ?? ''}
+                onChange={e => updateEstate('notes', e.target.value || null)}
+                helperText="Any additional details about your estate plan, upcoming reviews, or items to discuss with your attorney."
+              />
+
+              <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSaveEstatePlanning} disabled={saving}>
+                Save Estate Planning
+              </Button>
             </Stack>
           </Box>
         </TabPanel>

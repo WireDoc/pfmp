@@ -87,6 +87,9 @@ namespace PFMP_API
     // Federal Benefits (Wave 18)
     public DbSet<FederalBenefitsProfile> FederalBenefitsProfiles { get; set; }
 
+    // Estate Planning (Wave 21)
+    public DbSet<EstatePlanningProfile> EstatePlanningProfiles { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -624,6 +627,17 @@ namespace PFMP_API
             modelBuilder.Entity<FederalBenefitsProfile>(entity =>
             {
                 entity.HasKey(e => e.FederalBenefitsProfileId);
+                entity.HasIndex(e => e.UserId).IsUnique();
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Estate Planning (Wave 21)
+            modelBuilder.Entity<EstatePlanningProfile>(entity =>
+            {
+                entity.HasKey(e => e.EstatePlanningProfileId);
                 entity.HasIndex(e => e.UserId).IsUnique();
                 entity.HasOne(e => e.User)
                     .WithMany()
