@@ -17,6 +17,8 @@ import {
   Box,
   Alert,
   IconButton,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import type { AccountResponse, UpdateAccountRequest } from '../../services/accountsApi';
@@ -63,6 +65,7 @@ export function AccountModal({ open, account, onClose, onSave, onDelete }: Props
     balance: account?.currentBalance || 0,
     accountNumber: account?.accountNumber || '',
     purpose: account?.purpose || '',
+    hasBeneficiaryDesignation: account?.hasBeneficiaryDesignation || false,
   });
 
   const [saving, setSaving] = useState(false);
@@ -80,6 +83,7 @@ export function AccountModal({ open, account, onClose, onSave, onDelete }: Props
         balance: account.currentBalance,
         accountNumber: account.accountNumber || '',
         purpose: account.purpose || '',
+        hasBeneficiaryDesignation: account.hasBeneficiaryDesignation || false,
       });
     }
   }, [account]);
@@ -268,6 +272,17 @@ export function AccountModal({ open, account, onClose, onSave, onDelete }: Props
             disabled={saving}
             multiline
             rows={2}
+          />
+
+          <FormControlLabel
+            control={
+              <Switch
+                checked={formData.hasBeneficiaryDesignation}
+                onChange={(_, v) => setFormData(prev => ({ ...prev, hasBeneficiaryDesignation: v }))}
+                size="small"
+              />
+            }
+            label="Beneficiary designated for this account"
           />
         </Box>
       </DialogContent>

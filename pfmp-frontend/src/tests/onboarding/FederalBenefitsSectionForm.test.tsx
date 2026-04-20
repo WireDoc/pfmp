@@ -66,6 +66,8 @@ const mockProfile: FederalBenefitsProfile = {
   stateTaxWithholdingBiweekly: null,
   oasdiDeductionBiweekly: null,
   medicareDeductionBiweekly: null,
+  hasTspBeneficiaryDesignation: false,
+  hasFegliBeneficiaryDesignation: false,
   lastLesUploadDate: null,
   lastLesFileName: null,
   createdAt: '2025-01-01T00:00:00Z',

@@ -232,6 +232,7 @@ export function ProfileView() {
     hasFegliBasic: false, hasFegliOptionA: false, hasFegliOptionB: false,
     hasFegliOptionC: false, hasFedvipDental: false, hasFedvipVision: false,
     hasFltcip: false, hasFsa: false, hasHsa: false,
+    hasTspBeneficiaryDesignation: false, hasFegliBeneficiaryDesignation: false,
   });
   const [lesStatus, setLesStatus] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -314,6 +315,8 @@ export function ProfileView() {
             stateTaxWithholdingBiweekly: fb.stateTaxWithholdingBiweekly,
             oasdiDeductionBiweekly: fb.oasdiDeductionBiweekly,
             medicareDeductionBiweekly: fb.medicareDeductionBiweekly,
+            hasTspBeneficiaryDesignation: fb.hasTspBeneficiaryDesignation ?? false,
+            hasFegliBeneficiaryDesignation: fb.hasFegliBeneficiaryDesignation ?? false,
           });
         }
         if (ep) {
@@ -399,6 +402,8 @@ export function ProfileView() {
       stateTaxWithholdingBiweekly: p.stateTaxWithholdingBiweekly,
       oasdiDeductionBiweekly: p.oasdiDeductionBiweekly,
       medicareDeductionBiweekly: p.medicareDeductionBiweekly,
+      hasTspBeneficiaryDesignation: p.hasTspBeneficiaryDesignation ?? false,
+      hasFegliBeneficiaryDesignation: p.hasFegliBeneficiaryDesignation ?? false,
     });
   };
 
@@ -1159,6 +1164,19 @@ export function ProfileView() {
                   Set your Date of Birth and Service Computation Date to enable retirement projections.
                 </Typography>
               )}
+
+              <Divider />
+
+              {/* Beneficiary Designations */}
+              <Typography variant="subtitle1" fontWeight={600}>Beneficiary Designations</Typography>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <FormControlLabel control={<Switch checked={fedForm.hasTspBeneficiaryDesignation ?? false} onChange={(_, v) => updateFed('hasTspBeneficiaryDesignation', v)} size="small" />} label="TSP beneficiary designated" />
+                </Grid>
+                <Grid size={{ xs: 12, md: 4 }}>
+                  <FormControlLabel control={<Switch checked={fedForm.hasFegliBeneficiaryDesignation ?? false} onChange={(_, v) => updateFed('hasFegliBeneficiaryDesignation', v)} size="small" />} label="FEGLI beneficiary designated" />
+                </Grid>
+              </Grid>
 
               <Divider />
 

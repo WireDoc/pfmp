@@ -310,6 +310,8 @@ describe('ProfileView', () => {
       stateTaxWithholdingBiweekly: null,
       oasdiDeductionBiweekly: null,
       medicareDeductionBiweekly: null,
+      hasTspBeneficiaryDesignation: false,
+      hasFegliBeneficiaryDesignation: false,
     });
     const user = userEvent.setup();
     renderProfileView();

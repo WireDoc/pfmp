@@ -21,6 +21,7 @@ export interface AccountResponse {
   lastBalanceUpdate?: string;
   connectionId?: string; // Plaid connection ID for linked accounts
   source?: number; // 0 = Manual, 2 = Plaid, 3 = PlaidInvestments
+  hasBeneficiaryDesignation: boolean;
 }
 
 export interface UpdateAccountRequest {
@@ -30,6 +31,7 @@ export interface UpdateAccountRequest {
   balance: number;
   accountNumber?: string;
   purpose?: string;
+  hasBeneficiaryDesignation?: boolean;
 }
 
 export interface CreateAccountRequest extends UpdateAccountRequest {

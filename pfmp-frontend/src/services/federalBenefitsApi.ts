@@ -55,6 +55,10 @@ export interface FederalBenefitsProfile {
   hsaBalance: number | null;
   hsaAnnualContribution: number | null;
 
+  // Beneficiary designations
+  hasTspBeneficiaryDesignation: boolean;
+  hasFegliBeneficiaryDesignation: boolean;
+
   // Upload metadata
   lastLesUploadDate: string | null;
   lastLesFileName: string | null;
@@ -116,6 +120,10 @@ export interface SaveFederalBenefitsRequest {
   hasHsa: boolean;
   hsaBalance?: number | null;
   hsaAnnualContribution?: number | null;
+
+  // Beneficiary designations
+  hasTspBeneficiaryDesignation?: boolean;
+  hasFegliBeneficiaryDesignation?: boolean;
 
   // Leave balances
   annualLeaveBalance?: number | null;
