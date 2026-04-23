@@ -10,28 +10,22 @@ PFMP is an AI-assisted financial planning platform for government employees and 
 - **Frontend**: `pfmp-frontend/` (React 19 + TypeScript + Vite)
 - **Authentication**: Azure Entra ID with local bypass mode for development
 - **AI Architecture**: Dual-model pipeline planned (Azure OpenAI + Anthropic) with consensus scoring - See Phase 3 in roadmap
-- **Current Highlights**: 
-  - **Wave 12.5 Complete** - Unified Plaid account linking with liabilities sync (March 2026)
-  - Single "Link Account" button connects banks, investments, credit cards, and mortgages
-  - Credit card, mortgage, and student loan sync via Plaid Liabilities
-  - Mortgage-to-property auto-linking with equity tracking
-  - Synced field protection: Plaid-managed fields are read-only in edit dialogs
-  - Credit utilization alerts and overdue payment detection
-  - ITEM_LOGIN_REQUIRED detection with SyncStatus.Expired handling
-  - 10 custom sandbox users for comprehensive testing
-  - **Wave 12 Complete** - Plaid investment account linking with holdings sync (January 2026)
-  - Investment transactions: buy, sell, dividend, contribution, withdrawal tracking
-  - Opening balance detection with dialog for adding historical cost basis
-  - Automatic price refresh with FMP API integration
-  - Tax insights: Short/long-term gains, holding period tracking, tax-loss harvesting
-  - **Wave 11 Complete** - Plaid bank account linking with transaction sync (December 2025)
-  - Automatic balance + transaction sync for 12,000+ financial institutions
-  - Connection lifecycle: connect, reconnect, disconnect, delete
-  - **Wave 10 Complete** - Background jobs with Hangfire (TSP prices, market data, net worth snapshots)
-  - **Wave 9.3 Complete** - D3.js visualizations, debt payoff strategies, investment analytics
-  - **Wave 5 MVP Complete** - Production dashboard with 15-section onboarding, AI advisory, and TSP tracking
-  - All 93 backend + 289 frontend tests passing
-- **Planning Frames**: Wave 0–6 rebuild plan (tactical) aligned with roadmap Phases 1–5 (product milestones)
+- **Current Highlights**:
+  - **Wave 21 Complete** – Estate planning & beneficiary tracking; AI now flags missing wills, POAs, and TSP/FEGLI designations (April 2026)
+  - **Wave 20 Complete** – LES SCD extraction, FEHB plan auto-fill from OPM table, SF-50 uploader retired (April 2026)
+  - **Wave 19 Complete** – TSP Roth/traditional split, COLA modeling, custom retirement age, survivor benefit, income gap analysis (April 2026)
+  - **Wave 18 Complete** – Federal benefits deep dive: SF-50/LES PDF parsing, FERS pension auto-calc, multi-scenario retirement projector (April 2026)
+  - **Wave 17 Complete** – Dashboard expansion: profile editor, accounts hub, insights/tasks pages, command palette, goal projections, data export (April 2026)
+  - **Wave 16 Complete** – OpenRouter unified AI gateway (Gemini primary + Claude verifier) with full 14-section financial context (March 2026)
+  - **Wave 15 Complete** – Property management with Estated AVM auto-valuation and USPS address validation (March 2026)
+  - **Wave 12.5 Complete** – Unified Plaid linking (banks + investments + liabilities) with synced-field protection (March 2026)
+  - **Wave 12 Complete** – Plaid Investments: holdings sync, opening balance detection, tax-aware transaction tracking (January 2026)
+  - **Wave 11 Complete** – Plaid bank linking with daily transaction sync for 12,000+ institutions (December 2025)
+  - **Wave 10 Complete** – Hangfire background jobs (TSP prices, market data, net worth snapshots)
+  - **Wave 9.3 Complete** – D3.js visualizations, debt payoff strategies, investment analytics; 9.3.7 polish shipped April 2026
+  - **Wave 5 MVP Complete** – Production dashboard with 15-section onboarding, AI advisory, and TSP tracking
+  - 625 tests passing (485 frontend + 140 backend) as of Wave 17 sign-off
+- **Planning Frames**: Wave 0–6 rebuild plan (tactical) aligned with roadmap Phases 1–5 (product milestones); Waves 13 (Crypto) and 14 (Spending Analysis) are the only outstanding planned waves
 
 The platform is currently in the Wave rebuild effort. Implementation details, historical notes, and migration guidance now live inside the reorganized `docs/` directory.
 
@@ -122,27 +116,22 @@ See `docs/api/postman.md` for details.
 
 ## Status & roadmap
 
-- Active version: **v0.12.0-alpha** (Wave 12.5 Complete - March 2026)
-- **Milestone**: Wave 12 + 12.5 complete — full Plaid integration (banks, investments, liabilities)
-- **Achievement**: Unified account linking, synced field protection, 382 total tests passing
-- **Next Phase**: Wave 13 (Crypto Exchange Integration) or Wave 15 (Property Management)
-- Roadmap Phase 2 (Data Aggregation) complete; Phase 3 (AI Advisory) on deck
+- Active version: **v0.22.0-alpha** (see `VERSION`; reserved `v0.21` for the Wave 16–21 audit, `v0.22` opens Wave 13 work, bumps to `v0.23` on Wave 13 closeout)
+- **Latest milestone**: Wave 21 (Estate Planning & Beneficiary Tracking) shipped April 2026
+- **Recently shipped**: Waves 15 (Property Mgmt) → 16 (OpenRouter AI) → 17 (Dashboard Expansion) → 18 (Federal Benefits Deep Dive) → 19 (Advanced Retirement Planning) → 20 (FEHB/LES Enhancements) → 21 (Estate Planning); plus Wave 9.3.7 polish (April 23, 2026)
+- **Next up**: Wave 13 (Crypto Exchange Integration) – planning in progress; Wave 14 (Spending Analysis) follows
+- **Roadmap phases**: Phase 2 (Data Aggregation) complete; Phase 3 (AI Advisory) materially complete via Waves 7/16/18/19; Phase 4 (Daily Experience & Notifications) and Phase 5 (Production Hardening) remain
 
 ### Upcoming Waves
 
-| Wave | Focus | Target |
+| Wave | Focus | Status |
 |------|-------|--------|
-| **13** | Crypto Exchange Integration | Q2-Q3 2026 |
-| | • Coinbase, Binance, Kraken, Gemini APIs | |
-| | • Holdings sync with staking support | |
-| **14** | Spending Analysis & Budgeting | Q3 2026 |
-| | • Category breakdowns & trends | |
-| | • Budget tracking & cash flow forecasting | |
-| **15** | Property Management | Q3 2026 |
-| | • Dashboard CRUD for properties | |
-| | • Automated valuation via AVM providers | |
+| **13** | Crypto Exchange Integration (Coinbase, Binance, Kraken, Gemini; read-only API keys; holdings + staking + transactions) | 📋 Planning – see `docs/waves/wave-13-crypto-exchanges.md` |
+| **14** | Spending Analysis & Budgeting (category trends, budgets, recurring detection, cash-flow forecasting) | 📋 Planned |
+| **Phase 4** | Daily summary, notifications, calendar/timeline, advisor-meeting export | 📋 Future |
+| **Phase 5** | Production hardening: Azure Entra re-enable, Key Vault, audit logging, SLAs | 📋 Future |
 
-Track progress, migration notes, and future waves in `docs/waves/`
+Track progress, migration notes, and full wave history in `docs/waves/` and `docs/history/roadmap.md`.
 
 ## Testing resources
 

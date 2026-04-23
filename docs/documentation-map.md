@@ -86,7 +86,7 @@ This index lists every active document under `docs/` following the subject-first
 - `docs/waves/wave-20-fehb-les-enhancements.md` – **Wave 20 Complete** - FEHB Auto-Fill & LES Enhancements
 - `docs/waves/wave-21-estate-planning.md` – **Wave 21 Complete** - Estate Planning & Beneficiary Tracking
 - `docs/waves/wave-11-account-linking-strategy.md` – Wave 11-13: Full account linking strategy reference
-- Wave 13: Crypto Integration – Documented in `docs/history/roadmap.md`
+- `docs/waves/wave-13-crypto-exchanges.md` – **Wave 13 Planning** (Apr 2026) – Kraken + Binance.US read-only API integration; CoinGecko pricing; new `CryptoHolding`/`CryptoTransaction`/`ExchangeConnection` tables; phased rollout (P1 Kraken → P2 Binance.US → P3 staking/tax lots → P4 AI context)
 - Wave 14: Spending Analysis – Documented in `docs/history/roadmap.md`
 
 ### Wave Completion Summaries

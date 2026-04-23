@@ -1,6 +1,6 @@
 # PFMP Product Roadmap (2025–2026)
 
-_Last updated: 2026-04-01_
+_Last updated: 2026-04-23_
 
 ## Current Status Summary
 
@@ -11,18 +11,23 @@ _Last updated: 2026-04-01_
 | Wave 7: AI Advisory System | ✅ Complete | October 2025 |
 | Wave 8: Account Detail Views | ✅ Complete | November 2025 |
 | Wave 9: Market Data & Analytics | ✅ Complete | December 2025 |
+| Wave 9.3.7: Cash Account Polish | ✅ Complete | April 2026 |
 | Wave 10: Background Jobs | ✅ Complete | December 2025 |
 | TSP Detail Page | ✅ Complete | December 2025 |
 | Wave 11: Plaid Integration | ✅ Complete | December 2025 |
 | Wave 12: Brokerage & Investment Linking | ✅ Complete | January 2026 |
 | Wave 12.5: Unified Plaid Linking | ✅ Complete | March 2026 |
-| Wave 13: Crypto Exchanges | 📋 Planned | Q2-Q3 2026 |
-| Wave 14: Spending Analysis | 📋 Planned | Q2-Q3 2026 |
+| Wave 13: Crypto Exchanges (Kraken + Binance.US) | 📋 Planning | Q2–Q3 2026 |
+| Wave 14: Spending Analysis | 📋 Planned | Q3 2026 |
 | Wave 15: Property Management & Valuation | ✅ Complete | March 2026 |
 | Wave 16: OpenRouter AI Overhaul | ✅ Complete | March 2026 |
-| Wave 17: Dashboard Expansion | 🔄 In Progress | April 2026 |
+| Wave 17: Dashboard Expansion | ✅ Complete | April 2026 |
+| Wave 18: Federal Benefits Deep Dive | ✅ Complete | April 2026 |
+| Wave 19: Advanced Retirement Planning | ✅ Complete | April 2026 |
+| Wave 20: FEHB Auto-Fill & LES Enhancements | ✅ Complete | April 2026 |
+| Wave 21: Estate Planning & Beneficiaries | ✅ Complete | April 2026 |
 
-**Current Version**: v0.17.0-alpha (April 1, 2026)
+**Current Version**: v0.22.0-alpha (Wave 13 work begins; bumps to v0.23.0-alpha on Wave 13 closeout)
 
 ---
 
