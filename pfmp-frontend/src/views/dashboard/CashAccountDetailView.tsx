@@ -5,7 +5,9 @@ import { SwapHoriz as SwapHorizIcon, Edit as EditIcon } from '@mui/icons-materia
 import { TransactionList } from '../../components/cash-accounts/TransactionList';
 import { BalanceTrendChart } from '../../components/cash-accounts/BalanceTrendChart';
 import { AccountDetailsCard } from '../../components/cash-accounts/AccountDetailsCard';
+import { CashTransactionForm } from '../../components/cash-accounts/CashTransactionForm';
 import { getCashAccount, updateCashAccount, deleteCashAccount, type CashAccountResponse, type CreateCashAccountRequest, type UpdateCashAccountRequest } from '../../services/cashAccountsApi';
+import type { CashTransactionResponse } from '../../services/cashTransactionsApi';
 import { TransferFundsDialog } from '../../components/transfers/TransferFundsDialog';
 import { CashAccountModal } from '../../components/accounts/CashAccountModal';
 import { NotePopover } from '../../components/notes/NotePopover';
@@ -19,6 +21,9 @@ const CashAccountDetailView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [transactionFormOpen, setTransactionFormOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<CashTransactionResponse | null>(null);
+  const [transactionsRefreshKey, setTransactionsRefreshKey] = useState(0);
 
   // Fetch cash account details
   useEffect(() => {
@@ -169,6 +174,15 @@ const CashAccountDetailView: React.FC = () => {
             <TransactionList 
               cashAccountId={cashAccountId} 
               onExport={handleExportTransactions}
+              onAdd={() => {
+                setEditingTransaction(null);
+                setTransactionFormOpen(true);
+              }}
+              onEdit={(tx) => {
+                setEditingTransaction(tx as unknown as CashTransactionResponse);
+                setTransactionFormOpen(true);
+              }}
+              refreshKey={transactionsRefreshKey}
             />
           )}
           {currentTab === 1 && cashAccountId && (
@@ -183,8 +197,9 @@ const CashAccountDetailView: React.FC = () => {
           open={transferDialogOpen}
           onClose={() => setTransferDialogOpen(false)}
           onComplete={() => {
-            // Re-fetch account to get updated balance
+            // Re-fetch account to get updated balance, refresh transactions list
             getCashAccount(cashAccountId).then(setAccount).catch(() => {});
+            setTransactionsRefreshKey((k) => k + 1);
           }}
           userId={account.userId}
           currentAccountId={cashAccountId}
@@ -201,6 +216,24 @@ const CashAccountDetailView: React.FC = () => {
         onSave={handleEditSave}
         onDelete={handleEditDelete}
       />
+
+      {/* Cash Transaction Form (Add/Edit) */}
+      {cashAccountId && (
+        <CashTransactionForm
+          open={transactionFormOpen}
+          cashAccountId={cashAccountId}
+          transaction={editingTransaction}
+          onClose={() => {
+            setTransactionFormOpen(false);
+            setEditingTransaction(null);
+          }}
+          onSuccess={() => {
+            // Refresh both the account balance and the transactions list
+            refetchAccount();
+            setTransactionsRefreshKey((k) => k + 1);
+          }}
+        />
+      )}
     </Box>
   );
 };

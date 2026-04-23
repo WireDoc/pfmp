@@ -67,16 +67,9 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
   const routingNumber = isCashAccount ? account.routingNumber : account.routingNumber;
   const status = isCashAccount ? 'Active' : account.status;
   const notes = isCashAccount ? account.purpose : account.notes;
-
-  // Debug logging
-  console.log('AccountDetailsCard - account data:', {
-    isCashAccount,
-    accountNumber,
-    routingNumber,
-    rawAccountNumber: account.accountNumber,
-    rawRoutingNumber: (account as any).routingNumber,
-    fullAccount: account
-  });
+  const interestRateApr = isCashAccount
+    ? (account as CashAccountResponse).interestRateApr
+    : (account as AccountDetails).interestRate;
 
   // Mask account number (show last 4 digits)
   const maskAccountNumber = (number: string | undefined) => {
@@ -235,12 +228,24 @@ export const AccountDetailsCard: React.FC<AccountDetailsCardProps> = ({
             {/* Current Balance */}
             <Box sx={{ mb: 2 }}>
               <Typography variant="caption" color="text.secondary">
-                Current Balance
+                {isCashAccount ? 'Cash Balance' : 'Current Balance'}
               </Typography>
               <Typography variant="h5" color="primary" fontWeight="bold">
                 {formatCurrency(currentBalance)}
               </Typography>
             </Box>
+
+            {/* APY / Interest Rate */}
+            {interestRateApr != null && interestRateApr > 0 && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="text.secondary">
+                  APY
+                </Typography>
+                <Typography variant="body1" fontWeight="medium">
+                  {interestRateApr.toFixed(2)}%
+                </Typography>
+              </Box>
+            )}
 
             {/* Account Number */}
             {accountNumber && (

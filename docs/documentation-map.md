@@ -96,6 +96,7 @@ This index lists every active document under `docs/` following the subject-first
 - `docs/waves/wave-11-complete.md` – **Wave 11 Complete** (Dec 2025) - Plaid Bank Account Linking
 - `docs/waves/wave-10-complete.md` – **Wave 10 Complete** (Dec 2025) - Background Jobs & Automation
 - `docs/waves/wave-9.3-complete-summary.md` – **Wave 9.3 Complete** (Dec 2025) - All 4 options
+- `docs/waves/wave-9.3-account-detail-redesign-plan.md` – **Wave 9.3 / 9.3.5 / 9.3.6 / 9.3.7 plan + status** (Apr 2026) - Phases 1–6 complete (money trail, $CASH→CurrentBalance, cash CRUD parity); 9.3.7 polish ✅ except E2E smoke
 - `docs/waves/wave-9.3-option-a-all-parts-complete.md` – Option A: Investment Metrics
 - `docs/waves/wave-9.3-option-b-complete.md` – Option B: Loan & Credit Card Views
 - `docs/waves/wave-9.3-option-c-complete.md` – Option C: Cash Account UX

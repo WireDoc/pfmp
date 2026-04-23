@@ -2,8 +2,8 @@
   "info": {
     "name": "PFMP API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "1.10.0",
-    "description": "PFMP API endpoints grouped for development and testing. Adjust {{baseUrl}} as needed. v1.10.0: Wave 15 — Added Validate Address and Refresh Property Valuation endpoints to Properties folder. Updated Delete Property description (Plaid restriction removed)."
+    "version": "1.11.0",
+    "description": "PFMP API endpoints grouped for development and testing. Adjust {{baseUrl}} as needed. v1.11.0: Added Cash Transactions CRUD (POST/PUT/DELETE) and Transfer Funds endpoint. Transfer now creates CashTransaction audit records on cash sides."
   },
   "item": [
     {
@@ -182,7 +182,44 @@
           "response": []
         },
         { "name": "Get Transactions", "request": { "method": "GET", "url": "{{baseUrl}}/api/cash-accounts/{{cashAccountId}}/transactions?limit=50" } },
-        { "name": "Get Balance History", "request": { "method": "GET", "url": "{{baseUrl}}/api/cash-accounts/{{cashAccountId}}/transactions/balance-history" } }
+        { "name": "Get Balance History", "request": { "method": "GET", "url": "{{baseUrl}}/api/cash-accounts/{{cashAccountId}}/transactions/balance-history" } },
+        {
+          "name": "Create Cash Transaction",
+          "request": {
+            "method": "POST",
+            "header": [{"key":"Content-Type","value":"application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transactionType\": \"Deposit\",\n  \"amount\": 250.00,\n  \"transactionDate\": \"2026-04-15T00:00:00Z\",\n  \"description\": \"Paycheck deposit\",\n  \"category\": \"Income\",\n  \"merchant\": \"Employer\",\n  \"isPending\": false,\n  \"isRecurring\": false,\n  \"notes\": \"Bi-weekly\"\n}"
+            },
+            "url": "{{baseUrl}}/api/cash-accounts/{{cashAccountId}}/transactions",
+            "description": "Create a manual cash transaction. Positive amount = deposit/credit (increases balance); negative amount = withdrawal/debit (decreases balance). Account.Balance is automatically updated. Valid transactionType values: Deposit, Withdrawal, Transfer, Fee, Interest, Refund, Purchase, Payment, Check, ATM, Other."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Cash Transaction",
+          "request": {
+            "method": "PUT",
+            "header": [{"key":"Content-Type","value":"application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 275.00,\n  \"description\": \"Updated paycheck amount\",\n  \"category\": \"Salary\"\n}"
+            },
+            "url": "{{baseUrl}}/api/cash-accounts/{{cashAccountId}}/transactions/{{cashTransactionId}}",
+            "description": "Update an existing cash transaction. Only fields included in the request are updated. If amount changes, Account.Balance is rebalanced by the delta."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Cash Transaction",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/cash-accounts/{{cashAccountId}}/transactions/{{cashTransactionId}}",
+            "description": "Delete a cash transaction. Reverses its impact on Account.Balance."
+          },
+          "response": []
+        }
       ]
     },
     {
@@ -895,6 +932,20 @@
             "method": "DELETE",
             "url": "{{baseUrl}}/api/transactions/{{transactionId}}"
           }
+        },
+        {
+          "name": "Transfer Funds Between Accounts",
+          "request": {
+            "method": "POST",
+            "header": [{"key":"Content-Type","value":"application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccountId\": \"{{accountId}}\",\n  \"fromAccountType\": \"investment\",\n  \"toAccountId\": \"{{cashAccountId}}\",\n  \"toAccountType\": \"cash\",\n  \"amount\": 1000.00,\n  \"date\": \"2026-04-15T00:00:00Z\",\n  \"description\": \"Move funds to checking\"\n}"
+            },
+            "url": "{{baseUrl}}/api/transactions/transfer",
+            "description": "Transfer funds between two accounts (investment ↔ investment, investment ↔ cash, cash ↔ cash). Both account IDs are passed as strings (investment uses int IDs, cash uses Guid). For investment account sides, paired Transaction records are created with FundingSource=InternalTransfer and LinkedTransactionId. For cash account sides, CashTransaction records are created with TransactionType='Transfer' for full audit trail. Account balances are adjusted on both sides. Both accounts must be owned by the same user."
+          },
+          "response": []
         }
       ]
     },

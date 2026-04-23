@@ -1369,6 +1369,14 @@ Your analysis will be reviewed by a backup AI system for validation.",
                 if (estateAccounts.Count > 0)
                     beneficiaryLines.Add($"Account beneficiaries: {withBene}/{estateAccounts.Count} accounts designated ({withoutBene} missing)");
 
+                var estateCashAccounts = await _context.CashAccounts
+                    .Where(a => a.UserId == userId)
+                    .ToListAsync();
+                var cashWithBene = estateCashAccounts.Count(a => a.HasBeneficiaryDesignation);
+                var cashWithoutBene = estateCashAccounts.Count(a => !a.HasBeneficiaryDesignation);
+                if (estateCashAccounts.Count > 0)
+                    beneficiaryLines.Add($"Cash account beneficiaries: {cashWithBene}/{estateCashAccounts.Count} accounts designated ({cashWithoutBene} missing)");
+
                 if (beneficiaryLines.Count > 0)
                 {
                     sb.AppendLine("Beneficiary Designations:");

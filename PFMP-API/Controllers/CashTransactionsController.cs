@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API;
 using PFMP_API.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace PFMP_API.Controllers;
 
@@ -163,42 +164,28 @@ public class CashTransactionsController : ControllerBase
             var transactions = await _context.CashTransactions
                 .Where(t => t.CashAccountId == cashAccountId && t.TransactionDate >= cutoffDate)
                 .OrderBy(t => t.TransactionDate)
+                .Select(t => new { t.TransactionDate, t.Amount })
                 .ToListAsync();
 
-            // Calculate running balance
+            // Generate a data point for every day in the period (same approach as investment accounts)
             var balanceHistory = new List<BalanceHistoryDto>();
-            decimal runningBalance = account.Balance;
+            var currentBalance = account.Balance;
 
-            // Work backwards from current balance to get starting balance
-            for (int i = transactions.Count - 1; i >= 0; i--)
+            for (int i = days; i >= 0; i--)
             {
-                runningBalance -= transactions[i].Amount;
-            }
+                var date = DateTime.UtcNow.Date.AddDays(-i);
 
-            // Add starting balance at the cutoff date
-            balanceHistory.Add(new BalanceHistoryDto
-            {
-                Date = cutoffDate,
-                Balance = runningBalance
-            });
+                // Subtract all transactions that occurred after this date
+                var futureAmount = transactions
+                    .Where(t => t.TransactionDate.Date > date)
+                    .Sum(t => t.Amount);
 
-            // Now work forward, adding balance after each transaction
-            foreach (var transaction in transactions)
-            {
-                runningBalance += transaction.Amount;
                 balanceHistory.Add(new BalanceHistoryDto
                 {
-                    Date = transaction.TransactionDate,
-                    Balance = runningBalance
+                    Date = date,
+                    Balance = currentBalance - futureAmount
                 });
             }
-
-            // Add current balance at end of period
-            balanceHistory.Add(new BalanceHistoryDto
-            {
-                Date = DateTime.UtcNow,
-                Balance = account.Balance
-            });
 
             return Ok(balanceHistory);
         }
@@ -208,6 +195,199 @@ public class CashTransactionsController : ControllerBase
             return StatusCode(500, new { message = "An error occurred while retrieving balance history" });
         }
     }
+
+    /// <summary>
+    /// Create a manual transaction for a cash account. Adjusts the account balance.
+    /// </summary>
+    [HttpPost]
+    public async Task<ActionResult<CashTransactionDto>> CreateTransaction(
+        Guid cashAccountId,
+        [FromBody] CreateCashTransactionRequest request)
+    {
+        try
+        {
+            var account = await _context.CashAccounts.FirstOrDefaultAsync(a => a.CashAccountId == cashAccountId);
+            if (account == null)
+            {
+                return NotFound(new { message = "Cash account not found" });
+            }
+
+            if (string.IsNullOrWhiteSpace(request.TransactionType))
+            {
+                return BadRequest(new { message = "TransactionType is required" });
+            }
+
+            if (request.Amount == 0)
+            {
+                return BadRequest(new { message = "Amount cannot be zero" });
+            }
+
+            var txDate = request.TransactionDate.HasValue
+                ? DateTime.SpecifyKind(request.TransactionDate.Value, DateTimeKind.Utc)
+                : DateTime.UtcNow;
+
+            var transaction = new CashTransaction
+            {
+                CashAccountId = cashAccountId,
+                TransactionType = request.TransactionType,
+                Amount = request.Amount,
+                TransactionDate = txDate,
+                Description = request.Description,
+                Category = request.Category,
+                Merchant = request.Merchant,
+                CheckNumber = request.CheckNumber,
+                Fee = request.Fee,
+                Tags = request.Tags,
+                IsPending = request.IsPending ?? false,
+                IsRecurring = request.IsRecurring ?? false,
+                Notes = request.Notes,
+                Source = "Manual",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.CashTransactions.Add(transaction);
+
+            // Adjust account balance by the signed amount
+            account.Balance += request.Amount;
+            account.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Created manual cash transaction {TxId} for account {AccountId}: {Type} {Amount:C}",
+                transaction.CashTransactionId, cashAccountId, request.TransactionType, request.Amount);
+
+            return CreatedAtAction(nameof(GetTransactions), new { cashAccountId }, MapToDto(transaction));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating cash transaction for account {CashAccountId}", cashAccountId);
+            return StatusCode(500, new { message = "An error occurred while creating the transaction" });
+        }
+    }
+
+    /// <summary>
+    /// Update an existing cash transaction. Adjusts the account balance for amount changes.
+    /// </summary>
+    [HttpPut("{transactionId:int}")]
+    public async Task<ActionResult<CashTransactionDto>> UpdateTransaction(
+        Guid cashAccountId,
+        int transactionId,
+        [FromBody] UpdateCashTransactionRequest request)
+    {
+        try
+        {
+            var account = await _context.CashAccounts.FirstOrDefaultAsync(a => a.CashAccountId == cashAccountId);
+            if (account == null)
+            {
+                return NotFound(new { message = "Cash account not found" });
+            }
+
+            var transaction = await _context.CashTransactions
+                .FirstOrDefaultAsync(t => t.CashTransactionId == transactionId && t.CashAccountId == cashAccountId);
+            if (transaction == null)
+            {
+                return NotFound(new { message = "Transaction not found" });
+            }
+
+            // Track the original amount so we can rebalance the account
+            var originalAmount = transaction.Amount;
+
+            if (request.TransactionType != null) transaction.TransactionType = request.TransactionType;
+            if (request.Amount.HasValue) transaction.Amount = request.Amount.Value;
+            if (request.TransactionDate.HasValue)
+            {
+                transaction.TransactionDate = DateTime.SpecifyKind(request.TransactionDate.Value, DateTimeKind.Utc);
+            }
+            if (request.Description != null) transaction.Description = request.Description;
+            if (request.Category != null) transaction.Category = request.Category;
+            if (request.Merchant != null) transaction.Merchant = request.Merchant;
+            if (request.CheckNumber != null) transaction.CheckNumber = request.CheckNumber;
+            if (request.Fee.HasValue) transaction.Fee = request.Fee;
+            if (request.Tags != null) transaction.Tags = request.Tags;
+            if (request.IsPending.HasValue) transaction.IsPending = request.IsPending.Value;
+            if (request.IsRecurring.HasValue) transaction.IsRecurring = request.IsRecurring.Value;
+            if (request.Notes != null) transaction.Notes = request.Notes;
+
+            transaction.UpdatedAt = DateTime.UtcNow;
+
+            // Rebalance the account by the delta
+            if (request.Amount.HasValue && request.Amount.Value != originalAmount)
+            {
+                account.Balance += (request.Amount.Value - originalAmount);
+                account.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(MapToDto(transaction));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating cash transaction {TxId}", transactionId);
+            return StatusCode(500, new { message = "An error occurred while updating the transaction" });
+        }
+    }
+
+    /// <summary>
+    /// Delete a cash transaction. Reverses its effect on the account balance.
+    /// </summary>
+    [HttpDelete("{transactionId:int}")]
+    public async Task<IActionResult> DeleteTransaction(Guid cashAccountId, int transactionId)
+    {
+        try
+        {
+            var account = await _context.CashAccounts.FirstOrDefaultAsync(a => a.CashAccountId == cashAccountId);
+            if (account == null)
+            {
+                return NotFound(new { message = "Cash account not found" });
+            }
+
+            var transaction = await _context.CashTransactions
+                .FirstOrDefaultAsync(t => t.CashTransactionId == transactionId && t.CashAccountId == cashAccountId);
+            if (transaction == null)
+            {
+                return NotFound(new { message = "Transaction not found" });
+            }
+
+            // Reverse balance impact
+            account.Balance -= transaction.Amount;
+            account.UpdatedAt = DateTime.UtcNow;
+
+            _context.CashTransactions.Remove(transaction);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Deleted cash transaction {TxId} from account {AccountId}, reversed {Amount:C}",
+                transactionId, cashAccountId, transaction.Amount);
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting cash transaction {TxId}", transactionId);
+            return StatusCode(500, new { message = "An error occurred while deleting the transaction" });
+        }
+    }
+
+    private static CashTransactionDto MapToDto(CashTransaction t) => new()
+    {
+        CashTransactionId = t.CashTransactionId,
+        CashAccountId = t.CashAccountId,
+        LiabilityAccountId = t.LiabilityAccountId,
+        TransactionType = t.TransactionType,
+        Amount = t.Amount,
+        TransactionDate = t.TransactionDate,
+        Description = t.Description,
+        Category = t.Category,
+        Merchant = t.Merchant,
+        CheckNumber = t.CheckNumber,
+        Fee = t.Fee,
+        Tags = t.Tags,
+        IsPending = t.IsPending,
+        IsRecurring = t.IsRecurring,
+        Notes = t.Notes
+    };
 }
 
 // DTOs
@@ -235,4 +415,68 @@ public class BalanceHistoryDto
 {
     public DateTime Date { get; set; }
     public decimal Balance { get; set; }
+}
+
+public class CreateCashTransactionRequest
+{
+    [Required]
+    [MaxLength(50)]
+    public string TransactionType { get; set; } = string.Empty;
+
+    [Required]
+    public decimal Amount { get; set; }
+
+    public DateTime? TransactionDate { get; set; }
+
+    [MaxLength(500)]
+    public string? Description { get; set; }
+
+    [MaxLength(100)]
+    public string? Category { get; set; }
+
+    [MaxLength(200)]
+    public string? Merchant { get; set; }
+
+    [MaxLength(20)]
+    public string? CheckNumber { get; set; }
+
+    public decimal? Fee { get; set; }
+
+    [MaxLength(500)]
+    public string? Tags { get; set; }
+
+    public bool? IsPending { get; set; }
+    public bool? IsRecurring { get; set; }
+    public string? Notes { get; set; }
+}
+
+public class UpdateCashTransactionRequest
+{
+    [MaxLength(50)]
+    public string? TransactionType { get; set; }
+
+    public decimal? Amount { get; set; }
+
+    public DateTime? TransactionDate { get; set; }
+
+    [MaxLength(500)]
+    public string? Description { get; set; }
+
+    [MaxLength(100)]
+    public string? Category { get; set; }
+
+    [MaxLength(200)]
+    public string? Merchant { get; set; }
+
+    [MaxLength(20)]
+    public string? CheckNumber { get; set; }
+
+    public decimal? Fee { get; set; }
+
+    [MaxLength(500)]
+    public string? Tags { get; set; }
+
+    public bool? IsPending { get; set; }
+    public bool? IsRecurring { get; set; }
+    public string? Notes { get; set; }
 }

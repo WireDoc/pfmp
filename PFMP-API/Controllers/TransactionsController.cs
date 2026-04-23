@@ -398,6 +398,20 @@ public class TransactionsController : ControllerBase
         {
             fromCash.Balance -= request.Amount;
             fromCash.UpdatedAt = DateTime.UtcNow;
+
+            // Create a CashTransaction record so the money trail is visible in the cash account
+            var fromCashTx = new CashTransaction
+            {
+                CashAccountId = fromCash.CashAccountId,
+                TransactionType = "Transfer",
+                Amount = -request.Amount,
+                TransactionDate = txDate,
+                Description = request.Description ?? $"Transfer to {toName}",
+                Category = "Transfer",
+                Source = "Manual",
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.CashTransactions.Add(fromCashTx);
         }
 
         if (toInvestment != null)
@@ -409,6 +423,20 @@ public class TransactionsController : ControllerBase
         {
             toCash.Balance += request.Amount;
             toCash.UpdatedAt = DateTime.UtcNow;
+
+            // Create a CashTransaction record so the money trail is visible in the cash account
+            var toCashTx = new CashTransaction
+            {
+                CashAccountId = toCash.CashAccountId,
+                TransactionType = "Transfer",
+                Amount = request.Amount,
+                TransactionDate = txDate,
+                Description = request.Description ?? $"Transfer from {fromName}",
+                Category = "Transfer",
+                Source = "Manual",
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.CashTransactions.Add(toCashTx);
         }
 
         await _context.SaveChangesAsync();

@@ -45,6 +45,7 @@ public class CashAccountsController : ControllerBase
             InterestRateApr = a.InterestRateApr,
             Purpose = a.Purpose,
             IsEmergencyFund = a.IsEmergencyFund,
+            HasBeneficiaryDesignation = a.HasBeneficiaryDesignation,
             CreatedAt = a.CreatedAt,
             UpdatedAt = a.UpdatedAt,
             Source = (int)a.Source
@@ -81,6 +82,7 @@ public class CashAccountsController : ControllerBase
             InterestRateApr = account.InterestRateApr,
             Purpose = account.Purpose,
             IsEmergencyFund = account.IsEmergencyFund,
+            HasBeneficiaryDesignation = account.HasBeneficiaryDesignation,
             CreatedAt = account.CreatedAt,
             UpdatedAt = account.UpdatedAt,
             Source = (int)account.Source
@@ -123,6 +125,7 @@ public class CashAccountsController : ControllerBase
             InterestRateApr = account.InterestRateApr,
             Purpose = account.Purpose,
             IsEmergencyFund = account.IsEmergencyFund,
+            HasBeneficiaryDesignation = account.HasBeneficiaryDesignation,
             CreatedAt = account.CreatedAt,
             UpdatedAt = account.UpdatedAt
         };
@@ -157,6 +160,7 @@ public class CashAccountsController : ControllerBase
         if (request.InterestRateApr.HasValue) account.InterestRateApr = request.InterestRateApr;
         if (request.Purpose != null) account.Purpose = request.Purpose;
         if (request.IsEmergencyFund.HasValue) account.IsEmergencyFund = request.IsEmergencyFund.Value;
+        if (request.HasBeneficiaryDesignation.HasValue) account.HasBeneficiaryDesignation = request.HasBeneficiaryDesignation.Value;
         account.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -176,6 +180,7 @@ public class CashAccountsController : ControllerBase
             InterestRateApr = account.InterestRateApr,
             Purpose = account.Purpose,
             IsEmergencyFund = account.IsEmergencyFund,
+            HasBeneficiaryDesignation = account.HasBeneficiaryDesignation,
             CreatedAt = account.CreatedAt,
             UpdatedAt = account.UpdatedAt
         });
@@ -292,6 +297,7 @@ public class CashAccountResponse
     public decimal? InterestRateApr { get; set; }
     public string? Purpose { get; set; }
     public bool IsEmergencyFund { get; set; }
+    public bool HasBeneficiaryDesignation { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public int Source { get; set; } // 0 = Manual, 2 = Plaid
@@ -349,4 +355,6 @@ public class UpdateCashAccountRequest
     public string? Purpose { get; set; }
     
     public bool? IsEmergencyFund { get; set; }
+    
+    public bool? HasBeneficiaryDesignation { get; set; }
 }

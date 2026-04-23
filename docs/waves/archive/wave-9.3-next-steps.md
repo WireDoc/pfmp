@@ -4,6 +4,8 @@
 **Current Status:** Wave 9.3 Option A Complete (All Parts), Ready for Option B  
 **Decision Point:** Begin Option B (Loan & Credit Card Views)
 
+> **2026-04-23 update:** This document is archival. The live status / forward plan for Wave 9.3 (including sub-waves 9.3.5, 9.3.6, and 9.3.7) lives in [`docs/waves/wave-9.3-account-detail-redesign-plan.md`](../wave-9.3-account-detail-redesign-plan.md). All four options (A–D) shipped in late 2025; the money-trail and `$CASH` → `Account.CurrentBalance` rework shipped Mar–Apr 2026; only the Wave 9.3.7 E2E smoke remains.
+
 ---
 
 ## Executive Summary

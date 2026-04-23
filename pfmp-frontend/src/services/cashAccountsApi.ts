@@ -19,6 +19,7 @@ export interface CashAccountResponse {
   interestRateApr?: number;
   purpose?: string;
   isEmergencyFund: boolean;
+  hasBeneficiaryDesignation: boolean;
   createdAt: string;
   updatedAt: string;
   source?: number; // 0 = Manual, 2 = Plaid
@@ -33,6 +34,7 @@ export interface CreateCashAccountRequest {
   interestRateApr?: number;
   purpose?: string;
   isEmergencyFund?: boolean;
+  hasBeneficiaryDesignation?: boolean;
 }
 
 export interface UpdateCashAccountRequest {

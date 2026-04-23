@@ -257,4 +257,53 @@ describe('TransactionList', () => {
     const firstDataRow = rows[1]; // Index 0 is header
     expect(firstDataRow.textContent).toContain('Grocery Store'); // Jan 15
   });
+
+  it('renders Add Transaction button when onAdd provided and fires callback on click', async () => {
+    const user = userEvent.setup();
+    const onAdd = vi.fn();
+    render(<TransactionList accountId={123} onAdd={onAdd} />);
+
+    const addButton = await screen.findByRole('button', { name: /Add Transaction/i });
+    await user.click(addButton);
+    expect(onAdd).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not render Add Transaction button when onAdd is not provided', async () => {
+    render(<TransactionList accountId={123} />);
+    await waitFor(() => {
+      expect(screen.getByText('Grocery Store')).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('button', { name: /Add Transaction/i })).not.toBeInTheDocument();
+  });
+
+  it('fires onEdit with the row data when a transaction row is clicked', async () => {
+    const user = userEvent.setup();
+    const onEdit = vi.fn();
+    render(<TransactionList accountId={123} onEdit={onEdit} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Grocery Store')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('Grocery Store'));
+    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(onEdit.mock.calls[0][0]).toMatchObject({
+      transactionId: 1,
+      description: 'Grocery Store',
+    });
+  });
+
+  it('refetches transactions when refreshKey changes', async () => {
+    const { rerender } = render(<TransactionList accountId={123} refreshKey={0} />);
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    rerender(<TransactionList accountId={123} refreshKey={1} />);
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledTimes(2);
+    });
+  });
 });

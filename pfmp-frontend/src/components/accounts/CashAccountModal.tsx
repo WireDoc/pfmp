@@ -54,6 +54,7 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
     interestRateApr: account?.interestRateApr || 0,
     purpose: account?.purpose || '',
     isEmergencyFund: account?.isEmergencyFund || false,
+    hasBeneficiaryDesignation: account?.hasBeneficiaryDesignation || false,
   });
 
   const [saving, setSaving] = useState(false);
@@ -74,6 +75,7 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
         interestRateApr: account.interestRateApr || 0,
         purpose: account.purpose || '',
         isEmergencyFund: account.isEmergencyFund,
+        hasBeneficiaryDesignation: account.hasBeneficiaryDesignation,
       });
     }
   }, [account]);
@@ -132,6 +134,7 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
           balance: formData.balance,
           interestRateApr: formData.interestRateApr || undefined,
           purpose: formData.purpose.trim() || undefined,
+          hasBeneficiaryDesignation: formData.hasBeneficiaryDesignation,
         };
         await onSave(updateRequest, account!.cashAccountId);
       } else {
@@ -173,6 +176,7 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
       interestRateApr: 0,
       purpose: '',
       isEmergencyFund: false,
+      hasBeneficiaryDesignation: false,
     });
     setErrors({});
     setSaveError(null);
@@ -340,6 +344,17 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
               label="This is my emergency fund"
             />
           )}
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={formData.hasBeneficiaryDesignation}
+                onChange={(e) => handleChange('hasBeneficiaryDesignation', e.target.checked)}
+                disabled={saving}
+              />
+            }
+            label="Beneficiary designated for this account"
+          />
         </Box>
       </DialogContent>
       <DialogActions>

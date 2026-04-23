@@ -18,7 +18,7 @@ import { DataGrid, type GridColDef, type GridPaginationModel, type GridSortModel
 import { DatePicker } from '@mui/x-date-pickers';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { Search, FileDownload, FilterList } from '@mui/icons-material';
+import { Search, FileDownload, FilterList, Add } from '@mui/icons-material';
 import { format } from 'date-fns';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api';
@@ -39,6 +39,9 @@ interface TransactionListProps {
   cashAccountId?: string;
   accountName?: string;
   onExport?: (transactions: Transaction[]) => void;
+  onAdd?: () => void;
+  onEdit?: (transaction: Transaction) => void;
+  refreshKey?: number;
 }
 
 const TRANSACTION_CATEGORIES = [
@@ -54,7 +57,10 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   accountId,
   cashAccountId,
   accountName,
-  onExport 
+  onExport,
+  onAdd,
+  onEdit,
+  refreshKey,
 }) => {
   // State for transactions and loading
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -119,10 +125,10 @@ export const TransactionList: React.FC<TransactionListProps> = ({
     }
   }, [accountId, cashAccountId, startDate, endDate, transactionTypeFilter]);
 
-  // Load transactions on mount and when filters change
+  // Load transactions on mount, when filters change, and when refreshKey changes
   React.useEffect(() => {
     fetchTransactions();
-  }, [fetchTransactions]);
+  }, [fetchTransactions, refreshKey]);
 
   // Client-side search filtering
   const filteredTransactions = useMemo(() => {
@@ -253,6 +259,17 @@ export const TransactionList: React.FC<TransactionListProps> = ({
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {onAdd && (
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<Add />}
+              onClick={onAdd}
+            >
+              Add Transaction
+            </Button>
+          )}
+
           <Tooltip title="Toggle filters">
             <IconButton onClick={() => setShowFilters(!showFilters)} color={showFilters ? 'primary' : 'default'}>
               <FilterList />
@@ -361,10 +378,14 @@ export const TransactionList: React.FC<TransactionListProps> = ({
           onSortModelChange={setSortModel}
           pageSizeOptions={[10, 25, 50, 100]}
           disableRowSelectionOnClick
+          onRowClick={onEdit ? (params) => onEdit(params.row as Transaction) : undefined}
           sx={{
             '& .MuiDataGrid-cell': {
               py: 1.5
-            }
+            },
+            ...(onEdit && {
+              '& .MuiDataGrid-row': { cursor: 'pointer' },
+            }),
           }}
         />
       </Box>

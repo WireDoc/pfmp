@@ -1,20 +1,22 @@
 # Wave 9.3: Account Detail View Redesign
 
-**Date:** 2025-11-11 (Updated: 2025-11-15)  
-**Status:** Option C Complete, Option A Ready to Begin  
+**Date:** 2025-11-11 (Updated: 2026-04-23)  
+**Status:** Phases 1–6 Complete — Wave 9.3.7 proposed for residual polish  
 **Priority:** High (blocks proper account management UX)
 
-## Status Update (November 15, 2025)
+## Status Update (April 23, 2026)
 
 ### ✅ Completed
-- **Phase 1: Infrastructure** - Complete (Nov 10-12)
-- **Phase 2: Cash Account Detail Views** - Complete (Nov 10-12)
-- **Option C: Polish Cash Account UX** - Complete (Nov 13-14)
-- **Options A-D: Investment, Loan, Credit views** - Complete (Nov-Dec 2025)
+- **Phase 1: Infrastructure** — Complete (Nov 10–12, 2025)
+- **Phase 2: Cash Account Detail Views** — Complete (Nov 10–12, 2025)
+- **Option C: Polish Cash Account UX** — Complete (Nov 13–14, 2025)
+- **Options A–D: Investment, Loan, Credit views** — Complete (Nov–Dec 2025)
+- **Phase 5: Investment Transaction Money Trail** — Complete (Mar 2026). All sub-phases shipped: `Transaction.SourceAccountId` / `LinkedTransactionId` / `FundingSource` fields, auto `INITIAL_BALANCE` on `CreateHolding`, `$CASH`/`CurrentBalance` debit-credit on BUY/SELL, funding source selector in `HoldingFormModal`, transfer flow via dedicated `TransferFundsDialog` (not embedded in `InvestmentTransactionForm` — see decision note in 5E), paired-transfer + auto-transaction tests.
+- **Phase 6: Replace $CASH Holdings with `Account.CurrentBalance`** — Complete (Mar–Apr 2026). `PostAccount` / `UpdateBalance` / `CreateHolding` / `DashboardController` all updated, Plaid cash-equivalent mapping shipped, dashboard totals = `CurrentBalance + holdings value`, tests updated.
+- **Cash Transaction CRUD parity with investment transactions** — Complete (Apr 2026). `CashTransactionsController` POST/PUT/DELETE with auto balance reconciliation, `CashTransactionForm` modal (deposit/withdrawal/transfer/fee/interest/refund/etc., two-step delete, signed amounts), `TransactionList` add/edit wiring, transfer endpoint now writes paired `CashTransaction` audit records on cash legs.
 
 ### 👉 Next Up
-- **Phase 5: Investment Transaction Money Trail** - Planned (March 2026)
-  - Auto-transaction on CreateHolding, $CASH debit/credit, funding sources, cross-account transfers
+- **Wave 9.3.7: Residual polish** — see new section at bottom of this doc. Picks up the deferred Phase 2 visualization items, `AccountDetailsCard` cash-balance labeling, cash-side transfer audit verification, and optional CSV export. No new architecture, just finish work.
 
 See `wave-9.3-option-c-complete.md` for Option C completion details.  
 See `wave-9.3-next-steps.md` for implementation roadmap.
@@ -515,7 +517,20 @@ public class Account
 
 ### Phase 5: Investment Transaction Money Trail (Wave 9.3.5)
 
-**Status:** 📋 Planned (March 2026)
+**Status:** ✅ Complete (March 2026). See per-sub-phase status table below.
+
+| Sub-phase | Status | Evidence |
+|-----------|--------|----------|
+| 5A Transaction model fields | ✅ Done | `PFMP-API/Models/Transaction.cs` exposes `SourceAccountId`, `LinkedTransactionId`, `FundingSource` (+ `FundingSource` enum) |
+| 5B Auto `INITIAL_BALANCE` on `CreateHolding` | ✅ Done | `PFMP-API/Controllers/HoldingsController.cs` (`CreateHolding`) emits the transaction for manual accounts |
+| 5C `$CASH`/`CurrentBalance` debit‑credit + transfer logic | ✅ Done | `PFMP-API/Controllers/TransactionsController.cs` `transfer` endpoint creates paired WITHDRAWAL/DEPOSIT entries with `LinkedTransactionId` for all four account combinations |
+| 5D Funding source selector | ✅ Done | `pfmp-frontend/src/components/holdings/HoldingFormModal.tsx` renders the selector + conditional source account picker for `InternalTransfer` |
+| 5E Transfer UX in `InvestmentTransactionForm` | ✅ Done by design substitution | TRANSFER is intentionally not a type inside the per‑holding form. Cross‑account transfers go through the dedicated `TransferFundsDialog` (`pfmp-frontend/src/components/transfers/TransferFundsDialog.tsx`) accessible from account detail action bars. This avoids confusing single‑holding context with two‑account flows. |
+| 5F Tests | ✅ Done | `PFMP-API.Tests/HoldingsControllerTests.cs` covers auto INITIAL_BALANCE; `PFMP-API.Tests/TransactionsControllerTests.cs` and `PFMP-API.Tests/CashTransactionsControllerTests.cs` cover paired transfer transactions across all combinations |
+
+_Original plan retained below for traceability._
+
+**Status (original):** 📄 Planned (March 2026)
 **Priority:** High (blocks accurate portfolio tracking and manual account management)
 **Triggered by:** User testing revealed that manually adding holdings creates orphaned records with no transaction history, and there's no way to document inter-account transfers.
 
@@ -728,7 +743,21 @@ When TransactionType == "TRANSFER":
 
 ### Phase 6: Replace $CASH Holdings with Account.CurrentBalance (Wave 9.3.6)
 
-**Status:** 🔄 In Progress (March 2026)
+**Status:** ✅ Complete (March–April 2026). See per-sub-phase status table below.
+
+| Sub-phase | Status | Evidence |
+|-----------|--------|----------|
+| 6A No `$CASH` creation; debit `CurrentBalance` | ✅ Done | `AccountsController.PostAccount` no longer creates a `$CASH` holding; `HoldingsController.CreateHolding` debits `account.CurrentBalance`; `DashboardController` no longer overwrites `CurrentBalance` from holdings sum |
+| 6B `$CASH` cleanup | ✅ Done | `PlaidInvestmentsService` removes stale `$CASH` / `CASH-SWEEP` rows during sync; user 20 reset confirmed during testing |
+| 6C Cash balance display | ⚠️ Mostly done — polish in 9.3.7 | `AccountDetailsCard` shows `currentBalance` for cash accounts but the header label is generic "Balance" rather than "Cash Balance". Investment account header total = `CurrentBalance + holdings value`. Tracked in Wave 9.3.7. |
+| 6D `POST /api/transactions/transfer` + `TransferFundsDialog` | ✅ Done | Endpoint at `PFMP-API/Controllers/TransactionsController.cs`; UI at `pfmp-frontend/src/components/transfers/TransferFundsDialog.tsx`; supports all four account-type combinations |
+| 6E Dashboard total includes cash | ✅ Done | `DashboardController.GetSummary` computes `CurrentBalance + sum(holdings * price)` per account |
+| 6F Plaid cash mapping | ✅ Done | `PlaidInvestmentsService.UpsertHoldingAsync` accumulates cash equivalents into `account.CurrentBalance` instead of synthesizing `$CASH` |
+| 6G Tests | ✅ Done | `HoldingsControllerTests.CreateHolding_DebitsCurrentBalance`, transfer tests in `TransactionsControllerTests`, cash CRUD coverage in `CashTransactionsControllerTests` |
+
+_Original plan retained below for traceability._
+
+**Status (original):** 🔄 In Progress (March 2026)
 **Priority:** High (architectural correction — $CASH as a holding is fundamentally wrong)
 **Triggered by:** User testing with Ally Invest revealed that brokerage cash is an *account-level balance*, not a holding. Ally shows "Spending Power" at the account level, not a $CASH position in the holdings list.
 
@@ -865,3 +894,44 @@ Phase 5 introduced `$CASH` as a synthetic holding to track uninvested cash in in
 5. ✅ Transfer Funds dialog creates paired WITHDRAWAL/DEPOSIT transactions
 6. ✅ Plaid cash-equivalent holdings map to `CurrentBalance`, not as holdings
 7. ✅ All existing tests pass with $CASH logic removed
+
+
+---
+
+## Wave 9.3.7: Residual Polish
+
+**Status:** ✅ Mostly Complete (April 23, 2026) — only E2E smoke remains.
+**Priority:** Medium — feature work was complete; this finished deferred polish from Phases 2 and 6.
+**Triggered by:** Phase 5/6 audit (April 2026). Re-audit during 9.3.7 work confirmed that the "deferred Phase 2 visualization items" listed in earlier revisions of this doc were in fact already shipped in `TransactionList.tsx` (filters, search, CSV export via `onExport`) and `BalanceTrendChart.tsx` (Recharts line chart). Only the items below were genuinely outstanding.
+
+### Scope
+
+| # | Item | Status | Notes |
+|---|------|--------|-------|
+| 1 | Recharts balance-trend visualization on cash account detail | ✅ Already shipped | `pfmp-frontend/src/components/cash-accounts/BalanceTrendChart.tsx` (Recharts), wired into `CashAccountDetailView` and `CashAccountDetail` |
+| 2 | Advanced cash-transaction filtering UI (date range, type, search) | ✅ Already shipped | `TransactionList.tsx` already includes `DatePicker` start/end, type `Select`, search `TextField`, and a `Clear Filters` button toggled via `FilterList` icon |
+| 3 | CSV export of cash transactions | ✅ Already shipped | `TransactionList` exposes `onExport(filteredTransactions)`; both detail views provide a CSV-emitting handler |
+| 4 | `AccountDetailsCard` "Cash Balance" wording + APY surfacing | ✅ Done (this wave) | Header label now reads "Cash Balance" for cash accounts; new APY row renders when `interestRateApr > 0`; stale debug `console.log` removed. `AccountDetailsCard.test.tsx` (21 tests) still green. |
+| 5 | `TransactionList.test.tsx` covering `onAdd` / `onEdit` / `refreshKey` | ✅ Done (this wave) | 3 new tests added (15 total, all passing): Add button visibility + click, row-click fires `onEdit` with row data, `refreshKey` change triggers refetch |
+| 6 | E2E smoke: cash account → deposit → withdrawal → cross-account transfer → verify balances + audit | ⏳ Not started | Recommended next; Playwright config already in place. Tracked as the remaining 9.3.7 deliverable. |
+| 7 | Doc refresh (`wave-9.3-next-steps.md`, `documentation-map.md`) | ⏳ Pending | Update to reflect 9.3.5 / 9.3.6 / 9.3.7 completion |
+
+### Out of Scope
+
+- Phase 3 (Investment view enhancements — performance metrics, tax insights, risk analysis) — schedule as Wave 9.4 if/when prioritized.
+- Phase 4 (Loan & Credit Card views) — already largely done under Options A–D; remaining gaps are tracked in their own wave docs.
+- Anything that would require new EF migrations, new endpoints, or new top-level UI surfaces — none of the residual polish items need either.
+
+### Acceptance Criteria
+
+1. ✅ Cash account detail balance-history tab renders a Recharts line chart over the existing `BalanceHistoryResponse` payload.
+2. ✅ Cash transaction list supports filtering by date range, type, and free-text search using existing `GET /api/cash-accounts/{id}/transactions` query params.
+3. ✅ "Export CSV" affordance on the cash transaction list passes filtered rows to a parent-supplied CSV handler.
+4. ✅ `AccountDetailsCard` shows "Cash Balance" wording for cash account types and surfaces APY when present.
+5. ✅ Vitest suite covers `onAdd` / `onEdit` / `refreshKey` behavior in `TransactionList.test.tsx`.
+6. ⏳ Playwright E2E smoke covers cash CRUD + cross-account transfer in one run.
+7. ⏳ `wave-9.3-next-steps.md` and `documentation-map.md` reflect the new completion state and link to this section.
+
+### Estimated Effort
+
+**Total remaining: ~3 hours** (E2E smoke + doc refresh). The original 11–15h estimate was reduced after audit confirmed items 1–3 were already shipped.
