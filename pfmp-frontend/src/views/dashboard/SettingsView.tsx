@@ -20,6 +20,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import LinkIcon from '@mui/icons-material/Link';
+import CurrencyBitcoinIcon from '@mui/icons-material/CurrencyBitcoin';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import EmailIcon from '@mui/icons-material/Email';
 import BalanceIcon from '@mui/icons-material/Balance';
@@ -162,6 +163,18 @@ export function SettingsView() {
               <ListItemText
                 primary="Connected Accounts"
                 secondary="Manage all linked bank, investment, credit card, and loan accounts"
+              />
+              <ChevronRightIcon color="action" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding>
+            <ListItemButton onClick={() => navigate('/dashboard/settings/crypto')}>
+              <ListItemIcon>
+                <CurrencyBitcoinIcon color="primary" />
+              </ListItemIcon>
+              <ListItemText
+                primary="Crypto Exchanges"
+                secondary="Link read-only API keys (Kraken) to view holdings and transactions"
               />
               <ChevronRightIcon color="action" />
             </ListItemButton>

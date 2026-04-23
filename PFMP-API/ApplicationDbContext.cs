@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
+using PFMP_API.Models.Crypto;
 using PFMP_API.Models.FinancialProfile;
 using PFMP_API.Models.Plaid;
 
@@ -89,6 +90,11 @@ namespace PFMP_API
 
     // Estate Planning (Wave 21)
     public DbSet<EstatePlanningProfile> EstatePlanningProfiles { get; set; }
+
+    // Crypto Exchanges (Wave 13)
+    public DbSet<ExchangeConnection> ExchangeConnections { get; set; }
+    public DbSet<CryptoHolding> CryptoHoldings { get; set; }
+    public DbSet<CryptoTransaction> CryptoTransactions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -642,6 +648,38 @@ namespace PFMP_API
                 entity.HasOne(e => e.User)
                     .WithMany()
                     .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Crypto Exchanges (Wave 13)
+            modelBuilder.Entity<ExchangeConnection>(entity =>
+            {
+                entity.HasKey(e => e.ExchangeConnectionId);
+                entity.HasIndex(e => new { e.UserId, e.Provider, e.Nickname }).IsUnique();
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<CryptoHolding>(entity =>
+            {
+                entity.HasKey(e => e.CryptoHoldingId);
+                entity.HasIndex(e => new { e.ExchangeConnectionId, e.Symbol, e.IsStaked }).IsUnique();
+                entity.HasOne(e => e.ExchangeConnection)
+                    .WithMany(c => c.Holdings)
+                    .HasForeignKey(e => e.ExchangeConnectionId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<CryptoTransaction>(entity =>
+            {
+                entity.HasKey(e => e.CryptoTransactionId);
+                entity.HasIndex(e => new { e.ExchangeConnectionId, e.ExchangeTxId }).IsUnique();
+                entity.HasIndex(e => e.ExecutedAt);
+                entity.HasOne(e => e.ExchangeConnection)
+                    .WithMany(c => c.Transactions)
+                    .HasForeignKey(e => e.ExchangeConnectionId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 

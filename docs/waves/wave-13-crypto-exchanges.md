@@ -1,7 +1,7 @@
 # Wave 13: Crypto Exchange Integration
 
 _Created: 2026-04-23_
-_Status: Planning_
+_Status: Phase 1 Complete (Kraken shipped)_
 
 ## Overview
 
@@ -102,7 +102,22 @@ If exchange returns lot detail (Kraken does via `Ledgers` + `TradesHistory`), we
 
 ## Phasing
 
-### Phase 1 — Backend Foundation + Kraken (estimated largest chunk)
+### Phase 1 — Backend Foundation + Kraken (estimated largest chunk) ✅ Complete
+
+**Shipped (this session):**
+- ✅ EF migration `Wave13_AddCryptoExchangeTables` applied (ExchangeConnections, CryptoHoldings, CryptoTransactions)
+- ✅ `IExchangeAdapter` + `KrakenExchangeAdapter` (HMAC-SHA512 signing, asset code normalization XXBT/XBT→BTC, ZUSD→USD, `.S`/`.M` staking detection, ledger → CryptoTransaction mapping)
+- ✅ `ExchangeCredentialEncryptionService` (Data Protection API, `Purpose="ExchangeCredentials"`)
+- ✅ `ExchangeConnectionService` — validate → reject trading-scope keys → encrypt → persist → initial sync
+- ✅ `CryptoSyncService` — idempotent holdings upsert + tx insert, Buy/Sell sign correction, stale-holding cleanup
+- ✅ `CoinGeckoPriceService` — 15-min spot cache + 24-hr coin list cache (free public API, no key)
+- ✅ `CryptoController` — 6 endpoints, manual-sync rate limit (1/hr/connection, 429 + Retry-After)
+- ✅ `CryptoSyncJob` — Hangfire recurring `45 23 * * *` Eastern, AutomaticRetry 2x
+- ✅ Frontend: `cryptoApi` service, `CryptoSettingsView` (link/list/sync/delete), route `/dashboard/settings/crypto`, Settings nav entry
+- ✅ Tests: 5 controller + 5 Kraken adapter (xUnit) + 3 frontend (Vitest); full backend sweep 183/183 green
+- ✅ Postman v1.12.0 with Crypto folder (6 requests) + `cryptoConnectionId` variable
+
+**Original scope (preserved for reference):**
 
 **Backend**
 - Migration: `ExchangeConnection`, `CryptoHolding`, `CryptoTransaction` (no `CryptoTaxLot` yet)

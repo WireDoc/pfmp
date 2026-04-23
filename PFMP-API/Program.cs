@@ -172,6 +172,24 @@ namespace PFMP_API
             // Plaid Unified Connection Service (Wave 12.5)
             builder.Services.AddScoped<PFMP_API.Services.Plaid.IPlaidConnectionService, PFMP_API.Services.Plaid.PlaidConnectionService>();
 
+            // Wave 13: Crypto Exchange Integration
+            builder.Services.AddHttpClient("Kraken", client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(30);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("PFMP/1.0 (+https://github.com/WireDoc/pfmp)");
+            });
+            builder.Services.AddHttpClient("CoinGecko", client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(30);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("PFMP/1.0 (+https://github.com/WireDoc/pfmp)");
+            });
+            builder.Services.AddSingleton<PFMP_API.Services.Crypto.IExchangeCredentialEncryptionService, PFMP_API.Services.Crypto.ExchangeCredentialEncryptionService>();
+            builder.Services.AddSingleton<PFMP_API.Services.Crypto.ICoinGeckoPriceService, PFMP_API.Services.Crypto.CoinGeckoPriceService>();
+            builder.Services.AddScoped<PFMP_API.Services.Crypto.IExchangeAdapter, PFMP_API.Services.Crypto.KrakenExchangeAdapter>();
+            builder.Services.AddScoped<PFMP_API.Services.Crypto.ICryptoSyncService, PFMP_API.Services.Crypto.CryptoSyncService>();
+            builder.Services.AddScoped<PFMP_API.Services.Crypto.IExchangeConnectionService, PFMP_API.Services.Crypto.ExchangeConnectionService>();
+            builder.Services.AddScoped<PFMP_API.Jobs.CryptoSyncJob>();
+
             // Add Authentication Services
             builder.Services.AddScoped<IPasswordHashService, PasswordHashService>();
             builder.Services.AddHttpClient<IAuthenticationService, AuthenticationService>();
@@ -341,6 +359,13 @@ namespace PFMP_API
                     "monthly-property-valuation",
                     job => job.RefreshAllPropertyValuationsAsync(CancellationToken.None),
                     "0 3 1 * *", // 3 AM ET on the 1st of every month
+                    new RecurringJobOptions { TimeZone = easternTimeZone });
+
+                // Daily crypto exchange sync at 11:45 PM ET (Wave 13)
+                RecurringJob.AddOrUpdate<PFMP_API.Jobs.CryptoSyncJob>(
+                    "daily-crypto-sync",
+                    job => job.SyncAllConnectionsAsync(CancellationToken.None),
+                    "45 23 * * *", // 11:45 PM daily
                     new RecurringJobOptions { TimeZone = easternTimeZone });
             }
 

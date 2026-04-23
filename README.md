@@ -13,6 +13,7 @@ PFMP is an AI-assisted financial planning platform for government employees and 
 - **Current Highlights**:
   - **Wave 21 Complete** – Estate planning & beneficiary tracking; AI now flags missing wills, POAs, and TSP/FEGLI designations (April 2026)
   - **Wave 20 Complete** – LES SCD extraction, FEHB plan auto-fill from OPM table, SF-50 uploader retired (April 2026)
+  - **Wave 13 P1 Complete** – Kraken crypto exchange integration: read-only API keys, holdings + transactions sync, CoinGecko pricing, daily Hangfire job (April 2026)
   - **Wave 19 Complete** – TSP Roth/traditional split, COLA modeling, custom retirement age, survivor benefit, income gap analysis (April 2026)
   - **Wave 18 Complete** – Federal benefits deep dive: SF-50/LES PDF parsing, FERS pension auto-calc, multi-scenario retirement projector (April 2026)
   - **Wave 17 Complete** – Dashboard expansion: profile editor, accounts hub, insights/tasks pages, command palette, goal projections, data export (April 2026)
@@ -119,14 +120,14 @@ See `docs/api/postman.md` for details.
 - Active version: **v0.22.0-alpha** (see `VERSION`; reserved `v0.21` for the Wave 16–21 audit, `v0.22` opens Wave 13 work, bumps to `v0.23` on Wave 13 closeout)
 - **Latest milestone**: Wave 21 (Estate Planning & Beneficiary Tracking) shipped April 2026
 - **Recently shipped**: Waves 15 (Property Mgmt) → 16 (OpenRouter AI) → 17 (Dashboard Expansion) → 18 (Federal Benefits Deep Dive) → 19 (Advanced Retirement Planning) → 20 (FEHB/LES Enhancements) → 21 (Estate Planning); plus Wave 9.3.7 polish (April 23, 2026)
-- **Next up**: Wave 13 (Crypto Exchange Integration) – planning in progress; Wave 14 (Spending Analysis) follows
+- **Next up**: Wave 13 P2 (Binance.US adapter), then Wave 14 (Spending Analysis)
 - **Roadmap phases**: Phase 2 (Data Aggregation) complete; Phase 3 (AI Advisory) materially complete via Waves 7/16/18/19; Phase 4 (Daily Experience & Notifications) and Phase 5 (Production Hardening) remain
 
 ### Upcoming Waves
 
 | Wave | Focus | Status |
 |------|-------|--------|
-| **13** | Crypto Exchange Integration (Coinbase, Binance, Kraken, Gemini; read-only API keys; holdings + staking + transactions) | 📋 Planning – see `docs/waves/wave-13-crypto-exchanges.md` |
+| **13** | Crypto Exchange Integration (Kraken ✅ P1 shipped; Binance.US P2 next; staking/tax-lot detail P3) | 🟡 P1 Complete – see `docs/waves/wave-13-crypto-exchanges.md` |
 | **14** | Spending Analysis & Budgeting (category trends, budgets, recurring detection, cash-flow forecasting) | 📋 Planned |
 | **Phase 4** | Daily summary, notifications, calendar/timeline, advisor-meeting export | 📋 Future |
 | **Phase 5** | Production hardening: Azure Entra re-enable, Key Vault, audit logging, SLAs | 📋 Future |

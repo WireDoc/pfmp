@@ -31,6 +31,7 @@ const TspDetailView = lazy(() => import('./views/dashboard/TspDetailView').then(
 const NetWorthTimelineView = lazy(() => import('./views/dashboard/NetWorthTimelineView').then(m => ({ default: m.NetWorthTimelineView })));
 const PropertyDetailView = lazy(() => import('./views/dashboard/PropertyDetailView').then(m => ({ default: m.PropertyDetailView })));
 const ConnectionsSettingsView = lazy(() => import('./views/settings/ConnectionsSettingsView').then(m => ({ default: m.ConnectionsSettingsView })));
+const CryptoSettingsView = lazy(() => import('./views/settings/CryptoSettingsView').then(m => ({ default: m.CryptoSettingsView })));
 const SchedulerAdminView = lazy(() => import('./views/admin/SchedulerAdminView'));
 
 // NotFound lazy component supplied via staticRoutes (staticNotFound)
@@ -176,6 +177,10 @@ export function AppRouter(props: AppRouterProps) {
         {
           path: 'settings/connections',
           element: <Suspense fallback={<PageSpinner />}><ConnectionsSettingsView /></Suspense>,
+        },
+        {
+          path: 'settings/crypto',
+          element: <Suspense fallback={<PageSpinner />}><CryptoSettingsView /></Suspense>,
         },
         {
           path: 'admin/scheduler',
