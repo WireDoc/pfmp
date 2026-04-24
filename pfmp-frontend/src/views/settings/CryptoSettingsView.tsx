@@ -52,7 +52,7 @@ import {
 } from '../../services/cryptoApi';
 import { useDevUserId } from '../../dev/devUserState';
 
-const SUPPORTED_PROVIDERS = ['Kraken'] as const;
+const SUPPORTED_PROVIDERS = ['Kraken', 'BinanceUS'] as const;
 
 function formatTimestamp(value: string | null): string {
   if (!value) return 'Never';
@@ -365,7 +365,7 @@ export const CryptoSettingsView: React.FC = () => {
               size="small"
             >
               {SUPPORTED_PROVIDERS.map(p => (
-                <MenuItem key={p} value={p}>{p}</MenuItem>
+                <MenuItem key={p} value={p}>{p === 'BinanceUS' ? 'Binance.US' : p}</MenuItem>
               ))}
             </TextField>
             <TextField

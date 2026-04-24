@@ -36,9 +36,9 @@ public class CryptoControllerTests : IClassFixture<TestingWebAppFactory>
         {
             builder.ConfigureTestServices(services =>
             {
-                // Remove the real Kraken adapter registration and inject the fake one.
-                var descriptor = services.FirstOrDefault(d => d.ServiceType == typeof(IExchangeAdapter));
-                if (descriptor is not null) services.Remove(descriptor);
+                // Remove ALL real adapter registrations (Kraken + Binance.US) and inject the fake one.
+                var descriptors = services.Where(d => d.ServiceType == typeof(IExchangeAdapter)).ToList();
+                foreach (var d in descriptors) services.Remove(d);
                 services.AddScoped<IExchangeAdapter>(_ => fake);
             });
         }).CreateClient();

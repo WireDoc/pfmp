@@ -2,8 +2,8 @@
   "info": {
     "name": "PFMP API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "1.12.0",
-    "description": "PFMP API endpoints grouped for development and testing. Adjust {{baseUrl}} as needed. v1.12.0: Added Wave 13 Crypto folder (Kraken connections, holdings, transactions, sync). v1.11.0: Added Cash Transactions CRUD (POST/PUT/DELETE) and Transfer Funds endpoint. Transfer now creates CashTransaction audit records on cash sides."
+    "version": "1.12.1",
+    "description": "PFMP API endpoints grouped for development and testing. Adjust {{baseUrl}} as needed. v1.12.1: Wave 13 P2 — added Binance.US Create Connection example. v1.12.0: Added Wave 13 Crypto folder (Kraken connections, holdings, transactions, sync). v1.11.0: Added Cash Transactions CRUD (POST/PUT/DELETE) and Transfer Funds endpoint. Transfer now creates CashTransaction audit records on cash sides."
   },
   "item": [
     {
@@ -1302,6 +1302,19 @@
               "raw": "{\n  \"provider\": \"Kraken\",\n  \"nickname\": \"Main\",\n  \"apiKey\": \"REPLACE_WITH_READONLY_KEY\",\n  \"apiSecret\": \"REPLACE_WITH_READONLY_SECRET\"\n}"
             },
             "description": "Validate read-only API keys, encrypt with DPAPI, persist, and run an initial sync."
+          }
+        },
+        {
+          "name": "Create Connection (Binance.US)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/crypto/connections?userId={{userId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"BinanceUS\",\n  \"nickname\": \"Binance Main\",\n  \"apiKey\": \"REPLACE_WITH_READONLY_KEY\",\n  \"apiSecret\": \"REPLACE_WITH_READONLY_SECRET\"\n}"
+            },
+            "description": "Wave 13 P2: Validate Binance.US read-only API keys (rejects keys with spot trading, margin, futures, withdrawal, or internal-transfer scopes)."
           }
         },
         {

@@ -1,7 +1,7 @@
 # Wave 13: Crypto Exchange Integration
 
 _Created: 2026-04-23_
-_Status: Phase 1 Complete (Kraken shipped)_
+_Status: Phase 2 Complete (Kraken + Binance.US shipped)_
 
 ## Overview
 
@@ -151,7 +151,18 @@ If exchange returns lot detail (Kraken does via `Ledgers` + `TradesHistory`), we
 - Holdings table shows BTC/ETH/etc. with market value within ±0.1% of Kraken's portfolio value (allowing for price-source skew).
 - Re-syncing the same time range does not duplicate `CryptoTransaction` rows.
 
-### Phase 2 — Binance.US Adapter
+### Phase 2 — Binance.US Adapter ✅ Complete
+
+**Shipped (this session):**
+- ✅ `BinanceUsExchangeAdapter` against `/sapi/v1/account/apiRestrictions` (key permission inspection), `/api/v3/account` (balances), `/sapi/v1/capital/deposit/hisrec`, `/sapi/v1/capital/withdraw/history`, `/api/v3/myTrades` (per-asset USD pair enumeration). HMAC-SHA256 query-string signing with `X-MBX-APIKEY` header.
+- ✅ ValidateKeys rejects keys with spot trading, margin, futures, withdrawal, or internal-transfer scopes.
+- ✅ Asset normalization folds USD/USDT/USDC/BUSD → "USD".
+- ✅ `Provider="BinanceUS"` registered alongside Kraken via `IEnumerable<IExchangeAdapter>`.
+- ✅ Frontend provider dropdown enables "Binance.US".
+- ✅ 5 new adapter tests; backend full sweep 188/188 green.
+- ✅ Postman v1.12.1 with Binance.US Create Connection example.
+
+**Original scope (preserved for reference):**
 
 - `BinanceUsExchangeAdapter` against `/api/v3/account`, `/api/v3/myTrades`, `/sapi/v1/asset/transfer`, `/sapi/v1/staking/...`
 - Provider dropdown enables "Binance.US"

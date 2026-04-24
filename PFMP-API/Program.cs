@@ -178,6 +178,11 @@ namespace PFMP_API
                 client.Timeout = TimeSpan.FromSeconds(30);
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("PFMP/1.0 (+https://github.com/WireDoc/pfmp)");
             });
+            builder.Services.AddHttpClient("BinanceUS", client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(30);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("PFMP/1.0 (+https://github.com/WireDoc/pfmp)");
+            });
             builder.Services.AddHttpClient("CoinGecko", client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(30);
@@ -186,6 +191,7 @@ namespace PFMP_API
             builder.Services.AddSingleton<PFMP_API.Services.Crypto.IExchangeCredentialEncryptionService, PFMP_API.Services.Crypto.ExchangeCredentialEncryptionService>();
             builder.Services.AddSingleton<PFMP_API.Services.Crypto.ICoinGeckoPriceService, PFMP_API.Services.Crypto.CoinGeckoPriceService>();
             builder.Services.AddScoped<PFMP_API.Services.Crypto.IExchangeAdapter, PFMP_API.Services.Crypto.KrakenExchangeAdapter>();
+            builder.Services.AddScoped<PFMP_API.Services.Crypto.IExchangeAdapter, PFMP_API.Services.Crypto.BinanceUsExchangeAdapter>();
             builder.Services.AddScoped<PFMP_API.Services.Crypto.ICryptoSyncService, PFMP_API.Services.Crypto.CryptoSyncService>();
             builder.Services.AddScoped<PFMP_API.Services.Crypto.IExchangeConnectionService, PFMP_API.Services.Crypto.ExchangeConnectionService>();
             builder.Services.AddScoped<PFMP_API.Jobs.CryptoSyncJob>();
