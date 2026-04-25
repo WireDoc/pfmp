@@ -31,6 +31,7 @@ import { NotePopover } from '../../components/notes/NotePopover';
 import { AccountModal } from '../../components/accounts/AccountModal';
 import { getCashAccount, updateCashAccount, deleteCashAccount, type CashAccountResponse, type CreateCashAccountRequest, type UpdateCashAccountRequest } from '../../services/cashAccountsApi';
 import { getAccount, updateAccount, deleteAccount, type AccountResponse, type UpdateAccountRequest } from '../../services/accountsApi';
+import { CryptoAccountsCard } from '../../components/crypto/CryptoAccountsCard';
 
 function fmt$(amount: number): string {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
@@ -291,6 +292,9 @@ export function AccountsView() {
           </Stack>
         )}
       </AccountSection>
+
+      {/* Crypto (Wave 13) */}
+      <CryptoAccountsCard userId={userId} variant="section" />
 
       {/* TSP */}
       {tsp && tspTotal > 0 && (

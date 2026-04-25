@@ -168,6 +168,10 @@ export const defaultHandlers = [
   ...createSectionHandlers(federalBenefitsMatcher),
   http.get(netWorthSparklineMatcher, () => HttpResponse.json([], { status: 200 })),
   http.options(netWorthSparklineMatcher, () => new HttpResponse(null, { status: 204 })),
+  // Crypto (Wave 13) — default to empty so AccountsView/AccountsPanel tests don't error
+  http.get(/\/crypto\/holdings(?:\?.*)?$/, () => HttpResponse.json([], { status: 200 })),
+  http.get(/\/crypto\/connections(?:\?.*)?$/, () => HttpResponse.json([], { status: 200 })),
+  http.get(/\/crypto\/transactions(?:\?.*)?$/, () => HttpResponse.json([], { status: 200 })),
 ];
 
 export const mockDashboardSummary = (data: JsonValue, init?: ResponseInit) =>

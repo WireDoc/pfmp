@@ -35,6 +35,12 @@ namespace PFMP_API.Services.Crypto
         private static readonly Dictionary<string, SpotPriceEntry> SpotPriceCache = new(StringComparer.OrdinalIgnoreCase);
         private static readonly TimeSpan SpotCacheTtl = TimeSpan.FromMinutes(15);
 
+        // USD-pegged stablecoins (and USD itself) always price at $1; never round-trip through CoinGecko.
+        private static readonly HashSet<string> UsdStableSymbols = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "USD", "USDT", "USDC", "BUSD", "DAI", "TUSD", "USDP", "GUSD", "PYUSD"
+        };
+
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<CoinGeckoPriceService> _logger;
 
@@ -59,6 +65,11 @@ namespace PFMP_API.Services.Crypto
             var now = DateTime.UtcNow;
             foreach (var sym in requested)
             {
+                if (UsdStableSymbols.Contains(sym))
+                {
+                    result[sym] = 1m;
+                    continue;
+                }
                 if (SpotPriceCache.TryGetValue(sym, out var cached) && now - cached.At < SpotCacheTtl)
                 {
                     result[sym] = cached.Price;
@@ -114,6 +125,8 @@ namespace PFMP_API.Services.Crypto
         {
             if (string.IsNullOrWhiteSpace(symbol)) return null;
             var key = symbol.Trim().ToUpperInvariant();
+            // USD-pegged stablecoins always price at $1; no CoinGecko lookup needed.
+            if (UsdStableSymbols.Contains(key)) return null;
             if (SymbolToIdCache.TryGetValue(key, out var cached)) return cached;
 
             await EnsureCoinListLoadedAsync(cancellationToken);

@@ -162,6 +162,15 @@ If exchange returns lot detail (Kraken does via `Ledgers` + `TradesHistory`), we
 - ✅ 5 new adapter tests; backend full sweep 188/188 green.
 - ✅ Postman v1.12.1 with Binance.US Create Connection example.
 
+### Phase 2.5 — UI Surfacing + Stablecoin Pricing Polish ✅ Complete
+
+- ✅ `CoinGeckoPriceService` short-circuits USD-pegged stablecoins (`USD`, `USDT`, `USDC`, `BUSD`, `DAI`, `TUSD`, `USDP`, `GUSD`, `PYUSD`) to a fixed $1.00 price; never resolves them through CoinGecko. Fixes user 20's `USD qty 650` row that was being marked-to-market at $0.01. `MarketValueUsd` recomputes on the next sync — no DB backfill required.
+- ✅ New shared `CryptoAccountsCard` component (`pfmp-frontend/src/components/crypto/CryptoAccountsCard.tsx`) with `section` and `panel` variants. Renders per-holding rows (symbol, provider, quantity, market value), Staked chip, total, and Manage button; renders a CTA when no exchanges are linked.
+- ✅ Wired into the All Accounts page (`AccountsView`) below Investment Accounts and into the dashboard `AccountsPanel` below the regular accounts list.
+- ✅ MSW default handlers extended for `/crypto/holdings`, `/crypto/connections`, `/crypto/transactions` so existing view tests no longer surface unhandled-request noise.
+- ✅ New Vitest covering empty/loaded branches; backend sweep remains 188/188.
+
+
 **Original scope (preserved for reference):**
 
 - `BinanceUsExchangeAdapter` against `/api/v3/account`, `/api/v3/myTrades`, `/sapi/v1/asset/transfer`, `/sapi/v1/staking/...`
