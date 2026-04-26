@@ -172,6 +172,12 @@ export const defaultHandlers = [
   http.get(/\/crypto\/holdings(?:\?.*)?$/, () => HttpResponse.json([], { status: 200 })),
   http.get(/\/crypto\/connections(?:\?.*)?$/, () => HttpResponse.json([], { status: 200 })),
   http.get(/\/crypto\/transactions(?:\?.*)?$/, () => HttpResponse.json([], { status: 200 })),
+  http.post(/\/crypto\/connections\/\d+\/sync(?:\?.*)?$/, () =>
+    HttpResponse.json(
+      { holdingsUpserted: 0, transactionsInserted: 0, transactionsSkipped: 0, error: null, lastSyncAt: null },
+      { status: 200 },
+    ),
+  ),
 ];
 
 export const mockDashboardSummary = (data: JsonValue, init?: ResponseInit) =>

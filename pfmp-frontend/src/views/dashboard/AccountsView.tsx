@@ -294,7 +294,7 @@ export function AccountsView() {
       </AccountSection>
 
       {/* Crypto (Wave 13) */}
-      <CryptoAccountsCard userId={userId} variant="section" />
+      <CryptoAccountsCard userId={userId} />
 
       {/* TSP */}
       {tsp && tspTotal > 0 && (

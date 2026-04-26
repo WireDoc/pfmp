@@ -18,7 +18,6 @@ import axios from 'axios';
 import type { DashboardData } from '../../services/dashboard';
 import type { AccountSnapshot } from '../../services/dashboard/types';
 import { NotePopover } from '../../components/notes/NotePopover';
-import { CryptoAccountsCard } from '../../components/crypto/CryptoAccountsCard';
 
 interface Props { 
   data: DashboardData | null; 
@@ -281,9 +280,6 @@ export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefres
               </CardContent>
             </Card>
           ))}
-          </Box>
-          <Box sx={{ mt: 2 }}>
-            <CryptoAccountsCard userId={userId} variant="panel" />
           </Box>
         </>
       )}

@@ -27,6 +27,8 @@ import { QuickStatsPanel } from './dashboard/QuickStatsPanel';
 import PropertiesPanel from './dashboard/PropertiesPanel';
 import LiabilitiesPanel from './dashboard/LiabilitiesPanel';
 import TspPanel from './dashboard/TspPanel';
+import CryptoSummaryCard from './dashboard/CryptoSummaryCard';
+import { listExchangeConnections, syncExchangeConnection } from '../services/cryptoApi';
 import { useAuth } from '../contexts/auth/useAuth';
 import { getDashboardService } from '../services/dashboard';
 import type {
@@ -112,6 +114,8 @@ export const Dashboard: React.FC = () => {
 
   const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api';
   const hasRefreshedPrices = useRef(false);
+  const hasSyncedCrypto = useRef(false);
+  const [cryptoRefreshKey, setCryptoRefreshKey] = useState(0);
 
   useEffect(() => {
     performanceMark('dashboard-mount');
@@ -134,6 +138,30 @@ export const Dashboard: React.FC = () => {
         .catch(err => console.warn(`[dashboard] Price refresh failed for account ${acct.id}`, err));
     }
   }, [data, apiBase]);
+
+  // Wave 13: refresh crypto prices on the same triggers as Investment Accounts (mount).
+  // Each connection sync is fire-and-forget; the SummaryCard re-fetches via `cryptoRefreshKey`.
+  const userIdForRefresh = devUserId ?? Number(import.meta.env.VITE_PFMP_DASHBOARD_USER_ID || '1');
+  useEffect(() => {
+    if (!data || hasSyncedCrypto.current) return;
+    hasSyncedCrypto.current = true;
+    let cancelled = false;
+    listExchangeConnections(userIdForRefresh)
+      .then(async connections => {
+        if (cancelled || !connections?.length) return;
+        await Promise.all(
+          connections
+            .filter(c => c.status === 'Active')
+            .map(c =>
+              syncExchangeConnection(userIdForRefresh, c.exchangeConnectionId)
+                .catch(err => console.warn(`[dashboard] Crypto sync failed for connection ${c.exchangeConnectionId}`, err)),
+            ),
+        );
+        if (!cancelled) setCryptoRefreshKey(k => k + 1);
+      })
+      .catch(err => console.warn('[dashboard] Crypto connections fetch failed', err));
+    return () => { cancelled = true; };
+  }, [data, userIdForRefresh]);
 
   useEffect(() => {
     if (data) {
@@ -750,6 +778,14 @@ export const Dashboard: React.FC = () => {
               />
             )}
           </Paper>
+        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>
+          {loading ? <Skeleton variant="rectangular" height={200} /> : (
+            <CryptoSummaryCard
+              userId={devUserId ?? Number(import.meta.env.VITE_PFMP_DASHBOARD_USER_ID || '1')}
+              refreshKey={cryptoRefreshKey}
+            />
+          )}
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
           {loading ? <Skeleton variant="rectangular" height={200} /> : <TspPanel tspAccount={tspAccount} loading={loading} />}

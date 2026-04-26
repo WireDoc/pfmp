@@ -165,10 +165,12 @@ If exchange returns lot detail (Kraken does via `Ledgers` + `TradesHistory`), we
 ### Phase 2.5 — UI Surfacing + Stablecoin Pricing Polish ✅ Complete
 
 - ✅ `CoinGeckoPriceService` short-circuits USD-pegged stablecoins (`USD`, `USDT`, `USDC`, `BUSD`, `DAI`, `TUSD`, `USDP`, `GUSD`, `PYUSD`) to a fixed $1.00 price; never resolves them through CoinGecko. Fixes user 20's `USD qty 650` row that was being marked-to-market at $0.01. `MarketValueUsd` recomputes on the next sync — no DB backfill required.
-- ✅ New shared `CryptoAccountsCard` component (`pfmp-frontend/src/components/crypto/CryptoAccountsCard.tsx`) with `section` and `panel` variants. Renders per-holding rows (symbol, provider, quantity, market value), Staked chip, total, and Manage button; renders a CTA when no exchanges are linked.
-- ✅ Wired into the All Accounts page (`AccountsView`) below Investment Accounts and into the dashboard `AccountsPanel` below the regular accounts list.
-- ✅ MSW default handlers extended for `/crypto/holdings`, `/crypto/connections`, `/crypto/transactions` so existing view tests no longer surface unhandled-request noise.
-- ✅ New Vitest covering empty/loaded branches; backend sweep remains 188/188.
+- ✅ Shared `CryptoAccountsCard` (`pfmp-frontend/src/components/crypto/CryptoAccountsCard.tsx`) renders on the All Accounts page as **Cryptocurrency Accounts**, with the same expand/collapse arrow used by every other account section.
+- ✅ Dashboard now has its own **Cryptocurrency** card (`pfmp-frontend/src/views/dashboard/CryptoSummaryCard.tsx`) modeled on `TspPanel` — total balance, last-updated date, sync status indicator, and **View Details** button. Positioned in the right column directly above the TSP card.
+- ✅ Crypto prices refresh on the same dashboard triggers as Investment Accounts (mount; not the daily TSP scheduler). Each linked exchange's `syncExchangeConnection` is fired once per dashboard load; the SummaryCard re-fetches when sync completes.
+- ✅ MSW default handlers extended for `/crypto/holdings`, `/crypto/connections`, `/crypto/transactions`, and the sync POST so existing view tests no longer surface unhandled-request noise.
+- ✅ Vitests: `CryptoAccountsCard` (3) covers CTA, holdings/no-Manage-button, and collapse; `CryptoSummaryCard` (3) covers CTA, synced/View-Details, and pending-sync. Backend sweep remains 188/188.
+
 
 
 **Original scope (preserved for reference):**
