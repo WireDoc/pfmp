@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using PFMP_API.Controllers;
 using PFMP_API.DTOs;
 using PFMP_API.Models;
+using PFMP_API.Models.Crypto;
 using PFMP_API.Models.FinancialProfile;
 using System.Diagnostics;
 using System.Text;
@@ -812,6 +813,78 @@ Your analysis will be reviewed by a backup AI system for validation.",
             {
                 sb.AppendLine("=== INVESTMENT ACCOUNTS ===");
                 sb.AppendLine("None — no investment or brokerage accounts on file.");
+                sb.AppendLine();
+            }
+
+            // === CRYPTO HOLDINGS (Wave 13) ===
+            var cryptoConnections = await _context.ExchangeConnections
+                .Where(c => c.UserId == userId)
+                .ToListAsync();
+            if (cryptoConnections.Any())
+            {
+                var connIds = cryptoConnections.Select(c => c.ExchangeConnectionId).ToList();
+                var cryptoHoldings = await _context.CryptoHoldings
+                    .Where(h => connIds.Contains(h.ExchangeConnectionId))
+                    .ToListAsync();
+                var totalCrypto = cryptoHoldings.Sum(h => h.MarketValueUsd);
+                var stakedValue = cryptoHoldings.Where(h => h.IsStaked).Sum(h => h.MarketValueUsd);
+                var liquidValue = totalCrypto - stakedValue;
+
+                // YTD staking rewards from tax-lot service data (reward lots flagged at acquisition)
+                var startOfYear = new DateTime(DateTime.UtcNow.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                var ytdRewards = await _context.CryptoTaxLots
+                    .Where(l => connIds.Contains(l.ExchangeConnectionId)
+                        && l.IsRewardLot
+                        && l.AcquiredAt >= startOfYear)
+                    .SumAsync(l => l.OriginalQuantity * l.CostBasisUsdPerUnit);
+
+                // Realized P/L YTD (sum of closed-portion gains across all lots acquired any time but realized this year)
+                // We approximate using tax-lot realized fields populated by recompute.
+                var realizedYtdShort = await _context.CryptoTaxLots
+                    .Where(l => connIds.Contains(l.ExchangeConnectionId)
+                        && l.ClosedAt != null
+                        && l.ClosedAt >= startOfYear)
+                    .SumAsync(l => l.RealizedShortTermGainUsd);
+                var realizedYtdLong = await _context.CryptoTaxLots
+                    .Where(l => connIds.Contains(l.ExchangeConnectionId)
+                        && l.ClosedAt != null
+                        && l.ClosedAt >= startOfYear)
+                    .SumAsync(l => l.RealizedLongTermGainUsd);
+
+                var unrealized = cryptoHoldings
+                    .Where(h => h.AvgCostBasisUsd.HasValue)
+                    .Sum(h => h.MarketValueUsd - (h.AvgCostBasisUsd!.Value * h.Quantity));
+
+                sb.AppendLine($"=== CRYPTO HOLDINGS ({cryptoConnections.Count} exchange{(cryptoConnections.Count == 1 ? "" : "s")}, {cryptoHoldings.Count} position{(cryptoHoldings.Count == 1 ? "" : "s")}, ${totalCrypto:N0} total) ===");
+                sb.AppendLine($"Staked: ${stakedValue:N0} | Liquid: ${liquidValue:N0} | Unrealized P/L: {(unrealized >= 0 ? "+" : "")}${unrealized:N0}");
+                sb.AppendLine($"YTD Staking Rewards: ${ytdRewards:N0} | YTD Realized — Short-Term: {(realizedYtdShort >= 0 ? "+" : "")}${realizedYtdShort:N0}, Long-Term: {(realizedYtdLong >= 0 ? "+" : "")}${realizedYtdLong:N0}");
+
+                foreach (var conn in cryptoConnections)
+                {
+                    var connHoldings = cryptoHoldings.Where(h => h.ExchangeConnectionId == conn.ExchangeConnectionId).ToList();
+                    var connTotal = connHoldings.Sum(h => h.MarketValueUsd);
+                    var statusTag = conn.Status != ExchangeConnectionStatus.Active ? $" [{conn.Status}]" : "";
+                    var nick = !string.IsNullOrEmpty(conn.Nickname) ? $" ({conn.Nickname})" : "";
+                    sb.AppendLine($"• {conn.Provider}{nick} | ${connTotal:N0}{statusTag}");
+
+                    // Top 5 positions per exchange by USD value
+                    foreach (var h in connHoldings.OrderByDescending(h => h.MarketValueUsd).Take(5))
+                    {
+                        var stakedTag = h.IsStaked
+                            ? (h.StakingApyPercent.HasValue ? $" [Staked · {h.StakingApyPercent:F2}% APY]" : " [Staked]")
+                            : "";
+                        sb.AppendLine($"  - {h.Symbol} | {h.Quantity:F6} | ${h.MarketValueUsd:N0}{stakedTag}");
+                    }
+                    if (connHoldings.Count > 5)
+                        sb.AppendLine($"  …and {connHoldings.Count - 5} more position(s)");
+                }
+                sb.AppendLine("Note: Cost basis is incomplete when synced after the original purchase. PFMP is not a tax-filing tool.");
+                sb.AppendLine();
+            }
+            else
+            {
+                sb.AppendLine("=== CRYPTO HOLDINGS ===");
+                sb.AppendLine("None — no crypto exchange accounts linked.");
                 sb.AppendLine();
             }
 

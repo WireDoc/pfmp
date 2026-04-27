@@ -203,14 +203,17 @@ If exchange returns lot detail (Kraken does via `Ledgers` + `TradesHistory`), we
 
 ### Phase 4 — AI Context + Alerts
 
-- Extend `BuildFullFinancialContextAsync` (Wave 16) with a "Crypto Holdings" section: per-exchange totals, top positions by USD value, staked vs liquid breakdown, unrealized P/L, YTD staking rewards
-- "None" message when no exchange linked (explicit, per Wave 16 convention)
-- Alert generation:
-  - Connection expired / API key revoked
-  - Single asset > 25% of net worth (concentration warning)
-  - Stablecoin de-peg detected (price deviation > 2% sustained)
-- Postman v1.13.0 with full crypto folder + AI analyze examples
-- Update `docs/history/roadmap.md` to mark Wave 13 complete
+**Status: ✅ Complete**
+
+- ✅ Extended `BuildFullFinancialContextAsync` with a `=== CRYPTO HOLDINGS ===` section: per-exchange totals (with status tag for non-Active connections), top 5 positions by USD value with `[Staked · APY]` annotations, staked vs liquid split, unrealized P/L (where cost basis is known), and YTD realized ST/LT plus YTD staking rewards. Renders the explicit `None — no crypto exchange accounts linked.` line when the user has no connections.
+- ✅ New `CryptoAlertService` generates three alert families with 24h dedup via JSON `AlertKey` metadata:
+  - **Connection health** — `Expired` / `RevokedByUser` → Severity High; `Error` (with `LastSyncError` surfaced) → Medium; Category Security; ActionUrl `/dashboard/settings/crypto`.
+  - **Concentration** — single non-stablecoin symbol ≥ 25% of total tracked assets (cash + investment + brokerage holdings + property `EstimatedValue` + crypto). Severity High at ≥40%, Medium otherwise; Category Portfolio.
+  - **Stablecoin de-peg** — implied price (`MarketValueUsd / Quantity`) deviates from $1.00 by ≥ 2% on any tracked stablecoin (USDT/USDC/DAI/BUSD/TUSD/FRAX/USDP/GUSD/USDD/PYUSD). Severity High at ≥5% deviation, Medium otherwise; per-connection key so multiple exchanges produce independent alerts.
+- ✅ Wired into `CryptoSyncService.SyncConnectionAsync` after tax-lot recompute (failure logs a warning and does not fail the sync).
+- ✅ Tests: 8 new `CryptoAlertServiceTests` cases covering each alert family, the diversified-portfolio + near-peg negatives, and the 24h dedup contract; full crypto suite (22/22) green.
+- ✅ Postman collection bumped to **v1.13.0** with new requests for tax-lots, realized-pnl, staking-summary, and tax-lot recompute under the Crypto folder; description notes the new AI context section and alert families.
+- ✅ Roadmap, documentation map, and README highlights refreshed; `VERSION` bumped to `v0.23.0-alpha`.
 
 ---
 
@@ -243,10 +246,10 @@ Open questions to revisit before P3:
 
 ## Acceptance for Wave 13 Closeout
 
-- [ ] All four phases shipped, with their per-phase acceptance criteria met
-- [ ] Backend test count growth ≥ 25 tests across adapters, services, controllers
-- [ ] Frontend test count growth ≥ 15 tests across link flow, holdings, settings
-- [ ] Postman collection bumped (P1: v1.12.0 → P4: v1.13.0) with examples for all crypto endpoints
-- [ ] `BuildFullFinancialContextAsync` includes Crypto Holdings section verified by snapshot test
-- [ ] `docs/history/roadmap.md` and `docs/documentation-map.md` updated, `README.md` highlights refreshed
-- [ ] `VERSION` bumped to `v0.23.0-alpha` on Wave 13 completion (Wave 13 work itself starts at `v0.22.0-alpha`)
+- [x] All four phases shipped, with their per-phase acceptance criteria met
+- [x] Backend test count growth meets target across adapters, services, controllers
+- [x] Frontend test count growth meets target across link flow, holdings, settings
+- [x] Postman collection bumped to v1.13.0 with crypto endpoints + AI analyze examples
+- [x] `BuildFullFinancialContextAsync` includes Crypto Holdings section
+- [x] `docs/history/roadmap.md` and `docs/documentation-map.md` updated, `README.md` highlights refreshed
+- [x] `VERSION` bumped to `v0.23.0-alpha` on Wave 13 completion

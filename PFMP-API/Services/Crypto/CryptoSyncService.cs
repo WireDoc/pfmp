@@ -18,6 +18,7 @@ namespace PFMP_API.Services.Crypto
         private readonly IExchangeCredentialEncryptionService _encryption;
         private readonly ICoinGeckoPriceService _priceService;
         private readonly ICryptoTaxLotService _taxLotService;
+        private readonly ICryptoAlertService _alertService;
         private readonly ILogger<CryptoSyncService> _logger;
 
         // Look-back window for the first sync of a connection if we have no prior history.
@@ -28,12 +29,14 @@ namespace PFMP_API.Services.Crypto
             IExchangeCredentialEncryptionService encryption,
             ICoinGeckoPriceService priceService,
             ICryptoTaxLotService taxLotService,
+            ICryptoAlertService alertService,
             ILogger<CryptoSyncService> logger)
         {
             _context = context;
             _encryption = encryption;
             _priceService = priceService;
             _taxLotService = taxLotService;
+            _alertService = alertService;
             _logger = logger;
         }
 
@@ -170,6 +173,16 @@ namespace PFMP_API.Services.Crypto
                 catch (Exception lotEx)
                 {
                     _logger.LogWarning(lotEx, "Tax-lot recompute failed for connection {Id}", connection.ExchangeConnectionId);
+                }
+
+                // 4. Generate crypto-specific alerts (Phase 4): connection health, concentration, stablecoin de-peg.
+                try
+                {
+                    await _alertService.GenerateCryptoAlertsAsync(connection.UserId, cancellationToken);
+                }
+                catch (Exception alertEx)
+                {
+                    _logger.LogWarning(alertEx, "Crypto alert generation failed for user {UserId}", connection.UserId);
                 }
             }
             catch (Exception ex)

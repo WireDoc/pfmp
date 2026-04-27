@@ -17,7 +17,7 @@ _Last updated: 2026-04-23_
 | Wave 11: Plaid Integration | ✅ Complete | December 2025 |
 | Wave 12: Brokerage & Investment Linking | ✅ Complete | January 2026 |
 | Wave 12.5: Unified Plaid Linking | ✅ Complete | March 2026 |
-| Wave 13: Crypto Exchanges (Kraken + Binance.US) | 📋 Planning | Q2–Q3 2026 |
+| Wave 13: Crypto Exchanges (Kraken + Binance.US) | ✅ Complete | Q2 2026 |
 | Wave 14: Spending Analysis | 📋 Planned | Q3 2026 |
 | Wave 15: Property Management & Valuation | ✅ Complete | March 2026 |
 | Wave 16: OpenRouter AI Overhaul | ✅ Complete | March 2026 |
@@ -27,7 +27,7 @@ _Last updated: 2026-04-23_
 | Wave 20: FEHB Auto-Fill & LES Enhancements | ✅ Complete | April 2026 |
 | Wave 21: Estate Planning & Beneficiaries | ✅ Complete | April 2026 |
 
-**Current Version**: v0.22.0-alpha (Wave 13 work begins; bumps to v0.23.0-alpha on Wave 13 closeout)
+**Current Version**: v0.23.0-alpha (Wave 13 closeout shipped: AI crypto context + connection/concentration/de-peg alerts)
 
 ---
 
@@ -164,17 +164,26 @@ Originally planned for persistent sidebar navigation. Dashboard currently functi
 
 ## Planned Waves
 
-### Wave 13: Crypto Exchange Integration 📋
-**Target**: Q2-Q3 2026
+### Wave 13: Crypto Exchange Integration ✅
+**Completed**: April 2026
 
-All major exchanges offer **free** read-only APIs:
+Delivered read-only crypto exchange integration with FIFO tax-lot fallback, staking analytics, AI context, and proactive alerts.
 
-| Exchange | API | Holdings | Transactions | Staking |
-|----------|-----|----------|--------------|---------|
-| Coinbase | REST + WS | ✅ | ✅ | ✅ |
-| Binance | REST + WS | ✅ | ✅ | ✅ |
-| Kraken | REST + WS | ✅ | ✅ | ✅ |
-| Gemini | REST + WS | ✅ | ✅ | ❌ |
+**What shipped:**
+- **Adapters**: Kraken (P1) + Binance.US (P2) read-only API key flows with encrypted secret storage
+- **Holdings & transactions**: per-exchange aggregation with `IsStaked` discrimination and 26+ transaction types
+- **Tax lots (P3)**: `CryptoTaxLot` table + idempotent FIFO recompute (`CryptoTaxLotService`); realized P/L (ST/LT split + per-symbol); staking summary (weighted APY, YTD rewards)
+- **AI context (P4)**: `BuildFullFinancialContextAsync` gains a `=== CRYPTO HOLDINGS ===` section with per-exchange totals, top positions, staked/liquid split, unrealized P/L, and YTD realized + reward income
+- **Alerts (P4)**: connection-health (Expired / Revoked / Error), single-asset concentration (≥25% of tracked assets, stablecoins excluded), and stablecoin de-peg (≥2% deviation) with 24h dedup; runs after every per-connection sync
+- **Frontend**: `/dashboard/settings/crypto` link flow, holdings card, `StakingSummaryCard`, `RealizedPnLPanel`
+- **Postman**: collection v1.13.0 with full Crypto folder + AI analyze examples
+
+**See:** `docs/waves/wave-13-crypto-exchanges.md`
+
+### Wave 13.5: Self-Custody Wallets (provisional) 📋
+**Target**: TBD
+
+Optional follow-on for on-chain balances and DeFi protocols, deferred at Wave 13 scope-cut.
 
 **Security:** Read-only API keys only (no trading/withdrawal permissions)
 

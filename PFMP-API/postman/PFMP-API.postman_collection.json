@@ -2,8 +2,8 @@
   "info": {
     "name": "PFMP API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "1.12.1",
-    "description": "PFMP API endpoints grouped for development and testing. Adjust {{baseUrl}} as needed. v1.12.1: Wave 13 P2 — added Binance.US Create Connection example. v1.12.0: Added Wave 13 Crypto folder (Kraken connections, holdings, transactions, sync). v1.11.0: Added Cash Transactions CRUD (POST/PUT/DELETE) and Transfer Funds endpoint. Transfer now creates CashTransaction audit records on cash sides."
+    "version": "1.13.0",
+    "description": "PFMP API endpoints grouped for development and testing. Adjust {{baseUrl}} as needed. v1.13.0: Wave 13 P3+P4 — added crypto tax-lots, realized-pnl, staking-summary, and tax-lot recompute endpoints; AI context now includes a CRYPTO HOLDINGS section; new connection-health, concentration, and stablecoin de-peg alerts. v1.12.1: Wave 13 P2 — added Binance.US Create Connection example. v1.12.0: Added Wave 13 Crypto folder (Kraken connections, holdings, transactions, sync). v1.11.0: Added Cash Transactions CRUD (POST/PUT/DELETE) and Transfer Funds endpoint. Transfer now creates CashTransaction audit records on cash sides."
   },
   "item": [
     {
@@ -1347,6 +1347,38 @@
             "method": "GET",
             "url": "{{baseUrl}}/api/crypto/transactions?userId={{userId}}",
             "description": "Recent crypto transactions (capped at 500). Optional ?connectionId= and ?since=ISO_DATE."
+          }
+        },
+        {
+          "name": "List Tax Lots (Phase 3)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/crypto/tax-lots?userId={{userId}}&openOnly=false",
+            "description": "FIFO tax-lot fallback rebuilt from CryptoTransactions when the exchange does not return lot detail. Optional filters: symbol, openOnly."
+          }
+        },
+        {
+          "name": "Realized P/L (Phase 3)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/crypto/realized-pnl?userId={{userId}}&year=2026",
+            "description": "Realized gain/loss aggregated from closed tax-lot portions. Splits short-term (held ≤365d) vs long-term, with per-symbol breakdown. Omit year for lifetime totals."
+          }
+        },
+        {
+          "name": "Staking Summary (Phase 3)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/crypto/staking-summary?userId={{userId}}",
+            "description": "Total staked USD value, value-weighted APY, YTD reward income, plus per-asset breakdown."
+          }
+        },
+        {
+          "name": "Recompute Tax Lots (Phase 3)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/crypto/tax-lots/recompute?userId={{userId}}&connectionId={{cryptoConnectionId}}",
+            "description": "Manually trigger a FIFO rebuild for one connection. Sync already invokes this; use only for ad-hoc replays."
           }
         }
       ]

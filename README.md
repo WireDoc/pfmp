@@ -13,6 +13,8 @@ PFMP is an AI-assisted financial planning platform for government employees and 
 - **Current Highlights**:
   - **Wave 21 Complete** – Estate planning & beneficiary tracking; AI now flags missing wills, POAs, and TSP/FEGLI designations (April 2026)
   - **Wave 20 Complete** – LES SCD extraction, FEHB plan auto-fill from OPM table, SF-50 uploader retired (April 2026)
+  - **Wave 13 Complete** – Crypto closeout: AI context now includes a Crypto Holdings section; new connection-health, single-asset concentration (≥25%), and stablecoin de-peg (≥2%) alerts with 24h dedup (April 2026)
+  - **Wave 13 P3 Complete** – FIFO tax-lot fallback, realized P/L (ST/LT split), staking summary (weighted APY + YTD rewards) (April 2026)
   - **Wave 13 P2 Complete** – Binance.US adapter (read-only key validation via apiRestrictions, holdings + deposits + withdrawals + per-asset trades) (April 2026)
   - **Wave 13 P1 Complete** – Kraken crypto exchange integration: read-only API keys, holdings + transactions sync, CoinGecko pricing, daily Hangfire job (April 2026)
   - **Wave 19 Complete** – TSP Roth/traditional split, COLA modeling, custom retirement age, survivor benefit, income gap analysis (April 2026)
@@ -118,10 +120,10 @@ See `docs/api/postman.md` for details.
 
 ## Status & roadmap
 
-- Active version: **v0.22.0-alpha** (see `VERSION`; reserved `v0.21` for the Wave 16–21 audit, `v0.22` opens Wave 13 work, bumps to `v0.23` on Wave 13 closeout)
+- Active version: **v0.23.0-alpha** (see `VERSION`; bumped on Wave 13 closeout — AI crypto context + connection/concentration/de-peg alerts)
 - **Latest milestone**: Wave 21 (Estate Planning & Beneficiary Tracking) shipped April 2026
 - **Recently shipped**: Waves 15 (Property Mgmt) → 16 (OpenRouter AI) → 17 (Dashboard Expansion) → 18 (Federal Benefits Deep Dive) → 19 (Advanced Retirement Planning) → 20 (FEHB/LES Enhancements) → 21 (Estate Planning); plus Wave 9.3.7 polish (April 23, 2026)
-- **Next up**: Wave 13 P3 (staking/rewards, cost basis, FIFO tax lots), then Wave 14 (Spending Analysis)
+- **Next up**: Wave 14 (Spending Analysis & Budgeting), with Wave 13.5 (self-custody wallets) held as a provisional follow-on
 - **Roadmap phases**: Phase 2 (Data Aggregation) complete; Phase 3 (AI Advisory) materially complete via Waves 7/16/18/19; Phase 4 (Daily Experience & Notifications) and Phase 5 (Production Hardening) remain
 
 ### Upcoming Waves
