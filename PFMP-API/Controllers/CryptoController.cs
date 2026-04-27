@@ -17,6 +17,7 @@ namespace PFMP_API.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IExchangeConnectionService _connectionService;
+        private readonly ICryptoTaxLotService _taxLotService;
         private readonly ILogger<CryptoController> _logger;
 
         // Per-connection on-demand sync rate limit (1 per hour) tracked in-memory.
@@ -28,10 +29,12 @@ namespace PFMP_API.Controllers
         public CryptoController(
             ApplicationDbContext context,
             IExchangeConnectionService connectionService,
+            ICryptoTaxLotService taxLotService,
             ILogger<CryptoController> logger)
         {
             _context = context;
             _connectionService = connectionService;
+            _taxLotService = taxLotService;
             _logger = logger;
         }
 
@@ -144,6 +147,88 @@ namespace PFMP_API.Controllers
                 .Take(500)
                 .ToListAsync(cancellationToken);
             return Ok(rows.Select(MapTransaction));
+        }
+
+        // GET: /api/crypto/tax-lots?userId=1&symbol=BTC&openOnly=true
+        [HttpGet("tax-lots")]
+        public async Task<ActionResult<IEnumerable<CryptoTaxLotResponse>>> GetTaxLots(
+            [FromQuery] int userId,
+            [FromQuery] string? symbol,
+            [FromQuery] bool openOnly = false,
+            CancellationToken cancellationToken = default)
+        {
+            if (userId <= 0) return BadRequest("userId is required");
+            var query = from lot in _context.CryptoTaxLots
+                        join conn in _context.ExchangeConnections on lot.ExchangeConnectionId equals conn.ExchangeConnectionId
+                        where conn.UserId == userId
+                        select new { lot, conn.Provider };
+            if (!string.IsNullOrWhiteSpace(symbol))
+            {
+                query = query.Where(x => x.lot.Symbol == symbol);
+            }
+            if (openOnly)
+            {
+                query = query.Where(x => !x.lot.IsClosed);
+            }
+            var rows = await query
+                .OrderBy(x => x.lot.AcquiredAt)
+                .Take(1000)
+                .ToListAsync(cancellationToken);
+            return Ok(rows.Select(x => new CryptoTaxLotResponse
+            {
+                CryptoTaxLotId = x.lot.CryptoTaxLotId,
+                ExchangeConnectionId = x.lot.ExchangeConnectionId,
+                Provider = x.Provider,
+                Symbol = x.lot.Symbol,
+                AcquiredAt = x.lot.AcquiredAt,
+                OriginalQuantity = x.lot.OriginalQuantity,
+                RemainingQuantity = x.lot.RemainingQuantity,
+                CostBasisUsdPerUnit = x.lot.CostBasisUsdPerUnit,
+                RealizedProceedsUsd = x.lot.RealizedProceedsUsd,
+                RealizedCostBasisUsd = x.lot.RealizedCostBasisUsd,
+                RealizedShortTermGainUsd = x.lot.RealizedShortTermGainUsd,
+                RealizedLongTermGainUsd = x.lot.RealizedLongTermGainUsd,
+                IsClosed = x.lot.IsClosed,
+                ClosedAt = x.lot.ClosedAt,
+                IsRewardLot = x.lot.IsRewardLot
+            }));
+        }
+
+        // GET: /api/crypto/realized-pnl?userId=1&year=2026
+        [HttpGet("realized-pnl")]
+        public async Task<ActionResult<CryptoRealizedPnLSummary>> GetRealizedPnL(
+            [FromQuery] int userId,
+            [FromQuery] int? year,
+            CancellationToken cancellationToken)
+        {
+            if (userId <= 0) return BadRequest("userId is required");
+            var summary = await _taxLotService.GetRealizedPnLAsync(userId, year, cancellationToken);
+            return Ok(summary);
+        }
+
+        // GET: /api/crypto/staking-summary?userId=1
+        [HttpGet("staking-summary")]
+        public async Task<ActionResult<CryptoStakingSummary>> GetStakingSummary(
+            [FromQuery] int userId,
+            CancellationToken cancellationToken)
+        {
+            if (userId <= 0) return BadRequest("userId is required");
+            var summary = await _taxLotService.GetStakingSummaryAsync(userId, cancellationToken);
+            return Ok(summary);
+        }
+
+        // POST: /api/crypto/tax-lots/recompute?userId=1&connectionId=1
+        [HttpPost("tax-lots/recompute")]
+        public async Task<ActionResult<CryptoTaxLotRecomputeResult>> RecomputeTaxLots(
+            [FromQuery] int userId,
+            [FromQuery] int connectionId,
+            CancellationToken cancellationToken)
+        {
+            if (userId <= 0) return BadRequest("userId is required");
+            var conn = await _connectionService.GetConnectionAsync(userId, connectionId, cancellationToken);
+            if (conn is null) return NotFound();
+            var result = await _taxLotService.RecomputeForConnectionAsync(connectionId, cancellationToken);
+            return Ok(result);
         }
 
         // ---- Mapping ----

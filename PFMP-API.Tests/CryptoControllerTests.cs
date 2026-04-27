@@ -30,6 +30,11 @@ public class CryptoControllerTests : IClassFixture<TestingWebAppFactory>
     private record ConnectionDto(int ExchangeConnectionId, string Provider, string? Nickname, ExchangeConnectionStatus Status, DateTime? LastSyncAt, string? LastSyncError, string[] Scopes);
     private record HoldingDto(int CryptoHoldingId, int ExchangeConnectionId, string Provider, string Symbol, decimal Quantity, decimal MarketValueUsd, bool IsStaked);
     private record SyncDto(int HoldingsUpserted, int TransactionsInserted, int TransactionsSkipped, string? Error, DateTime? LastSyncAt);
+    private record TaxLotDto(int CryptoTaxLotId, int ExchangeConnectionId, string Provider, string Symbol, DateTime AcquiredAt, decimal OriginalQuantity, decimal RemainingQuantity, decimal CostBasisUsdPerUnit, decimal RealizedShortTermGainUsd, decimal RealizedLongTermGainUsd, bool IsClosed, DateTime? ClosedAt, bool IsRewardLot);
+    private record RealizedPnLDto(int? Year, decimal TotalProceedsUsd, decimal TotalCostBasisUsd, decimal TotalShortTermGainUsd, decimal TotalLongTermGainUsd, decimal TotalRealizedGainUsd, RealizedBySymbolDto[] BySymbol);
+    private record RealizedBySymbolDto(string Symbol, decimal ProceedsUsd, decimal CostBasisUsd, decimal ShortTermGainUsd, decimal LongTermGainUsd, decimal TotalGainUsd);
+    private record StakingSummaryDto(decimal TotalStakedValueUsd, decimal? WeightedApyPercent, decimal YtdRewardsUsd, int StakedAssetCount, StakingByAssetDto[] ByAsset);
+    private record StakingByAssetDto(string Symbol, decimal Quantity, decimal MarketValueUsd, decimal? ApyPercent);
 
     private HttpClient CreateClientWithFakeAdapter(FakeExchangeAdapter fake) =>
         _factory.WithWebHostBuilder(builder =>
@@ -181,6 +186,78 @@ public class CryptoControllerTests : IClassFixture<TestingWebAppFactory>
 
         var del2 = await client.DeleteAsync($"/api/crypto/connections/{created.ExchangeConnectionId}?userId={userId}");
         Assert.Equal(HttpStatusCode.NotFound, del2.StatusCode);
+    }
+
+    [Fact]
+    public async Task TaxLotsAndRealizedPnL_ReturnFifoResults()
+    {
+        var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var fake = new FakeExchangeAdapter
+        {
+            ValidationResult = new ExchangeKeyValidationResult { IsValid = true, IsReadOnly = true, Scopes = new[] { "query_funds" } },
+            Holdings = new[]
+            {
+                new ExchangeHoldingSnapshot { Symbol = "BTC", Quantity = 0.5m, IsStaked = false }
+            },
+            Transactions = new[]
+            {
+                new ExchangeTransactionRecord { ExchangeTxId = "tx-buy", TransactionType = CryptoTransactionType.Buy, Symbol = "BTC", Quantity = 1m, PriceUsd = 20000m, ExecutedAt = t0 },
+                new ExchangeTransactionRecord { ExchangeTxId = "tx-sell", TransactionType = CryptoTransactionType.Sell, Symbol = "BTC", Quantity = -0.5m, PriceUsd = 30000m, ExecutedAt = t0.AddDays(60) }
+            }
+        };
+        var client = CreateClientWithFakeAdapter(fake);
+        var userId = await CreateUserAsync(client);
+        var createResp = await client.PostAsJsonAsync($"/api/crypto/connections?userId={userId}",
+            new CreateConnectionDto("Kraken", "Lots", "k-key", "s-secret"));
+        Assert.Equal(HttpStatusCode.Created, createResp.StatusCode);
+
+        var lotsResp = await client.GetAsync($"/api/crypto/tax-lots?userId={userId}");
+        Assert.Equal(HttpStatusCode.OK, lotsResp.StatusCode);
+        var lots = await lotsResp.Content.ReadFromJsonAsync<TaxLotDto[]>(TestJsonOptions.Default);
+        Assert.NotNull(lots);
+        Assert.Single(lots!);
+        Assert.Equal(0.5m, lots![0].RemainingQuantity);
+        Assert.Equal(5000m, lots[0].RealizedShortTermGainUsd);
+
+        var pnlResp = await client.GetAsync($"/api/crypto/realized-pnl?userId={userId}&year=2026");
+        Assert.Equal(HttpStatusCode.OK, pnlResp.StatusCode);
+        var pnl = await pnlResp.Content.ReadFromJsonAsync<RealizedPnLDto>(TestJsonOptions.Default);
+        Assert.NotNull(pnl);
+        Assert.Equal(5000m, pnl!.TotalShortTermGainUsd);
+        Assert.Equal(5000m, pnl.TotalRealizedGainUsd);
+        Assert.Single(pnl.BySymbol);
+        Assert.Equal("BTC", pnl.BySymbol[0].Symbol);
+    }
+
+    [Fact]
+    public async Task StakingSummary_ReturnsTotalsForLinkedConnection()
+    {
+        var fake = new FakeExchangeAdapter
+        {
+            ValidationResult = new ExchangeKeyValidationResult { IsValid = true, IsReadOnly = true, Scopes = new[] { "query_funds" } },
+            Holdings = new[]
+            {
+                new ExchangeHoldingSnapshot { Symbol = "ETH", Quantity = 5m, IsStaked = true, StakingApyPercent = 4m }
+            },
+            Transactions = new[]
+            {
+                new ExchangeTransactionRecord { ExchangeTxId = "rwd-1", TransactionType = CryptoTransactionType.StakingReward, Symbol = "ETH", Quantity = 0.1m, PriceUsd = 2000m, ExecutedAt = new DateTime(DateTime.UtcNow.Year, 1, 15, 0, 0, 0, DateTimeKind.Utc) }
+            }
+        };
+        var client = CreateClientWithFakeAdapter(fake);
+        var userId = await CreateUserAsync(client);
+        var createResp = await client.PostAsJsonAsync($"/api/crypto/connections?userId={userId}",
+            new CreateConnectionDto("Kraken", "Stake", "k-key", "s-secret"));
+        Assert.Equal(HttpStatusCode.Created, createResp.StatusCode);
+
+        var resp = await client.GetAsync($"/api/crypto/staking-summary?userId={userId}");
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        var summary = await resp.Content.ReadFromJsonAsync<StakingSummaryDto>(TestJsonOptions.Default);
+        Assert.NotNull(summary);
+        Assert.Equal(1, summary!.StakedAssetCount);
+        Assert.Equal(4m, summary.WeightedApyPercent);
+        Assert.Equal(200m, summary.YtdRewardsUsd);
+        Assert.True(summary.TotalStakedValueUsd > 0);
     }
 
     /// <summary>In-process fake adapter that returns canned data.</summary>

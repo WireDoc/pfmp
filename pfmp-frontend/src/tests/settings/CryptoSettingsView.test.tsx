@@ -42,6 +42,22 @@ vi.mock('../../services/cryptoApi', () => ({
   createExchangeConnection: (...args: unknown[]) => createExchangeConnection(...args),
   syncExchangeConnection: (...args: unknown[]) => syncExchangeConnection(...args),
   deleteExchangeConnection: (...args: unknown[]) => deleteExchangeConnection(...args),
+  getCryptoStakingSummary: vi.fn().mockResolvedValue({
+    totalStakedValueUsd: 0,
+    weightedApyPercent: null,
+    ytdRewardsUsd: 0,
+    stakedAssetCount: 0,
+    byAsset: [],
+  }),
+  getCryptoRealizedPnL: vi.fn().mockResolvedValue({
+    year: null,
+    totalProceedsUsd: 0,
+    totalCostBasisUsd: 0,
+    totalShortTermGainUsd: 0,
+    totalLongTermGainUsd: 0,
+    totalRealizedGainUsd: 0,
+    bySymbol: [],
+  }),
 }));
 
 vi.mock('../../dev/devUserState', () => ({

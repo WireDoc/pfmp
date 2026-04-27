@@ -182,11 +182,24 @@ If exchange returns lot detail (Kraken does via `Ledgers` + `TradesHistory`), we
 
 ### Phase 3 — Staking, Rewards, Cost Basis, Tax Lots
 
-- Add `StakingReward` / `EarnInterest` transaction types to ingestion logic for both adapters
-- Add `IsStaked` discrimination in `CryptoHolding` aggregation
-- Add `CryptoTaxLot` table + FIFO fallback computation for exchanges that don't return lot detail
-- Frontend: staking summary card (total staked value, weighted APY, YTD rewards), realized P/L panel with short/long-term split
-- Tests: staking ingestion, FIFO lot computation, realized P/L math
+**Status: ✅ Complete**
+
+- ✅ Add `StakingReward` / `EarnInterest` transaction types to ingestion logic for both adapters (already shipped P1/P2)
+- ✅ Add `IsStaked` discrimination in `CryptoHolding` aggregation (P1/P2)
+- ✅ Add `CryptoTaxLot` table + FIFO fallback computation for exchanges that don't return lot detail
+  - New `CryptoTaxLot` model + migration `20260427025944_AddCryptoTaxLots`
+  - `CryptoTaxLotService` with idempotent `RecomputeForConnectionAsync` (rebuild lots in chronological order; >365d held = long-term)
+  - Wired into `CryptoSyncService` so lots refresh after every sync (failure logs warning, doesn't fail sync)
+- ✅ New endpoints under `/api/crypto`:
+  - `GET tax-lots?userId=&symbol=&openOnly=`
+  - `GET realized-pnl?userId=&year=` (returns ST/LT split + per-symbol)
+  - `GET staking-summary?userId=` (total staked USD, weighted APY, YTD rewards, per-asset)
+  - `POST tax-lots/recompute?userId=&connectionId=`
+- ✅ Frontend:
+  - `cryptoApi`: `listCryptoTaxLots`, `getCryptoRealizedPnL`, `getCryptoStakingSummary`
+  - `StakingSummaryCard` and `RealizedPnLPanel` rendered on `/dashboard/settings/crypto`
+- ✅ Tests: 7 service unit tests + 2 controller integration tests + 6 Vitest cases (3 per card); MSW handlers added for new endpoints
+- 📝 Cost basis displayed with explicit "incomplete when synced after original purchase — not a tax-filing tool" disclaimer
 
 ### Phase 4 — AI Context + Alerts
 

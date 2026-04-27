@@ -95,6 +95,7 @@ namespace PFMP_API
     public DbSet<ExchangeConnection> ExchangeConnections { get; set; }
     public DbSet<CryptoHolding> CryptoHoldings { get; set; }
     public DbSet<CryptoTransaction> CryptoTransactions { get; set; }
+    public DbSet<CryptoTaxLot> CryptoTaxLots { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -681,6 +682,21 @@ namespace PFMP_API
                     .WithMany(c => c.Transactions)
                     .HasForeignKey(e => e.ExchangeConnectionId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<CryptoTaxLot>(entity =>
+            {
+                entity.HasKey(e => e.CryptoTaxLotId);
+                entity.HasIndex(e => new { e.ExchangeConnectionId, e.Symbol, e.AcquiredAt });
+                entity.HasIndex(e => e.SourceTransactionId).IsUnique();
+                entity.HasOne(e => e.ExchangeConnection)
+                    .WithMany()
+                    .HasForeignKey(e => e.ExchangeConnectionId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(e => e.SourceTransaction)
+                    .WithMany()
+                    .HasForeignKey(e => e.SourceTransactionId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // Configure decimal precision globally

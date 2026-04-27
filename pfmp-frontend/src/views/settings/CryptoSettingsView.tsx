@@ -51,6 +51,8 @@ import {
   type ExchangeConnection,
 } from '../../services/cryptoApi';
 import { useDevUserId } from '../../dev/devUserState';
+import StakingSummaryCard from '../dashboard/StakingSummaryCard';
+import RealizedPnLPanel from '../dashboard/RealizedPnLPanel';
 
 const SUPPORTED_PROVIDERS = ['Kraken', 'BinanceUS'] as const;
 
@@ -84,6 +86,7 @@ export const CryptoSettingsView: React.FC = () => {
   const [nickname, setNickname] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [apiSecret, setApiSecret] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const refresh = useCallback(async () => {
     if (!userId) return;
@@ -159,6 +162,7 @@ export const CryptoSettingsView: React.FC = () => {
         setToast(`Synced — ${result.holdingsUpserted} holdings, +${result.transactionsInserted} transactions`);
       }
       await refresh();
+      setRefreshKey(k => k + 1);
     } catch (err) {
       const e = err as { response?: { status?: number } };
       if (e.response?.status === 429) {
@@ -298,6 +302,15 @@ export const CryptoSettingsView: React.FC = () => {
           </Box>
         )}
       </Paper>
+
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 3 }}>
+        <Box sx={{ flex: 1 }}>
+          <StakingSummaryCard userId={userId} refreshKey={refreshKey} />
+        </Box>
+        <Box sx={{ flex: 1 }}>
+          <RealizedPnLPanel userId={userId} refreshKey={refreshKey} />
+        </Box>
+      </Stack>
 
       <Paper>
         <Typography variant="h6" sx={{ p: 2, pb: 1 }}>Holdings</Typography>

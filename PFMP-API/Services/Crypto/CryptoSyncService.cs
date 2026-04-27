@@ -17,6 +17,7 @@ namespace PFMP_API.Services.Crypto
         private readonly ApplicationDbContext _context;
         private readonly IExchangeCredentialEncryptionService _encryption;
         private readonly ICoinGeckoPriceService _priceService;
+        private readonly ICryptoTaxLotService _taxLotService;
         private readonly ILogger<CryptoSyncService> _logger;
 
         // Look-back window for the first sync of a connection if we have no prior history.
@@ -26,11 +27,13 @@ namespace PFMP_API.Services.Crypto
             ApplicationDbContext context,
             IExchangeCredentialEncryptionService encryption,
             ICoinGeckoPriceService priceService,
+            ICryptoTaxLotService taxLotService,
             ILogger<CryptoSyncService> logger)
         {
             _context = context;
             _encryption = encryption;
             _priceService = priceService;
+            _taxLotService = taxLotService;
             _logger = logger;
         }
 
@@ -158,6 +161,16 @@ namespace PFMP_API.Services.Crypto
                 connection.LastSyncError = null;
                 connection.DateUpdated = DateTime.UtcNow;
                 await _context.SaveChangesAsync(cancellationToken);
+
+                // 3. Recompute FIFO tax lots for this connection (Phase 3 fallback path).
+                try
+                {
+                    await _taxLotService.RecomputeForConnectionAsync(connection.ExchangeConnectionId, cancellationToken);
+                }
+                catch (Exception lotEx)
+                {
+                    _logger.LogWarning(lotEx, "Tax-lot recompute failed for connection {Id}", connection.ExchangeConnectionId);
+                }
             }
             catch (Exception ex)
             {

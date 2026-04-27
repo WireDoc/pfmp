@@ -67,4 +67,23 @@ namespace PFMP_API.DTOs.Crypto
         public string? Error { get; set; }
         public DateTime? LastSyncAt { get; set; }
     }
+
+    public class CryptoTaxLotResponse
+    {
+        public int CryptoTaxLotId { get; set; }
+        public int ExchangeConnectionId { get; set; }
+        public string Provider { get; set; } = string.Empty;
+        public string Symbol { get; set; } = string.Empty;
+        public DateTime AcquiredAt { get; set; }
+        public decimal OriginalQuantity { get; set; }
+        public decimal RemainingQuantity { get; set; }
+        public decimal CostBasisUsdPerUnit { get; set; }
+        public decimal RealizedProceedsUsd { get; set; }
+        public decimal RealizedCostBasisUsd { get; set; }
+        public decimal RealizedShortTermGainUsd { get; set; }
+        public decimal RealizedLongTermGainUsd { get; set; }
+        public bool IsClosed { get; set; }
+        public DateTime? ClosedAt { get; set; }
+        public bool IsRewardLot { get; set; }
+    }
 }

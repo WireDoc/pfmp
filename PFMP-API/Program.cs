@@ -193,6 +193,7 @@ namespace PFMP_API
             builder.Services.AddScoped<PFMP_API.Services.Crypto.IExchangeAdapter, PFMP_API.Services.Crypto.KrakenExchangeAdapter>();
             builder.Services.AddScoped<PFMP_API.Services.Crypto.IExchangeAdapter, PFMP_API.Services.Crypto.BinanceUsExchangeAdapter>();
             builder.Services.AddScoped<PFMP_API.Services.Crypto.ICryptoSyncService, PFMP_API.Services.Crypto.CryptoSyncService>();
+            builder.Services.AddScoped<PFMP_API.Services.Crypto.ICryptoTaxLotService, PFMP_API.Services.Crypto.CryptoTaxLotService>();
             builder.Services.AddScoped<PFMP_API.Services.Crypto.IExchangeConnectionService, PFMP_API.Services.Crypto.ExchangeConnectionService>();
             builder.Services.AddScoped<PFMP_API.Jobs.CryptoSyncJob>();
 

@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Typography, Paper, Alert, Skeleton, Snackbar } from '@mui/material';
+import { Box, Typography, Paper, Alert, Skeleton, Snackbar, Stack } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import { OnboardingContext } from '../onboarding/OnboardingContext.shared';
 import { Navigate, Link as RouterLink } from 'react-router-dom';
@@ -780,15 +780,15 @@ export const Dashboard: React.FC = () => {
           </Paper>
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
-          {loading ? <Skeleton variant="rectangular" height={200} /> : (
-            <CryptoSummaryCard
-              userId={devUserId ?? Number(import.meta.env.VITE_PFMP_DASHBOARD_USER_ID || '1')}
-              refreshKey={cryptoRefreshKey}
-            />
-          )}
-        </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
-          {loading ? <Skeleton variant="rectangular" height={200} /> : <TspPanel tspAccount={tspAccount} loading={loading} />}
+          <Stack spacing={2}>
+            {loading ? <Skeleton variant="rectangular" height={200} /> : (
+              <CryptoSummaryCard
+                userId={devUserId ?? Number(import.meta.env.VITE_PFMP_DASHBOARD_USER_ID || '1')}
+                refreshKey={cryptoRefreshKey}
+              />
+            )}
+            {loading ? <Skeleton variant="rectangular" height={200} /> : <TspPanel tspAccount={tspAccount} loading={loading} />}
+          </Stack>
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
           <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>

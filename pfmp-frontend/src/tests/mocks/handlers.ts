@@ -178,6 +178,40 @@ export const defaultHandlers = [
       { status: 200 },
     ),
   ),
+  // Wave 13 Phase 3
+  http.get(/\/crypto\/tax-lots(?:\?.*)?$/, () => HttpResponse.json([], { status: 200 })),
+  http.get(/\/crypto\/realized-pnl(?:\?.*)?$/, () =>
+    HttpResponse.json(
+      {
+        year: null,
+        totalProceedsUsd: 0,
+        totalCostBasisUsd: 0,
+        totalShortTermGainUsd: 0,
+        totalLongTermGainUsd: 0,
+        totalRealizedGainUsd: 0,
+        bySymbol: [],
+      },
+      { status: 200 },
+    ),
+  ),
+  http.get(/\/crypto\/staking-summary(?:\?.*)?$/, () =>
+    HttpResponse.json(
+      {
+        totalStakedValueUsd: 0,
+        weightedApyPercent: null,
+        ytdRewardsUsd: 0,
+        stakedAssetCount: 0,
+        byAsset: [],
+      },
+      { status: 200 },
+    ),
+  ),
+  http.post(/\/crypto\/tax-lots\/recompute(?:\?.*)?$/, () =>
+    HttpResponse.json(
+      { connectionId: 0, lotsCreated: 0, lotsClosed: 0, totalLots: 0 },
+      { status: 200 },
+    ),
+  ),
 ];
 
 export const mockDashboardSummary = (data: JsonValue, init?: ResponseInit) =>

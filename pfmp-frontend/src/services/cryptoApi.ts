@@ -108,3 +108,84 @@ export async function listCryptoTransactions(
   });
   return data;
 }
+
+// ---- Wave 13 Phase 3: Tax lots, realized P/L, staking summary ----
+
+export interface CryptoTaxLot {
+  cryptoTaxLotId: number;
+  exchangeConnectionId: number;
+  provider: string;
+  symbol: string;
+  acquiredAt: string;
+  originalQuantity: number;
+  remainingQuantity: number;
+  costBasisUsdPerUnit: number;
+  realizedProceedsUsd: number;
+  realizedCostBasisUsd: number;
+  realizedShortTermGainUsd: number;
+  realizedLongTermGainUsd: number;
+  isClosed: boolean;
+  closedAt: string | null;
+  isRewardLot: boolean;
+}
+
+export interface CryptoRealizedPnLBySymbol {
+  symbol: string;
+  proceedsUsd: number;
+  costBasisUsd: number;
+  shortTermGainUsd: number;
+  longTermGainUsd: number;
+  totalGainUsd: number;
+}
+
+export interface CryptoRealizedPnLSummary {
+  year: number | null;
+  totalProceedsUsd: number;
+  totalCostBasisUsd: number;
+  totalShortTermGainUsd: number;
+  totalLongTermGainUsd: number;
+  totalRealizedGainUsd: number;
+  bySymbol: CryptoRealizedPnLBySymbol[];
+}
+
+export interface CryptoStakingByAsset {
+  symbol: string;
+  quantity: number;
+  marketValueUsd: number;
+  apyPercent: number | null;
+}
+
+export interface CryptoStakingSummary {
+  totalStakedValueUsd: number;
+  weightedApyPercent: number | null;
+  ytdRewardsUsd: number;
+  stakedAssetCount: number;
+  byAsset: CryptoStakingByAsset[];
+}
+
+export async function listCryptoTaxLots(
+  userId: number,
+  options?: { symbol?: string; openOnly?: boolean },
+): Promise<CryptoTaxLot[]> {
+  const { data } = await apiClient.get<CryptoTaxLot[]>(`/crypto/tax-lots`, {
+    params: { userId, symbol: options?.symbol, openOnly: options?.openOnly },
+  });
+  return data;
+}
+
+export async function getCryptoRealizedPnL(
+  userId: number,
+  year?: number,
+): Promise<CryptoRealizedPnLSummary> {
+  const { data } = await apiClient.get<CryptoRealizedPnLSummary>(`/crypto/realized-pnl`, {
+    params: { userId, year },
+  });
+  return data;
+}
+
+export async function getCryptoStakingSummary(userId: number): Promise<CryptoStakingSummary> {
+  const { data } = await apiClient.get<CryptoStakingSummary>(`/crypto/staking-summary`, {
+    params: { userId },
+  });
+  return data;
+}
