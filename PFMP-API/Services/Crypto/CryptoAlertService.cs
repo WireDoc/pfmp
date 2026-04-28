@@ -99,7 +99,7 @@ public class CryptoAlertService : ICryptoAlertService
             ? 0m
             : await _context.Holdings
                 .Where(h => brokerageAccountIds.Contains(h.AccountId))
-                .SumAsync(h => (decimal?)h.CurrentValue, ct) ?? 0m;
+                .SumAsync(h => (decimal?)(h.Quantity * h.CurrentPrice), ct) ?? 0m;
         var propertyTotal = await _context.Properties
             .Where(p => p.UserId == userId)
             .SumAsync(p => (decimal?)p.EstimatedValue, ct) ?? 0m;
