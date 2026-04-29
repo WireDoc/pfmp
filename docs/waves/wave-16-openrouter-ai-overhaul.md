@@ -492,3 +492,147 @@ Wave 15.1 is a prerequisite and will be completed first.
 ## Version Target
 
 **v0.16.0-alpha** upon completion
+
+---
+
+## Supplement: Phase 8 — Pre-Computed Context Enrichments (added 2026-04-29)
+
+Wave 13 closeout exposed several places where the AI was either inferring numbers it couldn't verify (per-share price from value÷qty), repeating math we already do server-side (concentration %, dividend cash flow, shortfall to retirement target), or being told "no market context available." Phase 8 ships those pre-computed values directly into `BuildFullFinancialContextAsync` so the AI spends tokens on judgement rather than arithmetic.
+
+**Status: in progress.** First two items shipped 2026-04-29 in commit `a7ab45d` (per-holding `Px: $X.XX as of YYYY-MM-DD` + Crypto/Estate Planning added to comprehensive review scope). Remaining items below.
+
+### 8.1 Per-holding price metadata (high value, cheap)
+
+| Item | Source | Format in context |
+|------|--------|-------------------|
+| ✅ Current price + as-of date | `Holding.CurrentPrice` + `LastPriceUpdate` | `Px: $653.62 as of 2026-04-28` |
+| ⬜ 52-week high / low | FMP `quote` endpoint (already pulled) | `52w: $498–$667` |
+| ⬜ YTD return % | FMP `historical-price-full` (already pulled) | `YTD: +12.4%` |
+| ⬜ Days held / oldest tax-lot date | `Holding.DateAcquired` (add if missing) or earliest `InvestmentTransaction` | `Held: 380d (long-term)` |
+| ⬜ Position % of portfolio | computed in builder (`CurrentValue / investmentTotal`) | `Weight: 31.0% of brokerage` |
+
+### 8.2 Cash & income-derived metrics
+
+| Item | Computation | Notes |
+|------|-------------|-------|
+| ⬜ Effective monthly expenses | `sum(ExpenseBudgets where Frequency=Monthly) + annualized/12` | Already partially done; expose as a single number. |
+| ⬜ Liquidity buffer math | `cashTotal - (expenses × liquidityBufferMonths) - reliableMonthlyIncome × 0` (see §8.5) | Render as `Cash buffer: $X above target / $Y short` |
+| ⬜ Cash drag % | `cashTotal / (cashTotal + investmentTotal + tspTotal)` | One line; AI uses to decide deploy size. |
+| ⬜ Dividend TTM + forward | `sum(Holding.AnnualDividendIncome)` (already on model) | `Forward div: $1,247/yr ($104/mo)` |
+| ⬜ Net worth deltas (30/90/365d) | `NetWorthSnapshots` already has the data | `NW Δ: 30d +$3,210 / 90d +$8,940 / 1y +$41,205` |
+
+### 8.3 Tax + retirement pre-computes
+
+| Item | Computation | Notes |
+|------|-------------|-------|
+| ⬜ Marginal + effective federal bracket | from `Filing` + gross income + withholdings already collected | `Marginal: 24% federal / Effective: ~17%` |
+| ⬜ State top bracket | static lookup table keyed on `TaxProfile.State` | `AR top: 4.4%` |
+| ⬜ Retirement income gap | `targetMonthlyPassive − projectedMonthlyAtAge62` from existing FERS projections | `Goal gap @62: -$1,073/mo` |
+| ⬜ Roth conversion runway | `(retirementAge − currentAge)` capped at `(73 − currentAge)` | `Roth conversion runway: 16 years` |
+| ⬜ TSP match-capture status | `EmployeeContributionPercent vs 5%` | `Match: fully captured / leaving $X/yr on table` |
+
+### 8.4 Sector / asset-class roll-ups
+
+`PortfolioAnalyticsController` already returns these for the dashboard pie. Surface the same numbers in the AI context as a one-line summary so the AI doesn't recompute:
+
+```
+Brokerage allocation: Equity 87% | Bonds 0% | Cash 0% | Alt 13% (DXYZ pre-IPO)
+Sector exposure: Tech/AI 28% | Utilities 14% | Industrials 15% | Broad-market 31% | Other 12%
+```
+
+### 8.5 Reliable income offset for cash-buffer warnings ⭐ user request
+
+**Problem**: AI flags "low cash reserves" because it computes the buffer as `cash ≥ expenses × liquidityBufferMonths`, ignoring the fact that ~$2,500/mo of VA disability is contractually guaranteed and arrives on the 1st of every month regardless of market conditions. Buffer math should subtract guaranteed income before sizing the cash requirement.
+
+**Constraint**: Must apply only to users who actually have guaranteed-income streams. Users without disability/pension/SS-in-payment income still need the full traditional buffer.
+
+**Source data**: `IncomeSources.Reliability` is already an enum on the model. Treat the following as "guaranteed" for buffer math:
+
+| `IncomeSource.Type` | Guaranteed? | Rationale |
+|---------------------|-------------|-----------|
+| `va_disability` | ✅ always | Tax-free, COLA-adjusted, federal obligation |
+| `pension` (in-payment) | ✅ always | Already-vested annuity payments |
+| `social_security` (in-payment) | ✅ always | Currently being received |
+| `salary` | ❌ | Job loss is the exact scenario buffers exist for |
+| `rental` | ❌ | Vacancy / tenant default risk |
+| `other` | only if `Reliability = Guaranteed` | User opt-in, e.g. trust distribution |
+
+**Computation**:
+
+```csharp
+var guaranteedMonthly = incomeSources
+    .Where(s => s.Type is "va_disability" or "pension" or "social_security"
+                || s.Reliability == IncomeReliability.Guaranteed)
+    .Sum(s => s.NetMonthlyAmount ?? s.MonthlyAmount);
+
+var monthlyExpenses = computedMonthlyExpenses;
+var bufferMonths = user.LiquidityBufferMonths ?? 6;
+
+// Net cash gap per month after guaranteed income covers it
+var netMonthlyGap = Math.Max(0, monthlyExpenses - guaranteedMonthly);
+var requiredCashBuffer = netMonthlyGap * bufferMonths;
+
+var cashSurplus = totalCash - requiredCashBuffer;
+```
+
+**Context output** (only printed when `guaranteedMonthly > 0`):
+
+```
+=== LIQUIDITY BUFFER ANALYSIS ===
+Monthly expenses: $2,698 | Guaranteed monthly income: $2,500 (VA disability)
+Net monthly gap after guaranteed income: $198
+Required cash buffer (6 mo × $198): $1,188
+Current cash: $37,130 → Surplus over buffer: $35,942
+Note: Only guaranteed income (VA disability, pension/SS in payment) offsets the buffer requirement. Salary and rental income are NOT counted because the buffer exists to cover their loss.
+```
+
+For users with no guaranteed income, fall back to the existing `cash ≥ expenses × bufferMonths` framing — no special block printed.
+
+**Tests required**:
+- User with VA disability $2,500/mo, expenses $2,698/mo, 6-mo buffer → required = $1,188 (not $16,188).
+- User with VA disability covering 100%+ of expenses → required = $0, surplus = full cash.
+- User with no guaranteed income → block omitted, AI sees the original buffer math only.
+- User with `rental` income → rental NOT subtracted even at high reliability.
+
+### 8.6 Insurance & estate gap math
+
+| Item | Computation | Notes |
+|------|-------------|-------|
+| ⬜ Recommended life coverage | `10 × annualGrossIncome` (industry rule of thumb) | `Recommended life: $1.44M / Current FEGLI: $145k / Gap: $1.30M` |
+| ⬜ Beneficiary completion % | `designatedAccounts / totalAccounts` (already shown) | already in context — promote to `=== KEY METRICS ===` header |
+| ⬜ Document staleness | `now − lastReviewedAt` for will/trust/POAs | Flag any > 5 years |
+
+### 8.7 Market context block (replace "no market context available")
+
+Even refresh-once-daily values would unblock macro framing. Stand up a `MarketContextService` that pulls the following daily:
+
+| Series | Source | Format |
+|--------|--------|--------|
+| 10-yr Treasury yield | FMP `treasury` endpoint | `10y UST: 4.21%` |
+| S&P 500 YTD % | FMP `historical-price-full/SPY` (already pulled) | `S&P 500 YTD: +6.4%` |
+| CPI YoY | BLS public API (no key, monthly cadence) | `CPI YoY: 2.8%` |
+| Fed funds rate | FRED `DFF` series | `Fed funds: 4.50–4.75%` |
+
+Cache in-memory for 24h; render as a single block:
+
+```
+=== MARKET CONTEXT (as of 2026-04-29) ===
+S&P 500 YTD: +6.4% | 10y UST: 4.21% | CPI YoY: 2.8% | Fed funds: 4.50–4.75%
+```
+
+### 8.8 Acceptance for Phase 8
+
+- [x] Per-holding `Px: $X.XX as of YYYY-MM-DD`
+- [x] Crypto + Estate Planning listed in comprehensive review scope
+- [ ] 52w high/low + YTD % per holding
+- [ ] Position weight % per holding
+- [ ] Cash drag % + forward dividend total in `=== KEY METRICS ===` header
+- [ ] Net worth deltas (30/90/365d)
+- [ ] Marginal/effective federal + state top bracket
+- [ ] Retirement income gap @ MRA / 62 / 65
+- [ ] **§8.5 reliable-income-offset cash buffer block** — applies only when guaranteed income > 0; preserves existing math otherwise
+- [ ] Sector/asset-class roll-up line
+- [ ] Recommended life coverage + gap
+- [ ] Document staleness flags (> 5y)
+- [ ] `MarketContextService` daily refresh + context block
+- [ ] xUnit tests for §8.5 (4 cases above) + smoke test for each §8.1–§8.7 line being present in `BuildFullFinancialContextAsync` output
