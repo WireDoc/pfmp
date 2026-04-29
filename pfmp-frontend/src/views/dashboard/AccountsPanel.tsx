@@ -87,6 +87,14 @@ export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefres
   };
 
   const handleViewAccount = (account: AccountSnapshot) => {
+    // Crypto entries are synthesized from exchange connections (id like "crypto_1")
+    // and don't have a per-account detail page — send users to the crypto settings
+    // hub where holdings and transactions live.
+    if (account.type === 'crypto' || (typeof account.id === 'string' && account.id.startsWith('crypto_'))) {
+      navigate('/dashboard/settings/crypto');
+      return;
+    }
+
     // Check if this is a UUID-based cash account
     if (account.isCashAccount) {
       navigate(`/dashboard/cash-accounts/${account.id}`);
@@ -263,15 +271,17 @@ export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefres
                     >
                       <VisibilityIcon fontSize="small" />
                     </IconButton>
-                    <IconButton 
-                      size="small" 
-                      onClick={() => handleOpenEditModal(a)} 
-                      aria-label="Edit account"
-                      title="Edit account"
-                      disabled={loadingAccount}
-                    >
-                      <EditIcon fontSize="small" />
-                    </IconButton>
+                    {a.type !== 'crypto' && !(typeof a.id === 'string' && a.id.startsWith('crypto_')) && (
+                      <IconButton 
+                        size="small" 
+                        onClick={() => handleOpenEditModal(a)} 
+                        aria-label="Edit account"
+                        title="Edit account"
+                        disabled={loadingAccount}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    )}
                   </Box>
                 </Box>
                 <Typography variant="h6" color="primary">

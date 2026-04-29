@@ -26,6 +26,7 @@ import {
   ChevronLeft as ChevronLeftIcon,
   Logout as LogoutIcon,
   Savings as TspIcon,
+  CurrencyBitcoin as CryptoIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/auth/useAuth';
 
@@ -47,6 +48,7 @@ interface NavItem {
 const navigationItems: NavItem[] = [
   { path: '/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
   { path: '/dashboard/accounts', label: 'Accounts', icon: <AccountsIcon /> },
+  { path: '/dashboard/settings/crypto', label: 'Crypto', icon: <CryptoIcon /> },
   { path: '/dashboard/tsp', label: 'TSP', icon: <TspIcon /> },
   { path: '/dashboard/insights', label: 'Insights', icon: <InsightsIcon /> },
   { path: '/dashboard/actions', label: 'Actions', icon: <TasksIcon /> },
