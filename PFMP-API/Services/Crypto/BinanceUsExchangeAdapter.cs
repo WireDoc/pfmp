@@ -77,6 +77,43 @@ namespace PFMP_API.Services.Crypto
                     Scopes = scopes
                 };
             }
+            catch (BinanceApiException bex) when (bex.StatusCode == 404)
+            {
+                // Binance.US does not expose /sapi/v1/account/apiRestrictions; fall back to a signed
+                // call against /api/v3/account. A 200 response confirms the key is valid; we cannot
+                // verify read-only enforcement server-side, so we surface that as a soft warning.
+                _logger.LogInformation("Binance.US apiRestrictions unavailable (404); falling back to /api/v3/account for key validation");
+                try
+                {
+                    var account = await SendSignedAsync<BinanceAccountResponse>(HttpMethod.Get, "/api/v3/account", apiKey, apiSecret, new Dictionary<string, string>(), cancellationToken);
+                    if (account is null)
+                    {
+                        return new ExchangeKeyValidationResult
+                        {
+                            IsValid = false,
+                            IsReadOnly = false,
+                            ErrorMessage = "Binance.US /api/v3/account returned no data."
+                        };
+                    }
+                    return new ExchangeKeyValidationResult
+                    {
+                        IsValid = true,
+                        // Cannot confirm without apiRestrictions; assume read-only and warn the user in UI copy.
+                        IsReadOnly = true,
+                        Scopes = new List<string> { "reading_inferred" }
+                    };
+                }
+                catch (BinanceApiException fallbackEx)
+                {
+                    _logger.LogWarning(fallbackEx, "Binance.US fallback key validation failed");
+                    return new ExchangeKeyValidationResult
+                    {
+                        IsValid = false,
+                        IsReadOnly = false,
+                        ErrorMessage = fallbackEx.Message
+                    };
+                }
+            }
             catch (BinanceApiException bex)
             {
                 _logger.LogWarning(bex, "Binance.US key validation failed");
@@ -286,7 +323,7 @@ namespace PFMP_API.Services.Crypto
             if (!response.IsSuccessStatusCode)
             {
                 var errBody = await response.Content.ReadAsStringAsync(cancellationToken);
-                throw new BinanceApiException($"Binance.US {path} returned {(int)response.StatusCode}: {Truncate(errBody, 300)}");
+                throw new BinanceApiException($"Binance.US {path} returned {(int)response.StatusCode}: {Truncate(errBody, 300)}", (int)response.StatusCode);
             }
             return await response.Content.ReadFromJsonAsync<TResponse>(JsonOptions, cancellationToken);
         }
@@ -363,7 +400,12 @@ namespace PFMP_API.Services.Crypto
 
         private class BinanceApiException : Exception
         {
+            public int? StatusCode { get; }
             public BinanceApiException(string message) : base(message) { }
+            public BinanceApiException(string message, int statusCode) : base(message)
+            {
+                StatusCode = statusCode;
+            }
         }
     }
 }
