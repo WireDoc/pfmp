@@ -155,8 +155,15 @@ export function AccountsView() {
   const liabilities = data?.liabilities ?? [];
 
   // Split accounts into cash vs investment
+  // Wave 13: crypto accounts are surfaced via CryptoAccountsCard, so exclude them
+  // from the Investment Accounts section (they were appearing in both places and
+  // the Investment subtotal was double-counting them).
+  const isCryptoAccount = (a: AccountSnapshot) =>
+    a.type === 'crypto' || (typeof a.id === 'string' && a.id.startsWith('crypto_'));
   const cashAccounts = accounts.filter(a => a.isCashAccount || ['Checking', 'Savings', 'MoneyMarket', 'CertificateOfDeposit', 'HSA'].includes(a.type));
-  const investmentAccounts = accounts.filter(a => !cashAccounts.includes(a) && a.id !== 'tsp_aggregate');
+  const investmentAccounts = accounts.filter(a =>
+    !cashAccounts.includes(a) && a.id !== 'tsp_aggregate' && !isCryptoAccount(a),
+  );
 
   const lc = filter.toLowerCase();
   const matchesFilter = (name: string, institution?: string) =>

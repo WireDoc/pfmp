@@ -212,6 +212,8 @@ export const defaultHandlers = [
       { status: 200 },
     ),
   ),
+  // User notes (default empty so NotePopover doesn't surface unhandled-request noise)
+  http.get(/\/usernotes\/entity\/[^/]+\/[^/?]+(?:\?.*)?$/, () => HttpResponse.json([], { status: 200 })),
 ];
 
 export const mockDashboardSummary = (data: JsonValue, init?: ResponseInit) =>

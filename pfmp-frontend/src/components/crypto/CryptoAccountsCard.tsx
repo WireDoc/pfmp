@@ -6,6 +6,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useNavigate } from 'react-router-dom';
 import { listCryptoHoldings, listExchangeConnections, type CryptoHolding, type ExchangeConnection } from '../../services/cryptoApi';
+import { NotePopover } from '../notes/NotePopover';
 
 interface Props {
   userId: number;
@@ -130,7 +131,10 @@ export const CryptoAccountsCard: React.FC<Props> = ({ userId, defaultOpen = true
                         {h.provider} · {fmtQty(h.quantity)} {h.symbol}
                       </Typography>
                     </Box>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{fmt$(h.marketValueUsd)}</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }} onClick={(e) => e.stopPropagation()}>
+                      <NotePopover entityType="crypto_holding" entityId={String(h.cryptoHoldingId)} />
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{fmt$(h.marketValueUsd)}</Typography>
+                    </Box>
                   </Box>
                 </Paper>
               ))}
