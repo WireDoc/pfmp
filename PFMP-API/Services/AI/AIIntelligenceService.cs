@@ -801,6 +801,12 @@ Your analysis will be reviewed by a backup AI system for validation.",
                             extras.Add($"Div: {h.AnnualDividendYield:F2}%");
                         if (h.Beta.HasValue)
                             extras.Add($"Beta: {h.Beta:F2}");
+                        var priceTag = h.CurrentPrice > 0
+                            ? (h.LastPriceUpdate.HasValue
+                                ? $"Px: ${h.CurrentPrice:F2} as of {h.LastPriceUpdate.Value:yyyy-MM-dd}"
+                                : $"Px: ${h.CurrentPrice:F2}")
+                            : null;
+                        if (priceTag != null) extras.Insert(0, priceTag);
                         var extraStr = extras.Any() ? $" | {string.Join(" | ", extras)}" : "";
                         sb.AppendLine($"  - {h.Symbol} ({h.Name}) | {h.AssetType} | {h.Quantity:F2} shares | Cost: ${h.TotalCostBasis:N0} | Value: ${h.CurrentValue:N0} | {gainStr}{extraStr}");
                         if (!string.IsNullOrWhiteSpace(h.Notes))
@@ -1624,6 +1630,8 @@ Your analysis will be reviewed by a backup AI system for validation.",
             sb.AppendLine("- Debt: Outstanding liabilities, interest rate optimization, payoff strategy");
             sb.AppendLine("- Income: Diversification, growth potential, passive income progress");
             sb.AppendLine("- Retirement: FERS pension projection, TSP + investment trajectory, target readiness");
+            sb.AppendLine("- Crypto: Exchange exposure, concentration, staking yield, stablecoin de-peg risk");
+            sb.AppendLine("- Estate Planning: Will/trust currency, beneficiary designations on every account, POA + healthcare directives, attorney review cadence");
             return Task.FromResult(sb.ToString());
         }
 
