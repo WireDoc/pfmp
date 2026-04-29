@@ -53,6 +53,8 @@ import {
 import { useDevUserId } from '../../dev/devUserState';
 import StakingSummaryCard from '../dashboard/StakingSummaryCard';
 import RealizedPnLPanel from '../dashboard/RealizedPnLPanel';
+import CryptoTransactionsPanel from '../dashboard/CryptoTransactionsPanel';
+import TaxLotsDialog from '../dashboard/TaxLotsDialog';
 
 const SUPPORTED_PROVIDERS = ['Kraken', 'BinanceUS'] as const;
 
@@ -87,6 +89,7 @@ export const CryptoSettingsView: React.FC = () => {
   const [apiKey, setApiKey] = useState('');
   const [apiSecret, setApiSecret] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [lotsSymbol, setLotsSymbol] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!userId) return;
@@ -324,32 +327,59 @@ export const CryptoSettingsView: React.FC = () => {
                   <TableCell>Symbol</TableCell>
                   <TableCell>Source</TableCell>
                   <TableCell align="right">Quantity</TableCell>
+                  <TableCell align="right">Cost Basis / Unit</TableCell>
                   <TableCell align="right">Market Value</TableCell>
+                  <TableCell align="right">Unrealized P/L</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Last Price</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {holdings.map(h => (
-                  <TableRow key={h.cryptoHoldingId}>
-                    <TableCell>{h.symbol}</TableCell>
-                    <TableCell>{h.provider}</TableCell>
-                    <TableCell align="right">{formatNumber(h.quantity)}</TableCell>
-                    <TableCell align="right">{formatCurrency(h.marketValueUsd)}</TableCell>
-                    <TableCell>
-                      {h.isStaked ? (
-                        <Chip
-                          size="small"
-                          color="primary"
-                          label={h.stakingApyPercent ? `Staked · ${h.stakingApyPercent.toFixed(2)}% APY` : 'Staked'}
-                        />
-                      ) : (
-                        <Chip size="small" label="Spot" variant="outlined" />
-                      )}
-                    </TableCell>
-                    <TableCell><Typography variant="body2">{formatTimestamp(h.lastPriceAt)}</Typography></TableCell>
-                  </TableRow>
-                ))}
+                {holdings.map(h => {
+                  const unrealized = h.avgCostBasisUsd != null
+                    ? h.marketValueUsd - (h.avgCostBasisUsd * h.quantity)
+                    : null;
+                  return (
+                    <TableRow
+                      key={h.cryptoHoldingId}
+                      hover
+                      sx={{ cursor: 'pointer' }}
+                      onClick={() => setLotsSymbol(h.symbol)}
+                    >
+                      <TableCell>{h.symbol}</TableCell>
+                      <TableCell>{h.provider}</TableCell>
+                      <TableCell align="right">{formatNumber(h.quantity)}</TableCell>
+                      <TableCell align="right">
+                        {h.avgCostBasisUsd != null ? formatCurrency(h.avgCostBasisUsd) : <Typography variant="body2" color="text.secondary">—</Typography>}
+                      </TableCell>
+                      <TableCell align="right">{formatCurrency(h.marketValueUsd)}</TableCell>
+                      <TableCell align="right">
+                        {unrealized != null ? (
+                          <Typography
+                            variant="body2"
+                            sx={{ color: unrealized >= 0 ? 'success.main' : 'error.main', fontWeight: 500 }}
+                          >
+                            {unrealized >= 0 ? '+' : ''}{formatCurrency(unrealized)}
+                          </Typography>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">—</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {h.isStaked ? (
+                          <Chip
+                            size="small"
+                            color="primary"
+                            label={h.stakingApyPercent ? `Staked · ${h.stakingApyPercent.toFixed(2)}% APY` : 'Staked'}
+                          />
+                        ) : (
+                          <Chip size="small" label="Spot" variant="outlined" />
+                        )}
+                      </TableCell>
+                      <TableCell><Typography variant="body2">{formatTimestamp(h.lastPriceAt)}</Typography></TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </TableContainer>
@@ -360,7 +390,28 @@ export const CryptoSettingsView: React.FC = () => {
             </Typography>
           </Box>
         )}
+        {holdings && holdings.length > 0 && (
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', px: 2, pb: 2 }}>
+            Click a row to view its open tax lots. Cost basis is incomplete if you owned the asset before linking the
+            exchange — this is not a tax-filing tool.
+          </Typography>
+        )}
       </Paper>
+
+      <Box sx={{ mt: 3 }}>
+        <CryptoTransactionsPanel
+          userId={userId}
+          connections={connections ?? []}
+          refreshKey={refreshKey}
+        />
+      </Box>
+
+      <TaxLotsDialog
+        open={lotsSymbol !== null}
+        onClose={() => setLotsSymbol(null)}
+        userId={userId}
+        symbol={lotsSymbol}
+      />
 
       <Dialog open={dialogOpen} onClose={handleCloseDialog} fullWidth maxWidth="sm">
         <DialogTitle>Link Crypto Exchange</DialogTitle>

@@ -42,6 +42,8 @@ vi.mock('../../services/cryptoApi', () => ({
   createExchangeConnection: (...args: unknown[]) => createExchangeConnection(...args),
   syncExchangeConnection: (...args: unknown[]) => syncExchangeConnection(...args),
   deleteExchangeConnection: (...args: unknown[]) => deleteExchangeConnection(...args),
+  listCryptoTransactions: vi.fn().mockResolvedValue([]),
+  listCryptoTaxLots: vi.fn().mockResolvedValue([]),
   getCryptoStakingSummary: vi.fn().mockResolvedValue({
     totalStakedValueUsd: 0,
     weightedApyPercent: null,
