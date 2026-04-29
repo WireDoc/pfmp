@@ -728,9 +728,9 @@ Your analysis will be reviewed by a backup AI system for validation.",
             var cashAccounts = await _context.CashAccounts
                 .Where(c => c.UserId == userId)
                 .ToListAsync();
+            var totalCash = cashAccounts.Sum(c => c.Balance);
             if (cashAccounts.Any())
             {
-                var totalCash = cashAccounts.Sum(c => c.Balance);
                 sb.AppendLine($"=== CASH ACCOUNTS ({cashAccounts.Count} accounts, ${totalCash:N0} total) ===");
                 foreach (var ca in cashAccounts)
                 {
@@ -1122,6 +1122,71 @@ Your analysis will be reviewed by a backup AI system for validation.",
                 sb.AppendLine("=== EXPENSES ===");
                 sb.AppendLine("None — no monthly expense data tracked yet. Cash flow analysis may be limited.");
                 sb.AppendLine();
+            }
+
+            // === LIQUIDITY BUFFER ANALYSIS (Wave 16 §8.5) ===
+            // Subtract guaranteed monthly income (VA disability, in-payment pension/SS, or explicit IsGuaranteed)
+            // from required cash buffer math. Salary and rental are NEVER counted -- the buffer exists to
+            // cover their loss. Block is only emitted when guaranteedMonthly > 0; users without guaranteed
+            // income see the original `cash >= expenses x bufferMonths` framing implied by the goals section.
+            {
+                static bool IsGuaranteedStream(Models.FinancialProfile.IncomeStreamProfile s)
+                {
+                    var t = (s.IncomeType ?? string.Empty).Trim().ToLowerInvariant();
+                    // Hard-exclude scenarios the buffer is designed to cover even if mis-flagged as guaranteed.
+                    if (t is "salary" or "wages" or "bonus" or "commission" or "tips"
+                        or "rental" or "rental_income" or "rentalincome"
+                        or "self_employment" or "selfemployment" or "business" or "business_profit"
+                        or "consulting" or "freelance")
+                    {
+                        return false;
+                    }
+                    if (t is "va_disability" or "vadisability"
+                        or "pension"
+                        or "social_security" or "socialsecurity"
+                        or "disability_insurance" or "disabilityinsurance")
+                    {
+                        return true;
+                    }
+                    return s.IsGuaranteed;
+                }
+
+                var guaranteedStreams = incomeStreams.Where(IsGuaranteedStream).ToList();
+                var guaranteedMonthly = guaranteedStreams.Sum(s => s.MonthlyNetAmount ?? s.MonthlyAmount);
+                var monthlyExpenses = expenses.Sum(e => e.MonthlyAmount);
+                var bufferMonths = user?.LiquidityBufferMonths ?? 6m;
+
+                if (guaranteedMonthly > 0 && monthlyExpenses > 0 && bufferMonths > 0)
+                {
+                    var netMonthlyGap = Math.Max(0m, monthlyExpenses - guaranteedMonthly);
+                    var requiredCashBuffer = netMonthlyGap * bufferMonths;
+                    var cashSurplus = totalCash - requiredCashBuffer;
+
+                    var sourcesLabel = string.Join(", ", guaranteedStreams
+                        .OrderByDescending(s => s.MonthlyNetAmount ?? s.MonthlyAmount)
+                        .Select(s => s.Name)
+                        .Take(3));
+                    if (guaranteedStreams.Count > 3) sourcesLabel += $", +{guaranteedStreams.Count - 3} more";
+
+                    sb.AppendLine("=== LIQUIDITY BUFFER ANALYSIS ===");
+                    sb.AppendLine($"Monthly expenses: ${monthlyExpenses:N0} | Guaranteed monthly income: ${guaranteedMonthly:N0} ({sourcesLabel})");
+                    if (netMonthlyGap <= 0)
+                    {
+                        sb.AppendLine("Guaranteed income fully covers monthly expenses → required cash buffer for expense coverage: $0");
+                        sb.AppendLine($"Current cash: ${totalCash:N0} (entire balance is surplus relative to expense-coverage buffer)");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"Net monthly gap after guaranteed income: ${netMonthlyGap:N0}");
+                        sb.AppendLine($"Required cash buffer ({bufferMonths:N1} mo × ${netMonthlyGap:N0}): ${requiredCashBuffer:N0}");
+                        var surplusLabel = cashSurplus >= 0
+                            ? $"Surplus over buffer: ${cashSurplus:N0}"
+                            : $"Shortfall vs buffer: ${Math.Abs(cashSurplus):N0}";
+                        sb.AppendLine($"Current cash: ${totalCash:N0} → {surplusLabel}");
+                    }
+                    sb.AppendLine("Note: Only guaranteed income (VA disability, pension/SS in payment, or explicit IsGuaranteed) offsets the buffer requirement. Salary and rental income are NOT counted because the buffer exists to cover their loss.");
+                    sb.AppendLine();
+                }
             }
 
             // === TAX PROFILE ===

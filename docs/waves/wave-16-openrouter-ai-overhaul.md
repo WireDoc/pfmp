@@ -499,7 +499,7 @@ Wave 15.1 is a prerequisite and will be completed first.
 
 Wave 13 closeout exposed several places where the AI was either inferring numbers it couldn't verify (per-share price from value÷qty), repeating math we already do server-side (concentration %, dividend cash flow, shortfall to retirement target), or being told "no market context available." Phase 8 ships those pre-computed values directly into `BuildFullFinancialContextAsync` so the AI spends tokens on judgement rather than arithmetic.
 
-**Status: in progress.** First two items shipped 2026-04-29 in commit `a7ab45d` (per-holding `Px: $X.XX as of YYYY-MM-DD` + Crypto/Estate Planning added to comprehensive review scope). Remaining items below.
+**Status: in progress.** First two items shipped 2026-04-29 in commit `a7ab45d` (per-holding `Px: $X.XX as of YYYY-MM-DD` + Crypto/Estate Planning added to comprehensive review scope). §8.5 reliable-income-offset cash buffer block shipped 2026-04-29 with 5 xUnit tests in `AIIntelligenceServiceLiquidityBufferTests`. Remaining items below.
 
 ### 8.1 Per-holding price metadata (high value, cheap)
 
@@ -630,7 +630,7 @@ S&P 500 YTD: +6.4% | 10y UST: 4.21% | CPI YoY: 2.8% | Fed funds: 4.50–4.75%
 - [ ] Net worth deltas (30/90/365d)
 - [ ] Marginal/effective federal + state top bracket
 - [ ] Retirement income gap @ MRA / 62 / 65
-- [ ] **§8.5 reliable-income-offset cash buffer block** — applies only when guaranteed income > 0; preserves existing math otherwise
+- [x] **§8.5 reliable-income-offset cash buffer block** — applies only when guaranteed income > 0; preserves existing math otherwise
 - [ ] Sector/asset-class roll-up line
 - [ ] Recommended life coverage + gap
 - [ ] Document staleness flags (> 5y)
