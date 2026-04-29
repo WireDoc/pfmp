@@ -17,8 +17,15 @@ namespace PFMP_API.Services.Crypto
         public string Provider => "BinanceUS";
 
         private const string BaseUrl = "https://api.binance.us";
-        private const long DefaultRecvWindowMs = 5000;
+        private const long DefaultRecvWindowMs = 10000;
         private const string QuoteCurrency = "USD"; // Binance.US quotes spot pairs against USD/USDT
+
+        // Process-wide cache of the (binanceServerMs - localUtcMs) skew so signed requests
+        // can compensate for local clock drift that triggers -1021 "Timestamp ... ahead of server's time".
+        private static long _serverTimeOffsetMs;
+        private static DateTime _serverTimeOffsetRefreshedUtc = DateTime.MinValue;
+        private static readonly SemaphoreSlim _serverTimeLock = new(1, 1);
+        private static readonly TimeSpan ServerTimeRefreshInterval = TimeSpan.FromMinutes(15);
 
         // USD-stable assets that should be reported as plain USD holdings.
         private static readonly HashSet<string> UsdAliases = new(StringComparer.OrdinalIgnoreCase)
@@ -308,10 +315,30 @@ namespace PFMP_API.Services.Crypto
 
         private async Task<TResponse?> SendSignedAsync<TResponse>(HttpMethod method, string path, string apiKey, string apiSecret, Dictionary<string, string> parameters, CancellationToken cancellationToken)
         {
-            parameters["recvWindow"] = DefaultRecvWindowMs.ToString(CultureInfo.InvariantCulture);
-            parameters["timestamp"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString(CultureInfo.InvariantCulture);
+            await EnsureServerTimeOffsetAsync(cancellationToken);
+            try
+            {
+                return await SendSignedCoreAsync<TResponse>(method, path, apiKey, apiSecret, parameters, cancellationToken);
+            }
+            catch (BinanceApiException ex) when (ex.StatusCode == 400 && ex.Message.Contains("-1021", StringComparison.Ordinal))
+            {
+                // Clock skew drifted; force-refresh the offset and retry once.
+                _logger.LogInformation("Binance.US -1021 timestamp skew; refreshing server-time offset and retrying");
+                await RefreshServerTimeOffsetAsync(cancellationToken, force: true);
+                return await SendSignedCoreAsync<TResponse>(method, path, apiKey, apiSecret, parameters, cancellationToken);
+            }
+        }
 
-            var query = string.Join("&", parameters.Select(kv => $"{Uri.EscapeDataString(kv.Key)}={Uri.EscapeDataString(kv.Value)}"));
+        private async Task<TResponse?> SendSignedCoreAsync<TResponse>(HttpMethod method, string path, string apiKey, string apiSecret, Dictionary<string, string> parameters, CancellationToken cancellationToken)
+        {
+            // Copy so retries don't accumulate stale recvWindow/timestamp/signature entries.
+            var signed = new Dictionary<string, string>(parameters)
+            {
+                ["recvWindow"] = DefaultRecvWindowMs.ToString(CultureInfo.InvariantCulture),
+                ["timestamp"] = (DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + _serverTimeOffsetMs).ToString(CultureInfo.InvariantCulture)
+            };
+
+            var query = string.Join("&", signed.Select(kv => $"{Uri.EscapeDataString(kv.Key)}={Uri.EscapeDataString(kv.Value)}"));
             var signature = BuildSignature(query, apiSecret);
             var url = $"{BaseUrl}{path}?{query}&signature={signature}";
 
@@ -326,6 +353,42 @@ namespace PFMP_API.Services.Crypto
                 throw new BinanceApiException($"Binance.US {path} returned {(int)response.StatusCode}: {Truncate(errBody, 300)}", (int)response.StatusCode);
             }
             return await response.Content.ReadFromJsonAsync<TResponse>(JsonOptions, cancellationToken);
+        }
+
+        private async Task EnsureServerTimeOffsetAsync(CancellationToken cancellationToken)
+        {
+            if (DateTime.UtcNow - _serverTimeOffsetRefreshedUtc < ServerTimeRefreshInterval) return;
+            await RefreshServerTimeOffsetAsync(cancellationToken, force: false);
+        }
+
+        private async Task RefreshServerTimeOffsetAsync(CancellationToken cancellationToken, bool force)
+        {
+            await _serverTimeLock.WaitAsync(cancellationToken);
+            try
+            {
+                if (!force && DateTime.UtcNow - _serverTimeOffsetRefreshedUtc < ServerTimeRefreshInterval) return;
+                var http = _httpClientFactory.CreateClient("BinanceUS");
+                using var response = await http.GetAsync($"{BaseUrl}/api/v3/time", cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Binance.US /api/v3/time returned {Status}; keeping previous offset {Offset}ms", (int)response.StatusCode, _serverTimeOffsetMs);
+                    return;
+                }
+                var payload = await response.Content.ReadFromJsonAsync<BinanceServerTime>(JsonOptions, cancellationToken);
+                if (payload is null) return;
+                var localMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                _serverTimeOffsetMs = payload.ServerTime - localMs;
+                _serverTimeOffsetRefreshedUtc = DateTime.UtcNow;
+                _logger.LogInformation("Binance.US server-time offset refreshed: {Offset}ms", _serverTimeOffsetMs);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to refresh Binance.US server-time offset; keeping {Offset}ms", _serverTimeOffsetMs);
+            }
+            finally
+            {
+                _serverTimeLock.Release();
+            }
         }
 
         private static string BuildSignature(string query, string apiSecret)
@@ -353,6 +416,11 @@ namespace PFMP_API.Services.Crypto
             public bool EnableFutures { get; set; }
             public bool EnableWithdrawals { get; set; }
             public bool EnableInternalTransfer { get; set; }
+        }
+
+        private class BinanceServerTime
+        {
+            public long ServerTime { get; set; }
         }
 
         private class BinanceAccountResponse
