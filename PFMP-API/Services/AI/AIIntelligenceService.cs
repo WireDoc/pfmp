@@ -868,15 +868,29 @@ Your analysis will be reviewed by a backup AI system for validation.",
                     sb.AppendLine($"• {conn.Provider}{nick} | ${connTotal:N0}{statusTag}");
 
                     // Top 5 positions per exchange by USD value
-                    foreach (var h in connHoldings.OrderByDescending(h => h.MarketValueUsd).Take(5))
+                    var topHoldings = connHoldings.OrderByDescending(h => h.MarketValueUsd).Take(5).ToList();
+                    foreach (var h in topHoldings)
                     {
                         var stakedTag = h.IsStaked
                             ? (h.StakingApyPercent.HasValue ? $" [Staked · {h.StakingApyPercent:F2}% APY]" : " [Staked]")
                             : "";
                         sb.AppendLine($"  - {h.Symbol} | {h.Quantity:F6} | ${h.MarketValueUsd:N0}{stakedTag}");
+                        AppendNotesForEntity("crypto_holding", h.CryptoHoldingId.ToString());
                     }
                     if (connHoldings.Count > 5)
                         sb.AppendLine($"  …and {connHoldings.Count - 5} more position(s)");
+
+                    // Inline notes for any holdings outside the top-5 so they render with their
+                    // symbol context instead of falling into the catch-all USER NOTES block.
+                    foreach (var h in connHoldings.Except(topHoldings))
+                    {
+                        var key = $"crypto_holding/{h.CryptoHoldingId}";
+                        if (notesByEntity.ContainsKey(key))
+                        {
+                            sb.AppendLine($"  - {h.Symbol} (additional position)");
+                            AppendNotesForEntity("crypto_holding", h.CryptoHoldingId.ToString());
+                        }
+                    }
                 }
                 sb.AppendLine("Note: Cost basis is incomplete when synced after the original purchase. PFMP is not a tax-filing tool.");
                 sb.AppendLine();
