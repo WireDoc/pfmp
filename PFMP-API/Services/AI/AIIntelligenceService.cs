@@ -801,6 +801,9 @@ Your analysis will be reviewed by a backup AI system for validation.",
                             extras.Add($"Div: {h.AnnualDividendYield:F2}%");
                         if (h.Beta.HasValue)
                             extras.Add($"Beta: {h.Beta:F2}");
+                        // Wave 16 §8.1: position weight within this account
+                        if (totalAccountValue > 0 && h.CurrentValue > 0)
+                            extras.Add($"Weight: {(h.CurrentValue / totalAccountValue * 100m):F1}%");
                         var priceTag = h.CurrentPrice > 0
                             ? (h.LastPriceUpdate.HasValue
                                 ? $"Px: ${h.CurrentPrice:F2} as of {h.LastPriceUpdate.Value:yyyy-MM-dd}"
@@ -1545,6 +1548,92 @@ Your analysis will be reviewed by a backup AI system for validation.",
                 if (!string.IsNullOrEmpty(estatePlan.Notes))
                     sb.AppendLine($"Notes: {estatePlan.Notes}");
                 sb.AppendLine();
+            }
+
+            // === PORTFOLIO KEY METRICS (Wave 16 §8.2) ===
+            // Computed totals derived from already-loaded data plus a TSP balance lookup
+            // and net-worth snapshot deltas. Gives the AI the math we already have so it
+            // doesn't recompute (and possibly mis-compute) cash drag, dividend cash flow,
+            // and trailing net worth changes.
+            {
+                var investmentAccountsValue = investmentAccounts.Sum(i => i.CurrentValue);
+                var nonCashAccountsValue = accounts
+                    .Where(a => !IsCashAccount(a))
+                    .Sum(a => a.CurrentBalance + allHoldings.Where(h => h.AccountId == a.AccountId).Sum(h => h.CurrentValue));
+                var investmentTotalForMetrics = investmentAccountsValue + nonCashAccountsValue;
+
+                var tspBalanceForMetrics = await _context.TspProfiles
+                    .Where(t => t.UserId == userId && !t.IsOptedOut)
+                    .Select(t => t.TotalBalance ?? 0m)
+                    .FirstOrDefaultAsync();
+                if (tspBalanceForMetrics == 0m)
+                {
+                    tspBalanceForMetrics = await _context.TspLifecyclePositions
+                        .Where(p => p.UserId == userId)
+                        .SumAsync(p => p.CurrentMarketValue ?? 0m);
+                }
+
+                var cryptoTotalForMetrics = await _context.CryptoHoldings
+                    .Where(h => _context.ExchangeConnections
+                        .Where(c => c.UserId == userId)
+                        .Select(c => c.ExchangeConnectionId)
+                        .Contains(h.ExchangeConnectionId))
+                    .SumAsync(h => h.MarketValueUsd);
+
+                var investableTotal = totalCash + investmentTotalForMetrics + tspBalanceForMetrics + cryptoTotalForMetrics;
+                var forwardDividendAnnual = allHoldings.Sum(h => h.AnnualDividendIncome ?? 0m);
+
+                // Net worth snapshot deltas (30 / 90 / 365 day)
+                var todayDate = DateOnly.FromDateTime(DateTime.UtcNow);
+                var snapshots = await _context.NetWorthSnapshots
+                    .Where(s => s.UserId == userId)
+                    .OrderByDescending(s => s.SnapshotDate)
+                    .Take(400)
+                    .ToListAsync();
+                NetWorthSnapshot? latest = snapshots.FirstOrDefault();
+                NetWorthSnapshot? FindNearest(int daysAgo)
+                {
+                    if (snapshots.Count == 0) return null;
+                    var target = todayDate.AddDays(-daysAgo);
+                    return snapshots.OrderBy(s => Math.Abs(s.SnapshotDate.DayNumber - target.DayNumber)).First();
+                }
+                var snap30 = FindNearest(30);
+                var snap90 = FindNearest(90);
+                var snap365 = FindNearest(365);
+
+                var anyMetrics = investableTotal > 0 || forwardDividendAnnual > 0 || latest != null;
+                if (anyMetrics)
+                {
+                    sb.AppendLine("=== PORTFOLIO KEY METRICS ===");
+                    if (investableTotal > 0)
+                    {
+                        var cashDragPct = totalCash / investableTotal * 100m;
+                        sb.AppendLine($"Investable assets: ${investableTotal:N0} (Cash ${totalCash:N0} | Brokerage ${investmentTotalForMetrics:N0} | TSP ${tspBalanceForMetrics:N0} | Crypto ${cryptoTotalForMetrics:N0})");
+                        sb.AppendLine($"Cash drag: {cashDragPct:F1}% of investable assets sitting in cash");
+                    }
+                    if (forwardDividendAnnual > 0)
+                    {
+                        sb.AppendLine($"Forward annual dividend income (from holdings on file): ${forwardDividendAnnual:N0}/yr (~${forwardDividendAnnual / 12m:N0}/mo)");
+                    }
+                    if (latest != null)
+                    {
+                        sb.AppendLine($"Latest net worth snapshot ({latest.SnapshotDate:yyyy-MM-dd}): ${latest.TotalNetWorth:N0}");
+                        var deltaParts = new List<string>();
+                        void AddDelta(string label, NetWorthSnapshot? past)
+                        {
+                            if (past == null || past.Id == latest.Id) return;
+                            var diff = latest.TotalNetWorth - past.TotalNetWorth;
+                            var sign = diff >= 0 ? "+" : "-";
+                            deltaParts.Add($"{label} {sign}${Math.Abs(diff):N0}");
+                        }
+                        AddDelta("30d", snap30);
+                        AddDelta("90d", snap90);
+                        AddDelta("1y", snap365);
+                        if (deltaParts.Count > 0)
+                            sb.AppendLine($"Net worth delta: {string.Join(" | ", deltaParts)}");
+                    }
+                    sb.AppendLine();
+                }
             }
 
             return sb.ToString();

@@ -178,4 +178,129 @@ public class AIIntelligenceServiceLiquidityBufferTests
         Assert.Contains("Net monthly gap after guaranteed income: $800", ctx);
         Assert.Contains("Required cash buffer (6.0 mo \u00d7 $800): $4,800", ctx);
     }
+
+    // ===== Wave 16 §8.1 + §8.2: position weight & PORTFOLIO KEY METRICS =====
+
+    [Fact]
+    public async Task PortfolioKeyMetrics_ComputesCashDragAndForwardDividend()
+    {
+        // Cash $20,000 + brokerage account $80,000 (one holding) = $100,000 investable
+        // Expected cash drag = 20.0%, forward div = $1,200/yr
+        const int userId = 201;
+        var svc = CreateService(out var db);
+        SeedUser(db, userId);
+        SeedCash(db, userId, balance: 20_000m);
+
+        var account = new Account
+        {
+            UserId = userId,
+            AccountName = "Brokerage",
+            Institution = "Vanguard",
+            AccountType = AccountType.Brokerage,
+            Category = AccountCategory.Taxable,
+            CurrentBalance = 0m,
+            IsActive = true
+        };
+        db.Accounts.Add(account);
+        await db.SaveChangesAsync();
+
+        db.Holdings.Add(new Holding
+        {
+            AccountId = account.AccountId,
+            Symbol = "VTI",
+            Name = "Vanguard Total Stock Market",
+            AssetType = AssetType.ETF,
+            Quantity = 100m,
+            AverageCostBasis = 600m,
+            CurrentPrice = 800m, // CurrentValue = $80,000
+            AnnualDividendIncome = 1_200m
+        });
+        await db.SaveChangesAsync();
+
+        var ctx = await svc.BuildFullFinancialContextAsync(userId);
+
+        Assert.Contains("=== PORTFOLIO KEY METRICS ===", ctx);
+        Assert.Contains("Investable assets: $100,000", ctx);
+        Assert.Contains("Cash drag: 20.0%", ctx);
+        Assert.Contains("Forward annual dividend income (from holdings on file): $1,200/yr (~$100/mo)", ctx);
+    }
+
+    [Fact]
+    public async Task PortfolioKeyMetrics_HoldingLineIncludesPositionWeight()
+    {
+        // Two holdings in one account: $75k + $25k = $100k account total
+        // Expected weights: 75.0% and 25.0%
+        const int userId = 202;
+        var svc = CreateService(out var db);
+        SeedUser(db, userId);
+
+        var account = new Account
+        {
+            UserId = userId,
+            AccountName = "Schwab Brokerage",
+            Institution = "Schwab",
+            AccountType = AccountType.Brokerage,
+            Category = AccountCategory.Taxable,
+            CurrentBalance = 0m,
+            IsActive = true
+        };
+        db.Accounts.Add(account);
+        await db.SaveChangesAsync();
+
+        db.Holdings.AddRange(
+            new Holding
+            {
+                AccountId = account.AccountId,
+                Symbol = "AAPL",
+                Name = "Apple",
+                AssetType = AssetType.Stock,
+                Quantity = 250m,
+                AverageCostBasis = 200m,
+                CurrentPrice = 300m // CurrentValue = $75,000
+            },
+            new Holding
+            {
+                AccountId = account.AccountId,
+                Symbol = "MSFT",
+                Name = "Microsoft",
+                AssetType = AssetType.Stock,
+                Quantity = 50m,
+                AverageCostBasis = 400m,
+                CurrentPrice = 500m // CurrentValue = $25,000
+            });
+        await db.SaveChangesAsync();
+
+        var ctx = await svc.BuildFullFinancialContextAsync(userId);
+
+        Assert.Contains("AAPL", ctx);
+        Assert.Contains("Weight: 75.0%", ctx);
+        Assert.Contains("MSFT", ctx);
+        Assert.Contains("Weight: 25.0%", ctx);
+    }
+
+    [Fact]
+    public async Task PortfolioKeyMetrics_NetWorthDeltasFromSnapshots()
+    {
+        const int userId = 203;
+        var svc = CreateService(out var db);
+        SeedUser(db, userId);
+        SeedCash(db, userId, balance: 50_000m);
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        db.NetWorthSnapshots.AddRange(
+            new NetWorthSnapshot { UserId = userId, SnapshotDate = today, TotalNetWorth = 250_000m, InvestmentsTotal = 0, CashTotal = 0, RealEstateEquity = 0, RetirementTotal = 0, LiabilitiesTotal = 0 },
+            new NetWorthSnapshot { UserId = userId, SnapshotDate = today.AddDays(-30), TotalNetWorth = 240_000m, InvestmentsTotal = 0, CashTotal = 0, RealEstateEquity = 0, RetirementTotal = 0, LiabilitiesTotal = 0 },
+            new NetWorthSnapshot { UserId = userId, SnapshotDate = today.AddDays(-90), TotalNetWorth = 230_000m, InvestmentsTotal = 0, CashTotal = 0, RealEstateEquity = 0, RetirementTotal = 0, LiabilitiesTotal = 0 },
+            new NetWorthSnapshot { UserId = userId, SnapshotDate = today.AddDays(-365), TotalNetWorth = 200_000m, InvestmentsTotal = 0, CashTotal = 0, RealEstateEquity = 0, RetirementTotal = 0, LiabilitiesTotal = 0 });
+        await db.SaveChangesAsync();
+
+        var ctx = await svc.BuildFullFinancialContextAsync(userId);
+
+        Assert.Contains("Latest net worth snapshot", ctx);
+        Assert.Contains("$250,000", ctx);
+        Assert.Contains("Net worth delta:", ctx);
+        Assert.Contains("30d +$10,000", ctx);
+        Assert.Contains("90d +$20,000", ctx);
+        Assert.Contains("1y +$50,000", ctx);
+    }
 }
