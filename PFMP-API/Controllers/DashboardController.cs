@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
+using PFMP_API.Models.Crypto;
 using PFMP_API.Models.FinancialProfile;
 using PFMP_API.Services.FinancialProfile;
 using PFMP_API.Services.MarketData;
@@ -83,6 +84,17 @@ public class DashboardController : ControllerBase
                 .Where(l => l.UserId == effectiveUserId)
                 .ToListAsync();
 
+            // Wave 13: include crypto exchange holdings in net worth
+            var cryptoConnections = await _context.ExchangeConnections
+                .Where(c => c.UserId == effectiveUserId)
+                .ToListAsync();
+            var cryptoConnectionIds = cryptoConnections.Select(c => c.ExchangeConnectionId).ToList();
+            var cryptoHoldings = cryptoConnectionIds.Count == 0
+                ? new List<PFMP_API.Models.Crypto.CryptoHolding>()
+                : await _context.CryptoHoldings
+                    .Where(h => cryptoConnectionIds.Contains(h.ExchangeConnectionId))
+                    .ToListAsync();
+
             // Calculate net worth from new unified Accounts table
             var oldCashAccountsToDelete = accounts.Where(a => 
                 a.AccountType == AccountType.Checking || 
@@ -123,8 +135,9 @@ public class DashboardController : ControllerBase
             }
             
             var totalProperties = properties.Sum(p => p.EstimatedValue);
-            
-            var totalAssets = totalCash + totalInvestments + totalTsp + totalProperties;
+            var totalCrypto = cryptoHoldings.Sum(h => h.MarketValueUsd);
+
+            var totalAssets = totalCash + totalInvestments + totalTsp + totalProperties + totalCrypto;
 
             // Avoid double-counting: only add property mortgage balances when the property
             // is NOT already linked to a LiabilityAccount record.
@@ -226,6 +239,25 @@ public class DashboardController : ControllerBase
 
             // Build insights
             var insights = new List<object>();
+
+            // Wave 13: render one accounts-list entry per crypto exchange connection
+            foreach (var conn in cryptoConnections)
+            {
+                var connHoldings = cryptoHoldings.Where(h => h.ExchangeConnectionId == conn.ExchangeConnectionId).ToList();
+                var connTotal = connHoldings.Sum(h => h.MarketValueUsd);
+                accountsList.Add(new
+                {
+                    id = $"crypto_{conn.ExchangeConnectionId}",
+                    name = string.IsNullOrWhiteSpace(conn.Nickname) ? conn.Provider : $"{conn.Provider} - {conn.Nickname}",
+                    institution = conn.Provider,
+                    type = "crypto",
+                    accountType = "CryptocurrencyExchange",
+                    balance = new { amount = connTotal, currency = "USD" },
+                    holdingsCount = connHoldings.Count,
+                    syncStatus = conn.Status == ExchangeConnectionStatus.Active ? "ok" : conn.Status.ToString().ToLowerInvariant(),
+                    lastSync = conn.LastSyncAt ?? DateTime.UtcNow
+                });
+            }
             
             var cashPercentage = totalAssets > 0 ? (totalCash / totalAssets * 100) : 0;
             if (cashPercentage < 5 && totalAssets > 10000)

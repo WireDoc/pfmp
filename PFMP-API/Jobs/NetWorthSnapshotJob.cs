@@ -141,6 +141,17 @@ public class NetWorthSnapshotJob
             .Where(l => l.UserId == userId)
             .ToListAsync(cancellationToken);
 
+        // Wave 13: include crypto exchange holdings
+        var cryptoConnectionIds = await _context.ExchangeConnections
+            .Where(c => c.UserId == userId)
+            .Select(c => c.ExchangeConnectionId)
+            .ToListAsync(cancellationToken);
+        decimal cryptoTotal = cryptoConnectionIds.Count == 0
+            ? 0m
+            : await _context.CryptoHoldings
+                .Where(h => cryptoConnectionIds.Contains(h.ExchangeConnectionId))
+                .SumAsync(h => (decimal?)h.MarketValueUsd, cancellationToken) ?? 0m;
+
         // Calculate totals matching Dashboard logic exactly
         decimal cashTotal = cashAccounts.Sum(a => a.Balance);
         
@@ -187,8 +198,8 @@ public class NetWorthSnapshotJob
         liabilitiesTotal += mortgageTotal;
 
         // Calculate total assets exactly like Dashboard:
-        // totalAssets = totalCash + totalInvestments + totalTsp + totalProperties
-        decimal totalAssets = cashTotal + investmentsTotal + tspTotal + realEstateValue;
+        // totalAssets = totalCash + totalInvestments + totalTsp + totalProperties + totalCrypto
+        decimal totalAssets = cashTotal + investmentsTotal + tspTotal + realEstateValue + cryptoTotal;
         
         // Net worth = assets - liabilities (Dashboard formula)
         var totalNetWorth = totalAssets - liabilitiesTotal;
@@ -198,7 +209,8 @@ public class NetWorthSnapshotJob
             UserId = userId,
             SnapshotDate = date,
             TotalNetWorth = totalNetWorth,
-            InvestmentsTotal = investmentsTotal, // Brokerage + IRA/401k/Roth/HSA
+            // Crypto rolled into InvestmentsTotal until a dedicated CryptoTotal column is added.
+            InvestmentsTotal = investmentsTotal + cryptoTotal,
             CashTotal = cashTotal,
             RealEstateEquity = realEstateValue - mortgageTotal, // Store net equity for display
             RetirementTotal = tspTotal, // TSP (calculated with live prices)
