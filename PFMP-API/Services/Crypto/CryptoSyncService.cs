@@ -185,6 +185,18 @@ namespace PFMP_API.Services.Crypto
                     _logger.LogWarning(alertEx, "Crypto alert generation failed for user {UserId}", connection.UserId);
                 }
             }
+            catch (InvalidExchangeCredentialFormatException ex)
+            {
+                // Malformed stored secret (e.g., placeholder/seed value). Mark Expired so the
+                // periodic job (which retries Active + Error) stops hammering this connection
+                // until the user re-enters credentials.
+                _logger.LogWarning(ex, "Crypto sync: invalid credential format for connection {Id} — marking Expired", connection.ExchangeConnectionId);
+                connection.Status = ExchangeConnectionStatus.Expired;
+                connection.LastSyncError = Truncate(ex.Message, 1000);
+                connection.DateUpdated = DateTime.UtcNow;
+                await _context.SaveChangesAsync(cancellationToken);
+                error = connection.LastSyncError;
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Crypto sync failed for connection {Id}", connection.ExchangeConnectionId);

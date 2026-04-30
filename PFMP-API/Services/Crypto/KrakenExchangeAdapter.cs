@@ -97,6 +97,7 @@ namespace PFMP_API.Services.Crypto
 
         public async Task<IReadOnlyList<ExchangeHoldingSnapshot>> GetHoldingsAsync(string apiKey, string apiSecret, CancellationToken cancellationToken = default)
         {
+            ValidateSecretFormat(apiSecret);
             var balance = await PostPrivateAsync<KrakenBalanceResponse>("/0/private/Balance", apiKey, apiSecret, new Dictionary<string, string>(), cancellationToken);
             if (balance.Errors.Count > 0)
             {
@@ -123,6 +124,7 @@ namespace PFMP_API.Services.Crypto
 
         public async Task<IReadOnlyList<ExchangeTransactionRecord>> GetTransactionsAsync(string apiKey, string apiSecret, DateTime sinceUtc, CancellationToken cancellationToken = default)
         {
+            ValidateSecretFormat(apiSecret);
             // Kraken Ledgers endpoint covers deposits, withdrawals, trades, staking, transfers.
             var sinceUnix = ((DateTimeOffset)DateTime.SpecifyKind(sinceUtc, DateTimeKind.Utc)).ToUnixTimeSeconds();
             var parameters = new Dictionary<string, string>
@@ -236,10 +238,35 @@ namespace PFMP_API.Services.Crypto
             Buffer.BlockCopy(pathBytes, 0, combined, 0, pathBytes.Length);
             Buffer.BlockCopy(sha256Hash, 0, combined, pathBytes.Length, sha256Hash.Length);
 
-            var secretBytes = Convert.FromBase64String(apiSecret);
+            byte[] secretBytes;
+            try
+            {
+                secretBytes = Convert.FromBase64String(apiSecret);
+            }
+            catch (FormatException ex)
+            {
+                throw new InvalidExchangeCredentialFormatException(
+                    "Kraken API secret is not valid Base64. Re-enter the Private Key shown on the Kraken ‘Manage API’ page (it is already Base64 — paste it as-is, no extra whitespace).", ex);
+            }
             using var hmac = new HMACSHA512(secretBytes);
             var signature = hmac.ComputeHash(combined);
             return Convert.ToBase64String(signature);
+        }
+
+        // Cheap pre-flight so we can surface InvalidExchangeCredentialFormatException before any HTTP call.
+        private static void ValidateSecretFormat(string apiSecret)
+        {
+            if (string.IsNullOrWhiteSpace(apiSecret))
+                throw new InvalidExchangeCredentialFormatException("Kraken API secret is empty.");
+            try
+            {
+                _ = Convert.FromBase64String(apiSecret);
+            }
+            catch (FormatException ex)
+            {
+                throw new InvalidExchangeCredentialFormatException(
+                    "Kraken API secret is not valid Base64. Re-enter the Private Key shown on the Kraken ‘Manage API’ page (it is already Base64 — paste it as-is, no extra whitespace).", ex);
+            }
         }
 
         // ---- DTOs ----
