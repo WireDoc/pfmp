@@ -499,7 +499,7 @@ Wave 15.1 is a prerequisite and will be completed first.
 
 Wave 13 closeout exposed several places where the AI was either inferring numbers it couldn't verify (per-share price from value÷qty), repeating math we already do server-side (concentration %, dividend cash flow, shortfall to retirement target), or being told "no market context available." Phase 8 ships those pre-computed values directly into `BuildFullFinancialContextAsync` so the AI spends tokens on judgement rather than arithmetic.
 
-**Status: in progress.** First two items shipped 2026-04-29 in commit `a7ab45d` (per-holding `Px: $X.XX as of YYYY-MM-DD` + Crypto/Estate Planning added to comprehensive review scope). §8.5 reliable-income-offset cash buffer block shipped 2026-04-29 with 5 xUnit tests in `AIIntelligenceServiceLiquidityBufferTests`. §8.1 position-weight-per-holding and §8.2 `=== PORTFOLIO KEY METRICS ===` (cash drag %, forward annual dividend, latest snapshot + 30/90/365-day net worth deltas) shipped 2026-04-29 with 3 additional xUnit tests in the same file. Remaining items below.
+**Status: in progress.** First two items shipped 2026-04-29 in commit `a7ab45d` (per-holding `Px: $X.XX as of YYYY-MM-DD` + Crypto/Estate Planning added to comprehensive review scope). §8.5 reliable-income-offset cash buffer block shipped 2026-04-29 with 5 xUnit tests in `AIIntelligenceServiceLiquidityBufferTests`. §8.1 position-weight-per-holding and §8.2 `=== PORTFOLIO KEY METRICS ===` (cash drag %, forward annual dividend, latest snapshot + 30/90/365-day net worth deltas) shipped 2026-04-29 with 3 additional xUnit tests in the same file. §8.3 partial: state top bracket lookup added to `=== TAX PROFILE ===`, TSP match-capture status + Roth conversion runway added to the existing `=== TSP ===` block, with 5 additional xUnit tests. Remaining items below.
 
 ### 8.1 Per-holding price metadata (high value, cheap)
 
@@ -628,7 +628,9 @@ S&P 500 YTD: +6.4% | 10y UST: 4.21% | CPI YoY: 2.8% | Fed funds: 4.50–4.75%
 - [x] Position weight % per holding
 - [x] Cash drag % + forward dividend total in `=== PORTFOLIO KEY METRICS ===` block
 - [x] Net worth deltas (30/90/365d)
-- [ ] Marginal/effective federal + state top bracket
+- [x] State top bracket lookup in `=== TAX PROFILE ===`
+- [x] TSP match-capture status + Roth conversion runway in `=== TSP ===`
+- [ ] Marginal/effective federal bracket auto-derivation (currently rendered only when user-supplied)
 - [ ] Retirement income gap @ MRA / 62 / 65
 - [x] **§8.5 reliable-income-offset cash buffer block** — applies only when guaranteed income > 0; preserves existing math otherwise
 - [ ] Sector/asset-class roll-up line

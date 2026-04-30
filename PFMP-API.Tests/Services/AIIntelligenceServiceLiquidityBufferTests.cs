@@ -303,4 +303,117 @@ public class AIIntelligenceServiceLiquidityBufferTests
         Assert.Contains("90d +$20,000", ctx);
         Assert.Contains("1y +$50,000", ctx);
     }
+
+    // ===== Wave 16 §8.3: tax + retirement pre-computes =====
+
+    private static void SeedTaxProfile(ApplicationDbContext db, int userId, string state, string filing = "single")
+    {
+        db.TaxProfiles.Add(new TaxProfile
+        {
+            UserId = userId,
+            FilingStatus = filing,
+            StateOfResidence = state,
+            MarginalRatePercent = 24m,
+            EffectiveRatePercent = 17m
+        });
+    }
+
+    private static void SeedTspProfile(ApplicationDbContext db, int userId, decimal contributionRatePercent,
+        decimal? employeeBiweekly = null, decimal balance = 50_000m)
+    {
+        db.TspProfiles.Add(new TspProfile
+        {
+            UserId = userId,
+            ContributionRatePercent = contributionRatePercent,
+            EmployerMatchPercent = 5m,
+            CurrentBalance = balance,
+            TotalBalance = balance,
+            EmployeeContributionBiweekly = employeeBiweekly,
+            IsOptedOut = false
+        });
+    }
+
+    [Fact]
+    public async Task TaxProfile_StateTopBracket_RendersForKnownState()
+    {
+        const int userId = 301;
+        var svc = CreateService(out var db);
+        SeedUser(db, userId);
+        SeedTaxProfile(db, userId, state: "Arkansas");
+        await db.SaveChangesAsync();
+
+        var ctx = await svc.BuildFullFinancialContextAsync(userId);
+
+        Assert.Contains("=== TAX PROFILE ===", ctx);
+        Assert.Contains("State top bracket (Arkansas): 4.40%", ctx);
+    }
+
+    [Fact]
+    public async Task TaxProfile_StateTopBracket_RendersNoneForFlorida()
+    {
+        const int userId = 302;
+        var svc = CreateService(out var db);
+        SeedUser(db, userId);
+        SeedTaxProfile(db, userId, state: "FL");
+        await db.SaveChangesAsync();
+
+        var ctx = await svc.BuildFullFinancialContextAsync(userId);
+
+        Assert.Contains("State top bracket (FL): no broad-based personal income tax", ctx);
+    }
+
+    [Fact]
+    public async Task TspMatchCapture_FullyCapturedAtFivePercent()
+    {
+        const int userId = 311;
+        var svc = CreateService(out var db);
+        var user = SeedUser(db, userId);
+        user.IsGovernmentEmployee = true;
+        SeedTspProfile(db, userId, contributionRatePercent: 5m);
+        await db.SaveChangesAsync();
+
+        var ctx = await svc.BuildFullFinancialContextAsync(userId);
+
+        Assert.Contains("=== TSP", ctx);
+        Assert.Contains("TSP Match Capture: Fully captured", ctx);
+    }
+
+    [Fact]
+    public async Task TspMatchCapture_BelowFivePercent_ShowsMissedDollars()
+    {
+        // Contribute 3% on biweekly $115.38 → annual salary ≈ $100,000
+        // At 3%: employer match = 1 (auto) + 3 = 4% → leaving 1% (~$1,000/yr) on the table
+        const int userId = 312;
+        var svc = CreateService(out var db);
+        var user = SeedUser(db, userId);
+        user.IsGovernmentEmployee = true;
+        SeedTspProfile(db, userId, contributionRatePercent: 3m, employeeBiweekly: 115.38m);
+        await db.SaveChangesAsync();
+
+        var ctx = await svc.BuildFullFinancialContextAsync(userId);
+
+        Assert.Contains("TSP Match Capture: Contributing 3.0%", ctx);
+        Assert.Contains("leaving ~1.0% of salary", ctx);
+        Assert.Contains("Bump to 5%", ctx);
+    }
+
+    [Fact]
+    public async Task RothConversionRunway_BasedOnTargetRetirementAndAge73Cap()
+    {
+        // DOB makes user age 50 → years to RMD age 73 = 23
+        // TargetRetirementDate is 10 years from now → runway = min(10, 23) = 10
+        const int userId = 313;
+        var svc = CreateService(out var db);
+        var user = SeedUser(db, userId);
+        user.IsGovernmentEmployee = true;
+        user.DateOfBirth = DateTime.UtcNow.AddYears(-50);
+        user.TargetRetirementDate = DateTime.UtcNow.AddYears(10);
+        SeedTspProfile(db, userId, contributionRatePercent: 5m);
+        await db.SaveChangesAsync();
+
+        var ctx = await svc.BuildFullFinancialContextAsync(userId);
+
+        Assert.Contains("Roth conversion runway: 10 years", ctx);
+        Assert.Contains("years-to-RMD-age-73", ctx);
+    }
 }

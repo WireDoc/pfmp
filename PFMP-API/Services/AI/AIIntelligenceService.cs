@@ -27,6 +27,72 @@ namespace PFMP_API.Services.AI
         private const int POST_ACTION_HOLD_DAYS = 14;
         private const decimal MIN_IMPACT_THRESHOLD = 0.05m; // 5% impact
 
+        // Wave 16 §8.3: state top marginal income tax brackets (2025-2026 reference values).
+        // Keyed by lowercase trimmed state name OR 2-letter abbreviation. Excludes localities.
+        // "None" entries are states with no broad-based personal income tax.
+        private static readonly Dictionary<string, decimal?> StateTopMarginalRates = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["alabama"] = 5.0m, ["al"] = 5.0m,
+            ["alaska"] = null, ["ak"] = null,
+            ["arizona"] = 2.5m, ["az"] = 2.5m,
+            ["arkansas"] = 4.4m, ["ar"] = 4.4m,
+            ["california"] = 13.3m, ["ca"] = 13.3m,
+            ["colorado"] = 4.4m, ["co"] = 4.4m,
+            ["connecticut"] = 6.99m, ["ct"] = 6.99m,
+            ["delaware"] = 6.6m, ["de"] = 6.6m,
+            ["florida"] = null, ["fl"] = null,
+            ["georgia"] = 5.39m, ["ga"] = 5.39m,
+            ["hawaii"] = 11.0m, ["hi"] = 11.0m,
+            ["idaho"] = 5.8m, ["id"] = 5.8m,
+            ["illinois"] = 4.95m, ["il"] = 4.95m,
+            ["indiana"] = 3.05m, ["in"] = 3.05m,
+            ["iowa"] = 5.7m, ["ia"] = 5.7m,
+            ["kansas"] = 5.7m, ["ks"] = 5.7m,
+            ["kentucky"] = 4.0m, ["ky"] = 4.0m,
+            ["louisiana"] = 4.25m, ["la"] = 4.25m,
+            ["maine"] = 7.15m, ["me"] = 7.15m,
+            ["maryland"] = 5.75m, ["md"] = 5.75m,
+            ["massachusetts"] = 9.0m, ["ma"] = 9.0m,
+            ["michigan"] = 4.25m, ["mi"] = 4.25m,
+            ["minnesota"] = 9.85m, ["mn"] = 9.85m,
+            ["mississippi"] = 4.7m, ["ms"] = 4.7m,
+            ["missouri"] = 4.8m, ["mo"] = 4.8m,
+            ["montana"] = 5.9m, ["mt"] = 5.9m,
+            ["nebraska"] = 5.84m, ["ne"] = 5.84m,
+            ["nevada"] = null, ["nv"] = null,
+            ["new hampshire"] = null, ["nh"] = null, // wages untaxed; interest/div phased out
+            ["new jersey"] = 10.75m, ["nj"] = 10.75m,
+            ["new mexico"] = 5.9m, ["nm"] = 5.9m,
+            ["new york"] = 10.9m, ["ny"] = 10.9m,
+            ["north carolina"] = 4.5m, ["nc"] = 4.5m,
+            ["north dakota"] = 2.5m, ["nd"] = 2.5m,
+            ["ohio"] = 3.5m, ["oh"] = 3.5m,
+            ["oklahoma"] = 4.75m, ["ok"] = 4.75m,
+            ["oregon"] = 9.9m, ["or"] = 9.9m,
+            ["pennsylvania"] = 3.07m, ["pa"] = 3.07m,
+            ["rhode island"] = 5.99m, ["ri"] = 5.99m,
+            ["south carolina"] = 6.2m, ["sc"] = 6.2m,
+            ["south dakota"] = null, ["sd"] = null,
+            ["tennessee"] = null, ["tn"] = null,
+            ["texas"] = null, ["tx"] = null,
+            ["utah"] = 4.55m, ["ut"] = 4.55m,
+            ["vermont"] = 8.75m, ["vt"] = 8.75m,
+            ["virginia"] = 5.75m, ["va"] = 5.75m,
+            ["washington"] = null, ["wa"] = null, // 7% capital-gains tax exists but no wage tax
+            ["west virginia"] = 5.12m, ["wv"] = 5.12m,
+            ["wisconsin"] = 7.65m, ["wi"] = 7.65m,
+            ["wyoming"] = null, ["wy"] = null,
+            ["district of columbia"] = 10.75m, ["dc"] = 10.75m,
+        };
+
+        private static (bool Found, decimal? TopRate) LookupStateTopBracket(string? stateRaw)
+        {
+            if (string.IsNullOrWhiteSpace(stateRaw)) return (false, null);
+            var key = stateRaw.Trim();
+            if (StateTopMarginalRates.TryGetValue(key, out var rate)) return (true, rate);
+            return (false, null);
+        }
+
         public AIIntelligenceService(
             ApplicationDbContext context,
             IDualAIAdvisor dualAI,
@@ -930,6 +996,57 @@ Your analysis will be reviewed by a backup AI system for validation.",
                 sb.AppendLine("=== TSP (Federal Thrift Savings Plan) ===");
                 sb.AppendLine($"Balance: ${totalBalance:N0} | Contribution Rate: {tsp.ContributionRatePercent:F1}% | Employer Match: {tsp.EmployerMatchPercent:F1}%");
 
+                // Wave 16 §8.3: TSP match-capture status. FERS formula: 1% auto + dollar-for-dollar on first 3% +
+                // 50¢-on-the-dollar on next 2% = 5% max employer when employee contributes ≥5%.
+                {
+                    var rate = tsp.ContributionRatePercent;
+                    if (rate >= 5m)
+                    {
+                        sb.AppendLine("TSP Match Capture: Fully captured (employee ≥5% unlocks the full 5% agency match).");
+                    }
+                    else if (rate >= 0m)
+                    {
+                        // Effective employer match at rate r: 1 (auto) + min(r,3) + 0.5 * max(0, min(r,5) - 3)
+                        decimal currentMatchPct = 1m + Math.Min(rate, 3m) + 0.5m * Math.Max(0m, Math.Min(rate, 5m) - 3m);
+                        decimal maxMatchPct = 5m;
+                        decimal missedPct = Math.Max(0m, maxMatchPct - currentMatchPct);
+                        // Estimate annualized salary from biweekly contribution if possible.
+                        decimal? annualSalary = null;
+                        if (tsp.EmployeeContributionBiweekly.HasValue && rate > 0m)
+                        {
+                            annualSalary = tsp.EmployeeContributionBiweekly.Value * 26m / (rate / 100m);
+                        }
+                        if (annualSalary.HasValue && missedPct > 0m)
+                        {
+                            var missedDollars = annualSalary.Value * missedPct / 100m;
+                            sb.AppendLine($"TSP Match Capture: Contributing {rate:F1}% — leaving ~{missedPct:F1}% of salary (~${missedDollars:N0}/yr) of agency match on the table. Bump to 5% to capture the full match.");
+                        }
+                        else
+                        {
+                            sb.AppendLine($"TSP Match Capture: Contributing {rate:F1}% — leaving ~{missedPct:F1}% of salary in agency match on the table. Bump to 5% to capture the full match.");
+                        }
+                    }
+                }
+
+                // Wave 16 §8.3: Roth conversion runway = years until target retirement, capped by years until RMD age (73).
+                if (user?.DateOfBirth.HasValue == true)
+                {
+                    var today = DateTime.UtcNow;
+                    var currentAge = (int)((today - user.DateOfBirth.Value).TotalDays / 365.25);
+                    int? yearsToRetirement = null;
+                    if (user.TargetRetirementDate.HasValue)
+                        yearsToRetirement = Math.Max(0, user.TargetRetirementDate.Value.Year - today.Year);
+                    var yearsToRmd = Math.Max(0, 73 - currentAge);
+                    int runway = yearsToRetirement.HasValue ? Math.Min(yearsToRetirement.Value, yearsToRmd) : yearsToRmd;
+                    if (runway > 0)
+                    {
+                        var basis = yearsToRetirement.HasValue
+                            ? $"min(years-to-retirement {yearsToRetirement}, years-to-RMD-age-73 {yearsToRmd})"
+                            : $"years-to-RMD-age-73 ({yearsToRmd})";
+                        sb.AppendLine($"Roth conversion runway: {runway} years ({basis}). Pre-retirement / pre-RMD years are the cheapest windows for Traditional→Roth conversions.");
+                    }
+                }
+
                 // Biweekly contribution amounts from LES
                 if (tsp.EmployeeContributionBiweekly.HasValue || tsp.RothContributionBiweekly.HasValue
                     || tsp.CatchUpContributionBiweekly.HasValue || tsp.AgencyMatchBiweekly.HasValue)
@@ -1202,6 +1319,16 @@ Your analysis will be reviewed by a backup AI system for validation.",
                 if (tax.MarginalRatePercent > 0) sb.Append($" | Marginal Rate: {tax.MarginalRatePercent:F0}%");
                 if (tax.EffectiveRatePercent > 0) sb.Append($" | Effective Rate: {tax.EffectiveRatePercent:F0}%");
                 sb.AppendLine();
+
+                // Wave 16 §8.3: state top bracket from static lookup so the AI can frame state tax planning.
+                var (stateFound, stateRate) = LookupStateTopBracket(tax.StateOfResidence);
+                if (stateFound)
+                {
+                    if (stateRate.HasValue)
+                        sb.AppendLine($"State top bracket ({tax.StateOfResidence}): {stateRate:F2}% (reference, statewide; localities not included)");
+                    else
+                        sb.AppendLine($"State top bracket ({tax.StateOfResidence}): no broad-based personal income tax");
+                }
                 sb.AppendLine();
             }
 
