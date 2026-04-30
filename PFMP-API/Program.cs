@@ -112,6 +112,7 @@ namespace PFMP_API
             builder.Services.AddScoped<RiskAnalysisService>();
             builder.Services.AddScoped<BenchmarkDataService>();
             builder.Services.AddScoped<PriceHistoryService>();
+            builder.Services.AddScoped<ISymbolMetricsService, SymbolMetricsService>();
 
             // Loan Analytics Services (Wave 9.3 Option B)
             builder.Services.AddScoped<AmortizationService>();
@@ -332,6 +333,13 @@ namespace PFMP_API
                     "daily-price-refresh",
                     job => job.RefreshAllHoldingPricesAsync(CancellationToken.None),
                     "0 23 * * *", // 11 PM daily
+                    new RecurringJobOptions { TimeZone = easternTimeZone });
+
+                // Daily symbol metrics refresh at 11:15 PM ET (after PriceRefreshJob populates PriceHistory)
+                RecurringJob.AddOrUpdate<PFMP_API.Jobs.SymbolMetricsRefreshJob>(
+                    "daily-symbol-metrics-refresh",
+                    job => job.RefreshAllAsync(CancellationToken.None),
+                    "15 23 * * *", // 11:15 PM daily
                     new RecurringJobOptions { TimeZone = easternTimeZone });
 
                 // Daily net worth snapshot at 11:30 PM ET (after price refresh)

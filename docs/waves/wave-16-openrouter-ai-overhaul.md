@@ -499,15 +499,15 @@ Wave 15.1 is a prerequisite and will be completed first.
 
 Wave 13 closeout exposed several places where the AI was either inferring numbers it couldn't verify (per-share price from value÷qty), repeating math we already do server-side (concentration %, dividend cash flow, shortfall to retirement target), or being told "no market context available." Phase 8 ships those pre-computed values directly into `BuildFullFinancialContextAsync` so the AI spends tokens on judgement rather than arithmetic.
 
-**Status: in progress.** First two items shipped 2026-04-29 in commit `a7ab45d` (per-holding `Px: $X.XX as of YYYY-MM-DD` + Crypto/Estate Planning added to comprehensive review scope). §8.5 reliable-income-offset cash buffer block shipped 2026-04-29 with 5 xUnit tests in `AIIntelligenceServiceLiquidityBufferTests`. §8.1 position-weight-per-holding and §8.2 `=== PORTFOLIO KEY METRICS ===` (cash drag %, forward annual dividend, latest snapshot + 30/90/365-day net worth deltas) shipped 2026-04-29 with 3 additional xUnit tests in the same file. §8.3 partial: state top bracket lookup added to `=== TAX PROFILE ===`, TSP match-capture status + Roth conversion runway added to the existing `=== TSP ===` block, with 5 additional xUnit tests. Remaining items below.
+**Status: in progress.** First two items shipped 2026-04-29 in commit `a7ab45d` (per-holding `Px: $X.XX as of YYYY-MM-DD` + Crypto/Estate Planning added to comprehensive review scope). §8.5 reliable-income-offset cash buffer block shipped 2026-04-29 with 5 xUnit tests in `AIIntelligenceServiceLiquidityBufferTests`. §8.1 position-weight-per-holding and §8.2 `=== PORTFOLIO KEY METRICS ===` (cash drag %, forward annual dividend, latest snapshot + 30/90/365-day net worth deltas) shipped 2026-04-29 with 3 additional xUnit tests in the same file. §8.3 partial: state top bracket lookup added to `=== TAX PROFILE ===`, TSP match-capture status + Roth conversion runway added to the existing `=== TSP ===` block, with 5 additional xUnit tests. §8.1 52-week high/low + YTD % per holding shipped 2026-04-30 via new `SymbolMetricsCache` table + `SymbolMetricsService` (computes 52w hi/lo, % from hi/lo, YTD % from existing `PriceHistory` cache) + nightly `SymbolMetricsRefreshJob` at 11:15 PM ET (15 min after `PriceRefreshJob`). `BuildFullFinancialContextAsync` now appends `52w: $X-$Y (-N.N% from high)` and `YTD: +N.N%` to each holding line via a single dictionary lookup — no FMP traffic on the prompt path. 7 new xUnit tests in `SymbolMetricsServiceTests`. Remaining items below.
 
 ### 8.1 Per-holding price metadata (high value, cheap)
 
 | Item | Source | Format in context |
 |------|--------|-------------------|
 | ✅ Current price + as-of date | `Holding.CurrentPrice` + `LastPriceUpdate` | `Px: $653.62 as of 2026-04-28` |
-| ⬜ 52-week high / low | FMP `quote` endpoint (already pulled) | `52w: $498–$667` |
-| ⬜ YTD return % | FMP `historical-price-full` (already pulled) | `YTD: +12.4%` |
+| ✅ 52-week high / low | `SymbolMetricsCache` (cached daily from `PriceHistory`) | `52w: $498.00–$667.00 (-2.0% from high)` |
+| ✅ YTD return % | `SymbolMetricsCache` (cached daily from `PriceHistory`) | `YTD: +12.4%` |
 | ⬜ Days held / oldest tax-lot date | `Holding.DateAcquired` (add if missing) or earliest `InvestmentTransaction` | `Held: 380d (long-term)` |
 | ⬜ Position % of portfolio | computed in builder (`CurrentValue / investmentTotal`) | `Weight: 31.0% of brokerage` |
 
@@ -624,7 +624,7 @@ S&P 500 YTD: +6.4% | 10y UST: 4.21% | CPI YoY: 2.8% | Fed funds: 4.50–4.75%
 
 - [x] Per-holding `Px: $X.XX as of YYYY-MM-DD`
 - [x] Crypto + Estate Planning listed in comprehensive review scope
-- [ ] 52w high/low + YTD % per holding
+- [x] 52w high/low + YTD % per holding (shipped 2026-04-30 via `SymbolMetricsCache` + `SymbolMetricsRefreshJob` at 11:15 PM ET)
 - [x] Position weight % per holding
 - [x] Cash drag % + forward dividend total in `=== PORTFOLIO KEY METRICS ===` block
 - [x] Net worth deltas (30/90/365d)

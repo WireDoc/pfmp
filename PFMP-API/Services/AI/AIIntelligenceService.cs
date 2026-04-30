@@ -826,6 +826,19 @@ Your analysis will be reviewed by a backup AI system for validation.",
                 .Where(h => accounts.Select(a => a.AccountId).Contains(h.AccountId))
                 .ToListAsync();
 
+            // Wave 16 §8.1: pre-computed 52w / YTD metrics for every distinct holding symbol.
+            var holdingSymbols = allHoldings
+                .Where(h => !string.IsNullOrWhiteSpace(h.Symbol))
+                .Select(h => h.Symbol!.Trim().ToUpperInvariant())
+                .Distinct()
+                .ToList();
+            var symbolMetrics = holdingSymbols.Count == 0
+                ? new Dictionary<string, SymbolMetricsCache>(StringComparer.OrdinalIgnoreCase)
+                : (await _context.SymbolMetricsCache
+                        .Where(m => holdingSymbols.Contains(m.Symbol))
+                        .ToListAsync())
+                    .ToDictionary(m => m.Symbol, m => m, StringComparer.OrdinalIgnoreCase);
+
             bool IsCashAccount(Account a) => a.AccountType == AccountType.Checking || a.AccountType == AccountType.Savings || a.AccountType == AccountType.MoneyMarket || a.AccountType == AccountType.CertificateOfDeposit;
 
             var nonCashAccounts = accounts.Where(a => !IsCashAccount(a)).ToList();
@@ -870,6 +883,14 @@ Your analysis will be reviewed by a backup AI system for validation.",
                         // Wave 16 §8.1: position weight within this account
                         if (totalAccountValue > 0 && h.CurrentValue > 0)
                             extras.Add($"Weight: {(h.CurrentValue / totalAccountValue * 100m):F1}%");
+                        // Wave 16 §8.1: pre-computed 52w high/low and YTD % from SymbolMetricsCache
+                        if (!string.IsNullOrWhiteSpace(h.Symbol)
+                            && symbolMetrics.TryGetValue(h.Symbol.Trim().ToUpperInvariant(), out var sm))
+                        {
+                            extras.Add($"52w: ${sm.Low52w:F2}\u2013${sm.High52w:F2} ({sm.PercentFrom52wHigh:+0.0;-0.0;0.0}% from high)");
+                            if (sm.YtdPercent.HasValue)
+                                extras.Add($"YTD: {sm.YtdPercent.Value:+0.0;-0.0;0.0}%");
+                        }
                         var priceTag = h.CurrentPrice > 0
                             ? (h.LastPriceUpdate.HasValue
                                 ? $"Px: ${h.CurrentPrice:F2} as of {h.LastPriceUpdate.Value:yyyy-MM-dd}"

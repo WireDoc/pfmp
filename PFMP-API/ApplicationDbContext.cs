@@ -18,6 +18,7 @@ namespace PFMP_API
         public DbSet<Holding> Holdings { get; set; }
         public DbSet<Transaction> Transactions { get; set; }
         public DbSet<PriceHistory> PriceHistory { get; set; }
+        public DbSet<SymbolMetricsCache> SymbolMetricsCache { get; set; }
         public DbSet<Goal> Goals { get; set; }
         public DbSet<GoalMilestone> GoalMilestones { get; set; }
 
