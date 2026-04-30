@@ -1294,6 +1294,23 @@ Your analysis will be reviewed by a backup AI system for validation.",
 
                 var guaranteedStreams = incomeStreams.Where(IsGuaranteedStream).ToList();
                 var guaranteedMonthly = guaranteedStreams.Sum(s => s.MonthlyNetAmount ?? s.MonthlyAmount);
+
+                // Wave 16 §8.5 fix: include profile-level VA disability when the user has no explicit
+                // va_disability IncomeStream entered. The header section reads VADisabilityMonthlyAmount
+                // directly from the User record; without this fallback the buffer block would never
+                // emit for users whose VA payment is only stored on the profile.
+                var hasVaDisabilityStream = guaranteedStreams.Any(s =>
+                {
+                    var t = (s.IncomeType ?? string.Empty).Trim().ToLowerInvariant();
+                    return t is "va_disability" or "vadisability";
+                });
+                var profileVaMonthly = (!hasVaDisabilityStream
+                    && user?.VADisabilityMonthlyAmount.HasValue == true
+                    && user.VADisabilityMonthlyAmount.Value > 0)
+                    ? user.VADisabilityMonthlyAmount.Value
+                    : 0m;
+                guaranteedMonthly += profileVaMonthly;
+
                 var monthlyExpenses = expenses.Sum(e => e.MonthlyAmount);
                 var bufferMonths = user?.LiquidityBufferMonths ?? 6m;
 
@@ -1303,11 +1320,16 @@ Your analysis will be reviewed by a backup AI system for validation.",
                     var requiredCashBuffer = netMonthlyGap * bufferMonths;
                     var cashSurplus = totalCash - requiredCashBuffer;
 
-                    var sourcesLabel = string.Join(", ", guaranteedStreams
+                    var sourceNames = guaranteedStreams
                         .OrderByDescending(s => s.MonthlyNetAmount ?? s.MonthlyAmount)
                         .Select(s => s.Name)
-                        .Take(3));
-                    if (guaranteedStreams.Count > 3) sourcesLabel += $", +{guaranteedStreams.Count - 3} more";
+                        .ToList();
+                    if (profileVaMonthly > 0)
+                    {
+                        sourceNames.Insert(0, $"VA Disability (profile)");
+                    }
+                    var sourcesLabel = string.Join(", ", sourceNames.Take(3));
+                    if (sourceNames.Count > 3) sourcesLabel += $", +{sourceNames.Count - 3} more";
 
                     sb.AppendLine("=== LIQUIDITY BUFFER ANALYSIS ===");
                     sb.AppendLine($"Monthly expenses: ${monthlyExpenses:N0} | Guaranteed monthly income: ${guaranteedMonthly:N0} ({sourcesLabel})");
@@ -1729,7 +1751,16 @@ Your analysis will be reviewed by a backup AI system for validation.",
                     .SumAsync(h => h.MarketValueUsd);
 
                 var investableTotal = totalCash + investmentTotalForMetrics + tspBalanceForMetrics + cryptoTotalForMetrics;
-                var forwardDividendAnnual = allHoldings.Sum(h => h.AnnualDividendIncome ?? 0m);
+                // Forward dividend: prefer the explicit dollar field; fall back to yield% × CurrentValue
+                // because most ETFs only carry AnnualDividendYield (the percent), not AnnualDividendIncome.
+                var forwardDividendAnnual = allHoldings.Sum(h =>
+                {
+                    if (h.AnnualDividendIncome.HasValue && h.AnnualDividendIncome.Value > 0)
+                        return h.AnnualDividendIncome.Value;
+                    if (h.AnnualDividendYield.HasValue && h.AnnualDividendYield.Value > 0 && h.CurrentValue > 0)
+                        return h.AnnualDividendYield.Value / 100m * h.CurrentValue;
+                    return 0m;
+                });
 
                 // Net worth snapshot deltas (30 / 90 / 365 day)
                 var todayDate = DateOnly.FromDateTime(DateTime.UtcNow);

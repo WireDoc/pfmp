@@ -416,4 +416,96 @@ public class AIIntelligenceServiceLiquidityBufferTests
         Assert.Contains("Roth conversion runway: 10 years", ctx);
         Assert.Contains("years-to-RMD-age-73", ctx);
     }
+
+    [Fact]
+    public async Task PortfolioKeyMetrics_ForwardDividend_FallsBackToYieldPercentTimesValue()
+    {
+        // Wave 16 §8.2 fix: ETFs typically populate AnnualDividendYield (percent) but NOT
+        // AnnualDividendIncome (dollars). The forward dividend line must still emit by
+        // multiplying yield% × CurrentValue.
+        const int userId = 220;
+        var svc = CreateService(out var db);
+        SeedUser(db, userId);
+        SeedCash(db, userId, balance: 10_000m);
+
+        var account = new Account
+        {
+            UserId = userId,
+            AccountName = "Brokerage",
+            Institution = "Ally",
+            AccountType = AccountType.Brokerage,
+            Category = AccountCategory.Taxable,
+            CurrentBalance = 0m,
+            IsActive = true
+        };
+        db.Accounts.Add(account);
+        await db.SaveChangesAsync();
+
+        db.Holdings.Add(new Holding
+        {
+            AccountId = account.AccountId,
+            Symbol = "VOO",
+            Name = "Vanguard S&P 500",
+            AssetType = AssetType.ETF,
+            Quantity = 40m,
+            AverageCostBasis = 627m,
+            CurrentPrice = 654.24m,                 // CurrentValue = $26,169.60
+            AnnualDividendYield = 1.25m,            // percent only — no dollar field
+            AnnualDividendIncome = null
+        });
+        await db.SaveChangesAsync();
+
+        var ctx = await svc.BuildFullFinancialContextAsync(userId);
+
+        // 1.25% × $26,169.60 = $327.12/yr -> rounds to $327/yr (~$27/mo)
+        Assert.Contains("Forward annual dividend income (from holdings on file): $327/yr (~$27/mo)", ctx);
+    }
+
+    [Fact]
+    public async Task LiquidityBuffer_UsesProfileVADisability_WhenNoIncomeStreamExists()
+    {
+        // Wave 16 §8.5 fix: user has VADisabilityMonthlyAmount set on the profile but
+        // no matching va_disability IncomeStream. The block must still emit and use
+        // the profile value so the AI doesn't see "low cash" warnings for users with
+        // guaranteed VA income that wasn't entered as a separate income stream.
+        const int userId = 230;
+        var svc = CreateService(out var db);
+        var user = SeedUser(db, userId, bufferMonths: 6m);
+        user.VADisabilityPercentage = 100;
+        user.VADisabilityMonthlyAmount = 4_000m;
+        SeedCash(db, userId, balance: 25_000m);
+        SeedExpense(db, userId, monthly: 3_500m);
+        // NO IncomeStream rows seeded.
+        await db.SaveChangesAsync();
+
+        var ctx = await svc.BuildFullFinancialContextAsync(userId);
+
+        Assert.Contains(BlockHeader, ctx);
+        Assert.Contains("Guaranteed monthly income: $4,000", ctx);
+        Assert.Contains("VA Disability (profile)", ctx);
+        Assert.Contains("Guaranteed income fully covers monthly expenses", ctx);
+    }
+
+    [Fact]
+    public async Task LiquidityBuffer_DoesNotDoubleCount_WhenBothProfileAndIncomeStreamPresent()
+    {
+        // If the user has BOTH a profile VA amount and a va_disability IncomeStream,
+        // we should count only the IncomeStream (the explicit row wins) to avoid double-counting.
+        const int userId = 231;
+        var svc = CreateService(out var db);
+        var user = SeedUser(db, userId, bufferMonths: 6m);
+        user.VADisabilityMonthlyAmount = 2_500m; // would double-count if not suppressed
+        SeedCash(db, userId, balance: 20_000m);
+        SeedExpense(db, userId, monthly: 2_698m);
+        SeedIncome(db, userId, "VA Disability", "va_disability", 2_500m);
+        await db.SaveChangesAsync();
+
+        var ctx = await svc.BuildFullFinancialContextAsync(userId);
+
+        Assert.Contains(BlockHeader, ctx);
+        // Should be $2,500 (single source), NOT $5,000 (double).
+        Assert.Contains("Guaranteed monthly income: $2,500", ctx);
+        Assert.DoesNotContain("Guaranteed monthly income: $5,000", ctx);
+        Assert.DoesNotContain("VA Disability (profile)", ctx);
+    }
 }
