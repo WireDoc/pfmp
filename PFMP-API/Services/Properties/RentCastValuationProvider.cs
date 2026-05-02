@@ -12,12 +12,18 @@ public class RentCastValuationProvider : IPropertyValuationProvider
     private readonly HttpClient _httpClient;
     private readonly string _apiKey;
     private readonly ILogger<RentCastValuationProvider> _logger;
-    private readonly bool _isConfigured;
+    private readonly bool _hasKey;
+    private readonly bool _enabled;
 
     private const string BaseUrl = "https://api.rentcast.io/v1/avm/value";
 
     public string ProviderName => "rentcast";
-    public bool IsConfigured => _isConfigured;
+
+    /// <summary>
+    /// True only when an API key is configured AND PropertyValuation:RentCastEnabled is true (default true).
+    /// Setting RentCastEnabled=false acts as a hard kill switch even if the key is present.
+    /// </summary>
+    public bool IsConfigured => _hasKey && _enabled;
 
     public RentCastValuationProvider(
         IHttpClientFactory httpClientFactory,
@@ -27,18 +33,29 @@ public class RentCastValuationProvider : IPropertyValuationProvider
         _httpClient = httpClientFactory.CreateClient("RentCast");
         _apiKey = configuration["PropertyValuation:RentCastApiKey"] ?? string.Empty;
         _logger = logger;
-        _isConfigured = !string.IsNullOrWhiteSpace(_apiKey);
+        _hasKey = !string.IsNullOrWhiteSpace(_apiKey);
 
-        if (!_isConfigured)
+        // Kill switch: PropertyValuation:RentCastEnabled defaults to true. Set to false to short-circuit
+        // all outbound calls without removing the API key (preserves restoration path).
+        var enabledRaw = configuration["PropertyValuation:RentCastEnabled"];
+        _enabled = string.IsNullOrWhiteSpace(enabledRaw)
+            || (bool.TryParse(enabledRaw, out var parsed) && parsed);
+
+        if (!_hasKey)
         {
             _logger.LogWarning("RentCast API key not configured — property valuations will not be available. " +
                                "Set PropertyValuation:RentCastApiKey in appsettings to enable.");
+        }
+        else if (!_enabled)
+        {
+            _logger.LogWarning("RentCast valuations disabled by config (PropertyValuation:RentCastEnabled=false). " +
+                               "No outbound API calls will be made until re-enabled.");
         }
     }
 
     public async Task<PropertyValuation?> GetValuationAsync(string street, string city, string state, string zip)
     {
-        if (!_isConfigured)
+        if (!_hasKey || !_enabled)
             return null;
 
         try

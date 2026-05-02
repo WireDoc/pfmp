@@ -12,15 +12,21 @@ public class PropertyValuationRefreshJob
 {
     private readonly ApplicationDbContext _context;
     private readonly IPropertyValuationService _valuationService;
+    private readonly IPropertyValuationProvider _valuationProvider;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<PropertyValuationRefreshJob> _logger;
 
     public PropertyValuationRefreshJob(
         ApplicationDbContext context,
         IPropertyValuationService valuationService,
+        IPropertyValuationProvider valuationProvider,
+        IConfiguration configuration,
         ILogger<PropertyValuationRefreshJob> logger)
     {
         _context = context;
         _valuationService = valuationService;
+        _valuationProvider = valuationProvider;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -28,7 +34,35 @@ public class PropertyValuationRefreshJob
     [Queue("default")]
     public async Task RefreshAllPropertyValuationsAsync(CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Starting monthly property valuation refresh job");
+        // Kill switch / config gate — covers both "no API key" and explicit disable.
+        if (!_valuationProvider.IsConfigured)
+        {
+            _logger.LogWarning(
+                "Skipping monthly property valuation refresh: provider {Provider} is not configured or is disabled. " +
+                "Check PropertyValuation:RentCastApiKey and PropertyValuation:RentCastEnabled.",
+                _valuationProvider.ProviderName);
+            return;
+        }
+
+        var candidateCount = await _context.Properties
+            .CountAsync(p => p.AutoValuationEnabled, cancellationToken);
+
+        // Sanity cap — protects against runaway test data filling pfmp_dev.
+        // Free-tier RentCast = 50 calls/month; threshold default 50, override via PropertyValuation:MaxMonthlyValuationCalls.
+        var maxCalls = _configuration.GetValue<int?>("PropertyValuation:MaxMonthlyValuationCalls") ?? 50;
+        if (candidateCount > maxCalls)
+        {
+            _logger.LogError(
+                "ABORTING monthly property valuation refresh: {Count} candidate properties exceeds safety cap of {Max}. " +
+                "This usually indicates leaked integration-test fixtures in the database. " +
+                "Investigate and clean up before re-running. Override with PropertyValuation:MaxMonthlyValuationCalls if intentional.",
+                candidateCount, maxCalls);
+            return;
+        }
+
+        _logger.LogInformation(
+            "Starting monthly property valuation refresh job ({Count} candidate properties, cap {Max})",
+            candidateCount, maxCalls);
 
         var userIds = await _context.Properties
             .Where(p => p.AutoValuationEnabled)
