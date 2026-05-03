@@ -288,6 +288,27 @@ namespace PFMP_API
 
             var app = builder.Build();
 
+            // SAFETY GUARD: Under the "Testing" environment, refuse to boot unless the connection
+            // string has been overridden to the unresolvable sentinel host that TestingWebAppFactory
+            // injects. This is defense-in-depth against a future change accidentally exposing the
+            // real pfmp_dev database to the test harness — which previously caused ~10K leaked test
+            // users and $36 in unintended RentCast API charges. If you ever see this throw, do NOT
+            // "fix" it by relaxing the check — instead audit how the test factory was bypassed.
+            // Runs after Build() so WebApplicationFactory's ConfigureAppConfiguration overrides
+            // have been merged into app.Configuration.
+            if (app.Environment.EnvironmentName == "Testing")
+            {
+                var testCs = app.Configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
+                if (!testCs.Contains("invalid-test-host-do-not-resolve", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException(
+                        "Refusing to start under Testing environment without the unresolvable test " +
+                        "sentinel connection string. TestingWebAppFactory must inject " +
+                        "'Host=invalid-test-host-do-not-resolve;...' into ConnectionStrings:DefaultConnection. " +
+                        $"Got: '{testCs}'. See PFMP-API.Tests/Fixtures/TestingWebAppFactory.cs.");
+                }
+            }
+
             // Configure the HTTP request pipeline.
             bool enableSwaggerAlways = builder.Configuration.GetValue<bool>("Swagger:Always", false);
             if (app.Environment.IsDevelopment() || enableSwaggerAlways)

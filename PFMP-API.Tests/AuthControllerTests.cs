@@ -61,19 +61,24 @@ public class AuthControllerTests : IClassFixture<TestingWebAppFactory>
     [Fact]
     public async Task Register_ReturnsCreated_WithNewUser()
     {
+        // Use a deterministic email — each test class gets its own isolated InMemory database
+        // (TestingWebAppFactory generates a fresh DB name per factory instance), so cross-test
+        // collisions are impossible. Avoid Guid-based emails: they previously masked the fact
+        // that this test was leaking ~9.5K rows into the real pfmp_dev database before the
+        // InMemory isolation was added. A fixed email makes any future leak instantly visible.
         var client = _factory.CreateClient();
-        var registerPayload = new 
-        { 
-            email = $"test+{Guid.NewGuid():N}@pfmp.local", 
+        var registerPayload = new
+        {
+            email = "register-test@pfmp.local.test",
             password = "Passw0rd!",
-            firstName = "Test",
-            lastName = "User"
+            firstName = "Register",
+            lastName = "Test"
         };
-        
+
         var resp = await client.PostAsJsonAsync("/api/auth/register", registerPayload);
-        
+
         // Should return Created or BadRequest or NotFound depending on mode
-        Assert.True(resp.StatusCode == HttpStatusCode.Created || 
+        Assert.True(resp.StatusCode == HttpStatusCode.Created ||
                    resp.StatusCode == HttpStatusCode.OK ||
                    resp.StatusCode == HttpStatusCode.BadRequest ||
                    resp.StatusCode == HttpStatusCode.NotFound);
