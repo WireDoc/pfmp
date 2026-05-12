@@ -54,6 +54,9 @@ secrets.json
 *.pfx
 *.p12
 
+# Claude Code per-user overrides (project settings live in .claude/settings.json)
+.claude/settings.local.json
+
 # NOTE: appsettings.Development.json IS tracked but should NEVER contain real API keys
 # Use placeholder values like "YOUR_API_KEY_HERE" in the repo version
 # Real keys should be set via environment variables or Azure Key Vault in production
