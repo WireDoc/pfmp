@@ -13,8 +13,8 @@ import {
 import { Add as AddIcon, SwapHoriz as SwapHorizIcon } from '@mui/icons-material';
 import { HoldingsTable } from '../../components/holdings/HoldingsTable';
 import { HoldingFormModal } from '../../components/holdings/HoldingFormModal';
-import { AddSharesModal } from '../../components/holdings/AddSharesModal';
-import type { AddSharesRequest } from '../../components/holdings/AddSharesModal';
+import { HoldingTransactionModal } from '../../components/holdings/HoldingTransactionModal';
+import type { HoldingTransactionRequest } from '../../components/holdings/HoldingTransactionModal';
 import { AccountSummaryHeader } from '../../components/holdings/AccountSummaryHeader';
 import { AssetAllocationChart } from '../../components/holdings/AssetAllocationChart';
 import { PriceChartCard } from '../../components/holdings/PriceChartCard';
@@ -87,7 +87,7 @@ export function AccountDetailView() {
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingHolding, setEditingHolding] = useState<Holding | null>(null);
-  const [addSharesHolding, setAddSharesHolding] = useState<Holding | null>(null);
+  const [txHolding, setTxHolding] = useState<Holding | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [accountRefreshKey, setAccountRefreshKey] = useState(0);
@@ -177,19 +177,28 @@ export function AccountDetailView() {
     setSelectedHolding(holding);
   };
 
-  const handleAddShares = (holding: Holding) => {
-    setAddSharesHolding(holding);
+  const handleHoldingTransaction = (holding: Holding) => {
+    setTxHolding(holding);
   };
 
-  const handleAddSharesSave = async (holdingId: number, request: AddSharesRequest) => {
-    const response = await fetch(`${apiBase}/holdings/${holdingId}/add-shares`, {
+  const handleHoldingTransactionSave = async (
+    holdingId: number,
+    request: HoldingTransactionRequest,
+  ) => {
+    const endpoint =
+      request.type === 'SELL'
+        ? 'sell-shares'
+        : request.type === 'DIVIDEND_CASH'
+          ? 'dividend-cash'
+          : 'add-shares';
+    const response = await fetch(`${apiBase}/holdings/${holdingId}/${endpoint}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(request),
+      body: JSON.stringify(request.payload),
     });
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
-      throw new Error(body.message || 'Failed to add shares');
+      throw new Error(body.message || `Failed to ${request.type.toLowerCase().replace('_', ' ')}`);
     }
     await fetchHoldings();
     setTransactionRefreshTrigger(prev => prev + 1);
@@ -379,7 +388,7 @@ export function AccountDetailView() {
                 onSelect={handleSelectHolding}
                 onEdit={handleEditHolding}
                 onDelete={handleDeleteHolding}
-                onAddShares={handleAddShares}
+                onAddShares={handleHoldingTransaction}
               />
             </Box>
           )}
@@ -425,12 +434,12 @@ export function AccountDetailView() {
           onSave={handleModalSave}
         />
 
-        {/* Add Shares / DRIP Modal */}
-        <AddSharesModal
-          open={!!addSharesHolding}
-          holding={addSharesHolding}
-          onClose={() => setAddSharesHolding(null)}
-          onSave={handleAddSharesSave}
+        {/* Buy / Sell / Dividend Modal */}
+        <HoldingTransactionModal
+          open={!!txHolding}
+          holding={txHolding}
+          onClose={() => setTxHolding(null)}
+          onSave={handleHoldingTransactionSave}
         />
 
         {/* Transfer Funds Dialog */}

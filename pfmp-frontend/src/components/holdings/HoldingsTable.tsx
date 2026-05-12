@@ -1,7 +1,7 @@
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import type { GridColDef, GridRowParams } from '@mui/x-data-grid';
 import { Box, Chip, Typography } from '@mui/material';
-import { Edit as EditIcon, Delete as DeleteIcon, AddShoppingCart as AddSharesIcon } from '@mui/icons-material';
+import { Edit as EditIcon, Delete as DeleteIcon, SwapHoriz as TransactIcon } from '@mui/icons-material';
 import type { Holding } from '../../types/holdings';
 import { AssetTypeLabels, AssetTypeNameToValue } from '../../types/holdings';
 
@@ -169,12 +169,12 @@ export function HoldingsTable({ holdings, selectedHoldingId, onSelect, onEdit, o
             showInMenu={false}
           />,
         ];
-        // Add "Buy More" for manual holdings
+        // Add "Buy / Sell / Dividend" entry point for manual holdings
         if (!isSynced && onAddShares) {
           actions.push(
             <GridActionsCellItem
-              icon={<AddSharesIcon />}
-              label="Buy More / DRIP"
+              icon={<TransactIcon />}
+              label="Buy / Sell / Dividend"
               onClick={() => onAddShares(params.row)}
               showInMenu={false}
             />

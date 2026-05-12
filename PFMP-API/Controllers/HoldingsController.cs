@@ -793,6 +793,185 @@ public class HoldingsController : ControllerBase
         return Ok(MapToResponse(holding));
     }
 
+    /// <summary>
+    /// Sell shares from an existing holding.
+    /// Validates qty &lt;= current holding quantity, creates a SELL transaction,
+    /// credits the account cash balance with net proceeds (gross - fee),
+    /// and deletes the holding row if quantity reaches zero.
+    /// </summary>
+    [HttpPost("{id}/sell-shares")]
+    public async Task<ActionResult<HoldingResponse>> SellShares(int id, [FromBody] SellSharesRequest request)
+    {
+        var holding = await _context.Holdings
+            .Include(h => h.Account)
+            .FirstOrDefaultAsync(h => h.HoldingId == id);
+
+        if (holding == null)
+            return NotFound(new { message = "Holding not found" });
+
+        if (request.Quantity > holding.Quantity)
+        {
+            return BadRequest(new
+            {
+                message = $"Cannot sell {request.Quantity} shares — only {holding.Quantity} available."
+            });
+        }
+
+        var txDate = request.TransactionDate ?? DateTime.UtcNow;
+        if (txDate.Kind == DateTimeKind.Unspecified)
+            txDate = DateTime.SpecifyKind(txDate, DateTimeKind.Utc);
+
+        var gross = request.Quantity * request.PricePerShare;
+        var fee = request.Fee ?? 0m;
+        var netProceeds = gross - fee;
+        var realizedGain = (request.PricePerShare - holding.AverageCostBasis) * request.Quantity - fee;
+
+        var transaction = new Transaction
+        {
+            AccountId = holding.AccountId,
+            HoldingId = holding.HoldingId,
+            TransactionType = TransactionTypes.Sell,
+            Symbol = holding.Symbol,
+            Quantity = request.Quantity,
+            Price = request.PricePerShare,
+            // Amount represents net proceeds (gross - fee) so it matches the cash credit and
+            // the "Net to cash balance" preview the user saw on the form. Fee stays as its own
+            // column for breakdown.
+            Amount = netProceeds,
+            TransactionDate = txDate,
+            SettlementDate = txDate,
+            Source = TransactionSource.Manual,
+            FundingSource = FundingSource.CashBalance, // proceeds always credit cash
+            Fee = request.Fee,
+            CostBasis = holding.AverageCostBasis * request.Quantity,
+            CapitalGainLoss = realizedGain,
+            IsLongTermCapitalGains = holding.IsLongTermCapitalGains,
+            Description = request.Notes ?? $"Sell {request.Quantity} {holding.Symbol} @ {request.PricePerShare:C}",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+
+        // Credit account cash balance with net proceeds
+        if (netProceeds > 0)
+        {
+            holding.Account.CurrentBalance += netProceeds;
+            holding.Account.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+        }
+
+        // Recompute quantity + cost basis from transaction history
+        await _holdingsSyncService.UpdateHoldingFromTransactionsAsync(holding.HoldingId);
+
+        _logger.LogInformation(
+            "Sold {Qty} shares of {Symbol} at ${Price} (fee {Fee:C}, net {Net:C}, realized {Gain:C}) from holding {HoldingId}",
+            request.Quantity, holding.Symbol, request.PricePerShare, fee, netProceeds, realizedGain, holding.HoldingId);
+
+        // If the position is fully closed, drop the holding row.
+        // Transactions keep AccountId; HoldingId FK is nullable so history survives.
+        var refreshed = await _context.Holdings
+            .Include(h => h.Account)
+            .FirstAsync(h => h.HoldingId == holding.HoldingId);
+
+        if (refreshed.Quantity <= 0)
+        {
+            // Null out FKs on related rows before deleting the holding. Both Transaction.HoldingId
+            // and PriceHistory.HoldingId are nullable, so history survives keyed on Symbol.
+            var orphanedTx = await _context.Transactions
+                .Where(t => t.HoldingId == refreshed.HoldingId)
+                .ToListAsync();
+            foreach (var t in orphanedTx)
+                t.HoldingId = null;
+
+            var orphanedPriceHistory = await _context.PriceHistory
+                .Where(p => p.HoldingId == refreshed.HoldingId)
+                .ToListAsync();
+            foreach (var p in orphanedPriceHistory)
+                p.HoldingId = null;
+
+            _context.Holdings.Remove(refreshed);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Removed zero-quantity holding {HoldingId} ({Symbol}); {TxCount} transactions and {PriceCount} price-history rows preserved with HoldingId=null",
+                refreshed.HoldingId, refreshed.Symbol, orphanedTx.Count, orphanedPriceHistory.Count);
+
+            return Ok(new HoldingResponse
+            {
+                HoldingId = refreshed.HoldingId,
+                AccountId = refreshed.AccountId,
+                Symbol = refreshed.Symbol,
+                Name = refreshed.Name,
+                AssetType = refreshed.AssetType.ToString(),
+                Quantity = 0,
+                AverageCostBasis = 0,
+                CurrentPrice = refreshed.CurrentPrice,
+                CurrentValue = 0,
+                TotalCostBasis = 0,
+                UnrealizedGainLoss = 0,
+                CreatedAt = refreshed.CreatedAt,
+                UpdatedAt = DateTime.UtcNow,
+            });
+        }
+
+        return Ok(MapToResponse(refreshed));
+    }
+
+    /// <summary>
+    /// Record a cash dividend for an existing holding.
+    /// Creates a DIVIDEND transaction and credits the account cash balance.
+    /// Does not change share quantity or cost basis.
+    /// </summary>
+    [HttpPost("{id}/dividend-cash")]
+    public async Task<ActionResult<HoldingResponse>> RecordCashDividend(int id, [FromBody] DividendCashRequest request)
+    {
+        var holding = await _context.Holdings
+            .Include(h => h.Account)
+            .FirstOrDefaultAsync(h => h.HoldingId == id);
+
+        if (holding == null)
+            return NotFound(new { message = "Holding not found" });
+
+        var txDate = request.TransactionDate ?? DateTime.UtcNow;
+        if (txDate.Kind == DateTimeKind.Unspecified)
+            txDate = DateTime.SpecifyKind(txDate, DateTimeKind.Utc);
+
+        var transaction = new Transaction
+        {
+            AccountId = holding.AccountId,
+            HoldingId = holding.HoldingId,
+            TransactionType = TransactionTypes.Dividend,
+            Symbol = holding.Symbol,
+            Amount = request.Amount,
+            TransactionDate = txDate,
+            SettlementDate = txDate,
+            Source = TransactionSource.Manual,
+            IsQualifiedDividend = request.IsQualifiedDividend ?? holding.IsQualifiedDividend,
+            Description = request.Notes ?? $"Cash dividend from {holding.Symbol}",
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.Transactions.Add(transaction);
+
+        holding.Account.CurrentBalance += request.Amount;
+        holding.Account.UpdatedAt = DateTime.UtcNow;
+        holding.LastDividendDate = txDate;
+        holding.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        _logger.LogInformation(
+            "Recorded cash dividend of {Amount:C} for {Symbol} (holding {HoldingId}); credited to account {AccountId}",
+            request.Amount, holding.Symbol, holding.HoldingId, holding.AccountId);
+
+        var refreshed = await _context.Holdings
+            .Include(h => h.Account)
+            .FirstAsync(h => h.HoldingId == holding.HoldingId);
+
+        return Ok(MapToResponse(refreshed));
+    }
+
     private static HoldingResponse MapToResponse(Holding holding)
     {
         return new HoldingResponse
@@ -987,6 +1166,39 @@ public class AddSharesRequest
 
     [Range(0, double.MaxValue)]
     public decimal? Fee { get; set; }
+
+    [StringLength(500)]
+    public string? Notes { get; set; }
+}
+
+public class SellSharesRequest
+{
+    [Required]
+    [Range(0.00000001, double.MaxValue, ErrorMessage = "Quantity must be greater than 0")]
+    public decimal Quantity { get; set; }
+
+    [Required]
+    [Range(0, double.MaxValue)]
+    public decimal PricePerShare { get; set; }
+
+    public DateTime? TransactionDate { get; set; }
+
+    [Range(0, double.MaxValue)]
+    public decimal? Fee { get; set; }
+
+    [StringLength(500)]
+    public string? Notes { get; set; }
+}
+
+public class DividendCashRequest
+{
+    [Required]
+    [Range(0.00000001, double.MaxValue, ErrorMessage = "Amount must be greater than 0")]
+    public decimal Amount { get; set; }
+
+    public DateTime? TransactionDate { get; set; }
+
+    public bool? IsQualifiedDividend { get; set; }
 
     [StringLength(500)]
     public string? Notes { get; set; }

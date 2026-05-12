@@ -1,6 +1,6 @@
 # PFMP Product Roadmap (2025–2026)
 
-_Last updated: 2026-04-23_
+_Last updated: 2026-05-04_
 
 ## Current Status Summary
 
@@ -18,7 +18,9 @@ _Last updated: 2026-04-23_
 | Wave 12: Brokerage & Investment Linking | ✅ Complete | January 2026 |
 | Wave 12.5: Unified Plaid Linking | ✅ Complete | March 2026 |
 | Wave 13: Crypto Exchanges (Kraken + Binance.US) | ✅ Complete | Q2 2026 |
-| Wave 14: Spending Analysis | 📋 Planned | Q3 2026 |
+| Wave 13.5: Self-Custody Wallets | 📋 Provisional | TBD |
+| Wave 14: Spending Analysis & Budgeting | 📋 Planned | Q3 2026 |
+| Wave 14.5: Tax Form Export (Form 8949) | 📋 Provisional | Post-Wave 14 |
 | Wave 15: Property Management & Valuation | ✅ Complete | March 2026 |
 | Wave 16: OpenRouter AI Overhaul | ✅ Complete | March 2026 |
 | Wave 17: Dashboard Expansion | ✅ Complete | April 2026 |
@@ -190,12 +192,22 @@ Optional follow-on for on-chain balances and DeFi protocols, deferred at Wave 13
 ### Wave 14: Spending Analysis & Budgeting 📋
 **Target**: Q3 2026
 
-Building on Wave 11's transaction sync foundation:
-- Spending trends and category breakdown visualizations
-- Budget creation and tracking
-- Recurring transaction detection
-- Anomaly detection for unusual spending
-- Cash flow forecasting
+Building on Wave 11 / Wave 12.5 transaction sync foundation. Four phases: backend foundation (P1) → spending dashboard (P2) → recurring detection + anomaly alerts (P3) → AI context expansion + 90-day cash-flow forecast (P4).
+
+- Spending trends and category breakdown (Plaid-authoritative taxonomy with PFMP annotations layered via `SpendingCategoryRule`)
+- Budget model extension: period types (Monthly / Weekly / Biweekly / Annual), effective dates, rollover
+- Recurring transaction detection: Plaid Recurring Transactions endpoint + heuristic fallback for non-Plaid accounts
+- Anomaly alerts: per-category 6-month median + IQR, 24h dedup
+- 90-day cash-flow forecast with P10 / P50 / P90 confidence bands
+- AI context: new `=== SPENDING ACTUALS ===` section, capped at 6 months × top 10 categories with explicit cap statement to the model
+- New top-level route `/dashboard/spending`
+
+**See:** `docs/waves/wave-14-spending-analysis.md`
+
+### Wave 14.5: Tax Form Export (Form 8949) 📋
+**Target**: Post-Wave 14 (provisional)
+
+Dedicated tax-export follow-on. Produces IRS Form 8949 (Sales and Other Dispositions of Capital Assets) and Schedule D inputs from Wave 13 P3 realized P/L plus any taxable cash-flow events catalogued in Wave 14. Held until both Wave 13 tax lots and Wave 14 spending categorization are production-stable.
 
 ### Wave 15: Property Management & Automated Valuation ✅
 **Completed**: March 2026
@@ -239,8 +251,8 @@ Replaced three separate AI provider integrations (OpenAI, Claude, Gemini) with a
 
 **See:** `docs/waves/wave-16-openrouter-ai-overhaul.md`
 
-### Wave 17: Dashboard Expansion & Profile Management 🔄
-**Status**: In Progress (April 2026)
+### Wave 17: Dashboard Expansion & Profile Management ✅
+**Completed**: April 2026
 
 Build out all 8 placeholder dashboard pages into functional views, with ProfileView as the top priority to enable editing onboarding data from the dashboard.
 
@@ -262,65 +274,28 @@ Build out all 8 placeholder dashboard pages into functional views, with ProfileV
 
 ## Major Features Roadmap
 
-### Navigation Shell & Accounts Page �
-**Status**: Being addressed in Wave 17
+### Navigation Shell & Accounts Page ✅
+**Status**: Delivered via Wave 17 (April 2026)
 
-The left sidebar currently has placeholder pages. Wave 17 builds out all 8 placeholder views:
+All 8 sidebar pages are now functional. Wave 17 closed the placeholder gap:
 
 | Page | Status | Description |
 |------|--------|-------------|
-| Dashboard | ✅ Functional | Net worth, accounts, insights, tasks |
-| Accounts | 🔄 Wave 17 | Unified grouped account list |
-| **TSP** | ✅ **Complete** | **Detail page with fund editing (Wave 10)** |
-| Insights | 🔄 Wave 17 | AI recommendations hub with history |
-| Tasks | 🔄 Wave 17 | Full task board with status management |
-| Profile | 🔄 Wave 17 | Edit all onboarding sections (top priority) |
-| Settings | 🔄 Wave 17 | Notifications, display, security prefs |
-| Help | 🔄 Wave 17 | FAQ, shortcuts, version info |
+| Dashboard | ✅ Complete | Net worth, accounts, insights, tasks |
+| Accounts | ✅ Complete | Unified grouped account list (Wave 17 Part B) |
+| TSP | ✅ Complete | Detail page with fund editing (Wave 10) |
+| Insights | ✅ Complete | AI recommendations hub with history (Wave 17 Part C) |
+| Actions | ✅ Complete | Unified Alert / Advice / Task hub (Wave 17 Part D, formerly "Tasks") |
+| Profile | ✅ Complete | Tabbed editor for all onboarding sections (Wave 17 Part A) |
+| Settings | ✅ Complete | Notifications, display, security prefs (Wave 17 Part E) |
+| Help | ✅ Complete | FAQ, shortcuts, version info (Wave 17 Part F) |
 
 **See:** `docs/waves/wave-17-dashboard-expansion.md`
 
-### TSP Detail Page & Editing 📋
-**Target**: Q1 2026 (With Wave 10 or 11)
-**Priority**: Medium-High
+### TSP Detail Page & Editing ✅
+**Delivered**: December 2025 (Wave 10)
 
-Currently the dashboard shows TSP total only. Needs a full detail page similar to investment accounts.
-
-**Backend (Already Exists):**
-- `GET /api/financial-profile/{userId}/tsp/summary-lite` - Positions with prices
-- `POST /api/financial-profile/{userId}/tsp` - Upsert positions
-- `DailyTspService` - Fetches current and historical TSP fund prices
-
-**Frontend Needed:**
-| Component | Description |
-|-----------|-------------|
-| `TspDetailPage` | Full-page view at `/dashboard/tsp` |
-| Holdings Table | All funds (G, F, C, S, I, L2030-L2075) with units, price, value, mix% |
-| Edit Holdings Dialog | Update units/contribution% for each fund |
-| Allocation Pie Chart | Visual breakdown by fund type |
-| Historical Chart | Fund price history using DailyTspService |
-| Contribution Summary | Current contribution rate, employer match |
-
-**Features:**
-- View all fund positions with current prices
-- Edit units after onboarding (manual update until TSP API exists)
-- Edit contribution allocation percentages
-- Price refresh button (calls DailyTspService)
-- Historical performance visualization
-- Link to tsp.gov for official actions
-
-**Not In Scope:**
-- TSP.gov doesn't have a public API, so no automatic sync
-- No transaction history (contributions, withdrawals)
-- No interfund transfer execution (manual only)
-
-**API Endpoints (May Need):**
-```
-GET  /api/financial-profile/{userId}/tsp/positions      # Detailed positions
-PUT  /api/financial-profile/{userId}/tsp/positions/{id} # Update single position
-POST /api/financial-profile/{userId}/tsp/refresh        # Refresh prices
-GET  /api/market/tsp/history?fund=L2050&days=30        # Fund price history
-```
+Full TSP detail page at `/dashboard/tsp` with holdings table (G/F/C/S/I + L2030–L2075), edit dialog, allocation pie chart, historical price chart powered by `DailyTspService`, and price refresh button. Subsequent waves layered TSP Roth/traditional split, COLA modeling, and survivor benefit modeling (Wave 19). TSP.gov has no public API, so unit edits remain manual; no transaction history or interfund-transfer execution by design.
 
 ### AI Chatbot with Memory 📋
 **Priority**: High (Core differentiator)
@@ -469,10 +444,10 @@ The wave system provides tactical implementation milestones. These align with hi
 | Phase | Focus | Wave/Feature Coverage | Status |
 |-------|-------|----------------------|--------|
 | **Phase 1** | Onboarding MVP | Waves 0-5 | ✅ Complete |
-| **Phase 1.5** | Navigation Polish | Wave 6 + Accounts Page | 📋 Needed |
-| **Phase 2** | Data Aggregation | Waves 8-9, 11 | 🔄 In Progress |
-| **Phase 3** | AI Advisory | Wave 7 + Wave 16 + Chatbot | ✅ Core done, Vetting & Chatbot planned |
-| **Phase 4** | Daily Experience | Wave 10 + Notifications | 📋 Wave 10 next |
+| **Phase 1.5** | Navigation Polish | Wave 17 (8 placeholder pages built out) | ✅ Complete |
+| **Phase 2** | Data Aggregation | Waves 8-9, 11, 12, 12.5, 13, 15 | ✅ Complete (Wave 14 spending analysis remaining) |
+| **Phase 3** | AI Advisory | Wave 7 + Wave 16 (OpenRouter) + Wave 18/19 federal benefits context | ✅ Materially complete; Chatbot still planned |
+| **Phase 4** | Daily Experience | Wave 10 + Wave 14 forecast + Notifications | 🔄 Wave 14 next |
 | **Phase 5** | Production Hardening | Auth, Security, Compliance | 📋 H2 2026 |
 
 ---
@@ -485,11 +460,15 @@ The wave system provides tactical implementation milestones. These align with hi
 | Database | PostgreSQL | ✅ Active |
 | Frontend | React 19 + TypeScript + Vite | ✅ Active |
 | UI Framework | MUI v6 | ✅ Active |
-| AI Primary | Gemini 2.5 Pro (→ 3 Pro when available) | ✅ Active |
-| AI Backup | Claude Opus 4 | ✅ Active |
+| AI Gateway | OpenRouter (Wave 16) | ✅ Active |
+| AI Primary | google/gemini-3.1-pro-preview | ✅ Active |
+| AI Verifier | anthropic/claude-sonnet-4.6 | ✅ Active |
 | Market Data | FMP API | ✅ Active |
-| Job Scheduler | Hangfire | 📋 Wave 10 |
-| Bank Linking | Plaid | 📋 Wave 11 |
+| Crypto Pricing | CoinGecko (free public API) | ✅ Active |
+| Property AVM | Estated | ✅ Active |
+| Job Scheduler | Hangfire | ✅ Active (Wave 10) |
+| Bank / Investment Linking | Plaid (banks, investments, liabilities) | ✅ Active (Wave 11–12.5) |
+| Crypto Exchanges | Kraken, Binance.US | ✅ Active (Wave 13) |
 | Auth | Azure Entra ID | ⏸️ Bypass mode (dev) |
 
 ---
@@ -502,11 +481,19 @@ The wave system provides tactical implementation milestones. These align with hi
 | October 2025 | Wave 7 AI Advisory Complete |
 | November 2025 | Wave 8-9.2 Complete |
 | December 7, 2025 | Wave 9.3 Complete (v0.9.5-alpha) |
-| Q1 2026 | Wave 10 Background Jobs |
-| January 2026 | Wave 11 Plaid Integration |
-| Q1 2026 | Wave 12 Advanced Analytics |
-| Q2 2026 | Wave 15 Property Management & Valuation |
-| Q2 2026 | Wave 16 AI Enhancement & Vetting |
+| December 2025 | Wave 10 Background Jobs Complete |
+| December 2025 | Wave 11 Plaid Bank Linking Complete |
+| January 2026 | Wave 12 Brokerage & Investment Linking Complete |
+| March 2026 | Wave 12.5 Unified Plaid Linking Complete |
+| March 2026 | Wave 15 Property Management & Valuation Complete |
+| March 2026 | Wave 16 OpenRouter AI Overhaul Complete |
+| April 2026 | Wave 17 Dashboard Expansion Complete |
+| April 2026 | Wave 18 Federal Benefits Deep Dive Complete |
+| April 2026 | Wave 19 Advanced Retirement Planning Complete |
+| April 2026 | Wave 20 FEHB / LES Enhancements Complete |
+| April 2026 | Wave 21 Estate Planning & Beneficiaries Complete |
+| April 2026 | Wave 13 Crypto Exchanges Complete (v0.23.0-alpha) |
+| Q3 2026 (target) | Wave 14 Spending Analysis & Budgeting |
 
 ---
 

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Microsoft.Extensions.DependencyInjection;
 using PFMP_API.Tests.Fixtures;
 using Xunit;
 
@@ -527,5 +528,239 @@ public class HoldingsControllerTests : IClassFixture<TestingWebAppFactory>
             TransactionType = "SELL"
         });
         Assert.Equal(HttpStatusCode.BadRequest, addResp.StatusCode);
+    }
+
+    /// <summary>
+    /// SellShares reduces holding qty, credits account cash with net proceeds, and records realized gain.
+    /// </summary>
+    [Fact]
+    public async Task SellShares_PartialSale_CreditsCashAndRecalculatesHolding()
+    {
+        var client = _factory.CreateClient();
+
+        var userResp = await client.PostAsync("/api/admin/users/test?scenario=done", null);
+        var user = await userResp.Content.ReadFromJsonAsync<UserAdminControllerTests.UserDto>();
+
+        var acctResp = await client.PostAsJsonAsync("/api/Accounts", new AccountCreateDto(
+            user!.UserId, "Sell Test", "TestBroker", "Brokerage", 10000m));
+        var account = await acctResp.Content.ReadFromJsonAsync<AccountResponseDto>();
+
+        // 20 shares @ $50 cost basis
+        var holdingResp = await client.PostAsJsonAsync("/api/Holdings", new
+        {
+            AccountId = account!.AccountId,
+            Symbol = "SELL",
+            Name = "Sell Test Stock",
+            AssetType = 0,
+            Quantity = 20m,
+            AverageCostBasis = 50m,
+            CurrentPrice = 80m,
+            FundingSource = 2
+        });
+        var holding = await holdingResp.Content.ReadFromJsonAsync<HoldingResponseDto>();
+
+        // Cash before sale
+        var beforeResp = await client.GetAsync($"/api/Accounts/{account.AccountId}");
+        var before = await beforeResp.Content.ReadFromJsonAsync<AccountDetailDto>();
+        var cashBefore = before!.CurrentBalance;
+
+        // Sell 5 shares @ $80, $5 fee → gross $400, net $395, realized gain (80-50)*5 - 5 = $145
+        var sellResp = await client.PostAsJsonAsync($"/api/Holdings/{holding!.HoldingId}/sell-shares", new
+        {
+            Quantity = 5m,
+            PricePerShare = 80m,
+            Fee = 5m
+        });
+        Assert.Equal(HttpStatusCode.OK, sellResp.StatusCode);
+        var updated = await sellResp.Content.ReadFromJsonAsync<HoldingResponseDto>();
+
+        Assert.Equal(15m, updated!.Quantity);
+        // Avg cost basis unchanged on partial sell (proportional reduction)
+        Assert.InRange(updated.AverageCostBasis, 49.99m, 50.01m);
+
+        // Cash credited by net proceeds
+        var afterResp = await client.GetAsync($"/api/Accounts/{account.AccountId}");
+        var after = await afterResp.Content.ReadFromJsonAsync<AccountDetailDto>();
+        Assert.Equal(cashBefore + 395m, after!.CurrentBalance);
+
+        // Verify SELL transaction persisted with net proceeds as Amount and realized gain breakdown
+        var txResp = await client.GetAsync($"/api/Transactions?accountId={account.AccountId}&transactionType=SELL");
+        var transactions = await txResp.Content.ReadFromJsonAsync<List<TransactionDto>>();
+        var sellTx = transactions!.FirstOrDefault(t => t.Symbol == "SELL");
+        Assert.NotNull(sellTx);
+        Assert.Equal(5m, sellTx!.Quantity);
+        Assert.Equal(80m, sellTx.Price);
+        Assert.Equal(5m, sellTx.Fee);
+        // Amount must equal net proceeds (gross 400 - fee 5 = 395) so it matches the cash credit
+        Assert.Equal(395m, sellTx.Amount);
+    }
+
+    /// <summary>
+    /// SellShares blocks attempts to sell more shares than the holding has.
+    /// </summary>
+    [Fact]
+    public async Task SellShares_OverQuantity_ReturnsBadRequest()
+    {
+        var client = _factory.CreateClient();
+
+        var userResp = await client.PostAsync("/api/admin/users/test?scenario=done", null);
+        var user = await userResp.Content.ReadFromJsonAsync<UserAdminControllerTests.UserDto>();
+
+        var acctResp = await client.PostAsJsonAsync("/api/Accounts", new AccountCreateDto(
+            user!.UserId, "Over Qty Test", "TestBroker", "Brokerage", 5000m));
+        var account = await acctResp.Content.ReadFromJsonAsync<AccountResponseDto>();
+
+        var holdingResp = await client.PostAsJsonAsync("/api/Holdings", new
+        {
+            AccountId = account!.AccountId,
+            Symbol = "OVER",
+            Name = "Over Test",
+            AssetType = 0,
+            Quantity = 10m,
+            AverageCostBasis = 100m,
+            CurrentPrice = 100m,
+            FundingSource = 2
+        });
+        var holding = await holdingResp.Content.ReadFromJsonAsync<HoldingResponseDto>();
+
+        var sellResp = await client.PostAsJsonAsync($"/api/Holdings/{holding!.HoldingId}/sell-shares", new
+        {
+            Quantity = 11m,
+            PricePerShare = 100m
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, sellResp.StatusCode);
+    }
+
+    /// <summary>
+    /// Selling the entire position deletes the holding row but preserves transaction history and
+    /// any related PriceHistory rows by nulling their HoldingId FKs.
+    /// Regression: real Postgres FK_PriceHistory_Holdings_HoldingId previously blocked the delete.
+    /// </summary>
+    [Fact]
+    public async Task SellShares_FullSale_DeletesHoldingAndPreservesRelatedRows()
+    {
+        var client = _factory.CreateClient();
+
+        var userResp = await client.PostAsync("/api/admin/users/test?scenario=done", null);
+        var user = await userResp.Content.ReadFromJsonAsync<UserAdminControllerTests.UserDto>();
+
+        var acctResp = await client.PostAsJsonAsync("/api/Accounts", new AccountCreateDto(
+            user!.UserId, "Full Sale Test", "TestBroker", "Brokerage", 1000m));
+        var account = await acctResp.Content.ReadFromJsonAsync<AccountResponseDto>();
+
+        var holdingResp = await client.PostAsJsonAsync("/api/Holdings", new
+        {
+            AccountId = account!.AccountId,
+            Symbol = "FULL",
+            Name = "Full Sale Stock",
+            AssetType = 0,
+            Quantity = 4m,
+            AverageCostBasis = 25m,
+            CurrentPrice = 30m,
+            FundingSource = 2
+        });
+        var holding = await holdingResp.Content.ReadFromJsonAsync<HoldingResponseDto>();
+
+        // Seed a PriceHistory row tied to this holding so the FK cleanup path is exercised.
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<PFMP_API.ApplicationDbContext>();
+            db.PriceHistory.Add(new PFMP_API.Models.PriceHistory
+            {
+                HoldingId = holding!.HoldingId,
+                Symbol = "FULL",
+                Date = DateTime.UtcNow.Date.AddDays(-1),
+                Open = 29m,
+                High = 31m,
+                Low = 28m,
+                Close = 30m,
+                Volume = 100,
+            });
+            await db.SaveChangesAsync();
+        }
+
+        var sellResp = await client.PostAsJsonAsync($"/api/Holdings/{holding!.HoldingId}/sell-shares", new
+        {
+            Quantity = 4m,
+            PricePerShare = 30m
+        });
+        Assert.Equal(HttpStatusCode.OK, sellResp.StatusCode);
+
+        // Holding row should be gone
+        var getResp = await client.GetAsync($"/api/Holdings/{holding.HoldingId}");
+        Assert.Equal(HttpStatusCode.NotFound, getResp.StatusCode);
+
+        // SELL transaction should still exist (HoldingId nulled)
+        var txResp = await client.GetAsync($"/api/Transactions?accountId={account.AccountId}&transactionType=SELL");
+        var transactions = await txResp.Content.ReadFromJsonAsync<List<TransactionDto>>();
+        var sellTx = transactions!.FirstOrDefault(t => t.Symbol == "FULL");
+        Assert.NotNull(sellTx);
+        Assert.Null(sellTx!.HoldingId);
+
+        // PriceHistory rows should also survive with HoldingId=null
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<PFMP_API.ApplicationDbContext>();
+            var orphaned = db.PriceHistory.Where(p => p.Symbol == "FULL").ToList();
+            Assert.NotEmpty(orphaned);
+            Assert.All(orphaned, p => Assert.Null(p.HoldingId));
+        }
+    }
+
+    /// <summary>
+    /// RecordCashDividend creates a DIVIDEND transaction and credits cash without changing share quantity.
+    /// </summary>
+    [Fact]
+    public async Task RecordCashDividend_CreditsCashAndLeavesSharesUnchanged()
+    {
+        var client = _factory.CreateClient();
+
+        var userResp = await client.PostAsync("/api/admin/users/test?scenario=done", null);
+        var user = await userResp.Content.ReadFromJsonAsync<UserAdminControllerTests.UserDto>();
+
+        var acctResp = await client.PostAsJsonAsync("/api/Accounts", new AccountCreateDto(
+            user!.UserId, "Cash Div Test", "TestBroker", "Brokerage", 2000m));
+        var account = await acctResp.Content.ReadFromJsonAsync<AccountResponseDto>();
+
+        var holdingResp = await client.PostAsJsonAsync("/api/Holdings", new
+        {
+            AccountId = account!.AccountId,
+            Symbol = "CDIV",
+            Name = "Cash Div Stock",
+            AssetType = 0,
+            Quantity = 50m,
+            AverageCostBasis = 40m,
+            CurrentPrice = 45m,
+            FundingSource = 2
+        });
+        var holding = await holdingResp.Content.ReadFromJsonAsync<HoldingResponseDto>();
+
+        var beforeResp = await client.GetAsync($"/api/Accounts/{account.AccountId}");
+        var before = await beforeResp.Content.ReadFromJsonAsync<AccountDetailDto>();
+        var cashBefore = before!.CurrentBalance;
+
+        var divResp = await client.PostAsJsonAsync($"/api/Holdings/{holding!.HoldingId}/dividend-cash", new
+        {
+            Amount = 37.50m,
+            IsQualifiedDividend = true,
+            Notes = "Q2 2026 cash dividend"
+        });
+        Assert.Equal(HttpStatusCode.OK, divResp.StatusCode);
+        var updated = await divResp.Content.ReadFromJsonAsync<HoldingResponseDto>();
+
+        // Quantity unchanged
+        Assert.Equal(50m, updated!.Quantity);
+
+        // Cash credited
+        var afterResp = await client.GetAsync($"/api/Accounts/{account.AccountId}");
+        var after = await afterResp.Content.ReadFromJsonAsync<AccountDetailDto>();
+        Assert.Equal(cashBefore + 37.50m, after!.CurrentBalance);
+
+        // DIVIDEND transaction persisted
+        var txResp = await client.GetAsync($"/api/Transactions?accountId={account.AccountId}&transactionType=DIVIDEND");
+        var transactions = await txResp.Content.ReadFromJsonAsync<List<TransactionDto>>();
+        var divTx = transactions!.FirstOrDefault(t => t.Symbol == "CDIV");
+        Assert.NotNull(divTx);
+        Assert.Equal(37.50m, divTx!.Amount);
     }
 }

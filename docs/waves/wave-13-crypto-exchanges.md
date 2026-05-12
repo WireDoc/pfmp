@@ -1,7 +1,7 @@
 # Wave 13: Crypto Exchange Integration
 
 _Created: 2026-04-23_
-_Status: Phase 2 Complete (Kraken + Binance.US shipped)_
+_Status: Complete — all phases shipped (Kraken + Binance.US, tax lots, AI context + alerts); closed out at v0.23.0-alpha (April 2026)_
 
 ## Overview
 
@@ -223,7 +223,7 @@ If exchange returns lot detail (Kraken does via `Ledgers` + `TradesHistory`), we
 - NFT valuation
 - Trading or withdrawal actions — PFMP remains read-only
 - Coinbase / Gemini / Crypto.com adapters (can be added incrementally after P2 if there's demand; the `IExchangeAdapter` abstraction is built to make this cheap)
-- Tax form export (Form 8949 generation) — possible Wave 14.5 follow-on once spending analysis is in place
+- Tax form export (Form 8949 generation) — deferred to **Wave 14.5** as the dedicated tax-export follow-on, planned once Wave 14 spending categorization is in production. See `docs/waves/wave-14-spending-analysis.md` (Out of Scope) for the Wave 14.5 declaration.
 - Real-time price streaming (websocket); polling daily + on-demand is sufficient for a planning tool
 
 ---
