@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PFMP_API;
@@ -12,9 +13,11 @@ using PFMP_API;
 namespace PFMP_API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260517041809_Wave14_IncomeStreamAllotments")]
+    partial class Wave14_IncomeStreamAllotments
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1598,9 +1601,6 @@ namespace PFMP_API.Migrations
                     b.Property<int?>("AllotmentDestinationAccountId")
                         .HasColumnType("integer");
 
-                    b.Property<Guid?>("AllotmentDestinationCashAccountId")
-                        .HasColumnType("uuid");
-
                     b.Property<int>("AllotmentType")
                         .HasColumnType("integer");
 
@@ -1609,9 +1609,6 @@ namespace PFMP_API.Migrations
 
                     b.Property<decimal?>("AnnualNetAmount")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("CashFlowBasis")
-                        .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");

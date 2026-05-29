@@ -34,7 +34,7 @@ import { getAccount, updateAccount, deleteAccount, type AccountResponse, type Up
 import { CryptoAccountsCard } from '../../components/crypto/CryptoAccountsCard';
 
 function fmt$(amount: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
 }
 
 /** Extract numeric amount from CurrencyAmount or fallback to 0 */

@@ -50,6 +50,12 @@ namespace PFMP_API.Models
         public int? VADisabilityPercentage { get; set; }
         public bool IsVACombined { get; set; } = false;
 
+        // Wave 14 P1 — allotment support (DFAS LES allotments, child support, etc.)
+        public IncomeAllotmentType AllotmentType { get; set; } = IncomeAllotmentType.None;
+
+        /// <summary>FK to Account.AccountId when AllotmentType=SavingsToLinkedAccount; null otherwise.</summary>
+        public int? AllotmentDestinationAccountId { get; set; }
+
         // Government Employment Specific
         [MaxLength(100)]
         public string? GovernmentAgency { get; set; }
@@ -154,5 +160,25 @@ namespace PFMP_API.Models
         Seasonal, // Seasonal work
         Irregular, // Freelance, capital gains
         Uncertain // Speculative income
+    }
+
+    /// <summary>
+    /// Wave 14: how this IncomeSource interacts with cash flow when it is an LES-style allotment.
+    /// Most IncomeSources are <see cref="None"/> (regular income). Allotments route part of a
+    /// paycheck somewhere other than the user's primary checking account.
+    /// </summary>
+    public enum IncomeAllotmentType
+    {
+        /// <summary>Regular income; counts as inflow.</summary>
+        None,
+        /// <summary>DFAS-style savings allotment to a PFMP-tracked account. Treated as internal
+        /// transfer (neutral to net cash flow); matching Plaid deposit on destination is suppressed
+        /// to prevent double-count.</summary>
+        SavingsToLinkedAccount,
+        /// <summary>Allotment to an outside party (child support, support payments). Reduces net
+        /// cash flow; appears in outflows breakdown.</summary>
+        ExternalOutflow,
+        /// <summary>Ambiguous allotment; counted as inflow but flagged in AI context with a note.</summary>
+        Other,
     }
 }

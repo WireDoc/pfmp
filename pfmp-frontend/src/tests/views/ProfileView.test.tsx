@@ -78,6 +78,31 @@ vi.mock('../../services/estatePlanningApi', () => ({
   saveEstatePlanning: (...args: unknown[]) => mockSaveEstatePlanning(...args),
 }));
 
+// Wave 14 P1: ProfileView fetches user accounts to populate the allotment
+// destination picker on the Income tab. Stub the network call so MSW doesn't
+// see an unhandled request.
+const mockListUserAccounts = vi.fn();
+vi.mock('../../services/accountsApi', async () => {
+  const actual = await vi.importActual<typeof import('../../services/accountsApi')>(
+    '../../services/accountsApi',
+  );
+  return {
+    ...actual,
+    listUserAccounts: (...args: unknown[]) => mockListUserAccounts(...args),
+  };
+});
+
+const mockListCashAccounts = vi.fn();
+vi.mock('../../services/cashAccountsApi', async () => {
+  const actual = await vi.importActual<typeof import('../../services/cashAccountsApi')>(
+    '../../services/cashAccountsApi',
+  );
+  return {
+    ...actual,
+    listCashAccounts: (...args: unknown[]) => mockListCashAccounts(...args),
+  };
+});
+
 import { ProfileView } from '../../views/dashboard/ProfileView';
 
 const mockUser = {
@@ -130,6 +155,8 @@ beforeEach(() => {
   mockSaveFederalBenefits.mockResolvedValue({});
   mockFetchEstatePlanning.mockResolvedValue(null);
   mockSaveEstatePlanning.mockResolvedValue({});
+  mockListUserAccounts.mockResolvedValue([]);
+  mockListCashAccounts.mockResolvedValue([]);
   mockUpsertHousehold.mockResolvedValue({});
   mockUpsertRiskGoals.mockResolvedValue({});
   mockUserUpdate.mockResolvedValue({});

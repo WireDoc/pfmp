@@ -19,7 +19,7 @@ _Last updated: 2026-05-04_
 | Wave 12.5: Unified Plaid Linking | ✅ Complete | March 2026 |
 | Wave 13: Crypto Exchanges (Kraken + Binance.US) | ✅ Complete | Q2 2026 |
 | Wave 13.5: Self-Custody Wallets | 📋 Provisional | TBD |
-| Wave 14: Spending Analysis & Budgeting | 📋 Planned | Q3 2026 |
+| Wave 14: Spending Analysis & Budgeting | 🔄 In progress (P1 ✅, P2 ✅, P2.5 designed, P3 + P4 planned) | Q3 2026 |
 | Wave 14.5: Tax Form Export (Form 8949) | 📋 Provisional | Post-Wave 14 |
 | Wave 15: Property Management & Valuation | ✅ Complete | March 2026 |
 | Wave 16: OpenRouter AI Overhaul | ✅ Complete | March 2026 |
@@ -189,10 +189,10 @@ Optional follow-on for on-chain balances and DeFi protocols, deferred at Wave 13
 
 **Security:** Read-only API keys only (no trading/withdrawal permissions)
 
-### Wave 14: Spending Analysis & Budgeting 📋
-**Target**: Q3 2026
+### Wave 14: Spending Analysis & Budgeting 🔄 In progress
+**Target**: Q3 2026 · **P1 + P2 shipped**, P2.5 income-frequency model designed, P3 + P4 planned
 
-Building on Wave 11 / Wave 12.5 transaction sync foundation. Four phases: backend foundation (P1) → spending dashboard (P2) → recurring detection + anomaly alerts (P3) → AI context expansion + 90-day cash-flow forecast (P4).
+Building on Wave 11 / Wave 12.5 transaction sync foundation. Five phases: backend foundation (P1 ✅ 2026-05-16) → spending dashboard (P2 ✅ 2026-05-29) → income frequency model (P2.5 📋) → recurring detection + anomaly alerts (P3 📋) → AI context expansion + 90-day cash-flow forecast (P4 📋).
 
 - Spending trends and category breakdown (Plaid-authoritative taxonomy with PFMP annotations layered via `SpendingCategoryRule`)
 - Budget model extension: period types (Monthly / Weekly / Biweekly / Annual), effective dates, rollover
@@ -445,9 +445,9 @@ The wave system provides tactical implementation milestones. These align with hi
 |-------|-------|----------------------|--------|
 | **Phase 1** | Onboarding MVP | Waves 0-5 | ✅ Complete |
 | **Phase 1.5** | Navigation Polish | Wave 17 (8 placeholder pages built out) | ✅ Complete |
-| **Phase 2** | Data Aggregation | Waves 8-9, 11, 12, 12.5, 13, 15 | ✅ Complete (Wave 14 spending analysis remaining) |
+| **Phase 2** | Data Aggregation | Waves 8-9, 11, 12, 12.5, 13, 15 | ✅ Complete (Wave 14 spending analysis in progress: P1 + P2 shipped) |
 | **Phase 3** | AI Advisory | Wave 7 + Wave 16 (OpenRouter) + Wave 18/19 federal benefits context | ✅ Materially complete; Chatbot still planned |
-| **Phase 4** | Daily Experience | Wave 10 + Wave 14 forecast + Notifications | 🔄 Wave 14 next |
+| **Phase 4** | Daily Experience | Wave 10 + Wave 14 forecast + Notifications | 🔄 Wave 14 P2 shipped; P2.5 + P3 + P4 ahead |
 | **Phase 5** | Production Hardening | Auth, Security, Compliance | 📋 H2 2026 |
 
 ---

@@ -98,6 +98,12 @@ namespace PFMP_API
     public DbSet<CryptoTransaction> CryptoTransactions { get; set; }
     public DbSet<CryptoTaxLot> CryptoTaxLots { get; set; }
 
+    // Spending Analysis (Wave 14)
+    public DbSet<PFMP_API.Models.Spending.SpendingCategoryRule> SpendingCategoryRules { get; set; }
+    public DbSet<PFMP_API.Models.Spending.RecurringTransactionStream> RecurringTransactionStreams { get; set; }
+    public DbSet<PFMP_API.Models.Spending.SpendingCategoryRollup> SpendingCategoryRollups { get; set; }
+    public DbSet<PFMP_API.Models.Spending.SpendingAnomaly> SpendingAnomalies { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -698,6 +704,77 @@ namespace PFMP_API
                     .WithMany()
                     .HasForeignKey(e => e.SourceTransactionId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Wave 14 — Spending Analysis
+            modelBuilder.Entity<PFMP_API.Models.Spending.SpendingCategoryRule>(entity =>
+            {
+                entity.HasKey(e => e.RuleId);
+                entity.HasIndex(e => new { e.UserId, e.IsActive, e.Priority });
+                entity.Property(e => e.MatchValue).HasMaxLength(200).IsRequired();
+                entity.Property(e => e.AssignedPrimaryCategory).HasMaxLength(120).IsRequired();
+                entity.Property(e => e.AssignedDetailedCategory).HasMaxLength(160);
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<PFMP_API.Models.Spending.RecurringTransactionStream>(entity =>
+            {
+                entity.HasKey(e => e.StreamId);
+                // Plaid streams idempotent on stream id; heuristic streams use soft uniqueness via service logic.
+                entity.HasIndex(e => new { e.UserId, e.Source, e.PlaidStreamId })
+                    .HasFilter("\"PlaidStreamId\" IS NOT NULL")
+                    .IsUnique();
+                entity.HasIndex(e => new { e.UserId, e.MerchantName, e.Direction, e.Frequency });
+                entity.Property(e => e.PlaidStreamId).HasMaxLength(100);
+                entity.Property(e => e.MerchantName).HasMaxLength(200).IsRequired();
+                entity.Property(e => e.Description).HasMaxLength(500);
+                entity.Property(e => e.PlaidCategory).HasMaxLength(120);
+                entity.Property(e => e.PlaidCategoryDetailed).HasMaxLength(160);
+                entity.Property(e => e.AverageAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.LastAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.ConfidenceScore).HasColumnType("decimal(5,4)");
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<PFMP_API.Models.Spending.SpendingCategoryRollup>(entity =>
+            {
+                entity.HasKey(e => e.RollupId);
+                entity.HasIndex(e => new { e.UserId, e.PeriodStart, e.PlaidPrimaryCategory, e.PlaidDetailedCategory })
+                    .IsUnique();
+                entity.Property(e => e.PlaidPrimaryCategory).HasMaxLength(120).IsRequired();
+                entity.Property(e => e.PlaidDetailedCategory).HasMaxLength(160);
+                entity.Property(e => e.ActualAmount).HasColumnType("decimal(18,4)");
+                entity.Property(e => e.BudgetedAmount).HasColumnType("decimal(18,4)");
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<PFMP_API.Models.Spending.SpendingAnomaly>(entity =>
+            {
+                entity.HasKey(e => e.AnomalyId);
+                entity.HasIndex(e => e.CashTransactionId).IsUnique();
+                entity.HasIndex(e => new { e.UserId, e.Dismissed, e.DetectedAt });
+                entity.Property(e => e.PlaidPrimaryCategory).HasMaxLength(120).IsRequired();
+                entity.Property(e => e.Amount).HasColumnType("decimal(18,4)");
+                entity.Property(e => e.CategoryMedian).HasColumnType("decimal(18,4)");
+                entity.Property(e => e.CategoryIqr).HasColumnType("decimal(18,4)");
+                entity.Property(e => e.DeviationMultiple).HasColumnType("decimal(8,4)");
+                entity.HasOne<User>()
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne<CashTransaction>()
+                    .WithMany()
+                    .HasForeignKey(e => e.CashTransactionId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Configure decimal precision globally

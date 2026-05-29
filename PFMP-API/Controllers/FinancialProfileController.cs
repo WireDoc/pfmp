@@ -761,6 +761,10 @@ namespace PFMP_API.Controllers
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public bool IsActive { get; set; } = true;
+        public string? AllotmentType { get; set; }
+        public int? AllotmentDestinationAccountId { get; set; }
+        public Guid? AllotmentDestinationCashAccountId { get; set; }
+        public string? CashFlowBasis { get; set; }
 
         public IncomeStreamInput ToInput() => new()
         {
@@ -773,7 +777,11 @@ namespace PFMP_API.Controllers
             IsGuaranteed = IsGuaranteed,
             StartDate = StartDate,
             EndDate = EndDate,
-            IsActive = IsActive
+            IsActive = IsActive,
+            AllotmentType = AllotmentType,
+            AllotmentDestinationAccountId = AllotmentDestinationAccountId,
+            AllotmentDestinationCashAccountId = AllotmentDestinationCashAccountId,
+            CashFlowBasis = CashFlowBasis,
         };
     }
 

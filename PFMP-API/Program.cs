@@ -199,6 +199,15 @@ namespace PFMP_API
             builder.Services.AddScoped<PFMP_API.Services.Crypto.IExchangeConnectionService, PFMP_API.Services.Crypto.ExchangeConnectionService>();
             builder.Services.AddScoped<PFMP_API.Jobs.CryptoSyncJob>();
 
+            // Wave 14 — Spending Analysis
+            builder.Services.Configure<PFMP_API.Services.Spending.SpendingOptions>(
+                builder.Configuration.GetSection(PFMP_API.Services.Spending.SpendingOptions.SectionName));
+            builder.Services.AddScoped<PFMP_API.Services.Spending.ICategoryRuleService, PFMP_API.Services.Spending.CategoryRuleService>();
+            builder.Services.AddScoped<PFMP_API.Services.Spending.IBudgetService, PFMP_API.Services.Spending.BudgetService>();
+            builder.Services.AddScoped<PFMP_API.Services.Spending.ISpendingAnalyticsService, PFMP_API.Services.Spending.SpendingAnalyticsService>();
+            builder.Services.AddScoped<PFMP_API.Services.Spending.ICashFlowSummaryService, PFMP_API.Services.Spending.CashFlowSummaryService>();
+            builder.Services.AddScoped<PFMP_API.Jobs.SpendingRollupJob>();
+
             // Add Authentication Services
             builder.Services.AddScoped<IPasswordHashService, PasswordHashService>();
             builder.Services.AddHttpClient<IAuthenticationService, AuthenticationService>();
@@ -403,6 +412,13 @@ namespace PFMP_API
                     "daily-crypto-sync",
                     job => job.SyncAllConnectionsAsync(CancellationToken.None),
                     "45 23 * * *", // 11:45 PM daily
+                    new RecurringJobOptions { TimeZone = easternTimeZone });
+
+                // Daily spending rollup at 10:15 PM ET — chained after PlaidSyncJob (Wave 14 P1)
+                RecurringJob.AddOrUpdate<PFMP_API.Jobs.SpendingRollupJob>(
+                    "daily-spending-rollup",
+                    job => job.RecomputeForAllUsersAsync(CancellationToken.None),
+                    "15 22 * * *",
                     new RecurringJobOptions { TimeZone = easternTimeZone });
             }
 

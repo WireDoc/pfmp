@@ -285,7 +285,7 @@ export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefres
                   </Box>
                 </Box>
                 <Typography variant="h6" color="primary">
-                  ${a.balance.amount.toLocaleString()}
+                  ${a.balance.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </Typography>
               </CardContent>
             </Card>

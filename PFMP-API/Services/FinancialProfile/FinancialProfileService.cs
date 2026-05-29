@@ -670,6 +670,12 @@ namespace PFMP_API.Services.FinancialProfile
             await RecalculateSnapshotAsync(userId, ct);
         }
 
+        private static IncomeStreamAllotmentType ParseAllotmentType(string? raw) =>
+            Enum.TryParse<IncomeStreamAllotmentType>(raw, ignoreCase: true, out var v) ? v : IncomeStreamAllotmentType.None;
+
+        private static IncomeStreamCashFlowBasis ParseCashFlowBasis(string? raw) =>
+            Enum.TryParse<IncomeStreamCashFlowBasis>(raw, ignoreCase: true, out var v) ? v : IncomeStreamCashFlowBasis.Net;
+
         public async Task UpsertIncomeStreamsAsync(int userId, IncomeStreamsInput input, CancellationToken ct = default)
         {
             await using var tx = await _db.Database.BeginTransactionAsync(ct);
@@ -702,6 +708,7 @@ namespace PFMP_API.Services.FinancialProfile
                     else if ((annualNet == null || annualNet == 0) && monthlyNet > 0)
                         annualNet = monthlyNet * 12;
                     
+                    var allotment = ParseAllotmentType(stream.AllotmentType);
                     _db.IncomeStreams.Add(new IncomeStreamProfile
                     {
                         UserId = userId,
@@ -715,6 +722,14 @@ namespace PFMP_API.Services.FinancialProfile
                         StartDate = stream.StartDate,
                         EndDate = stream.EndDate,
                         IsActive = stream.IsActive,
+                        AllotmentType = allotment,
+                        AllotmentDestinationAccountId = allotment == IncomeStreamAllotmentType.SavingsToLinkedAccount
+                            ? stream.AllotmentDestinationAccountId
+                            : null,
+                        AllotmentDestinationCashAccountId = allotment == IncomeStreamAllotmentType.SavingsToLinkedAccount
+                            ? stream.AllotmentDestinationCashAccountId
+                            : null,
+                        CashFlowBasis = ParseCashFlowBasis(stream.CashFlowBasis),
                         CreatedAt = now,
                         UpdatedAt = now
                     });
@@ -1115,7 +1130,11 @@ namespace PFMP_API.Services.FinancialProfile
                     IsGuaranteed = s.IsGuaranteed,
                     StartDate = s.StartDate,
                     EndDate = s.EndDate,
-                    IsActive = s.IsActive
+                    IsActive = s.IsActive,
+                    AllotmentType = s.AllotmentType.ToString(),
+                    AllotmentDestinationAccountId = s.AllotmentDestinationAccountId,
+                    AllotmentDestinationCashAccountId = s.AllotmentDestinationCashAccountId,
+                    CashFlowBasis = s.CashFlowBasis.ToString(),
                 })
                 .ToListAsync(ct);
 

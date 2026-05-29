@@ -245,6 +245,14 @@ export interface EquityInterestPayload {
   optOut?: SectionOptOutPayload | null;
 }
 
+export type IncomeStreamAllotmentType =
+  | 'None'
+  | 'SavingsToLinkedAccount'
+  | 'ExternalOutflow'
+  | 'Other';
+
+export type IncomeStreamCashFlowBasis = 'Gross' | 'Net';
+
 export interface IncomeStreamPayload {
   name?: string | null;
   incomeType?: string | null;
@@ -256,6 +264,15 @@ export interface IncomeStreamPayload {
   startDate?: string | null;
   endDate?: string | null;
   isActive?: boolean | null;
+  // Wave 14 P1 — allotments (LES savings allotment, child support, etc.)
+  allotmentType?: IncomeStreamAllotmentType | null;
+  /** FK to an investment Account when the allotment lands in a brokerage / retirement account. */
+  allotmentDestinationAccountId?: number | null;
+  /** FK to a CashAccount when the allotment lands in a savings / MM / checking account.
+   *  Set EITHER this OR allotmentDestinationAccountId, never both. */
+  allotmentDestinationCashAccountId?: string | null;
+  // Wave 14 P2 — cash-flow basis toggle (defaults to Net)
+  cashFlowBasis?: IncomeStreamCashFlowBasis | null;
 }
 
 export interface IncomeStreamsProfilePayload {
@@ -996,6 +1013,10 @@ export async function upsertIncomeStreamsProfile(userId: number, payload: Income
       StartDate: stream.startDate,
       EndDate: stream.endDate,
       IsActive: stream.isActive,
+      AllotmentType: stream.allotmentType,
+      AllotmentDestinationAccountId: stream.allotmentDestinationAccountId,
+      AllotmentDestinationCashAccountId: stream.allotmentDestinationCashAccountId,
+      CashFlowBasis: stream.cashFlowBasis,
     })),
     OptOut: payload.optOut ? {
       IsOptedOut: payload.optOut.isOptedOut,
@@ -1019,6 +1040,10 @@ export async function fetchIncomeStreamsProfile(userId: number): Promise<IncomeS
     startDate: stream?.startDate ?? null,
     endDate: stream?.endDate ?? null,
     isActive: stream?.isActive ?? true,
+    allotmentType: stream?.allotmentType ?? 'None',
+    allotmentDestinationAccountId: stream?.allotmentDestinationAccountId ?? null,
+    allotmentDestinationCashAccountId: stream?.allotmentDestinationCashAccountId ?? null,
+    cashFlowBasis: stream?.cashFlowBasis ?? 'Net',
   }));
 
   return {

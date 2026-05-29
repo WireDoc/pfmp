@@ -182,6 +182,7 @@ jspm_packages/
 PFMP-API.Tests/TestResults/
 **/TestResults/
 **/coverage.cobertura.xml
+pfmp-frontend/test-results.json
 db-backups/
 
 # Temp debug files

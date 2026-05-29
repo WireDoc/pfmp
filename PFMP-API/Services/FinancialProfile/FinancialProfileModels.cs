@@ -159,6 +159,14 @@ namespace PFMP_API.Services.FinancialProfile
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
         public bool IsActive { get; set; } = true;
+
+        // Wave 14 P1 — allotment support
+        public string? AllotmentType { get; set; }  // "None" | "SavingsToLinkedAccount" | "ExternalOutflow" | "Other"
+        public int? AllotmentDestinationAccountId { get; set; }
+        public Guid? AllotmentDestinationCashAccountId { get; set; }
+
+        // Wave 14 P2 — cash-flow basis toggle ("Gross" | "Net"). Defaults to Net.
+        public string? CashFlowBasis { get; set; }
     }
 
     public class IncomeStreamsInput

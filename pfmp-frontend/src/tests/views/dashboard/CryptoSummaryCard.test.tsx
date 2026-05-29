@@ -60,7 +60,8 @@ describe('CryptoSummaryCard (dashboard)', () => {
       },
     ]);
     renderCard();
-    await waitFor(() => expect(screen.getByText('$30,000.00')).toBeInTheDocument());
+    // Header and Total Balance both render the same value with cents
+    await waitFor(() => expect(screen.getAllByText('$30,000.00')).toHaveLength(2));
     expect(screen.getByText(/Last updated:/i)).toBeInTheDocument();
     expect(screen.getByText('Synced')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /View Details/i })).toBeInTheDocument();

@@ -3,7 +3,9 @@
     "allow": [
       "Bash(dotnet build *)",
       "Bash(npx eslint *)",
-      "Bash(npx vitest *)"
+      "Bash(npx vitest *)",
+      "Bash(cmd //c \"C:\\\\\\\\pfmp\\\\\\\\start-dev-servers.bat\")",
+      "PowerShell(& \"c:\\\\pfmp\\\\restart-dev-servers.bat\")"
     ]
   }
 }

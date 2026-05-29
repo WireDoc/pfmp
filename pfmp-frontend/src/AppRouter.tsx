@@ -29,6 +29,7 @@ const SettingsView = lazy(() => import('./views/dashboard/SettingsView').then(m 
 const HelpView = lazy(() => import('./views/dashboard/HelpView').then(m => ({ default: m.HelpView })));
 const TspDetailView = lazy(() => import('./views/dashboard/TspDetailView').then(m => ({ default: m.TspDetailView })));
 const NetWorthTimelineView = lazy(() => import('./views/dashboard/NetWorthTimelineView').then(m => ({ default: m.NetWorthTimelineView })));
+const SpendingView = lazy(() => import('./views/dashboard/SpendingView').then(m => ({ default: m.SpendingView })));
 const PropertyDetailView = lazy(() => import('./views/dashboard/PropertyDetailView').then(m => ({ default: m.PropertyDetailView })));
 const ConnectionsSettingsView = lazy(() => import('./views/settings/ConnectionsSettingsView').then(m => ({ default: m.ConnectionsSettingsView })));
 const CryptoSettingsView = lazy(() => import('./views/settings/CryptoSettingsView').then(m => ({ default: m.CryptoSettingsView })));
@@ -173,6 +174,10 @@ export function AppRouter(props: AppRouterProps) {
         {
           path: 'net-worth',
           element: <Suspense fallback={<PageSpinner />}><NetWorthTimelineView /></Suspense>,
+        },
+        {
+          path: 'spending',
+          element: <Suspense fallback={<PageSpinner />}><SpendingView /></Suspense>,
         },
         {
           path: 'settings/connections',

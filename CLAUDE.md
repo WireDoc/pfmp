@@ -20,6 +20,12 @@ silently and the user loses observability.
 Before any rebuild that requires the API to be stopped (controller / DTO / EF
 model / migration / `Program.cs` change), run `restart-dev-servers.bat`.
 
+**Always leave the servers running after any change.** If your work caused them
+to stop (or required a restart), end the task by running
+`start-dev-servers.bat` or `restart-dev-servers.bat` so the app is observable
+again. Don't sign off with a stopped API or Vite — the user keeps the app open
+and needs it live to verify behavior.
+
 ## Database access
 
 The dev database is reachable through MCP postgres tools

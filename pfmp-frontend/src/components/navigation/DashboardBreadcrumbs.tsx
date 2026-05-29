@@ -21,6 +21,7 @@ const breadcrumbConfigs: Record<string, BreadcrumbConfig> = {
   '/dashboard/help': { path: '/dashboard/help', label: 'Help' },
   '/dashboard/tsp': { path: '/dashboard/tsp', label: 'Thrift Savings Plan' },
   '/dashboard/net-worth': { path: '/dashboard/net-worth', label: 'Net Worth Timeline' },
+  '/dashboard/spending': { path: '/dashboard/spending', label: 'Spending' },
   '/dashboard/debt-payoff': { path: '/dashboard/debt-payoff', label: 'Debt Payoff' },
   '/dashboard/admin': { path: '/dashboard/admin', label: 'Admin' },
   '/dashboard/admin/scheduler': { path: '/dashboard/admin/scheduler', label: 'Scheduler' },

@@ -26,7 +26,11 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  ToggleButton,
+  ToggleButtonGroup,
+  Tooltip,
 } from '@mui/material';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import Grid from '@mui/material/Grid';
 import SaveIcon from '@mui/icons-material/Save';
 import AddIcon from '@mui/icons-material/Add';
@@ -71,6 +75,8 @@ import {
   type EstatePlanningResponse,
   type SaveEstatePlanningRequest,
 } from '../../services/estatePlanningApi';
+import { listUserAccounts } from '../../services/accountsApi';
+import { listCashAccounts, type CashAccountResponse } from '../../services/cashAccountsApi';
 import type {
   HouseholdProfilePayload,
   RiskGoalsProfilePayload,
@@ -220,6 +226,12 @@ export function ProfileView() {
   const [household, setHousehold] = useState<HouseholdProfilePayload>({});
   const [riskGoals, setRiskGoals] = useState<RiskGoalsProfilePayload>({});
   const [incomeStreams, setIncomeStreams] = useState<IncomeStreamPayload[]>([]);
+  // Allotment destination candidates: investment accounts (numeric id) + cash
+  // accounts (uuid). Stored as a tagged union so the picker can render both.
+  type AllotmentDestOption =
+    | { kind: 'investment'; id: number; label: string; sublabel: string }
+    | { kind: 'cash'; id: string; label: string; sublabel: string };
+  const [allotmentDestOptions, setAllotmentDestOptions] = useState<AllotmentDestOption[]>([]);
   const [taxProfile, setTaxProfile] = useState<TaxProfilePayload>({});
   const [expenses, setExpenses] = useState<ExpenseBudgetPayload[]>([]);
   const [insurance, setInsurance] = useState<InsurancePolicyPayload[]>([]);
@@ -261,7 +273,7 @@ export function ProfileView() {
     async function load() {
       setLoading(true);
       try {
-        const [userRes, hh, rg, inc, tax, exp, ins, obl, ben, fb, ep] = await Promise.all([
+        const [userRes, hh, rg, inc, tax, exp, ins, obl, ben, fb, ep, accts, cashAccts] = await Promise.all([
           userService.getById(userId),
           fetchHouseholdProfile(userId),
           fetchRiskGoalsProfile(userId),
@@ -273,12 +285,27 @@ export function ProfileView() {
           fetchBenefitsProfile(userId),
           fetchFederalBenefits(userId),
           fetchEstatePlanning(userId),
+          listUserAccounts(userId).catch(() => []),
+          listCashAccounts(userId).catch(() => [] as CashAccountResponse[]),
         ]);
         if (cancelled) return;
         setUserCore(userRes.data);
         setHousehold(hh);
         setRiskGoals(rg);
         setIncomeStreams(inc.streams ?? []);
+        const invOptions: AllotmentDestOption[] = accts.map((a: { accountId: number; accountName: string }) => ({
+          kind: 'investment' as const,
+          id: a.accountId,
+          label: a.accountName,
+          sublabel: 'Investment',
+        }));
+        const cashOptions: AllotmentDestOption[] = cashAccts.map(a => ({
+          kind: 'cash' as const,
+          id: a.cashAccountId,
+          label: a.nickname || a.institution || a.accountType,
+          sublabel: `Cash · ${a.accountType}`,
+        }));
+        setAllotmentDestOptions([...cashOptions, ...invOptions]);
         setTaxProfile(tax);
         setExpenses(exp.expenses ?? []);
         setInsurance(ins.policies ?? []);
@@ -628,10 +655,14 @@ export function ProfileView() {
                 <Button startIcon={<AddIcon />} onClick={() => setIncomeStreams(p => [...p, { name: '', incomeType: 'salary', monthlyAmount: null, monthlyNetAmount: null, isGuaranteed: false, isActive: true }])}>Add Stream</Button>
               </Box>
               {incomeStreams.length === 0 && <Typography color="text.secondary">No income streams. Click "Add Stream" to begin.</Typography>}
-              {incomeStreams.map((stream, i) => (
+              {incomeStreams.map((stream, i) => {
+                const allotmentType = stream.allotmentType ?? 'None';
+                const showDestPicker = allotmentType === 'SavingsToLinkedAccount';
+                const cashFlowBasis = stream.cashFlowBasis ?? 'Net';
+                return (
                 <Paper key={i} variant="outlined" sx={{ p: 2 }}>
                   <Grid container spacing={2} alignItems="center">
-                    <Grid size={{ xs: 12, md: 3 }}>
+                    <Grid size={{ xs: 12, md: 2 }}>
                       <TextField fullWidth label="Name" value={stream.name ?? ''} onChange={e => { const next = [...incomeStreams]; next[i] = { ...next[i], name: e.target.value }; setIncomeStreams(next); }} />
                     </Grid>
                     <Grid size={{ xs: 6, md: 2 }}>
@@ -648,18 +679,129 @@ export function ProfileView() {
                     <Grid size={{ xs: 6, md: 2 }}>
                       <TextField fullWidth type="number" label="Monthly Net $" value={stream.monthlyNetAmount ?? ''} onChange={e => { const next = [...incomeStreams]; next[i] = { ...next[i], monthlyNetAmount: Number(e.target.value) || null }; setIncomeStreams(next); }} />
                     </Grid>
-                    <Grid size={{ xs: 6, md: 1 }}>
+                    <Grid size={{ xs: 12, md: 2 }}>
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" display="block">Cash flow uses</Typography>
+                        <ToggleButtonGroup
+                          value={cashFlowBasis}
+                          exclusive
+                          size="small"
+                          onChange={(_, val) => {
+                            if (!val) return;
+                            const next = [...incomeStreams];
+                            next[i] = { ...next[i], cashFlowBasis: val as 'Gross' | 'Net' };
+                            setIncomeStreams(next);
+                          }}
+                          aria-label="Cash flow basis"
+                        >
+                          <ToggleButton value="Net" aria-label="Net">Net</ToggleButton>
+                          <ToggleButton value="Gross" aria-label="Gross">Gross</ToggleButton>
+                        </ToggleButtonGroup>
+                      </Box>
+                    </Grid>
+                    <Grid size={{ xs: 6, md: 2 }} sx={{ pl: 1 }}>
                       <FormControlLabel control={<Switch checked={stream.isGuaranteed ?? false} onChange={e => { const next = [...incomeStreams]; next[i] = { ...next[i], isGuaranteed: e.target.checked }; setIncomeStreams(next); }} />} label="Guaranteed" />
                     </Grid>
-                    <Grid size={{ xs: 6, md: 1 }}>
+                    <Grid size={{ xs: 6, md: 2 }} sx={{ pl: 1 }}>
                       <FormControlLabel control={<Switch checked={stream.isActive ?? true} onChange={e => { const next = [...incomeStreams]; next[i] = { ...next[i], isActive: e.target.checked }; setIncomeStreams(next); }} />} label="Active" />
                     </Grid>
-                    <Grid size={{ xs: 12, md: 1 }}>
-                      <IconButton color="error" onClick={() => setIncomeStreams(p => p.filter((_, idx) => idx !== i))} aria-label="Delete stream"><DeleteIcon /></IconButton>
+                    <Grid size={{ xs: 12, md: 12 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <IconButton color="error" onClick={() => setIncomeStreams(p => p.filter((_, idx) => idx !== i))} aria-label="Delete stream"><DeleteIcon /></IconButton>
+                      </Box>
                     </Grid>
+
+                    {/* Wave 14 — paycheck routing / deduction (LES allotments, garnishments) */}
+                    <Grid size={{ xs: 12 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                        <Typography variant="caption" color="text.secondary">Paycheck routing / deduction</Typography>
+                        <Tooltip
+                          arrow
+                          title="Money taken off this paycheck before it reaches your main deposit account. Most streams are 'None'. Use this only if a slice is auto-routed elsewhere by your employer or payroll (e.g. DFAS savings allotment, court-ordered garnishment)."
+                        >
+                          <InfoOutlinedIcon fontSize="inherit" sx={{ color: 'text.secondary', cursor: 'help' }} />
+                        </Tooltip>
+                      </Box>
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Routing</InputLabel>
+                        <Select
+                          value={allotmentType}
+                          label="Routing"
+                          onChange={e => {
+                            const next = [...incomeStreams];
+                            const newType = e.target.value as NonNullable<IncomeStreamPayload['allotmentType']>;
+                            next[i] = {
+                              ...next[i],
+                              allotmentType: newType,
+                              allotmentDestinationAccountId: newType === 'SavingsToLinkedAccount' ? next[i].allotmentDestinationAccountId ?? null : null,
+                              allotmentDestinationCashAccountId: newType === 'SavingsToLinkedAccount' ? next[i].allotmentDestinationCashAccountId ?? null : null,
+                            };
+                            setIncomeStreams(next);
+                          }}
+                        >
+                          <MenuItem value="None">None — full amount paid to me</MenuItem>
+                          <MenuItem value="SavingsToLinkedAccount">Allotment to my own account (savings / brokerage)</MenuItem>
+                          <MenuItem value="ExternalOutflow">Garnishment / sent elsewhere (child support, alimony)</MenuItem>
+                          <MenuItem value="Other">Other deduction (union dues, etc.)</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    {showDestPicker && (
+                      <Grid size={{ xs: 12, md: 4 }}>
+                        <FormControl fullWidth size="small">
+                          <InputLabel>Destination account</InputLabel>
+                          <Select
+                            value={
+                              stream.allotmentDestinationCashAccountId
+                                ? `cash:${stream.allotmentDestinationCashAccountId}`
+                                : stream.allotmentDestinationAccountId != null
+                                  ? `inv:${stream.allotmentDestinationAccountId}`
+                                  : ''
+                            }
+                            label="Destination account"
+                            onChange={e => {
+                              const next = [...incomeStreams];
+                              const raw = String(e.target.value || '');
+                              if (raw.startsWith('cash:')) {
+                                next[i] = { ...next[i], allotmentDestinationAccountId: null, allotmentDestinationCashAccountId: raw.slice(5) };
+                              } else if (raw.startsWith('inv:')) {
+                                next[i] = { ...next[i], allotmentDestinationAccountId: Number(raw.slice(4)) || null, allotmentDestinationCashAccountId: null };
+                              } else {
+                                next[i] = { ...next[i], allotmentDestinationAccountId: null, allotmentDestinationCashAccountId: null };
+                              }
+                              setIncomeStreams(next);
+                            }}
+                          >
+                            {allotmentDestOptions.length === 0 && <MenuItem value="" disabled>No accounts linked yet</MenuItem>}
+                            {allotmentDestOptions.map(opt => (
+                              <MenuItem key={`${opt.kind}:${opt.id}`} value={`${opt.kind === 'cash' ? 'cash' : 'inv'}:${opt.id}`}>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                  <Typography variant="body2" noWrap>{opt.label}</Typography>
+                                  <Typography variant="caption" color="text.secondary">{opt.sublabel}</Typography>
+                                </Box>
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                    )}
+                    {allotmentType !== 'None' && (
+                      <Grid size={{ xs: 12, md: showDestPicker ? 4 : 8 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          {allotmentType === 'SavingsToLinkedAccount' && 'A slice of this paycheck is auto-routed to your own savings / brokerage — informational only, your gross already includes it.'}
+                          {allotmentType === 'ExternalOutflow' && (cashFlowBasis === 'Net'
+                            ? 'Your "Monthly Net $" already excludes this; the line is shown for reference.'
+                            : 'Money leaves your control before payroll cuts the check (e.g. child support). Reduces net cash flow.')}
+                          {allotmentType === 'Other' && 'Counted as inflow but flagged ambiguous in the dashboard.'}
+                        </Typography>
+                      </Grid>
+                    )}
                   </Grid>
                 </Paper>
-              ))}
+                );
+              })}
               <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSaveIncome} disabled={saving}>Save Income</Button>
             </Stack>
           </Box>

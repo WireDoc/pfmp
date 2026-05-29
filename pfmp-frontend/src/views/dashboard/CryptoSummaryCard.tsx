@@ -103,7 +103,7 @@ export default function CryptoSummaryCard({ userId, refreshKey = 0 }: CryptoSumm
             <Typography variant="h6">Cryptocurrency</Typography>
           </Box>
           <Typography variant="h6" color="primary">
-            ${totalValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            ${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </Typography>
         </Box>
 
