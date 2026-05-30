@@ -676,6 +676,9 @@ namespace PFMP_API.Services.FinancialProfile
         private static IncomeStreamCashFlowBasis ParseCashFlowBasis(string? raw) =>
             Enum.TryParse<IncomeStreamCashFlowBasis>(raw, ignoreCase: true, out var v) ? v : IncomeStreamCashFlowBasis.Net;
 
+        private static IncomeStreamFrequency ParseFrequency(string? raw) =>
+            Enum.TryParse<IncomeStreamFrequency>(raw, ignoreCase: true, out var v) ? v : IncomeStreamFrequency.Monthly;
+
         public async Task UpsertIncomeStreamsAsync(int userId, IncomeStreamsInput input, CancellationToken ct = default)
         {
             await using var tx = await _db.Database.BeginTransactionAsync(ct);
@@ -687,11 +690,21 @@ namespace PFMP_API.Services.FinancialProfile
                 var now = DateTime.UtcNow;
                 foreach (var stream in input.Streams)
                 {
-                    // Calculate missing amount if one is provided
+                    // P2.5: when a per-period amount + frequency are provided, derive
+                    // MonthlyAmount from them so the LES figure stays source of truth.
+                    // Legacy callers that send only MonthlyAmount continue to work.
+                    var amountFrequency = ParseFrequency(stream.AmountFrequency);
+                    var amountFactor = amountFrequency.MonthlyFactor();
+
                     decimal monthlyAmount = stream.MonthlyAmount ?? 0;
                     decimal annualAmount = stream.AnnualAmount ?? 0;
-                    
-                    if (monthlyAmount == 0 && annualAmount > 0)
+
+                    if (stream.PerPeriodAmount.HasValue && stream.PerPeriodAmount.Value > 0)
+                    {
+                        monthlyAmount = stream.PerPeriodAmount.Value * amountFactor;
+                        annualAmount = monthlyAmount * 12;
+                    }
+                    else if (monthlyAmount == 0 && annualAmount > 0)
                     {
                         monthlyAmount = annualAmount / 12;
                     }
@@ -700,15 +713,21 @@ namespace PFMP_API.Services.FinancialProfile
                         annualAmount = monthlyAmount * 12;
                     }
 
-                    // Auto-calc net amounts the same way
+                    // Net amounts: same path. If PerPeriodNetAmount provided, derive monthly net.
                     decimal? monthlyNet = stream.MonthlyNetAmount;
                     decimal? annualNet = stream.AnnualNetAmount;
-                    if ((monthlyNet == null || monthlyNet == 0) && annualNet > 0)
+                    if (stream.PerPeriodNetAmount.HasValue && stream.PerPeriodNetAmount.Value > 0)
+                    {
+                        monthlyNet = stream.PerPeriodNetAmount.Value * amountFactor;
+                        annualNet = monthlyNet * 12;
+                    }
+                    else if ((monthlyNet == null || monthlyNet == 0) && annualNet > 0)
                         monthlyNet = annualNet / 12;
                     else if ((annualNet == null || annualNet == 0) && monthlyNet > 0)
                         annualNet = monthlyNet * 12;
-                    
+
                     var allotment = ParseAllotmentType(stream.AllotmentType);
+                    var allotmentFreq = ParseFrequency(stream.AllotmentFrequency);
                     _db.IncomeStreams.Add(new IncomeStreamProfile
                     {
                         UserId = userId,
@@ -718,6 +737,9 @@ namespace PFMP_API.Services.FinancialProfile
                         AnnualAmount = annualAmount,
                         MonthlyNetAmount = monthlyNet,
                         AnnualNetAmount = annualNet,
+                        AmountFrequency = amountFrequency,
+                        PerPeriodAmount = stream.PerPeriodAmount,
+                        PerPeriodNetAmount = stream.PerPeriodNetAmount,
                         IsGuaranteed = stream.IsGuaranteed,
                         StartDate = stream.StartDate,
                         EndDate = stream.EndDate,
@@ -729,6 +751,12 @@ namespace PFMP_API.Services.FinancialProfile
                         AllotmentDestinationCashAccountId = allotment == IncomeStreamAllotmentType.SavingsToLinkedAccount
                             ? stream.AllotmentDestinationCashAccountId
                             : null,
+                        AllotmentFrequency = allotment == IncomeStreamAllotmentType.None
+                            ? IncomeStreamFrequency.Monthly
+                            : allotmentFreq,
+                        AllotmentPerPeriodAmount = allotment == IncomeStreamAllotmentType.None
+                            ? null
+                            : stream.AllotmentPerPeriodAmount,
                         CashFlowBasis = ParseCashFlowBasis(stream.CashFlowBasis),
                         CreatedAt = now,
                         UpdatedAt = now
@@ -1135,6 +1163,11 @@ namespace PFMP_API.Services.FinancialProfile
                     AllotmentDestinationAccountId = s.AllotmentDestinationAccountId,
                     AllotmentDestinationCashAccountId = s.AllotmentDestinationCashAccountId,
                     CashFlowBasis = s.CashFlowBasis.ToString(),
+                    AmountFrequency = s.AmountFrequency.ToString(),
+                    PerPeriodAmount = s.PerPeriodAmount,
+                    PerPeriodNetAmount = s.PerPeriodNetAmount,
+                    AllotmentFrequency = s.AllotmentFrequency.ToString(),
+                    AllotmentPerPeriodAmount = s.AllotmentPerPeriodAmount,
                 })
                 .ToListAsync(ct);
 

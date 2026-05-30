@@ -205,6 +205,39 @@ public class SpendingControllerTests : IClassFixture<TestingWebAppFactory>
         Assert.Equal(1, summary.TransactionCount);
     }
 
+    [Fact]
+    public async Task MonthlySummary_ExcludesPfmpTransferAndSelfDirectedDescriptions()
+    {
+        // Regression: user 20 had 7 "Transfer to Self-Directed Investment Account"
+        // rows with Category="Transfer" and PlaidCategory=null. They slipped past the
+        // Plaid-only exclusion list and aggregated to ~$12,800 of phantom outflow.
+        var client = _factory.CreateClient();
+        var userId = await CreateUserAsync(client);
+
+        // Real purchase
+        await SeedCashTransactionAsync(userId, -75m, DateTime.UtcNow.AddDays(-5),
+            merchant: "Costco", plaidCategory: "GENERAL_MERCHANDISE", plaidDetailed: "GENERAL_MERCHANDISE_WAREHOUSES");
+
+        // PFMP-internal Category = "Transfer", no Plaid fields — must be excluded
+        await SeedCashTransactionAsync(userId, -8000m, DateTime.UtcNow.AddDays(-3),
+            description: "Transfer to Self-Directed Investment Account", category: "Transfer");
+
+        // Description-prefix match with no category at all — must also be excluded
+        await SeedCashTransactionAsync(userId, -2500m, DateTime.UtcNow.AddDays(-2),
+            description: "Transfer to Self-Directed Investment Account");
+
+        // New Plaid investment-funding category that we just added — must be excluded
+        await SeedCashTransactionAsync(userId, -1000m, DateTime.UtcNow.AddDays(-1),
+            plaidCategory: "TRANSFER_OUT", plaidDetailed: "TRANSFER_OUT_INVESTMENT_AND_RETIREMENT_FUNDS");
+
+        var resp = await client.GetAsync($"/api/Spending/summary?userId={userId}&from={Uri.EscapeDataString(DateTime.UtcNow.AddMonths(-1).ToString("o"))}&to={Uri.EscapeDataString(DateTime.UtcNow.AddDays(1).ToString("o"))}");
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        var summary = await resp.Content.ReadFromJsonAsync<MonthlySummaryDto>();
+
+        Assert.Equal(75m, summary!.TotalOutflows); // Only Costco; all three transfers excluded
+        Assert.Equal(1, summary.TransactionCount);
+    }
+
     // ----- Cash flow reconciliation + allotments -----
 
     [Fact]
@@ -251,6 +284,53 @@ public class SpendingControllerTests : IClassFixture<TestingWebAppFactory>
         Assert.Equal(4200m, summary.NetMonthlyCashFlow);
     }
 
+    // ----- P2.5 Frequency model -----
+
+    [Theory]
+    [InlineData(IncomeStreamFrequency.Weekly, 200, 866.67)]
+    [InlineData(IncomeStreamFrequency.Biweekly, 450, 975.00)]
+    [InlineData(IncomeStreamFrequency.Semimonthly, 487.50, 975.00)]
+    [InlineData(IncomeStreamFrequency.Monthly, 975, 975.00)]
+    public void Frequency_MonthlyFactor_RoundTrips(IncomeStreamFrequency freq, decimal perPeriod, decimal expectedMonthly)
+    {
+        var monthly = perPeriod * freq.MonthlyFactor();
+        Assert.Equal(expectedMonthly, Math.Round(monthly, 2));
+    }
+
+    [Fact]
+    public async Task CashFlowSummary_BiweeklyPartialAllotment_StreamStaysAsInflow_AndSliceIsInformational()
+    {
+        var client = _factory.CreateClient();
+        var userId = await CreateUserAsync(client);
+
+        // GS-13-style biweekly salary: $5,538.46 every 2 weeks ≈ $12,000/mo
+        // Plus a $450 biweekly savings allotment ≈ $975/mo
+        await SeedIncomeStreamWithFrequencyAsync(
+            userId,
+            name: "GS-13 Salary",
+            incomeType: "salary",
+            perPeriodAmount: 5538.46m,
+            amountFrequency: IncomeStreamFrequency.Biweekly,
+            allotmentType: IncomeStreamAllotmentType.SavingsToLinkedAccount,
+            allotmentPerPeriodAmount: 450m,
+            allotmentFrequency: IncomeStreamFrequency.Biweekly);
+
+        var resp = await client.GetAsync($"/api/Spending/cash-flow-summary?userId={userId}");
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        var summary = await resp.Content.ReadFromJsonAsync<CashFlowSummaryDto>();
+
+        // P2.5: with AllotmentPerPeriodAmount set, the stream is treated as a
+        // partial slice — full salary stays as inflow AND the $450 biweekly slice
+        // (≈ $975/mo) appears informationally under savings allotments.
+        Assert.Single(summary!.Inflows.ByIncomeType);
+        Assert.Equal("Salary", summary.Inflows.ByIncomeType[0].Type);
+        // Monthly equivalent of $5,538.46 biweekly = 5538.46 × 26/12 ≈ 12,000.00
+        Assert.Equal(12000m, Math.Round(summary.Inflows.ByIncomeType[0].Amount, 2));
+
+        Assert.Single(summary.Inflows.SavingsAllotments);
+        Assert.Equal(975.00m, Math.Round(summary.Inflows.SavingsAllotments[0].Amount, 2));
+    }
+
     [Fact]
     public async Task CashFlowSummary_EmptyProfile_ReturnsZeros()
     {
@@ -287,7 +367,8 @@ public class SpendingControllerTests : IClassFixture<TestingWebAppFactory>
     // ----- Helpers (seed via DB scope) -----
 
     private async Task SeedCashTransactionAsync(int userId, decimal amount, DateTime when,
-        string? merchant = null, string? plaidCategory = null, string? plaidDetailed = null)
+        string? merchant = null, string? plaidCategory = null, string? plaidDetailed = null,
+        string? description = null, string? category = null)
     {
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -320,6 +401,8 @@ public class SpendingControllerTests : IClassFixture<TestingWebAppFactory>
             Amount = amount,
             TransactionDate = DateTime.SpecifyKind(when, DateTimeKind.Utc),
             Merchant = merchant,
+            Description = description,
+            Category = category,
             PlaidCategory = plaidCategory,
             PlaidCategoryDetailed = plaidDetailed,
             Source = "Manual",
@@ -345,6 +428,44 @@ public class SpendingControllerTests : IClassFixture<TestingWebAppFactory>
             IsActive = true,
             AllotmentType = allotment,
             AllotmentDestinationAccountId = accountId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>P2.5 fixture: seed an income stream using the per-period + frequency
+    /// model. Computes MonthlyAmount from PerPeriodAmount × factor so the AI prompt
+    /// and dashboard read the same canonical number the production write path would
+    /// produce.</summary>
+    private async Task SeedIncomeStreamWithFrequencyAsync(
+        int userId,
+        string name,
+        string incomeType,
+        decimal perPeriodAmount,
+        IncomeStreamFrequency amountFrequency,
+        IncomeStreamAllotmentType allotmentType,
+        decimal allotmentPerPeriodAmount,
+        IncomeStreamFrequency allotmentFrequency)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var monthly = perPeriodAmount * amountFrequency.MonthlyFactor();
+        db.IncomeStreams.Add(new IncomeStreamProfile
+        {
+            IncomeStreamId = Guid.NewGuid(),
+            UserId = userId,
+            Name = name,
+            IncomeType = incomeType,
+            MonthlyAmount = monthly,
+            AnnualAmount = monthly * 12,
+            AmountFrequency = amountFrequency,
+            PerPeriodAmount = perPeriodAmount,
+            AllotmentType = allotmentType,
+            AllotmentFrequency = allotmentFrequency,
+            AllotmentPerPeriodAmount = allotmentPerPeriodAmount,
+            IsGuaranteed = true,
+            IsActive = true,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
         });

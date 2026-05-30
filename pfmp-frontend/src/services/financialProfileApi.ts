@@ -253,6 +253,28 @@ export type IncomeStreamAllotmentType =
 
 export type IncomeStreamCashFlowBasis = 'Gross' | 'Net';
 
+export type IncomeStreamFrequency = 'Weekly' | 'Biweekly' | 'Semimonthly' | 'Monthly';
+
+/**
+ * Wave 14 P2.5: monthly-conversion factors. Keep in sync with the backend
+ * IncomeStreamFrequencyExtensions.MonthlyFactor() switch.
+ *   Weekly       × 52/12 ≈ 4.3333
+ *   Biweekly     × 26/12 ≈ 2.1667 (federal civilian — every other Friday)
+ *   Semimonthly  × 2 (DFAS military — 1st & 15th)
+ *   Monthly      × 1
+ */
+export const INCOME_FREQUENCY_FACTORS: Record<IncomeStreamFrequency, number> = {
+  Weekly: 52 / 12,
+  Biweekly: 26 / 12,
+  Semimonthly: 2,
+  Monthly: 1,
+};
+
+export function monthlyEquivalent(perPeriod: number | null | undefined, frequency: IncomeStreamFrequency): number {
+  if (perPeriod == null || perPeriod <= 0) return 0;
+  return perPeriod * INCOME_FREQUENCY_FACTORS[frequency];
+}
+
 export interface IncomeStreamPayload {
   name?: string | null;
   incomeType?: string | null;
@@ -273,6 +295,17 @@ export interface IncomeStreamPayload {
   allotmentDestinationCashAccountId?: string | null;
   // Wave 14 P2 — cash-flow basis toggle (defaults to Net)
   cashFlowBasis?: IncomeStreamCashFlowBasis | null;
+  // Wave 14 P2.5 — frequency model
+  /** Cadence of this paycheck (Weekly / Biweekly / Semimonthly / Monthly). */
+  amountFrequency?: IncomeStreamFrequency | null;
+  /** Per-period gross amount as it appears on the user's LES / paystub. */
+  perPeriodAmount?: number | null;
+  /** Per-period net (take-home) amount. */
+  perPeriodNetAmount?: number | null;
+  /** Cadence of the allotment slice (independent of amountFrequency). */
+  allotmentFrequency?: IncomeStreamFrequency | null;
+  /** Per-period allotment amount (e.g. $450 every 2 weeks). */
+  allotmentPerPeriodAmount?: number | null;
 }
 
 export interface IncomeStreamsProfilePayload {
@@ -1017,6 +1050,11 @@ export async function upsertIncomeStreamsProfile(userId: number, payload: Income
       AllotmentDestinationAccountId: stream.allotmentDestinationAccountId,
       AllotmentDestinationCashAccountId: stream.allotmentDestinationCashAccountId,
       CashFlowBasis: stream.cashFlowBasis,
+      AmountFrequency: stream.amountFrequency,
+      PerPeriodAmount: stream.perPeriodAmount,
+      PerPeriodNetAmount: stream.perPeriodNetAmount,
+      AllotmentFrequency: stream.allotmentFrequency,
+      AllotmentPerPeriodAmount: stream.allotmentPerPeriodAmount,
     })),
     OptOut: payload.optOut ? {
       IsOptedOut: payload.optOut.isOptedOut,
@@ -1044,6 +1082,11 @@ export async function fetchIncomeStreamsProfile(userId: number): Promise<IncomeS
     allotmentDestinationAccountId: stream?.allotmentDestinationAccountId ?? null,
     allotmentDestinationCashAccountId: stream?.allotmentDestinationCashAccountId ?? null,
     cashFlowBasis: stream?.cashFlowBasis ?? 'Net',
+    amountFrequency: stream?.amountFrequency ?? 'Monthly',
+    perPeriodAmount: stream?.perPeriodAmount ?? null,
+    perPeriodNetAmount: stream?.perPeriodNetAmount ?? null,
+    allotmentFrequency: stream?.allotmentFrequency ?? 'Monthly',
+    allotmentPerPeriodAmount: stream?.allotmentPerPeriodAmount ?? null,
   }));
 
   return {

@@ -89,8 +89,29 @@ public class SpendingAnalyticsService : ISpendingAnalyticsService
 
     private bool IsInternalTransfer(CashTransaction tx)
     {
-        if (tx.PlaidCategoryDetailed is null) return false;
-        return _options.InternalTransferCategories.Contains(tx.PlaidCategoryDetailed, StringComparer.OrdinalIgnoreCase);
+        // 1) Plaid PFC detailed-category match (preferred — set by Plaid sync).
+        if (tx.PlaidCategoryDetailed is { Length: > 0 } pfc
+            && _options.InternalTransferCategories.Contains(pfc, StringComparer.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+        // 2) PFMP-internal category match (manual entries / non-Plaid imports —
+        //    these have null Plaid columns but a free-form Category like "Transfer").
+        if (tx.Category is { Length: > 0 } cat
+            && _options.InternalTransferPfmpCategories.Contains(cat, StringComparer.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+        // 3) Description / merchant prefix match — catches manual entries with no
+        //    category set but a self-describing memo like "Transfer to Self-Directed…".
+        if (tx.Description is { Length: > 0 } desc)
+        {
+            foreach (var prefix in _options.InternalTransferDescriptionPrefixes)
+            {
+                if (desc.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return true;
+            }
+        }
+        return false;
     }
 
     public async Task<MonthlySummary> GetMonthlySummaryAsync(int userId, DateTime from, DateTime to, CancellationToken ct = default)

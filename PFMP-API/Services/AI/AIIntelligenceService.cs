@@ -1230,7 +1230,30 @@ Your analysis will be reviewed by a backup AI system for validation.",
                 {
                     var guaranteed = inc.IsGuaranteed ? "Guaranteed" : "Variable";
                     var netPart = inc.MonthlyNetAmount.HasValue ? $" gross / ${inc.MonthlyNetAmount:N0} net" : "";
-                    sb.AppendLine($"• {inc.Name} | {inc.IncomeType} | ${inc.MonthlyAmount:N0}/mo{netPart} | {guaranteed}");
+                    // P2.5: surface per-period entry when the user supplied it, so the AI
+                    // sees both representations (e.g. "$5,538.46 biweekly" + "$12,000/mo").
+                    var perPeriodPart = "";
+                    if (inc.PerPeriodAmount.HasValue && inc.AmountFrequency != IncomeStreamFrequency.Monthly)
+                    {
+                        var freqLabel = inc.AmountFrequency.ToString().ToLowerInvariant();
+                        var perNet = inc.PerPeriodNetAmount.HasValue ? $" / ${inc.PerPeriodNetAmount:N2} {freqLabel} net" : "";
+                        perPeriodPart = $" (per period: ${inc.PerPeriodAmount:N2} {freqLabel} gross{perNet})";
+                    }
+                    // P2.5: allotment slice — if the user routed part of this paycheck elsewhere
+                    // (DFAS savings allotment, garnishment), show the monthly equivalent + cadence.
+                    var allotmentPart = "";
+                    if (inc.AllotmentType != IncomeStreamAllotmentType.None && inc.AllotmentPerPeriodAmount.HasValue)
+                    {
+                        var allotmentMonthly = inc.AllotmentPerPeriodAmount.Value * inc.AllotmentFrequency.MonthlyFactor();
+                        var allotmentFreqLabel = inc.AllotmentFrequency.ToString().ToLowerInvariant();
+                        var allotmentKind = inc.AllotmentType == IncomeStreamAllotmentType.SavingsToLinkedAccount
+                            ? "savings allotment"
+                            : inc.AllotmentType == IncomeStreamAllotmentType.ExternalOutflow
+                                ? "garnishment"
+                                : "other deduction";
+                        allotmentPart = $" [{allotmentKind}: ${inc.AllotmentPerPeriodAmount:N2} {allotmentFreqLabel} ≈ ${allotmentMonthly:N2}/mo]";
+                    }
+                    sb.AppendLine($"• {inc.Name} | {inc.IncomeType} | ${inc.MonthlyAmount:N0}/mo{netPart}{perPeriodPart}{allotmentPart} | {guaranteed}");
                 }
                 sb.AppendLine();
             }

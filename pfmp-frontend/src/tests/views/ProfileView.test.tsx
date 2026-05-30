@@ -41,24 +41,33 @@ const mockUpsertObligations = vi.fn();
 const mockFetchBenefits = vi.fn();
 const mockUpsertBenefits = vi.fn();
 
-vi.mock('../../services/financialProfileApi', () => ({
-  fetchHouseholdProfile: (...args: unknown[]) => mockFetchHousehold(...args),
-  upsertHouseholdProfile: (...args: unknown[]) => mockUpsertHousehold(...args),
-  fetchRiskGoalsProfile: (...args: unknown[]) => mockFetchRiskGoals(...args),
-  upsertRiskGoalsProfile: (...args: unknown[]) => mockUpsertRiskGoals(...args),
-  fetchIncomeStreamsProfile: (...args: unknown[]) => mockFetchIncome(...args),
-  upsertIncomeStreamsProfile: (...args: unknown[]) => mockUpsertIncome(...args),
-  fetchTaxProfile: (...args: unknown[]) => mockFetchTax(...args),
-  upsertTaxProfile: (...args: unknown[]) => mockUpsertTax(...args),
-  fetchExpensesProfile: (...args: unknown[]) => mockFetchExpenses(...args),
-  upsertExpensesProfile: (...args: unknown[]) => mockUpsertExpenses(...args),
-  fetchInsurancePoliciesProfile: (...args: unknown[]) => mockFetchInsurance(...args),
-  upsertInsurancePoliciesProfile: (...args: unknown[]) => mockUpsertInsurance(...args),
-  fetchLongTermObligationsProfile: (...args: unknown[]) => mockFetchObligations(...args),
-  upsertLongTermObligationsProfile: (...args: unknown[]) => mockUpsertObligations(...args),
-  fetchBenefitsProfile: (...args: unknown[]) => mockFetchBenefits(...args),
-  upsertBenefitsProfile: (...args: unknown[]) => mockUpsertBenefits(...args),
-}));
+vi.mock('../../services/financialProfileApi', async () => {
+  // Passthrough the pure helpers (monthlyEquivalent, INCOME_FREQUENCY_FACTORS) so
+  // the Income tab's derived-monthly caption can still compute. Only the network
+  // surface is stubbed.
+  const actual = await vi.importActual<typeof import('../../services/financialProfileApi')>(
+    '../../services/financialProfileApi',
+  );
+  return {
+    ...actual,
+    fetchHouseholdProfile: (...args: unknown[]) => mockFetchHousehold(...args),
+    upsertHouseholdProfile: (...args: unknown[]) => mockUpsertHousehold(...args),
+    fetchRiskGoalsProfile: (...args: unknown[]) => mockFetchRiskGoals(...args),
+    upsertRiskGoalsProfile: (...args: unknown[]) => mockUpsertRiskGoals(...args),
+    fetchIncomeStreamsProfile: (...args: unknown[]) => mockFetchIncome(...args),
+    upsertIncomeStreamsProfile: (...args: unknown[]) => mockUpsertIncome(...args),
+    fetchTaxProfile: (...args: unknown[]) => mockFetchTax(...args),
+    upsertTaxProfile: (...args: unknown[]) => mockUpsertTax(...args),
+    fetchExpensesProfile: (...args: unknown[]) => mockFetchExpenses(...args),
+    upsertExpensesProfile: (...args: unknown[]) => mockUpsertExpenses(...args),
+    fetchInsurancePoliciesProfile: (...args: unknown[]) => mockFetchInsurance(...args),
+    upsertInsurancePoliciesProfile: (...args: unknown[]) => mockUpsertInsurance(...args),
+    fetchLongTermObligationsProfile: (...args: unknown[]) => mockFetchObligations(...args),
+    upsertLongTermObligationsProfile: (...args: unknown[]) => mockUpsertObligations(...args),
+    fetchBenefitsProfile: (...args: unknown[]) => mockFetchBenefits(...args),
+    upsertBenefitsProfile: (...args: unknown[]) => mockUpsertBenefits(...args),
+  };
+});
 
 const mockFetchFederalBenefits = vi.fn();
 const mockSaveFederalBenefits = vi.fn();

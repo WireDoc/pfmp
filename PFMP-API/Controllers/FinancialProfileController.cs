@@ -765,6 +765,12 @@ namespace PFMP_API.Controllers
         public int? AllotmentDestinationAccountId { get; set; }
         public Guid? AllotmentDestinationCashAccountId { get; set; }
         public string? CashFlowBasis { get; set; }
+        // Wave 14 P2.5
+        public string? AmountFrequency { get; set; }
+        public decimal? PerPeriodAmount { get; set; }
+        public decimal? PerPeriodNetAmount { get; set; }
+        public string? AllotmentFrequency { get; set; }
+        public decimal? AllotmentPerPeriodAmount { get; set; }
 
         public IncomeStreamInput ToInput() => new()
         {
@@ -782,6 +788,11 @@ namespace PFMP_API.Controllers
             AllotmentDestinationAccountId = AllotmentDestinationAccountId,
             AllotmentDestinationCashAccountId = AllotmentDestinationCashAccountId,
             CashFlowBasis = CashFlowBasis,
+            AmountFrequency = AmountFrequency,
+            PerPeriodAmount = PerPeriodAmount,
+            PerPeriodNetAmount = PerPeriodNetAmount,
+            AllotmentFrequency = AllotmentFrequency,
+            AllotmentPerPeriodAmount = AllotmentPerPeriodAmount,
         };
     }
 

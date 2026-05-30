@@ -167,6 +167,15 @@ namespace PFMP_API.Services.FinancialProfile
 
         // Wave 14 P2 — cash-flow basis toggle ("Gross" | "Net"). Defaults to Net.
         public string? CashFlowBasis { get; set; }
+
+        // Wave 14 P2.5 — frequency model. AmountFrequency / AllotmentFrequency are
+        // "Weekly" | "Biweekly" | "Semimonthly" | "Monthly"; default Monthly.
+        // PerPeriodAmount / PerPeriodNetAmount carry the LES per-paycheck figures.
+        public string? AmountFrequency { get; set; }
+        public decimal? PerPeriodAmount { get; set; }
+        public decimal? PerPeriodNetAmount { get; set; }
+        public string? AllotmentFrequency { get; set; }
+        public decimal? AllotmentPerPeriodAmount { get; set; }
     }
 
     public class IncomeStreamsInput

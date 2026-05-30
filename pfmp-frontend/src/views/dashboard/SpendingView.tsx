@@ -32,8 +32,9 @@ function buildMonthOptions(): MonthOption[] {
     const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
     const end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 1));
     const ym = `${start.getUTCFullYear()}-${String(start.getUTCMonth() + 1).padStart(2, '0')}`;
+    const baseLabel = start.toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
     out.push({
-      label: start.toLocaleDateString(undefined, { year: 'numeric', month: 'long' }),
+      label: i === 0 ? `${baseLabel} (current)` : baseLabel,
       fromIso: start.toISOString(),
       toIso: end.toISOString(),
       ym,

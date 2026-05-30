@@ -77,6 +77,7 @@ import {
 } from '../../services/estatePlanningApi';
 import { listUserAccounts } from '../../services/accountsApi';
 import { listCashAccounts, type CashAccountResponse } from '../../services/cashAccountsApi';
+import { monthlyEquivalent, type IncomeStreamFrequency } from '../../services/financialProfileApi';
 import type {
   HouseholdProfilePayload,
   RiskGoalsProfilePayload,
@@ -652,15 +653,34 @@ export function ProfileView() {
             <Stack spacing={2}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="h6">Income Streams</Typography>
-                <Button startIcon={<AddIcon />} onClick={() => setIncomeStreams(p => [...p, { name: '', incomeType: 'salary', monthlyAmount: null, monthlyNetAmount: null, isGuaranteed: false, isActive: true }])}>Add Stream</Button>
+                <Button startIcon={<AddIcon />} onClick={() => setIncomeStreams(p => [...p, { name: '', incomeType: 'salary', amountFrequency: 'Monthly', perPeriodAmount: null, perPeriodNetAmount: null, monthlyAmount: null, monthlyNetAmount: null, isGuaranteed: false, isActive: true }])}>Add Stream</Button>
               </Box>
               {incomeStreams.length === 0 && <Typography color="text.secondary">No income streams. Click "Add Stream" to begin.</Typography>}
               {incomeStreams.map((stream, i) => {
                 const allotmentType = stream.allotmentType ?? 'None';
                 const showDestPicker = allotmentType === 'SavingsToLinkedAccount';
                 const cashFlowBasis = stream.cashFlowBasis ?? 'Net';
+                // P2.5: per-period amount is source of truth when set; the displayed
+                // input value prefers it, falling back to the monthly amount for
+                // legacy data so the field is never blank on edit.
+                const amountFrequency: IncomeStreamFrequency = stream.amountFrequency ?? 'Monthly';
+                const perPeriodGross = stream.perPeriodAmount ?? (amountFrequency === 'Monthly' ? stream.monthlyAmount ?? null : null);
+                const perPeriodNet = stream.perPeriodNetAmount ?? (amountFrequency === 'Monthly' ? stream.monthlyNetAmount ?? null : null);
+                const derivedMonthlyGross = monthlyEquivalent(perPeriodGross, amountFrequency);
+                const derivedMonthlyNet = monthlyEquivalent(perPeriodNet, amountFrequency);
+                const grossLabel = amountFrequency === 'Monthly' ? 'Monthly Gross $' : 'Per-period Gross $';
+                const netLabel = amountFrequency === 'Monthly' ? 'Monthly Net $' : 'Per-period Net $';
                 return (
-                <Paper key={i} variant="outlined" sx={{ p: 2 }}>
+                <Paper key={i} variant="outlined" sx={{ p: 2, position: 'relative' }}>
+                  <IconButton
+                    color="error"
+                    size="small"
+                    onClick={() => setIncomeStreams(p => p.filter((_, idx) => idx !== i))}
+                    aria-label="Delete stream"
+                    sx={{ position: 'absolute', top: 4, right: 4 }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
                   <Grid container spacing={2} alignItems="center">
                     <Grid size={{ xs: 12, md: 2 }}>
                       <TextField fullWidth label="Name" value={stream.name ?? ''} onChange={e => { const next = [...incomeStreams]; next[i] = { ...next[i], name: e.target.value }; setIncomeStreams(next); }} />
@@ -674,11 +694,83 @@ export function ProfileView() {
                       </FormControl>
                     </Grid>
                     <Grid size={{ xs: 6, md: 2 }}>
-                      <TextField fullWidth type="number" label="Monthly Gross $" value={stream.monthlyAmount ?? ''} onChange={e => { const next = [...incomeStreams]; next[i] = { ...next[i], monthlyAmount: Number(e.target.value) || null }; setIncomeStreams(next); }} />
+                      <FormControl fullWidth>
+                        <InputLabel>Frequency</InputLabel>
+                        <Select
+                          value={amountFrequency}
+                          label="Frequency"
+                          onChange={e => {
+                            const newFreq = e.target.value as IncomeStreamFrequency;
+                            const next = [...incomeStreams];
+                            // Switching from Monthly to a non-monthly freq: seed PerPeriod
+                            // from MonthlyAmount so the displayed value doesn't blank out.
+                            const seedFromMonthly =
+                              amountFrequency === 'Monthly' && newFreq !== 'Monthly'
+                                && next[i].perPeriodAmount == null
+                                && next[i].monthlyAmount != null;
+                            next[i] = {
+                              ...next[i],
+                              amountFrequency: newFreq,
+                              perPeriodAmount: seedFromMonthly ? next[i].monthlyAmount : next[i].perPeriodAmount,
+                              perPeriodNetAmount: seedFromMonthly && next[i].monthlyNetAmount != null ? next[i].monthlyNetAmount : next[i].perPeriodNetAmount,
+                            };
+                            setIncomeStreams(next);
+                          }}
+                        >
+                          <MenuItem value="Weekly">Weekly</MenuItem>
+                          <MenuItem value="Biweekly">Biweekly (every 2 weeks)</MenuItem>
+                          <MenuItem value="Semimonthly">Semimonthly (1st &amp; 15th — DFAS military)</MenuItem>
+                          <MenuItem value="Monthly">Monthly</MenuItem>
+                        </Select>
+                      </FormControl>
                     </Grid>
                     <Grid size={{ xs: 6, md: 2 }}>
-                      <TextField fullWidth type="number" label="Monthly Net $" value={stream.monthlyNetAmount ?? ''} onChange={e => { const next = [...incomeStreams]; next[i] = { ...next[i], monthlyNetAmount: Number(e.target.value) || null }; setIncomeStreams(next); }} />
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label={grossLabel}
+                        value={perPeriodGross ?? ''}
+                        onChange={e => {
+                          const next = [...incomeStreams];
+                          const val = Number(e.target.value) || null;
+                          next[i] = {
+                            ...next[i],
+                            perPeriodAmount: val,
+                            // Keep monthly in sync when freq=Monthly so the legacy field stays accurate.
+                            monthlyAmount: amountFrequency === 'Monthly' ? val : next[i].monthlyAmount,
+                          };
+                          setIncomeStreams(next);
+                        }}
+                        inputProps={{ step: '0.01', min: 0 }}
+                      />
                     </Grid>
+                    <Grid size={{ xs: 6, md: 2 }}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label={netLabel}
+                        value={perPeriodNet ?? ''}
+                        onChange={e => {
+                          const next = [...incomeStreams];
+                          const val = Number(e.target.value) || null;
+                          next[i] = {
+                            ...next[i],
+                            perPeriodNetAmount: val,
+                            monthlyNetAmount: amountFrequency === 'Monthly' ? val : next[i].monthlyNetAmount,
+                          };
+                          setIncomeStreams(next);
+                        }}
+                        inputProps={{ step: '0.01', min: 0 }}
+                      />
+                    </Grid>
+                    {amountFrequency !== 'Monthly' && (
+                      <Grid size={{ xs: 12 }}>
+                        <Typography variant="caption" color="text.secondary">
+                          ≈ ${derivedMonthlyGross.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo gross
+                          {perPeriodNet != null && perPeriodNet > 0 && ` · $${derivedMonthlyNet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo net`}
+                        </Typography>
+                      </Grid>
+                    )}
                     <Grid size={{ xs: 12, md: 2 }}>
                       <Box>
                         <Typography variant="caption" color="text.secondary" display="block">Cash flow uses</Typography>
@@ -704,11 +796,6 @@ export function ProfileView() {
                     </Grid>
                     <Grid size={{ xs: 6, md: 2 }} sx={{ pl: 1 }}>
                       <FormControlLabel control={<Switch checked={stream.isActive ?? true} onChange={e => { const next = [...incomeStreams]; next[i] = { ...next[i], isActive: e.target.checked }; setIncomeStreams(next); }} />} label="Active" />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 12 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <IconButton color="error" onClick={() => setIncomeStreams(p => p.filter((_, idx) => idx !== i))} aria-label="Delete stream"><DeleteIcon /></IconButton>
-                      </Box>
                     </Grid>
 
                     {/* Wave 14 — paycheck routing / deduction (LES allotments, garnishments) */}
@@ -788,15 +875,62 @@ export function ProfileView() {
                       </Grid>
                     )}
                     {allotmentType !== 'None' && (
-                      <Grid size={{ xs: 12, md: showDestPicker ? 4 : 8 }}>
-                        <Typography variant="caption" color="text.secondary">
-                          {allotmentType === 'SavingsToLinkedAccount' && 'A slice of this paycheck is auto-routed to your own savings / brokerage — informational only, your gross already includes it.'}
-                          {allotmentType === 'ExternalOutflow' && (cashFlowBasis === 'Net'
-                            ? 'Your "Monthly Net $" already excludes this; the line is shown for reference.'
-                            : 'Money leaves your control before payroll cuts the check (e.g. child support). Reduces net cash flow.')}
-                          {allotmentType === 'Other' && 'Counted as inflow but flagged ambiguous in the dashboard.'}
-                        </Typography>
-                      </Grid>
+                      <>
+                        <Grid size={{ xs: 6, md: 2 }}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            type="number"
+                            label="Allotment $ per period"
+                            value={stream.allotmentPerPeriodAmount ?? ''}
+                            onChange={e => {
+                              const next = [...incomeStreams];
+                              next[i] = { ...next[i], allotmentPerPeriodAmount: Number(e.target.value) || null };
+                              setIncomeStreams(next);
+                            }}
+                            inputProps={{ step: '0.01', min: 0 }}
+                          />
+                        </Grid>
+                        <Grid size={{ xs: 6, md: 2 }}>
+                          <FormControl fullWidth size="small">
+                            <InputLabel>Allotment frequency</InputLabel>
+                            <Select
+                              value={stream.allotmentFrequency ?? 'Biweekly'}
+                              label="Allotment frequency"
+                              onChange={e => {
+                                const next = [...incomeStreams];
+                                next[i] = { ...next[i], allotmentFrequency: e.target.value as IncomeStreamFrequency };
+                                setIncomeStreams(next);
+                              }}
+                            >
+                              <MenuItem value="Weekly">Weekly</MenuItem>
+                              <MenuItem value="Biweekly">Biweekly</MenuItem>
+                              <MenuItem value="Semimonthly">Semimonthly (1st &amp; 15th)</MenuItem>
+                              <MenuItem value="Monthly">Monthly</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Grid>
+                        <Grid size={{ xs: 12, md: showDestPicker ? 4 : 8 }}>
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            {(() => {
+                              const allotmentMonthly = monthlyEquivalent(
+                                stream.allotmentPerPeriodAmount ?? 0,
+                                stream.allotmentFrequency ?? 'Monthly',
+                              );
+                              return allotmentMonthly > 0
+                                ? `≈ $${allotmentMonthly.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo`
+                                : 'Enter the per-period allotment amount';
+                            })()}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {allotmentType === 'SavingsToLinkedAccount' && 'A slice of this paycheck is auto-routed to your own savings / brokerage — informational only.'}
+                            {allotmentType === 'ExternalOutflow' && (cashFlowBasis === 'Net'
+                              ? 'Your net amount already excludes this; the line is shown for reference.'
+                              : 'Money leaves your control before payroll cuts the check (e.g. child support). Reduces net cash flow.')}
+                            {allotmentType === 'Other' && 'Counted as inflow but flagged ambiguous in the dashboard.'}
+                          </Typography>
+                        </Grid>
+                      </>
                     )}
                   </Grid>
                 </Paper>

@@ -136,17 +136,36 @@ public class CashFlowSummaryService : ICashFlowSummaryService
             var typeLabel = NormalizeIncomeTypeLabel(s.IncomeType);
             var (amount, basisLabel, missingNet) = ResolveCashFlowAmount(s);
 
+            // P2.5: when AllotmentPerPeriodAmount is set, the user is expressing a
+            // partial slice of THIS paycheck (e.g. $450/biweekly of a $5,538/biweekly
+            // salary). The stream itself remains a normal inflow; the slice is shown
+            // separately. When AllotmentPerPeriodAmount is null (legacy callers),
+            // the entire stream IS the allotment — preserve the old behavior.
+            var hasPartialSlice = s.AllotmentPerPeriodAmount.HasValue && s.AllotmentPerPeriodAmount.Value > 0;
+            var sliceMonthlyAmount = hasPartialSlice
+                ? s.AllotmentPerPeriodAmount!.Value * s.AllotmentFrequency.MonthlyFactor()
+                : amount;
+            var fullStreamIsAllotment = s.AllotmentType != IncomeStreamAllotmentType.None && !hasPartialSlice;
+
+            // Always add the stream to inflows unless the legacy "entire stream is the
+            // allotment" path applies (in which case only the appropriate allotment
+            // section gets it).
+            if (!fullStreamIsAllotment)
+            {
+                inflowsByType.Add(new InflowByType(
+                    Type: typeLabel,
+                    Amount: amount,
+                    Source: "Profile",
+                    IsProfileOnly: true,
+                    IsAmbiguousAllotment: s.AllotmentType == IncomeStreamAllotmentType.Other,
+                    Basis: basisLabel,
+                    IsMissingNetAmount: missingNet));
+            }
+
             switch (s.AllotmentType)
             {
                 case IncomeStreamAllotmentType.None:
-                    inflowsByType.Add(new InflowByType(
-                        Type: typeLabel,
-                        Amount: amount,
-                        Source: "Profile",
-                        IsProfileOnly: true,
-                        IsAmbiguousAllotment: false,
-                        Basis: basisLabel,
-                        IsMissingNetAmount: missingNet));
+                    // No allotment line.
                     break;
                 case IncomeStreamAllotmentType.SavingsToLinkedAccount:
                     // Informational only — paycheck already includes this routing.
@@ -165,7 +184,7 @@ public class CashFlowSummaryService : ICashFlowSummaryService
                     savingsAllotments.Add(new SavingsAllotment(
                         IncomeStreamId: s.IncomeStreamId,
                         Name: s.Name,
-                        Amount: amount,
+                        Amount: sliceMonthlyAmount,
                         DestinationAccountId: s.AllotmentDestinationAccountId,
                         DestinationName: destName));
                     break;
@@ -173,18 +192,23 @@ public class CashFlowSummaryService : ICashFlowSummaryService
                     externalAllotments.Add(new ExternalAllotment(
                         IncomeStreamId: s.IncomeStreamId,
                         Name: s.Name,
-                        Amount: amount,
+                        Amount: sliceMonthlyAmount,
                         Notes: null));
                     break;
                 case IncomeStreamAllotmentType.Other:
-                    inflowsByType.Add(new InflowByType(
-                        Type: typeLabel,
-                        Amount: amount,
-                        Source: "Profile",
-                        IsProfileOnly: true,
-                        IsAmbiguousAllotment: true,
-                        Basis: basisLabel,
-                        IsMissingNetAmount: missingNet));
+                    // Already added above as ambiguous inflow when hasPartialSlice;
+                    // otherwise we surface the legacy "whole-stream" line as inflow.
+                    if (fullStreamIsAllotment)
+                    {
+                        inflowsByType.Add(new InflowByType(
+                            Type: typeLabel,
+                            Amount: amount,
+                            Source: "Profile",
+                            IsProfileOnly: true,
+                            IsAmbiguousAllotment: true,
+                            Basis: basisLabel,
+                            IsMissingNetAmount: missingNet));
+                    }
                     break;
             }
         }

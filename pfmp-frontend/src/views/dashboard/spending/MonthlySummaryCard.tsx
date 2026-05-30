@@ -122,11 +122,21 @@ export default function MonthlySummaryCard({ userId, from, to, refreshKey = 0, o
         )}
 
         <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 2 }}>
-          {data && (
-            <>
-              Window: {new Date(data.from).toLocaleDateString()} — {new Date(data.to).toLocaleDateString()}
-            </>
-          )}
+          {data && (() => {
+            // Backend returns a half-open interval [from, to). Subtract a day from
+            // the exclusive end so "5/1/2026 — 6/1/2026" renders as "5/1 — 5/31".
+            const fromD = new Date(data.from);
+            const toD = new Date(data.to);
+            const inclusiveEnd = new Date(toD.getTime() - 24 * 60 * 60 * 1000);
+            const sameMonth =
+              fromD.getUTCFullYear() === inclusiveEnd.getUTCFullYear()
+              && fromD.getUTCMonth() === inclusiveEnd.getUTCMonth();
+            if (sameMonth) {
+              const monthLabel = fromD.toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
+              return <>Window: {monthLabel}</>;
+            }
+            return <>Window: {fromD.toLocaleDateString()} — {inclusiveEnd.toLocaleDateString()}</>;
+          })()}
           {lastRecomputedAt && (
             <> · Last recomputed: {new Date(lastRecomputedAt).toLocaleTimeString()}</>
           )}
