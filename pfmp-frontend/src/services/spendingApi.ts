@@ -53,6 +53,10 @@ export interface ExternalAllotment {
 export interface OutflowSection {
   byPlaidPrimary: OutflowByCategory[];
   insurancePremiums: InsurancePremium[];
+  /** Wave 14 P2 follow-on: paycheck-deducted policies (FEHB, FEDVIP, FEGLI).
+   *  Informational only — already excluded from take-home, not summed into
+   *  totalMonthlyOutflows. */
+  paycheckDeductedInsurance: InsurancePremium[];
   externalAllotments: ExternalAllotment[];
 }
 
@@ -156,6 +160,75 @@ export interface SpendingCategoryRule {
   isActive: boolean;
   dateCreated: string;
   dateUpdated: string;
+}
+
+// ---------- P3: Recurring streams ----------
+
+export type RecurringStreamSource = 'PlaidRecurring' | 'Heuristic';
+export type RecurringStreamDirection = 'Inflow' | 'Outflow';
+export type RecurringStreamFrequency = 'Weekly' | 'Biweekly' | 'SemiMonthly' | 'Monthly' | 'Annual' | 'Unknown';
+export type RecurringStreamStatus = 'Mature' | 'EarlyDetection' | 'Tombstoned';
+
+export interface RecurringTransactionStream {
+  streamId: number;
+  userId: number;
+  source: RecurringStreamSource;
+  plaidStreamId: string | null;
+  merchantName: string;
+  description: string | null;
+  direction: RecurringStreamDirection;
+  averageAmount: number;
+  lastAmount: number;
+  frequency: RecurringStreamFrequency;
+  lastDate: string;
+  nextExpectedDate: string | null;
+  isActive: boolean;
+  status: RecurringStreamStatus;
+  confidenceScore: number | null;
+  plaidCategory: string | null;
+  plaidCategoryDetailed: string | null;
+  dateCreated: string;
+  dateUpdated: string;
+}
+
+export async function listRecurringStreams(
+  userId: number,
+  options?: { direction?: RecurringStreamDirection; isActive?: boolean },
+): Promise<RecurringTransactionStream[]> {
+  const { data } = await apiClient.get<RecurringTransactionStream[]>('/spending/recurring', {
+    params: { userId, direction: options?.direction, isActive: options?.isActive },
+  });
+  return data;
+}
+
+export async function dismissRecurringStream(streamId: number): Promise<void> {
+  await apiClient.post(`/spending/recurring/${streamId}/dismiss`);
+}
+
+// ---------- P3: Anomalies ----------
+
+export interface SpendingAnomaly {
+  anomalyId: number;
+  userId: number;
+  cashTransactionId: number;
+  plaidPrimaryCategory: string;
+  amount: number;
+  categoryMedian: number;
+  categoryIqr: number;
+  deviationMultiple: number;
+  detectedAt: string;
+  dismissed: boolean;
+}
+
+export async function listAnomalies(userId: number, dismissed?: boolean): Promise<SpendingAnomaly[]> {
+  const { data } = await apiClient.get<SpendingAnomaly[]>('/spending/anomalies', {
+    params: { userId, dismissed },
+  });
+  return data;
+}
+
+export async function dismissAnomaly(anomalyId: number): Promise<void> {
+  await apiClient.post(`/spending/anomalies/${anomalyId}/dismiss`);
 }
 
 // ---------- Recompute ----------

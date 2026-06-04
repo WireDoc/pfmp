@@ -206,6 +206,10 @@ namespace PFMP_API
             builder.Services.AddScoped<PFMP_API.Services.Spending.IBudgetService, PFMP_API.Services.Spending.BudgetService>();
             builder.Services.AddScoped<PFMP_API.Services.Spending.ISpendingAnalyticsService, PFMP_API.Services.Spending.SpendingAnalyticsService>();
             builder.Services.AddScoped<PFMP_API.Services.Spending.ICashFlowSummaryService, PFMP_API.Services.Spending.CashFlowSummaryService>();
+            // Wave 14 P3 — recurring detection + anomaly alerts
+            builder.Services.AddScoped<PFMP_API.Services.Spending.IHeuristicRecurringDetector, PFMP_API.Services.Spending.HeuristicRecurringDetector>();
+            builder.Services.AddScoped<PFMP_API.Services.Spending.IAnomalyDetectionService, PFMP_API.Services.Spending.AnomalyDetectionService>();
+            builder.Services.AddScoped<PFMP_API.Services.Spending.ISpendingAlertService, PFMP_API.Services.Spending.SpendingAlertService>();
             builder.Services.AddScoped<PFMP_API.Jobs.SpendingRollupJob>();
 
             // Add Authentication Services

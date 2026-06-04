@@ -162,6 +162,9 @@ export interface InsurancePolicyPayload {
   isAdequateCoverage?: boolean | null;
   recommendedCoverage?: number | null;
   notes?: string | null;
+  /** Wave 14 P2 follow-on: premium is auto-deducted from paycheck (FEHB,
+   *  FEDVIP, FEGLI, etc.) — excluded from cash-flow outflows. */
+  isPaycheckDeducted?: boolean | null;
 }
 
 export interface InsurancePoliciesProfilePayload {
@@ -964,6 +967,7 @@ export async function upsertInsurancePoliciesProfile(userId: number, payload: In
       IsAdequateCoverage: policy.isAdequateCoverage ?? false,
       RecommendedCoverage: policy.recommendedCoverage,
       Notes: policy.notes,
+      IsPaycheckDeducted: policy.isPaycheckDeducted ?? false,
     })),
     OptOut: payload.optOut?.isOptedOut ? {
       IsOptedOut: payload.optOut.isOptedOut,
@@ -987,6 +991,7 @@ export async function fetchInsurancePoliciesProfile(userId: number): Promise<Ins
     isAdequateCoverage: policy?.isAdequateCoverage ?? false,
     recommendedCoverage: policy?.recommendedCoverage ?? null,
     notes: policy?.notes ?? null,
+    isPaycheckDeducted: policy?.isPaycheckDeducted ?? false,
   }));
 
   return {

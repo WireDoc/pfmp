@@ -17,6 +17,8 @@ import CategoryBreakdownChart from './spending/CategoryBreakdownChart';
 import BudgetVsActualPanel from './spending/BudgetVsActualPanel';
 import TopMerchantsTable from './spending/TopMerchantsTable';
 import RecentTransactionsTable from './spending/RecentTransactionsTable';
+import RecurringStreamsPanel from './spending/RecurringStreamsPanel';
+import AnomalyAlertsCard from './spending/AnomalyAlertsCard';
 
 interface MonthOption {
   label: string;
@@ -138,6 +140,10 @@ export function SpendingView() {
           refreshKey={refreshKey}
           onChanged={bump}
         />
+        <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' } }}>
+          <RecurringStreamsPanel userId={userId} refreshKey={refreshKey} />
+          <AnomalyAlertsCard userId={userId} refreshKey={refreshKey} />
+        </Box>
         <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' } }}>
           <TopMerchantsTable
             userId={userId}

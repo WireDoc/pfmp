@@ -26,7 +26,7 @@ describe('CashFlowSummaryCard', () => {
         ],
         savingsAllotments: [],
       },
-      outflows: { byPlaidPrimary: [], insurancePremiums: [], externalAllotments: [] },
+      outflows: { byPlaidPrimary: [], insurancePremiums: [], paycheckDeductedInsurance: [], externalAllotments: [] },
       variances: [],
       asOfUtc: '2026-05-17T00:00:00Z',
     });
@@ -52,6 +52,7 @@ describe('CashFlowSummaryCard', () => {
       outflows: {
         byPlaidPrimary: [],
         insurancePremiums: [],
+        paycheckDeductedInsurance: [],
         externalAllotments: [
           { incomeStreamId: 'b', name: 'Child Support', amount: 500, notes: null },
         ],
@@ -66,13 +67,37 @@ describe('CashFlowSummaryCard', () => {
     expect(screen.getByText('Child Support')).toBeInTheDocument();
   });
 
+  it('renders paycheck-deducted insurance as an informational section, not as outflow', async () => {
+    mockGet.mockResolvedValue({
+      totalMonthlyInflows: 5000,
+      totalMonthlyOutflows: 124,
+      netMonthlyCashFlow: 4876,
+      inflows: { byIncomeType: [{ type: 'Salary', amount: 5000, source: 'Profile', isProfileOnly: true, isAmbiguousAllotment: false }], savingsAllotments: [] },
+      outflows: {
+        byPlaidPrimary: [],
+        insurancePremiums: [{ policyType: 'Auto', policyName: null, monthlyAmount: 124, renewalDate: null }],
+        paycheckDeductedInsurance: [{ policyType: 'Health', policyName: 'FEHB BCBS Standard', monthlyAmount: 290, renewalDate: null }],
+        externalAllotments: [],
+      },
+      variances: [],
+      asOfUtc: '2026-06-03T00:00:00Z',
+    });
+    render(<CashFlowSummaryCard userId={20} />);
+    await waitFor(() => expect(screen.getByText(/Paycheck-deducted Insurance/i)).toBeInTheDocument());
+    expect(screen.getByText('FEHB BCBS Standard')).toBeInTheDocument();
+    // Total outflow shown is $124, NOT $124 + $290 — FEHB doesn't double-count.
+    expect(screen.getByText('$124.00')).toBeInTheDocument();
+    // FEHB is shown without the leading "-" since it's not an outflow line.
+    expect(screen.queryByText('-$290.00')).not.toBeInTheDocument();
+  });
+
   it('renders variance alerts when present', async () => {
     mockGet.mockResolvedValue({
       totalMonthlyInflows: 10000,
       totalMonthlyOutflows: 5000,
       netMonthlyCashFlow: 5000,
       inflows: { byIncomeType: [], savingsAllotments: [] },
-      outflows: { byPlaidPrimary: [], insurancePremiums: [], externalAllotments: [] },
+      outflows: { byPlaidPrimary: [], insurancePremiums: [], paycheckDeductedInsurance: [], externalAllotments: [] },
       variances: [
         { stream: 'TotalInflows', profile: 10000, plaid: 8500, deltaPercent: 15, severity: 'info' },
       ],

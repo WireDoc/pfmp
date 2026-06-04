@@ -1412,6 +1412,10 @@ Your analysis will be reviewed by a backup AI system for validation.",
                     if (pol.CoverageAmount > 0) sb.Append($" | Coverage: ${pol.CoverageAmount:N0}");
                     if (pol.PremiumAmount > 0)
                         sb.Append($" | Premium: ${pol.PremiumAmount:N0}/{pol.PremiumFrequency ?? "mo"}");
+                    // P2 follow-on: tell the AI when a premium is paycheck-deducted so it
+                    // doesn't recommend cutting it from the "bank outflow" budget — the
+                    // money is already gone before take-home.
+                    if (pol.IsPaycheckDeducted) sb.Append(" [paycheck-deducted — already in net pay]");
                     sb.Append(pol.IsAdequateCoverage ? " | Adequate" : " | Needs Review");
                     if (!string.IsNullOrWhiteSpace(pol.Notes)) sb.Append($" | Notes: {pol.Notes}");
                     sb.AppendLine();

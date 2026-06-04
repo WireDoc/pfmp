@@ -176,7 +176,7 @@ export default function CashFlowSummaryCard({ userId, refreshKey = 0 }: CashFlow
         {data.outflows.insurancePremiums.length > 0 && (
           <>
             <Divider sx={{ my: 2 }} />
-            <Typography variant="subtitle2" gutterBottom>Insurance Premiums (monthly)</Typography>
+            <Typography variant="subtitle2" gutterBottom>Insurance Premiums (monthly, out-of-pocket)</Typography>
             <Stack spacing={0.5}>
               {data.outflows.insurancePremiums.map((p, idx) => (
                 <Stack key={`${p.policyType}-${idx}`} direction="row" justifyContent="space-between">
@@ -184,6 +184,24 @@ export default function CashFlowSummaryCard({ userId, refreshKey = 0 }: CashFlow
                   <Typography variant="body2" fontWeight={500} color="error.main">
                     -{fmt(p.monthlyAmount)}
                   </Typography>
+                </Stack>
+              ))}
+            </Stack>
+          </>
+        )}
+
+        {data.outflows.paycheckDeductedInsurance.length > 0 && (
+          <>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="subtitle2" gutterBottom>Paycheck-deducted Insurance (informational)</Typography>
+            <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+              Taken from gross pay before take-home — already excluded from your net amount, not counted again in outflows.
+            </Typography>
+            <Stack spacing={0.5}>
+              {data.outflows.paycheckDeductedInsurance.map((p, idx) => (
+                <Stack key={`pd-${p.policyType}-${idx}`} direction="row" justifyContent="space-between">
+                  <Typography variant="body2">{p.policyName ?? p.policyType}</Typography>
+                  <Typography variant="body2" fontWeight={500}>{fmt(p.monthlyAmount)}</Typography>
                 </Stack>
               ))}
             </Stack>

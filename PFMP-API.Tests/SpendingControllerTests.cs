@@ -72,6 +72,7 @@ public class SpendingControllerTests : IClassFixture<TestingWebAppFactory>
     private record OutflowSectionDto(
         List<OutflowByCategoryDto> ByPlaidPrimary,
         List<InsurancePremiumDto> InsurancePremiums,
+        List<InsurancePremiumDto> PaycheckDeductedInsurance,
         List<ExternalAllotmentDto> ExternalAllotments);
 
     private record OutflowByCategoryDto(string Category, decimal Actual, decimal? Budgeted, string Source, bool IsProfileOnly);
@@ -81,6 +82,19 @@ public class SpendingControllerTests : IClassFixture<TestingWebAppFactory>
     private record ExternalAllotmentDto(Guid IncomeStreamId, string Name, decimal Amount, string? Notes);
 
     private record VarianceDto(string Stream, decimal Profile, decimal Plaid, decimal DeltaPercent, string Severity);
+
+    private record RecurringStreamDto(
+        int StreamId,
+        int UserId,
+        string Source,
+        string MerchantName,
+        string Direction,
+        decimal AverageAmount,
+        decimal LastAmount,
+        string Frequency,
+        DateTime LastDate,
+        bool IsActive,
+        string Status);
 
     private async Task<int> CreateUserAsync(HttpClient client)
     {
@@ -332,6 +346,39 @@ public class SpendingControllerTests : IClassFixture<TestingWebAppFactory>
     }
 
     [Fact]
+    public async Task CashFlowSummary_PaycheckDeductedInsurance_ExcludedFromOutflowAndSurfacedSeparately()
+    {
+        var client = _factory.CreateClient();
+        var userId = await CreateUserAsync(client);
+
+        // $5,000/mo net salary, no allotments
+        await SeedIncomeStreamAsync(userId, "Salary", "salary", 5000m, IncomeStreamAllotmentType.None, null);
+
+        // Mixed insurance: $290/mo paycheck-deducted FEHB + $124/mo out-of-pocket auto
+        await SeedInsuranceAsync(userId, "Health", 290m, "Monthly", isPaycheckDeducted: true);
+        await SeedInsuranceAsync(userId, "Auto", 124m, "Monthly", isPaycheckDeducted: false);
+
+        var resp = await client.GetAsync($"/api/Spending/cash-flow-summary?userId={userId}");
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        var summary = await resp.Content.ReadFromJsonAsync<CashFlowSummaryDto>();
+
+        // Only the auto policy counts toward outflow (124, not 124 + 290 = 414).
+        Assert.Single(summary!.Outflows.InsurancePremiums);
+        Assert.Equal("Auto", summary.Outflows.InsurancePremiums[0].PolicyType);
+        Assert.Equal(124m, summary.Outflows.InsurancePremiums[0].MonthlyAmount);
+
+        // FEHB is surfaced separately for AI/dashboard visibility.
+        Assert.Single(summary.Outflows.PaycheckDeductedInsurance);
+        Assert.Equal("Health", summary.Outflows.PaycheckDeductedInsurance[0].PolicyType);
+        Assert.Equal(290m, summary.Outflows.PaycheckDeductedInsurance[0].MonthlyAmount);
+
+        // Total outflow = $124 auto only (FEHB excluded).
+        Assert.Equal(124m, summary.TotalMonthlyOutflows);
+        // Net = 5000 - 124 = 4876
+        Assert.Equal(4876m, summary.NetMonthlyCashFlow);
+    }
+
+    [Fact]
     public async Task CashFlowSummary_EmptyProfile_ReturnsZeros()
     {
         var client = _factory.CreateClient();
@@ -346,6 +393,64 @@ public class SpendingControllerTests : IClassFixture<TestingWebAppFactory>
         Assert.Equal(0m, summary.NetMonthlyCashFlow);
         Assert.Empty(summary.Inflows.ByIncomeType);
         Assert.Empty(summary.Outflows.ByPlaidPrimary);
+    }
+
+    // ----- P3: Recurring + anomaly endpoints -----
+
+    [Fact]
+    public async Task GetRecurring_FiltersByDirection()
+    {
+        var client = _factory.CreateClient();
+        var userId = await CreateUserAsync(client);
+        await SeedRecurringStreamAsync(userId, "Netflix", RecurringStreamDirection.Outflow, 15m);
+        await SeedRecurringStreamAsync(userId, "Payroll", RecurringStreamDirection.Inflow, 3000m);
+
+        var outResp = await client.GetAsync($"/api/Spending/recurring?userId={userId}&direction=Outflow");
+        Assert.Equal(HttpStatusCode.OK, outResp.StatusCode);
+        var outflows = await outResp.Content.ReadFromJsonAsync<List<RecurringStreamDto>>();
+        Assert.Single(outflows!);
+        Assert.Equal("Netflix", outflows[0].MerchantName);
+
+        var inResp = await client.GetAsync($"/api/Spending/recurring?userId={userId}&direction=Inflow");
+        var inflows = await inResp.Content.ReadFromJsonAsync<List<RecurringStreamDto>>();
+        Assert.Single(inflows!);
+        Assert.Equal("Payroll", inflows[0].MerchantName);
+    }
+
+    [Fact]
+    public async Task DismissRecurring_TombstonesStream()
+    {
+        var client = _factory.CreateClient();
+        var userId = await CreateUserAsync(client);
+        var streamId = await SeedRecurringStreamAsync(userId, "Netflix", RecurringStreamDirection.Outflow, 15m);
+
+        var resp = await client.PostAsync($"/api/Spending/recurring/{streamId}/dismiss", content: null);
+        Assert.Equal(HttpStatusCode.NoContent, resp.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var row = db.RecurringTransactionStreams.Single(r => r.StreamId == streamId);
+        Assert.False(row.IsActive);
+        Assert.Equal(RecurringStreamStatus.Tombstoned, row.Status);
+    }
+
+    [Fact]
+    public async Task DismissAnomaly_MarksDismissed_DoesNotAffectOtherUsers()
+    {
+        var client = _factory.CreateClient();
+        var userId = await CreateUserAsync(client);
+        var otherId = await CreateUserAsync(client);
+        var mineId = await SeedAnomalyAsync(userId, "FOOD_AND_DRINK", 400m, deviation: 4.5m);
+        var theirsId = await SeedAnomalyAsync(otherId, "FOOD_AND_DRINK", 350m, deviation: 3m);
+
+        var resp = await client.PostAsync($"/api/Spending/anomalies/{mineId}/dismiss", content: null);
+        Assert.Equal(HttpStatusCode.NoContent, resp.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        Assert.True(db.SpendingAnomalies.Single(a => a.AnomalyId == mineId).Dismissed);
+        // Other user's row untouched
+        Assert.False(db.SpendingAnomalies.Single(a => a.AnomalyId == theirsId).Dismissed);
     }
 
     // ----- Recompute rate limit -----
@@ -434,6 +539,87 @@ public class SpendingControllerTests : IClassFixture<TestingWebAppFactory>
         await db.SaveChangesAsync();
     }
 
+    private async Task<int> SeedRecurringStreamAsync(int userId, string merchant, RecurringStreamDirection direction, decimal amount)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var row = new RecurringTransactionStream
+        {
+            UserId = userId,
+            Source = RecurringStreamSource.Heuristic,
+            MerchantName = merchant,
+            Direction = direction,
+            AverageAmount = amount,
+            LastAmount = amount,
+            Frequency = RecurringStreamFrequency.Monthly,
+            LastDate = DateTime.UtcNow.AddDays(-1),
+            IsActive = true,
+            Status = RecurringStreamStatus.Mature,
+            DateCreated = DateTime.UtcNow,
+            DateUpdated = DateTime.UtcNow,
+        };
+        db.RecurringTransactionStreams.Add(row);
+        await db.SaveChangesAsync();
+        return row.StreamId;
+    }
+
+    private async Task<int> SeedAnomalyAsync(int userId, string category, decimal amount, decimal deviation)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        // Need a real CashTransaction row so the JOIN in the alert service has something to bind to.
+        var acct = await db.CashAccounts.FirstOrDefaultAsync(a => a.UserId == userId);
+        if (acct is null)
+        {
+            acct = new CashAccount
+            {
+                CashAccountId = Guid.NewGuid(),
+                UserId = userId,
+                Institution = "Test Bank",
+                Nickname = "Test Checking",
+                AccountType = "Checking",
+                Balance = 0m,
+                Purpose = "Daily Expenses",
+                IsEmergencyFund = false,
+                InterestRateApr = 0m,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            };
+            db.CashAccounts.Add(acct);
+            await db.SaveChangesAsync();
+        }
+        var tx = new CashTransaction
+        {
+            CashAccountId = acct.CashAccountId,
+            TransactionType = "Withdrawal",
+            Amount = -amount,
+            TransactionDate = DateTime.UtcNow.AddDays(-2),
+            Merchant = "Test Merchant",
+            PlaidCategory = category,
+            Source = "Manual",
+            CreatedAt = DateTime.UtcNow,
+        };
+        db.CashTransactions.Add(tx);
+        await db.SaveChangesAsync();
+
+        var anomaly = new SpendingAnomaly
+        {
+            UserId = userId,
+            CashTransactionId = tx.CashTransactionId,
+            PlaidPrimaryCategory = category,
+            Amount = amount,
+            CategoryMedian = amount / 4m,
+            CategoryIqr = amount / 8m,
+            DeviationMultiple = deviation,
+            DetectedAt = DateTime.UtcNow,
+            Dismissed = false,
+        };
+        db.SpendingAnomalies.Add(anomaly);
+        await db.SaveChangesAsync();
+        return anomaly.AnomalyId;
+    }
+
     /// <summary>P2.5 fixture: seed an income stream using the per-period + frequency
     /// model. Computes MonthlyAmount from PerPeriodAmount × factor so the AI prompt
     /// and dashboard read the same canonical number the production write path would
@@ -472,7 +658,8 @@ public class SpendingControllerTests : IClassFixture<TestingWebAppFactory>
         await db.SaveChangesAsync();
     }
 
-    private async Task SeedInsuranceAsync(int userId, string policyType, decimal premium, string frequency)
+    private async Task SeedInsuranceAsync(int userId, string policyType, decimal premium, string frequency,
+        bool isPaycheckDeducted = false)
     {
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -483,6 +670,7 @@ public class SpendingControllerTests : IClassFixture<TestingWebAppFactory>
             PolicyType = policyType,
             PremiumAmount = premium,
             PremiumFrequency = frequency,
+            IsPaycheckDeducted = isPaycheckDeducted,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
         });

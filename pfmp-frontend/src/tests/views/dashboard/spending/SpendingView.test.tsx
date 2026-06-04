@@ -37,7 +37,7 @@ const cashFlow = {
     ],
     savingsAllotments: [],
   },
-  outflows: { byPlaidPrimary: [], insurancePremiums: [], externalAllotments: [] },
+  outflows: { byPlaidPrimary: [], insurancePremiums: [], paycheckDeductedInsurance: [], externalAllotments: [] },
   variances: [],
   asOfUtc: '2026-05-17T00:00:00Z',
 };
@@ -55,6 +55,8 @@ beforeEach(() => {
     http.get(/\/api\/spending\/budgets/, () => HttpResponse.json([])),
     http.get(/\/api\/spending\/top-merchants/, () => HttpResponse.json([])),
     http.get(/\/api\/spending\/transactions/, () => HttpResponse.json([])),
+    http.get(/\/api\/spending\/recurring/, () => HttpResponse.json([])),
+    http.get(/\/api\/spending\/anomalies/, () => HttpResponse.json([])),
   );
 });
 
@@ -79,5 +81,8 @@ describe('SpendingView', () => {
     // TopMerchantsTable + RecentTransactionsTable
     expect(screen.getByText('Top Merchants')).toBeInTheDocument();
     expect(screen.getByText('Recent Transactions')).toBeInTheDocument();
+    // P3: RecurringStreamsPanel + AnomalyAlertsCard
+    expect(screen.getByText('Recurring Streams')).toBeInTheDocument();
+    expect(screen.getByText('Spending Anomalies')).toBeInTheDocument();
   });
 });

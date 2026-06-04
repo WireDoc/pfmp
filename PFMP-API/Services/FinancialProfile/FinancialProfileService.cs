@@ -658,6 +658,7 @@ namespace PFMP_API.Services.FinancialProfile
                         IsAdequateCoverage = policy.IsAdequateCoverage,
                         RecommendedCoverage = policy.RecommendedCoverage,
                         Notes = policy.Notes?.Trim(),
+                        IsPaycheckDeducted = policy.IsPaycheckDeducted,
                         CreatedAt = now,
                         UpdatedAt = now
                     });
@@ -1129,7 +1130,8 @@ namespace PFMP_API.Services.FinancialProfile
                     RenewalDate = p.RenewalDate,
                     IsAdequateCoverage = p.IsAdequateCoverage,
                     RecommendedCoverage = p.RecommendedCoverage,
-                    Notes = p.Notes
+                    Notes = p.Notes,
+                    IsPaycheckDeducted = p.IsPaycheckDeducted,
                 })
                 .ToListAsync(ct);
 

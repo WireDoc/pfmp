@@ -5,7 +5,9 @@
       "Bash(npx eslint *)",
       "Bash(npx vitest *)",
       "Bash(cmd //c \"C:\\\\\\\\pfmp\\\\\\\\start-dev-servers.bat\")",
-      "PowerShell(& \"c:\\\\pfmp\\\\restart-dev-servers.bat\")"
+      "PowerShell(& \"c:\\\\pfmp\\\\restart-dev-servers.bat\")",
+      "mcp__pfmp-postgres__get_table_schema",
+      "mcp__pfmp-postgres__get_foreign_keys"
     ]
   }
 }

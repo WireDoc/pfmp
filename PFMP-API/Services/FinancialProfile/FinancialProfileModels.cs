@@ -139,6 +139,9 @@ namespace PFMP_API.Services.FinancialProfile
         public bool IsAdequateCoverage { get; set; }
         public decimal? RecommendedCoverage { get; set; }
         public string? Notes { get; set; }
+        /// <summary>Wave 14 P2 follow-on: premium auto-deducted from paycheck;
+        /// excluded from cash-flow outflow totals.</summary>
+        public bool IsPaycheckDeducted { get; set; }
     }
 
     public class InsurancePoliciesInput

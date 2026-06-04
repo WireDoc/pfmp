@@ -653,6 +653,7 @@ namespace PFMP_API.Controllers
         public bool IsAdequateCoverage { get; set; }
         public decimal? RecommendedCoverage { get; set; }
         public string? Notes { get; set; }
+        public bool IsPaycheckDeducted { get; set; }
 
         public InsurancePolicyInput ToInput() => new()
         {
@@ -665,7 +666,8 @@ namespace PFMP_API.Controllers
             RenewalDate = RenewalDate,
             IsAdequateCoverage = IsAdequateCoverage,
             RecommendedCoverage = RecommendedCoverage,
-            Notes = Notes
+            Notes = Notes,
+            IsPaycheckDeducted = IsPaycheckDeducted,
         };
     }
 

@@ -26,6 +26,9 @@ public class SpendingRollupJob
         using var scope = _serviceProvider.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var analytics = scope.ServiceProvider.GetRequiredService<ISpendingAnalyticsService>();
+        var heuristic = scope.ServiceProvider.GetRequiredService<IHeuristicRecurringDetector>();
+        var anomaly = scope.ServiceProvider.GetRequiredService<IAnomalyDetectionService>();
+        var alerts = scope.ServiceProvider.GetRequiredService<ISpendingAlertService>();
 
         // Only recompute for users with cash transactions (avoids churn on empty profiles)
         var userIds = await db.CashAccounts
@@ -41,6 +44,11 @@ public class SpendingRollupJob
             try
             {
                 await analytics.RecomputeRollupsAsync(userId, monthsBack: 12, cancellationToken);
+                // P3: detect heuristic recurring streams and category-level anomalies
+                // before the alert emit so the alert service sees fresh anomaly rows.
+                await heuristic.DetectAsync(userId, cancellationToken);
+                await anomaly.DetectAsync(userId, cancellationToken);
+                await alerts.GenerateAnomalyAlertsAsync(userId, cancellationToken);
                 success++;
             }
             catch (Exception ex)

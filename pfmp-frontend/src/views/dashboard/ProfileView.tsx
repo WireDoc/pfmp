@@ -1042,7 +1042,16 @@ export function ProfileView() {
               </Box>
               {insurance.length === 0 && <Typography color="text.secondary">No insurance policies. Click "Add Policy" to begin.</Typography>}
               {insurance.map((pol, i) => (
-                <Paper key={i} variant="outlined" sx={{ p: 2 }}>
+                <Paper key={i} variant="outlined" sx={{ p: 2, position: 'relative' }}>
+                  <IconButton
+                    color="error"
+                    size="small"
+                    onClick={() => setInsurance(p => p.filter((_, idx) => idx !== i))}
+                    aria-label="Delete policy"
+                    sx={{ position: 'absolute', top: 4, right: 4 }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
                   <Grid container spacing={2} alignItems="center">
                     <Grid size={{ xs: 12, md: 2 }}>
                       <FormControl fullWidth>
@@ -1069,11 +1078,22 @@ export function ProfileView() {
                         </Select>
                       </FormControl>
                     </Grid>
-                    <Grid size={{ xs: 6, md: 1 }}>
+                    <Grid size={{ xs: 6, md: 2 }} sx={{ pl: 1 }}>
                       <FormControlLabel control={<Switch checked={pol.isAdequateCoverage ?? false} onChange={e => { const next = [...insurance]; next[i] = { ...next[i], isAdequateCoverage: e.target.checked }; setInsurance(next); }} />} label="Adequate" />
                     </Grid>
-                    <Grid size={{ xs: 12, md: 1 }}>
-                      <IconButton color="error" onClick={() => setInsurance(p => p.filter((_, idx) => idx !== i))} aria-label="Delete policy"><DeleteIcon /></IconButton>
+                    <Grid size={{ xs: 12, md: 4 }} sx={{ pl: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <FormControlLabel
+                          control={<Switch checked={pol.isPaycheckDeducted ?? false} onChange={e => { const next = [...insurance]; next[i] = { ...next[i], isPaycheckDeducted: e.target.checked }; setInsurance(next); }} />}
+                          label="Paycheck-deducted"
+                        />
+                        <Tooltip
+                          arrow
+                          title="Premium auto-deducted from gross pay (FEHB, FEDVIP, FEGLI, employer pre-tax health). When on, the premium is shown to the AI but excluded from cash-flow outflows since your take-home pay already nets it out — turning it on prevents the premium from being double-counted against your salary."
+                        >
+                          <InfoOutlinedIcon fontSize="inherit" sx={{ color: 'text.secondary', cursor: 'help' }} />
+                        </Tooltip>
+                      </Box>
                     </Grid>
                     <Grid size={{ xs: 12 }}>
                       <TextField fullWidth label="Notes" placeholder="e.g. policy through employer, renews automatically" multiline minRows={2} inputProps={{ maxLength: 500 }} value={pol.notes ?? ''} onChange={e => { const next = [...insurance]; next[i] = { ...next[i], notes: e.target.value }; setInsurance(next); }} />

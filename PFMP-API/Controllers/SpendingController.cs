@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using PFMP_API.Models.FinancialProfile;
 using PFMP_API.Models.Spending;
@@ -21,6 +22,10 @@ public class SpendingController : ControllerBase
     private readonly ICashFlowSummaryService _cashFlow;
     private readonly IBudgetService _budgets;
     private readonly ICategoryRuleService _rules;
+    private readonly IHeuristicRecurringDetector _heuristic;
+    private readonly IAnomalyDetectionService _anomalies;
+    private readonly ISpendingAlertService _spendingAlerts;
+    private readonly ApplicationDbContext _db;
     private readonly SpendingOptions _options;
     private readonly ILogger<SpendingController> _logger;
 
@@ -29,6 +34,10 @@ public class SpendingController : ControllerBase
         ICashFlowSummaryService cashFlow,
         IBudgetService budgets,
         ICategoryRuleService rules,
+        IHeuristicRecurringDetector heuristic,
+        IAnomalyDetectionService anomalies,
+        ISpendingAlertService spendingAlerts,
+        ApplicationDbContext db,
         IOptions<SpendingOptions> options,
         ILogger<SpendingController> logger)
     {
@@ -36,6 +45,10 @@ public class SpendingController : ControllerBase
         _cashFlow = cashFlow;
         _budgets = budgets;
         _rules = rules;
+        _heuristic = heuristic;
+        _anomalies = anomalies;
+        _spendingAlerts = spendingAlerts;
+        _db = db;
         _options = options.Value;
         _logger = logger;
     }
@@ -181,8 +194,72 @@ public class SpendingController : ControllerBase
             }
         }
         await _analytics.RecomputeRollupsAsync(userId, monthsBack: 12, ct);
+        // P3: refresh recurring streams + anomalies + alerts on the same pass so
+        // manual recompute matches the nightly SpendingRollupJob behavior.
+        await _heuristic.DetectAsync(userId, ct);
+        await _anomalies.DetectAsync(userId, ct);
+        await _spendingAlerts.GenerateAnomalyAlertsAsync(userId, ct);
         _lastRecomputeByUser[userId] = DateTime.UtcNow;
         return Ok(new { recomputed = true, asOf = DateTime.UtcNow });
+    }
+
+    // ----- P3: Recurring streams -----
+
+    [HttpGet("recurring")]
+    public async Task<ActionResult<IReadOnlyList<RecurringTransactionStream>>> GetRecurring(
+        [FromQuery, Required] int userId,
+        [FromQuery] string? direction,
+        [FromQuery] bool? isActive,
+        CancellationToken ct)
+    {
+        var q = _db.RecurringTransactionStreams.AsNoTracking().Where(r => r.UserId == userId);
+        if (!string.IsNullOrWhiteSpace(direction)
+            && Enum.TryParse<RecurringStreamDirection>(direction, ignoreCase: true, out var dir))
+        {
+            q = q.Where(r => r.Direction == dir);
+        }
+        if (isActive.HasValue)
+        {
+            q = q.Where(r => r.IsActive == isActive.Value);
+        }
+        var rows = await q.OrderByDescending(r => r.LastDate).ToListAsync(ct);
+        return Ok(rows);
+    }
+
+    [HttpPost("recurring/{id:int}/dismiss")]
+    public async Task<IActionResult> DismissRecurring(int id, CancellationToken ct)
+    {
+        var row = await _db.RecurringTransactionStreams.FirstOrDefaultAsync(r => r.StreamId == id, ct);
+        if (row is null) return NotFound();
+        row.IsActive = false;
+        row.Status = RecurringStreamStatus.Tombstoned;
+        row.DateUpdated = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    // ----- P3: Anomalies -----
+
+    [HttpGet("anomalies")]
+    public async Task<ActionResult<IReadOnlyList<SpendingAnomaly>>> GetAnomalies(
+        [FromQuery, Required] int userId,
+        [FromQuery] bool? dismissed,
+        CancellationToken ct)
+    {
+        var q = _db.SpendingAnomalies.AsNoTracking().Where(a => a.UserId == userId);
+        if (dismissed.HasValue) q = q.Where(a => a.Dismissed == dismissed.Value);
+        var rows = await q.OrderByDescending(a => a.DetectedAt).ToListAsync(ct);
+        return Ok(rows);
+    }
+
+    [HttpPost("anomalies/{id:int}/dismiss")]
+    public async Task<IActionResult> DismissAnomaly(int id, CancellationToken ct)
+    {
+        var row = await _db.SpendingAnomalies.FirstOrDefaultAsync(a => a.AnomalyId == id, ct);
+        if (row is null) return NotFound();
+        row.Dismissed = true;
+        await _db.SaveChangesAsync(ct);
+        return NoContent();
     }
 
     private static (DateTime from, DateTime to) ResolveWindow(DateTime? from, DateTime? to)

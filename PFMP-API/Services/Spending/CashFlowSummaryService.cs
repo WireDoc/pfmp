@@ -55,6 +55,7 @@ public record SavingsAllotment(
 public record OutflowSection(
     IReadOnlyList<OutflowByCategory> ByPlaidPrimary,
     IReadOnlyList<InsurancePremium> InsurancePremiums,
+    IReadOnlyList<InsurancePremium> PaycheckDeductedInsurance,
     IReadOnlyList<ExternalAllotment> ExternalAllotments);
 
 public record OutflowByCategory(
@@ -225,8 +226,23 @@ public class CashFlowSummaryService : ICashFlowSummaryService
                 IsProfileOnly: true))
             .ToList();
 
-        var insurancePremiums = insurance
-            .Where(p => p.PremiumAmount.HasValue)
+        // Split insurance into two lists. Paycheck-deducted policies (FEHB,
+        // FEDVIP, FEGLI, employer-sponsored pre-tax health) are excluded from
+        // outflow totals because the salary's net amount already nets them out.
+        // They still appear as an informational section + in the AI prompt so
+        // the AI analyst can suggest plan changes without believing the user
+        // pays them twice.
+        var insurancePolicies = insurance.Where(p => p.PremiumAmount.HasValue).ToList();
+        var insurancePremiums = insurancePolicies
+            .Where(p => !p.IsPaycheckDeducted)
+            .Select(p => new InsurancePremium(
+                PolicyType: p.PolicyType,
+                PolicyName: p.PolicyName,
+                MonthlyAmount: NormalizePremiumToMonthly(p),
+                RenewalDate: p.RenewalDate))
+            .ToList();
+        var paycheckDeductedInsurance = insurancePolicies
+            .Where(p => p.IsPaycheckDeducted)
             .Select(p => new InsurancePremium(
                 PolicyType: p.PolicyType,
                 PolicyName: p.PolicyName,
@@ -295,7 +311,7 @@ public class CashFlowSummaryService : ICashFlowSummaryService
             TotalMonthlyOutflows: totalOutflow,
             NetMonthlyCashFlow: totalProfileInflow - totalOutflow,
             Inflows: new InflowSection(inflowsByType, savingsAllotments),
-            Outflows: new OutflowSection(outflowsByCategory, insurancePremiums, externalAllotments),
+            Outflows: new OutflowSection(outflowsByCategory, insurancePremiums, paycheckDeductedInsurance, externalAllotments),
             Variances: variances,
             AsOfUtc: asOf);
     }
