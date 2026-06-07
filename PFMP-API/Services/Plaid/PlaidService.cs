@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
 using PFMP_API.Models.FinancialProfile;
 using PFMP_API.Models.Plaid;
+using PFMP_API.Models.Spending;
 
 namespace PFMP_API.Services.Plaid
 {
@@ -44,6 +45,20 @@ namespace PFMP_API.Services.Plaid
         public int TransactionsModified { get; set; }
         public int TransactionsRemoved { get; set; }
         public bool HasMore { get; set; }
+        public int DurationMs { get; set; }
+        public string? ErrorMessage { get; set; }
+    }
+
+    /// <summary>
+    /// Wave 14 P3B: result of a Plaid recurring-transactions sync.
+    /// </summary>
+    public class RecurringSyncResult
+    {
+        public bool Success { get; set; }
+        public DateTime SyncedAt { get; set; } = DateTime.UtcNow;
+        public int StreamsAdded { get; set; }
+        public int StreamsUpdated { get; set; }
+        public int StreamsTombstoned { get; set; }
         public int DurationMs { get; set; }
         public string? ErrorMessage { get; set; }
     }
@@ -122,6 +137,14 @@ namespace PFMP_API.Services.Plaid
         /// Gets transactions for a connection with optional filtering.
         /// </summary>
         Task<List<CashTransaction>> GetConnectionTransactionsAsync(Guid connectionId, DateTime? startDate = null, DateTime? endDate = null, int? limit = null);
+
+        /// <summary>
+        /// Wave 14 P3B: syncs Plaid Recurring Transactions for a connection.
+        /// Upserts into <c>RecurringTransactionStreams</c> with <c>Source=PlaidRecurring</c>;
+        /// idempotent on <c>PlaidStreamId</c>. Tombstoned streams from Plaid surface
+        /// as <c>Status=Tombstoned, IsActive=false</c>.
+        /// </summary>
+        Task<RecurringSyncResult> SyncRecurringStreamsAsync(Guid connectionId);
     }
 
     /// <summary>
@@ -1038,5 +1061,165 @@ namespace PFMP_API.Services.Plaid
                 _ => "checking" // Default to checking
             };
         }
+
+        // ---------- Wave 14 P3B: Plaid Recurring Transactions sync ----------
+
+        public async Task<RecurringSyncResult> SyncRecurringStreamsAsync(Guid connectionId)
+        {
+            var startTime = DateTime.UtcNow;
+            var result = new RecurringSyncResult();
+
+            try
+            {
+                var connection = await _db.AccountConnections.FindAsync(connectionId);
+                if (connection == null) throw new ArgumentException($"Connection {connectionId} not found");
+                if (string.IsNullOrEmpty(connection.PlaidAccessToken))
+                    throw new InvalidOperationException("Connection has no access token");
+
+                var accessToken = _encryption.Decrypt(connection.PlaidAccessToken);
+                var request = new Going.Plaid.Transactions.TransactionsRecurringGetRequest
+                {
+                    ClientId = _options.ClientId,
+                    Secret = _options.Secret,
+                    AccessToken = accessToken,
+                };
+
+                var response = await _plaidClient.TransactionsRecurringGetAsync(request);
+
+                _logger.LogInformation(
+                    "Plaid recurring sync for {ConnectionId}: {Inflow} inflow + {Outflow} outflow streams",
+                    connectionId,
+                    response.InflowStreams?.Count ?? 0,
+                    response.OutflowStreams?.Count ?? 0);
+
+                var existing = await _db.RecurringTransactionStreams
+                    .Where(r => r.UserId == connection.UserId && r.Source == RecurringStreamSource.PlaidRecurring)
+                    .ToDictionaryAsync(r => r.PlaidStreamId!);
+
+                var seenStreamIds = new HashSet<string>();
+
+                var allStreams = new List<(Going.Plaid.Entity.TransactionStream Stream, RecurringStreamDirection Direction)>();
+                if (response.InflowStreams != null)
+                    allStreams.AddRange(response.InflowStreams.Select(s => (s, RecurringStreamDirection.Inflow)));
+                if (response.OutflowStreams != null)
+                    allStreams.AddRange(response.OutflowStreams.Select(s => (s, RecurringStreamDirection.Outflow)));
+
+                var now = DateTime.UtcNow;
+                foreach (var (stream, direction) in allStreams)
+                {
+                    if (string.IsNullOrEmpty(stream.StreamId)) continue;
+                    seenStreamIds.Add(stream.StreamId);
+
+                    var status = MapPlaidStatus(stream.Status);
+                    var freq = MapPlaidFrequency(stream.Frequency);
+                    var avgAmount = (decimal)(stream.AverageAmount?.Amount ?? 0);
+                    var lastAmount = (decimal)(stream.LastAmount?.Amount ?? 0);
+
+                    if (existing.TryGetValue(stream.StreamId, out var row))
+                    {
+                        row.MerchantName = stream.MerchantName ?? row.MerchantName;
+                        row.Description = stream.Description;
+                        row.Direction = direction;
+                        row.AverageAmount = Math.Abs(avgAmount);
+                        row.LastAmount = Math.Abs(lastAmount);
+                        row.Frequency = freq;
+                        row.LastDate = stream.LastDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+                        row.NextExpectedDate = NextExpected(row.LastDate, freq);
+                        row.IsActive = stream.IsActive;
+                        row.Status = status;
+                        row.PlaidCategory = stream.PersonalFinanceCategory?.Primary;
+                        row.PlaidCategoryDetailed = stream.PersonalFinanceCategory?.Detailed;
+                        row.DateUpdated = now;
+                        result.StreamsUpdated++;
+                    }
+                    else
+                    {
+                        _db.RecurringTransactionStreams.Add(new RecurringTransactionStream
+                        {
+                            UserId = connection.UserId,
+                            Source = RecurringStreamSource.PlaidRecurring,
+                            PlaidStreamId = stream.StreamId,
+                            MerchantName = stream.MerchantName ?? stream.Description ?? "(unknown)",
+                            Description = stream.Description,
+                            Direction = direction,
+                            AverageAmount = Math.Abs(avgAmount),
+                            LastAmount = Math.Abs(lastAmount),
+                            Frequency = freq,
+                            LastDate = stream.LastDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+                            NextExpectedDate = NextExpected(stream.LastDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc), freq),
+                            IsActive = stream.IsActive,
+                            Status = status,
+                            PlaidCategory = stream.PersonalFinanceCategory?.Primary,
+                            PlaidCategoryDetailed = stream.PersonalFinanceCategory?.Detailed,
+                            DateCreated = now,
+                            DateUpdated = now,
+                        });
+                        result.StreamsAdded++;
+                    }
+                }
+
+                // Plaid dropped any existing PlaidRecurring stream that isn't in the
+                // current response — mark it tombstoned so the dashboard hides it
+                // and the heuristic detector can re-take ownership if appropriate.
+                foreach (var (sid, row) in existing)
+                {
+                    if (seenStreamIds.Contains(sid)) continue;
+                    if (row.Status == RecurringStreamStatus.Tombstoned && !row.IsActive) continue;
+                    row.Status = RecurringStreamStatus.Tombstoned;
+                    row.IsActive = false;
+                    row.DateUpdated = now;
+                    result.StreamsTombstoned++;
+                }
+
+                await _db.SaveChangesAsync();
+                result.Success = true;
+                result.DurationMs = (int)(DateTime.UtcNow - startTime).TotalMilliseconds;
+            }
+            catch (Exception ex)
+            {
+                var innerMessage = ex.InnerException?.Message ?? ex.Message;
+                _logger.LogError(ex, "Plaid recurring sync failed for connection {ConnectionId}: {InnerError}", connectionId, innerMessage);
+                result.Success = false;
+                result.ErrorMessage = innerMessage;
+                result.DurationMs = (int)(DateTime.UtcNow - startTime).TotalMilliseconds;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Map Plaid's <c>TransactionStreamStatus</c> to PFMP's enum. Internal +
+        /// static so unit tests can lock in the mapping without spinning up Plaid.
+        /// </summary>
+        internal static RecurringStreamStatus MapPlaidStatus(Going.Plaid.Entity.TransactionStreamStatus status) => status switch
+        {
+            Going.Plaid.Entity.TransactionStreamStatus.Mature => RecurringStreamStatus.Mature,
+            Going.Plaid.Entity.TransactionStreamStatus.EarlyDetection => RecurringStreamStatus.EarlyDetection,
+            Going.Plaid.Entity.TransactionStreamStatus.Tombstoned => RecurringStreamStatus.Tombstoned,
+            // Going.Plaid 6.x doesn't expose UserModified in TransactionStreamStatus; if a
+            // future SDK adds it, we treat user-edited streams as Mature for our purposes.
+            _ => RecurringStreamStatus.EarlyDetection,
+        };
+
+        /// <summary>Map Plaid's <c>RecurringTransactionFrequency</c> to PFMP's enum.</summary>
+        internal static RecurringStreamFrequency MapPlaidFrequency(Going.Plaid.Entity.RecurringTransactionFrequency freq) => freq switch
+        {
+            Going.Plaid.Entity.RecurringTransactionFrequency.Weekly => RecurringStreamFrequency.Weekly,
+            Going.Plaid.Entity.RecurringTransactionFrequency.Biweekly => RecurringStreamFrequency.Biweekly,
+            Going.Plaid.Entity.RecurringTransactionFrequency.SemiMonthly => RecurringStreamFrequency.SemiMonthly,
+            Going.Plaid.Entity.RecurringTransactionFrequency.Monthly => RecurringStreamFrequency.Monthly,
+            Going.Plaid.Entity.RecurringTransactionFrequency.Annually => RecurringStreamFrequency.Annual,
+            _ => RecurringStreamFrequency.Unknown,
+        };
+
+        private static DateTime? NextExpected(DateTime lastDate, RecurringStreamFrequency freq) => freq switch
+        {
+            RecurringStreamFrequency.Weekly => lastDate.AddDays(7),
+            RecurringStreamFrequency.Biweekly => lastDate.AddDays(14),
+            RecurringStreamFrequency.SemiMonthly => lastDate.AddDays(15),
+            RecurringStreamFrequency.Monthly => lastDate.AddMonths(1),
+            RecurringStreamFrequency.Annual => lastDate.AddYears(1),
+            _ => null,
+        };
     }
 }

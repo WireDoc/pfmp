@@ -105,13 +105,30 @@ namespace PFMP_API.Jobs
                             if (txnResult.Success)
                             {
                                 _logger.LogDebug("Synced transactions for {ConnectionId}: +{Added} ~{Modified} -{Removed}",
-                                    connection.ConnectionId, txnResult.TransactionsAdded, 
+                                    connection.ConnectionId, txnResult.TransactionsAdded,
                                     txnResult.TransactionsModified, txnResult.TransactionsRemoved);
                             }
                             else
                             {
                                 _logger.LogWarning("Transaction sync failed for {ConnectionId}: {Error}",
                                     connection.ConnectionId, txnResult.ErrorMessage);
+                            }
+
+                            // Wave 14 P3B: pull Plaid Recurring Transactions for this connection.
+                            // The heuristic detector already defers to Plaid on same merchant +
+                            // direction + cadence, so refreshing this list lets the next rollup
+                            // job tombstone any heuristic duplicates.
+                            var recResult = await plaidService.SyncRecurringStreamsAsync(connection.ConnectionId);
+                            if (recResult.Success)
+                            {
+                                _logger.LogDebug(
+                                    "Synced Plaid recurring for {ConnectionId}: +{Added} ~{Updated} tombstoned={Tombstoned}",
+                                    connection.ConnectionId, recResult.StreamsAdded, recResult.StreamsUpdated, recResult.StreamsTombstoned);
+                            }
+                            else
+                            {
+                                _logger.LogWarning("Plaid recurring sync failed for {ConnectionId}: {Error}",
+                                    connection.ConnectionId, recResult.ErrorMessage);
                             }
                         }
                         else

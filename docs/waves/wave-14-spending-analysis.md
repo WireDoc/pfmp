@@ -1,7 +1,7 @@
 # Wave 14: Spending Analysis & Budgeting
 
 _Created: 2026-05-04_
-_Last updated: 2026-06-03 (P1 ✅, P2 ✅, P2.5 ✅, Insurance paycheck-deducted flag ✅, P3A ✅ — heuristic recurring + anomaly detection + spending alerts; P3B Plaid Recurring sync 📋, P4 📋)_
+_Last updated: 2026-06-07 (P1 ✅, P2 ✅, P2.5 ✅, Insurance paycheck-deducted flag ✅, P3A ✅, P3B ✅ Plaid Recurring sync; P4 📋)_
 _Status: P1 + P2 shipped; P2.5 design pending implementation; P3 + P4 still planned_
 
 ## Overview
@@ -416,10 +416,13 @@ Allotment row (when routing ≠ None) gains:
 - Tests: `AnomalyDetectionTests` (median + R-7 quartile + hand-computed deviation case), `HeuristicRecurringTests` (clustering + cadence inference bands), `SpendingControllerTests` extended (recurring direction filter, dismiss tombstone, anomaly dismiss isolation). Frontend Vitest panels for both new components. 35/35 backend, 49/49 frontend.
 - `InternalsVisibleTo PFMP-API.Tests` added to the API project so pure helpers can be unit-tested without making them `public`.
 
-**P3B (still planned)** — Plaid Recurring Transactions sync:
-- Extend `PlaidService` with `SyncRecurringTransactionsAsync(connectionId)` — populates `RecurringTransactionStream` rows where `Source = PlaidRecurring`
-- Heuristic detector already defers to Plaid for the same merchant + direction + cadence (tombstones the heuristic row on next pass); the Plaid sync just needs to land the upstream rows.
-- Idempotent on `PlaidStreamId`.
+**P3B (shipped 2026-06-07)** — Plaid Recurring Transactions sync:
+- `PlaidService.SyncRecurringStreamsAsync(connectionId)` calls Plaid's `/transactions/recurring/get` via Going.Plaid SDK (`_plaidClient.TransactionsRecurringGetAsync`) and upserts both `InflowStreams` + `OutflowStreams` into `RecurringTransactionStreams` with `Source=PlaidRecurring`. Idempotent on `PlaidStreamId`.
+- Frequency mapping: Weekly / Biweekly / SemiMonthly / Monthly / Annually → matching PFMP enum, with `Unknown` fallthrough. Status mapping: Mature / EarlyDetection / Tombstoned → matching PFMP enum. Both mappings are `internal static` helpers (`MapPlaidStatus`, `MapPlaidFrequency`) on `PlaidService` so they can be locked in via unit tests without spinning up Plaid — silent SDK enum drift between releases would otherwise corrupt the dashboard taxonomy.
+- Streams that disappear from Plaid's response on subsequent syncs are tombstoned + deactivated locally (not deleted) — preserves audit trail.
+- Wired into `PlaidSyncJob.SyncAccountsAsync` right after `SyncTransactionsAsync` so the daily 22:00 ET Plaid sweep refreshes recurring streams before the 22:15 ET `SpendingRollupJob` runs. The rollup job's heuristic pass then tombstones any heuristic duplicates that Plaid now covers (matching merchant + direction + cadence).
+- New endpoint `POST /api/spending/recurring/sync?connectionId=` triggers a one-off sync for development / manual refresh. Returns `{added, updated, tombstoned, durationMs}`.
+- Tests: `PlaidRecurringMappingTests` — table-driven coverage of all 3 Status + all 6 Frequency mappings (catches Going.Plaid SDK upgrades that silently rename enum values). 44/44 backend total.
 
 **Original spec (kept for reference)**:
 
@@ -507,7 +510,7 @@ Open questions to revisit before P3:
 - [x] **Phase 2.5 — Income Frequency Model** shipped 2026-05-29 (Weekly / Biweekly / Semimonthly / Monthly per stream + per-allotment slice with derived monthly captions; AI prompt receives both per-period and monthly figures)
 - [x] **Insurance paycheck-deducted flag** shipped 2026-06-03 (FEHB / FEDVIP / FEGLI and similar pre-tax health premiums split into informational section; excluded from cash-flow outflow totals; AI prompt annotates `[paycheck-deducted — already in net pay]` so the analyst still sees the cost without believing the user pays twice)
 - [x] **Phase 3A — Heuristic Recurring + Anomaly Detection + Alerts** shipped 2026-06-03 (services, rollup-job chain, 4 endpoints, RecurringStreamsPanel + AnomalyAlertsCard, 84 total tests passing)
-- [ ] **Phase 3B — Plaid Recurring Transactions sync** (extends `PlaidService`; idempotent on `PlaidStreamId`; Plaid wins on conflict)
+- [x] **Phase 3B — Plaid Recurring Transactions sync** shipped 2026-06-07 (`PlaidService.SyncRecurringStreamsAsync`, idempotent on `PlaidStreamId`, wired into `PlaidSyncJob`, manual-trigger endpoint, 9 new mapping tests = 44/44 backend)
 - [ ] **Phase 4 — AI Context + 90-Day Cash-Flow Forecast**
 - [ ] Backend test count growth meets target across services, rollup job, and controllers
 - [ ] Frontend test count growth meets target across spending dashboard, budget editor, recurring panel, anomaly card, and forecast chart

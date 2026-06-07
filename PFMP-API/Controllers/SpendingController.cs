@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using PFMP_API.Models.FinancialProfile;
 using PFMP_API.Models.Spending;
+using PFMP_API.Services.Plaid;
 using PFMP_API.Services.Spending;
 
 namespace PFMP_API.Controllers;
@@ -25,6 +26,7 @@ public class SpendingController : ControllerBase
     private readonly IHeuristicRecurringDetector _heuristic;
     private readonly IAnomalyDetectionService _anomalies;
     private readonly ISpendingAlertService _spendingAlerts;
+    private readonly IPlaidService _plaid;
     private readonly ApplicationDbContext _db;
     private readonly SpendingOptions _options;
     private readonly ILogger<SpendingController> _logger;
@@ -37,6 +39,7 @@ public class SpendingController : ControllerBase
         IHeuristicRecurringDetector heuristic,
         IAnomalyDetectionService anomalies,
         ISpendingAlertService spendingAlerts,
+        IPlaidService plaid,
         ApplicationDbContext db,
         IOptions<SpendingOptions> options,
         ILogger<SpendingController> logger)
@@ -48,6 +51,7 @@ public class SpendingController : ControllerBase
         _heuristic = heuristic;
         _anomalies = anomalies;
         _spendingAlerts = spendingAlerts;
+        _plaid = plaid;
         _db = db;
         _options = options.Value;
         _logger = logger;
@@ -224,6 +228,20 @@ public class SpendingController : ControllerBase
         }
         var rows = await q.OrderByDescending(r => r.LastDate).ToListAsync(ct);
         return Ok(rows);
+    }
+
+    [HttpPost("recurring/sync")]
+    public async Task<IActionResult> SyncRecurring([FromQuery, Required] Guid connectionId)
+    {
+        var result = await _plaid.SyncRecurringStreamsAsync(connectionId);
+        if (!result.Success) return StatusCode(502, new { error = result.ErrorMessage });
+        return Ok(new
+        {
+            added = result.StreamsAdded,
+            updated = result.StreamsUpdated,
+            tombstoned = result.StreamsTombstoned,
+            durationMs = result.DurationMs,
+        });
     }
 
     [HttpPost("recurring/{id:int}/dismiss")]
