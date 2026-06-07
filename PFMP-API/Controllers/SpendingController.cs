@@ -27,6 +27,7 @@ public class SpendingController : ControllerBase
     private readonly IAnomalyDetectionService _anomalies;
     private readonly ISpendingAlertService _spendingAlerts;
     private readonly IPlaidService _plaid;
+    private readonly ICashFlowForecastService _forecast;
     private readonly ApplicationDbContext _db;
     private readonly SpendingOptions _options;
     private readonly ILogger<SpendingController> _logger;
@@ -40,6 +41,7 @@ public class SpendingController : ControllerBase
         IAnomalyDetectionService anomalies,
         ISpendingAlertService spendingAlerts,
         IPlaidService plaid,
+        ICashFlowForecastService forecast,
         ApplicationDbContext db,
         IOptions<SpendingOptions> options,
         ILogger<SpendingController> logger)
@@ -52,6 +54,7 @@ public class SpendingController : ControllerBase
         _anomalies = anomalies;
         _spendingAlerts = spendingAlerts;
         _plaid = plaid;
+        _forecast = forecast;
         _db = db;
         _options = options.Value;
         _logger = logger;
@@ -254,6 +257,28 @@ public class SpendingController : ControllerBase
         row.DateUpdated = DateTime.UtcNow;
         await _db.SaveChangesAsync(ct);
         return NoContent();
+    }
+
+    // ----- P4: Forecast -----
+
+    [HttpGet("forecast")]
+    public async Task<ActionResult<CashFlowForecast>> GetForecast(
+        [FromQuery, Required] int userId,
+        [FromQuery] int horizonDays = 90,
+        CancellationToken ct = default)
+    {
+        var result = await _forecast.ForecastAsync(userId, horizonDays, ct);
+        return Ok(result);
+    }
+
+    [HttpGet("forecast/recurring-impact")]
+    public async Task<ActionResult<RecurringImpactResponse>> GetForecastRecurringImpact(
+        [FromQuery, Required] int userId,
+        [FromQuery] int horizonDays = 90,
+        CancellationToken ct = default)
+    {
+        var result = await _forecast.RecurringImpactAsync(userId, horizonDays, ct);
+        return Ok(result);
     }
 
     // ----- P3: Anomalies -----

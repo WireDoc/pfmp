@@ -210,6 +210,8 @@ namespace PFMP_API
             builder.Services.AddScoped<PFMP_API.Services.Spending.IHeuristicRecurringDetector, PFMP_API.Services.Spending.HeuristicRecurringDetector>();
             builder.Services.AddScoped<PFMP_API.Services.Spending.IAnomalyDetectionService, PFMP_API.Services.Spending.AnomalyDetectionService>();
             builder.Services.AddScoped<PFMP_API.Services.Spending.ISpendingAlertService, PFMP_API.Services.Spending.SpendingAlertService>();
+            // Wave 14 P4 — 90-day cash-flow forecast
+            builder.Services.AddScoped<PFMP_API.Services.Spending.ICashFlowForecastService, PFMP_API.Services.Spending.CashFlowForecastService>();
             builder.Services.AddScoped<PFMP_API.Jobs.SpendingRollupJob>();
 
             // Add Authentication Services

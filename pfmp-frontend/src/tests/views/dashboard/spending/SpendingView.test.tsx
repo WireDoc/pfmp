@@ -57,6 +57,17 @@ beforeEach(() => {
     http.get(/\/api\/spending\/transactions/, () => HttpResponse.json([])),
     http.get(/\/api\/spending\/recurring/, () => HttpResponse.json([])),
     http.get(/\/api\/spending\/anomalies/, () => HttpResponse.json([])),
+    http.get(/\/api\/spending\/forecast/, () => HttpResponse.json({
+      startDate: '2026-06-08T00:00:00Z',
+      endDate: '2026-09-06T00:00:00Z',
+      horizonDays: 90,
+      startingBalance: 0,
+      historicalDailyStdDev: 0,
+      days: [],
+      recurringContributions: [],
+      avgDailyDiscretionary: 0,
+      asOfUtc: '2026-06-07T12:00:00Z',
+    })),
   );
 });
 
@@ -84,5 +95,7 @@ describe('SpendingView', () => {
     // P3: RecurringStreamsPanel + AnomalyAlertsCard
     expect(screen.getByText('Recurring Streams')).toBeInTheDocument();
     expect(screen.getByText('Spending Anomalies')).toBeInTheDocument();
+    // P4: CashFlowForecastChart
+    expect(screen.getByText('Cash-Flow Forecast')).toBeInTheDocument();
   });
 });

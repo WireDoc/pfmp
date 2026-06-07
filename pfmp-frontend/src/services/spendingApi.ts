@@ -231,6 +231,66 @@ export async function dismissAnomaly(anomalyId: number): Promise<void> {
   await apiClient.post(`/spending/anomalies/${anomalyId}/dismiss`);
 }
 
+// ---------- P4: Cash-flow forecast ----------
+
+export interface ForecastEvent {
+  kind: 'RecurringIn' | 'RecurringOut' | 'Liability' | 'Discretionary';
+  label: string;
+  amount: number;
+}
+
+export interface ForecastDay {
+  date: string;
+  lowerBalance: number;
+  projectedBalance: number;
+  upperBalance: number;
+  expectedNetFlow: number;
+  events: ForecastEvent[];
+}
+
+export interface RecurringContribution {
+  streamId: number;
+  merchantName: string;
+  direction: 'Inflow' | 'Outflow';
+  frequency: string;
+  source: 'PlaidRecurring' | 'Heuristic';
+  monthlyAverage: number;
+  horizonContribution: number;
+}
+
+export interface CashFlowForecast {
+  startDate: string;
+  endDate: string;
+  horizonDays: number;
+  startingBalance: number;
+  historicalDailyStdDev: number;
+  days: ForecastDay[];
+  recurringContributions: RecurringContribution[];
+  avgDailyDiscretionary: number;
+  asOfUtc: string;
+}
+
+export interface RecurringImpactResponse {
+  horizonDays: number;
+  totalHorizonInflow: number;
+  totalHorizonOutflow: number;
+  contributions: RecurringContribution[];
+}
+
+export async function getCashFlowForecast(userId: number, horizonDays = 90): Promise<CashFlowForecast> {
+  const { data } = await apiClient.get<CashFlowForecast>('/spending/forecast', {
+    params: { userId, horizonDays },
+  });
+  return data;
+}
+
+export async function getForecastRecurringImpact(userId: number, horizonDays = 90): Promise<RecurringImpactResponse> {
+  const { data } = await apiClient.get<RecurringImpactResponse>('/spending/forecast/recurring-impact', {
+    params: { userId, horizonDays },
+  });
+  return data;
+}
+
 // ---------- Recompute ----------
 
 export interface RecomputeResponse {

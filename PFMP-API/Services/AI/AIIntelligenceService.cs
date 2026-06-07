@@ -1288,6 +1288,138 @@ Your analysis will be reviewed by a backup AI system for validation.",
                 sb.AppendLine();
             }
 
+            // === SPENDING ACTUALS (Wave 14 P4) ===
+            // Capped at 6 months × top 10 Plaid-primary categories + top 5 recurring
+            // outflows + top 3 unresolved anomalies. Internal transfers excluded
+            // (TRANSFER_*, LOAN_PAYMENTS_CREDIT_CARD_PAYMENT, PFMP Category="Transfer",
+            // "Transfer to/from" description prefixes).
+            {
+                var hasAnyBankConn = await _context.AccountConnections
+                    .AnyAsync(c => c.UserId == userId);
+                if (!hasAnyBankConn)
+                {
+                    sb.AppendLine("=== SPENDING ACTUALS ===");
+                    sb.AppendLine("Data shown is capped to the last 6 months and the top 10 Plaid-primary categories. Do not extrapolate beyond this window.");
+                    sb.AppendLine("None — no transaction data available.");
+                    sb.AppendLine();
+                }
+                else
+                {
+                    var now = DateTime.UtcNow;
+                    var windowStart = now.AddMonths(-6);
+
+                    var cashAcctIds = await _context.CashAccounts.Where(a => a.UserId == userId)
+                        .Select(a => a.CashAccountId).ToListAsync();
+                    var liabilityAcctIds = await _context.LiabilityAccounts.Where(l => l.UserId == userId)
+                        .Select(l => l.LiabilityAccountId).ToListAsync();
+                    var txs = await _context.CashTransactions
+                        .Where(t => t.TransactionDate >= windowStart && t.TransactionDate < now)
+                        .Where(t =>
+                            (t.CashAccountId != null && cashAcctIds.Contains(t.CashAccountId.Value)) ||
+                            (t.LiabilityAccountId != null && liabilityAcctIds.Contains(t.LiabilityAccountId.Value)))
+                        .ToListAsync();
+
+                    // Drop internal transfers (taxonomy mirrors SpendingAnalyticsService).
+                    var internalDetailed = new HashSet<string>(new[]
+                    {
+                        "LOAN_PAYMENTS_CREDIT_CARD_PAYMENT",
+                        "TRANSFER_IN_ACCOUNT_TRANSFER","TRANSFER_OUT_ACCOUNT_TRANSFER",
+                        "TRANSFER_IN_DEPOSIT","TRANSFER_OUT_WITHDRAWAL",
+                        "TRANSFER_IN_INVESTMENT_AND_RETIREMENT_FUNDS","TRANSFER_OUT_INVESTMENT_AND_RETIREMENT_FUNDS",
+                        "TRANSFER_IN_SAVINGS","TRANSFER_OUT_SAVINGS",
+                        "TRANSFER_IN_OTHER_TRANSFER_IN","TRANSFER_OUT_OTHER_TRANSFER_OUT",
+                    }, StringComparer.OrdinalIgnoreCase);
+                    bool IsInternal(Models.CashTransaction t)
+                    {
+                        if (!string.IsNullOrEmpty(t.PlaidCategoryDetailed) && internalDetailed.Contains(t.PlaidCategoryDetailed)) return true;
+                        if (!string.IsNullOrEmpty(t.Category) && t.Category.Equals("Transfer", StringComparison.OrdinalIgnoreCase)) return true;
+                        if (!string.IsNullOrEmpty(t.Description)
+                            && (t.Description.StartsWith("Transfer to ", StringComparison.OrdinalIgnoreCase)
+                                || t.Description.StartsWith("Transfer from ", StringComparison.OrdinalIgnoreCase))) return true;
+                        return false;
+                    }
+                    var clean = txs.Where(t => !IsInternal(t)).ToList();
+
+                    sb.AppendLine("=== SPENDING ACTUALS ===");
+                    sb.AppendLine("Data shown is capped to the last 6 months and the top 10 Plaid-primary categories. Do not extrapolate beyond this window.");
+
+                    if (clean.Count == 0)
+                    {
+                        sb.AppendLine("None — no transaction data available.");
+                        sb.AppendLine();
+                    }
+                    else
+                    {
+                        // Per-month totals
+                        var monthly = clean
+                            .GroupBy(t => new { t.TransactionDate.Year, t.TransactionDate.Month })
+                            .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month)
+                            .Select(g => new
+                            {
+                                Label = $"{g.Key.Year}-{g.Key.Month:D2}",
+                                In = g.Where(t => t.Amount > 0).Sum(t => t.Amount),
+                                Out = g.Where(t => t.Amount < 0).Sum(t => -t.Amount),
+                            })
+                            .ToList();
+                        sb.AppendLine("Monthly totals (last 6 months):");
+                        foreach (var m in monthly)
+                        {
+                            sb.AppendLine($"• {m.Label}: in ${m.In:N0} / out ${m.Out:N0} / net ${m.In - m.Out:N0}");
+                        }
+
+                        // Top 10 Plaid primary categories by spend
+                        var topCats = clean
+                            .Where(t => t.Amount < 0 && !string.IsNullOrEmpty(t.PlaidCategory))
+                            .GroupBy(t => t.PlaidCategory!)
+                            .Select(g => new { Cat = g.Key, Total = g.Sum(t => -t.Amount), Count = g.Count() })
+                            .OrderByDescending(c => c.Total)
+                            .Take(10)
+                            .ToList();
+                        if (topCats.Count > 0)
+                        {
+                            sb.AppendLine("Top categories (6-month total):");
+                            foreach (var c in topCats)
+                            {
+                                var monthlyAvg = c.Total / 6m;
+                                sb.AppendLine($"• {c.Cat}: ${c.Total:N0} total / ${monthlyAvg:N0}/mo avg ({c.Count} tx)");
+                            }
+                        }
+
+                        // Top 5 recurring outflows
+                        var recurring = await _context.RecurringTransactionStreams
+                            .Where(r => r.UserId == userId && r.IsActive && r.Direction == Models.Spending.RecurringStreamDirection.Outflow)
+                            .OrderByDescending(r => r.AverageAmount)
+                            .Take(5)
+                            .ToListAsync();
+                        if (recurring.Count > 0)
+                        {
+                            sb.AppendLine("Top recurring outflows:");
+                            foreach (var r in recurring)
+                            {
+                                sb.AppendLine($"• {r.MerchantName} | {r.Frequency} | ${r.AverageAmount:N2}/payment | {r.Source}");
+                            }
+                        }
+
+                        // Top 3 unresolved anomalies
+                        var anomalies = await _context.SpendingAnomalies
+                            .Where(a => a.UserId == userId && !a.Dismissed)
+                            .OrderByDescending(a => a.DeviationMultiple)
+                            .Take(3)
+                            .ToListAsync();
+                        if (anomalies.Count > 0)
+                        {
+                            sb.AppendLine("Recent anomalies (unresolved):");
+                            foreach (var a in anomalies)
+                            {
+                                sb.AppendLine($"• {a.PlaidPrimaryCategory}: ${a.Amount:N2} ({a.DeviationMultiple:N1}× IQR, median ${a.CategoryMedian:N2})");
+                            }
+                        }
+
+                        sb.AppendLine();
+                    }
+                }
+            }
+
             // === LIQUIDITY BUFFER ANALYSIS (Wave 16 §8.5) ===
             // Subtract guaranteed monthly income (VA disability, in-payment pension/SS, or explicit IsGuaranteed)
             // from required cash buffer math. Salary and rental are NEVER counted -- the buffer exists to

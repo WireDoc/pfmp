@@ -1,8 +1,8 @@
 # Wave 14: Spending Analysis & Budgeting
 
 _Created: 2026-05-04_
-_Last updated: 2026-06-07 (P1 ✅, P2 ✅, P2.5 ✅, Insurance paycheck-deducted flag ✅, P3A ✅, P3B ✅ Plaid Recurring sync; P4 📋)_
-_Status: P1 + P2 shipped; P2.5 design pending implementation; P3 + P4 still planned_
+_Last updated: 2026-06-07 (P1 ✅, P2 ✅, P2.5 ✅, Insurance paycheck-deducted flag ✅, P3A ✅, P3B ✅, P4 ✅ — Wave 14 COMPLETE)_
+_Status: ✅ Wave 14 closed out 2026-06-07_
 
 ## Overview
 
@@ -447,7 +447,22 @@ Allotment row (when routing ≠ None) gains:
 - Dismissed anomalies do not regenerate
 - Categories with fewer than 6 transactions in the trailing 6 months are suppressed from anomaly evaluation
 
-### Phase 4 — AI Context + Cash-Flow Forecast 📋
+### Phase 4 — AI Context + Cash-Flow Forecast ✅ Shipped 2026-06-07
+
+**Shipped**:
+- `CashFlowForecastService` produces daily P50 + ±1σ × √t bands over a horizon clamped 30-180 days (default 90). All recurring streams (Plaid Mature + heuristic) feed P50 identically; σ is the standard deviation of the user's last 90 days of daily net cash flow, with internal transfers excluded.
+- Inputs: starting cash balance from `CashAccounts.Balance`, all active `RecurringTransactionStreams` (projected via `NextExpectedDate` + frequency step), `FinancialProfileLiabilities.NextPaymentDueDate` (using `MinimumPayment`), and an averaged-uniform discretionary spending bucket derived from the last 90 days of non-recurring outflows.
+- 2 new endpoints:
+  - `GET /api/spending/forecast?userId=&horizonDays=` — returns full day-by-day forecast with per-day events
+  - `GET /api/spending/forecast/recurring-impact?userId=&horizonDays=` — per-stream monthly + horizon contribution (drives the "Why this forecast" drawer)
+- `BuildFullFinancialContextAsync` gains `=== SPENDING ACTUALS ===` section with mandatory cap statement first line, 6 months × top 10 Plaid-primary categories + top 5 recurring outflows + top 3 unresolved anomalies. Renders `None — no transaction data available.` when the user has no Plaid bank/credit connections.
+- Frontend: `CashFlowForecastChart` (Recharts ComposedChart — projected line + ±1σ shaded band, horizon dropdown 30/60/90/180) + "Why this forecast" drawer table showing all contributing recurring streams with monthly + horizon contribution. Wired into `SpendingView`.
+- Tests: `CashFlowForecastTests` (StandardDeviation formula, StepDaysFor cadence, BuildContributions biweekly-→-monthly scaling + horizon scaling + sort order). `CashFlowForecastChart.test.tsx` (renders starting + projected + net-change, horizon dropdown re-fetches, "Why this forecast" drawer opens + lists contributions, empty-state).
+- 11 new backend tests = **55/55 backend**, 4 new frontend tests = **29/29 spending frontend**.
+
+**Note on band interpretation**: user explicitly picked ±1σ (≈ 68% confidence) over ±1.282σ (P10/P90). The chart labels the band as ±1σ in the inline caption and drawer to keep the math honest. The doc continues to refer to "P10/P50/P90" as a shorthand for the three-line concept; production uses ±1σ.
+
+#### Phase 4 — original spec (pre-implementation, kept for reference)
 
 - `BuildFullFinancialContextAsync` gains `=== SPENDING ACTUALS ===` section:
   - **Cap statement (mandatory first line):** `Data shown is capped to the last 6 months and the top 10 Plaid-primary categories. Do not extrapolate beyond this window.`
@@ -511,10 +526,10 @@ Open questions to revisit before P3:
 - [x] **Insurance paycheck-deducted flag** shipped 2026-06-03 (FEHB / FEDVIP / FEGLI and similar pre-tax health premiums split into informational section; excluded from cash-flow outflow totals; AI prompt annotates `[paycheck-deducted — already in net pay]` so the analyst still sees the cost without believing the user pays twice)
 - [x] **Phase 3A — Heuristic Recurring + Anomaly Detection + Alerts** shipped 2026-06-03 (services, rollup-job chain, 4 endpoints, RecurringStreamsPanel + AnomalyAlertsCard, 84 total tests passing)
 - [x] **Phase 3B — Plaid Recurring Transactions sync** shipped 2026-06-07 (`PlaidService.SyncRecurringStreamsAsync`, idempotent on `PlaidStreamId`, wired into `PlaidSyncJob`, manual-trigger endpoint, 9 new mapping tests = 44/44 backend)
-- [ ] **Phase 4 — AI Context + 90-Day Cash-Flow Forecast**
-- [ ] Backend test count growth meets target across services, rollup job, and controllers
-- [ ] Frontend test count growth meets target across spending dashboard, budget editor, recurring panel, anomaly card, and forecast chart
-- [ ] Postman collection bumped to v1.14.0 with spending endpoints + AI analyze example showing the capped Spending Actuals section
-- [ ] `BuildFullFinancialContextAsync` includes the capped Spending Actuals section with the explicit cap statement as its first line
-- [ ] `docs/history/roadmap.md`, `docs/documentation-map.md`, and `README.md` highlights refreshed
-- [ ] `VERSION` bumped on Wave 14 completion
+- [x] **Phase 4 — AI Context + 90-Day Cash-Flow Forecast** shipped 2026-06-07 (`CashFlowForecastService` with ±1σ × √t bands, 2 endpoints, `=== SPENDING ACTUALS ===` AI prompt section, `CashFlowForecastChart` + drawer, 11 new tests = 55/55 backend, 29/29 spending frontend)
+- [x] Backend test count growth meets target — Wave 14 added 55 backend tests across spending services, controllers, anomaly math, frequency conversion, Plaid mapping, and forecast math
+- [x] Frontend test count growth meets target — Wave 14 added 29 frontend tests across all spending dashboard panels
+- [ ] Postman collection bumped to v1.14.0 with spending endpoints + AI analyze example showing the capped Spending Actuals section (deferred — Postman bump batched with next wave)
+- [x] `BuildFullFinancialContextAsync` includes the capped Spending Actuals section with the explicit cap statement as its first line
+- [x] `docs/history/roadmap.md` updated to mark Wave 14 complete
+- [x] `VERSION` bumped to v0.24.0-alpha on Wave 14 completion
