@@ -107,6 +107,22 @@ function stubMockDashboardService(overrides?: Partial<DashboardService>) {
 
 beforeEach(() => {
   __resetDashboardServiceForTest();
+  // Wave 14: CashFlowWidget on main dashboard now sources the same
+  // /api/spending/cash-flow-summary endpoint that /dashboard/spending uses.
+  // Register here (not just in renderDashboardWithRealData) so both render
+  // paths have a handler — otherwise MSW errors on unhandled requests
+  // cascade into a widget render failure.
+  mswServer.use(
+    http.get(/\/api\/spending\/cash-flow-summary/, () => HttpResponse.json({
+      totalMonthlyInflows: 0,
+      totalMonthlyOutflows: 0,
+      netMonthlyCashFlow: 0,
+      inflows: { byIncomeType: [], savingsAllotments: [] },
+      outflows: { byPlaidPrimary: [], insurancePremiums: [], paycheckDeductedInsurance: [], externalAllotments: [] },
+      variances: [],
+      asOfUtc: '2026-06-07T12:00:00Z',
+    })),
+  );
 });
 
 afterEach(() => {
