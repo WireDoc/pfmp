@@ -662,62 +662,13 @@ public class DashboardController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Monthly cash flow summary from IncomeSources and ExpenseBudgets.
-    /// Returns total income, total expenses, net surplus/deficit, and per-category breakdowns.
-    /// </summary>
-    [HttpGet("cash-flow-summary")]
-    public async Task<ActionResult<object>> GetCashFlowSummary([FromQuery] int? userId = null)
-    {
-        try
-        {
-            var effectiveUserId = userId ?? 1;
-
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == effectiveUserId);
-            if (user == null) return NotFound(new { message = "User not found" });
-
-            var income = await _context.IncomeSources
-                .Where(i => i.UserId == effectiveUserId && i.IsActive)
-                .ToListAsync();
-            var expenses = await _context.ExpenseBudgets
-                .Where(e => e.UserId == effectiveUserId)
-                .ToListAsync();
-
-            var totalMonthlyIncome = income.Sum(i => i.MonthlyAmount);
-            var totalMonthlyExpenses = expenses.Sum(e => e.MonthlyAmount);
-            var netCashFlow = totalMonthlyIncome - totalMonthlyExpenses;
-
-            var incomeByType = income
-                .GroupBy(i => i.Type.ToString())
-                .Select(g => new { category = g.Key, monthlyAmount = g.Sum(i => i.MonthlyAmount) })
-                .OrderByDescending(x => x.monthlyAmount)
-                .ToList();
-
-            var expensesByCategory = expenses
-                .GroupBy(e => e.Category)
-                .Select(g => new { category = g.Key, monthlyAmount = g.Sum(e => e.MonthlyAmount) })
-                .OrderByDescending(x => x.monthlyAmount)
-                .ToList();
-
-            return Ok(new
-            {
-                totalMonthlyIncome,
-                totalMonthlyExpenses,
-                netCashFlow,
-                savingsRate = totalMonthlyIncome > 0
-                    ? Math.Round((double)(netCashFlow / totalMonthlyIncome) * 100, 1)
-                    : 0,
-                incomeBreakdown = incomeByType,
-                expenseBreakdown = expensesByCategory,
-                computedAt = DateTime.UtcNow
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error computing cash flow summary for user {UserId}", userId);
-            return StatusCode(500, new { message = "Internal server error computing cash flow summary" });
-        }
-    }
+    // GET /api/dashboard/cash-flow-summary — removed 2026-06-09.
+    // Superseded by Wave 14's GET /api/spending/cash-flow-summary, which is what
+    // both /dashboard/spending's CashFlowSummaryCard and the main /dashboard's
+    // CashFlowWidget now consume. The old endpoint summed IncomeSources +
+    // ExpenseBudgets directly and knew nothing about allotments, basis (gross
+    // vs net), paycheck-deducted insurance, or internal-transfer exclusion —
+    // so its numbers drifted from what users saw on the Spending page.
 
     /// <summary>
     /// Upcoming obligations — next N obligations by target date with funding progress.

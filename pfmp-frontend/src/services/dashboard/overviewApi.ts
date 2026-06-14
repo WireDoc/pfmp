@@ -39,20 +39,10 @@ export interface HealthScoreData {
   computedAt: string;
 }
 
-export interface CashFlowCategory {
-  category: string;
-  monthlyAmount: number;
-}
-
-export interface CashFlowData {
-  totalMonthlyIncome: number;
-  totalMonthlyExpenses: number;
-  netCashFlow: number;
-  savingsRate: number;
-  incomeBreakdown: CashFlowCategory[];
-  expenseBreakdown: CashFlowCategory[];
-  computedAt: string;
-}
+// CashFlowCategory / CashFlowData removed 2026-06-09. The legacy
+// /api/dashboard/cash-flow-summary endpoint was retired; the main
+// dashboard's CashFlowWidget now uses the Wave 14 spendingApi.getCashFlowSummary
+// shape (CashFlowSummary in services/spendingApi.ts).
 
 export interface UpcomingObligation {
   id: number;
@@ -80,12 +70,7 @@ export async function fetchHealthScore(): Promise<HealthScoreData> {
   return resp.json();
 }
 
-export async function fetchCashFlowSummary(): Promise<CashFlowData> {
-  const userId = getEffectiveUserId();
-  const resp = await fetch(`${DASHBOARD_BASE}/cash-flow-summary?userId=${encodeURIComponent(userId)}`);
-  if (!resp.ok) throw new Error(`Failed to fetch cash flow summary (${resp.status})`);
-  return resp.json();
-}
+// fetchCashFlowSummary removed 2026-06-09 — see CashFlowData comment above.
 
 export async function fetchUpcomingObligations(count = 3): Promise<UpcomingObligationsData> {
   const userId = getEffectiveUserId();

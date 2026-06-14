@@ -77,37 +77,10 @@ public class DashboardControllerTests : IClassFixture<TestingWebAppFactory>
         Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
     }
 
-    // --- Cash Flow Summary ---
-
-    [Fact]
-    public async Task GetCashFlowSummary_ReturnsOk_WithValidUserId()
-    {
-        var client = _factory.CreateClient();
-        var createResp = await client.PostAsync("/api/admin/users/test?scenario=done", null);
-        Assert.Equal(HttpStatusCode.Created, createResp.StatusCode);
-        var user = await createResp.Content.ReadFromJsonAsync<UserAdminControllerTests.UserDto>();
-        Assert.NotNull(user);
-
-        var resp = await client.GetAsync($"/api/dashboard/cash-flow-summary?userId={user!.UserId}");
-        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
-
-        var json = await resp.Content.ReadAsStringAsync();
-        using var doc = JsonDocument.Parse(json);
-        Assert.True(doc.RootElement.TryGetProperty("totalMonthlyIncome", out _));
-        Assert.True(doc.RootElement.TryGetProperty("totalMonthlyExpenses", out _));
-        Assert.True(doc.RootElement.TryGetProperty("netCashFlow", out _));
-        Assert.True(doc.RootElement.TryGetProperty("savingsRate", out _));
-        Assert.True(doc.RootElement.TryGetProperty("incomeBreakdown", out _));
-        Assert.True(doc.RootElement.TryGetProperty("expenseBreakdown", out _));
-    }
-
-    [Fact]
-    public async Task GetCashFlowSummary_ReturnsNotFound_WithInvalidUserId()
-    {
-        var client = _factory.CreateClient();
-        var resp = await client.GetAsync("/api/dashboard/cash-flow-summary?userId=999999");
-        Assert.Equal(HttpStatusCode.NotFound, resp.StatusCode);
-    }
+    // --- Cash Flow Summary tests removed 2026-06-09 along with the underlying
+    //     /api/dashboard/cash-flow-summary endpoint. Wave 14's
+    //     /api/spending/cash-flow-summary supersedes it; see
+    //     PFMP-API.Tests/SpendingControllerTests.cs for current coverage.
 
     // --- Upcoming Obligations ---
 
