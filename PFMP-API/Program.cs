@@ -67,7 +67,28 @@ namespace PFMP_API
                     "Verifier"));
 
             builder.Services.AddScoped<PFMP_API.Services.AI.ConsensusEngine>();
-            builder.Services.AddScoped<PFMP_API.Services.AI.IDualAIAdvisor, PFMP_API.Services.AI.PrimaryBackupAIAdvisor>();
+
+            // Register both advisors as concrete types so the Wave 22 spike controller
+            // can invoke each directly for side-by-side comparison without restarting.
+            builder.Services.AddScoped<PFMP_API.Services.AI.PrimaryBackupAIAdvisor>();
+            builder.Services.AddScoped<PFMP_API.Services.AI.FusionAIAdvisor>();
+
+            // Wave 22 Phase A — Fusion spike feature flag. When AI:OpenRouter:Fusion:Enabled=true,
+            // production IDualAIAdvisor routes through openrouter/fusion. Default false so the
+            // dashboard analyze path keeps the Primary→Verifier flow until the spike decides.
+            var fusionEnabled = builder.Configuration
+                .GetValue<bool>("AI:OpenRouter:Fusion:Enabled");
+            if (fusionEnabled)
+            {
+                builder.Services.AddScoped<PFMP_API.Services.AI.IDualAIAdvisor>(sp =>
+                    sp.GetRequiredService<PFMP_API.Services.AI.FusionAIAdvisor>());
+            }
+            else
+            {
+                builder.Services.AddScoped<PFMP_API.Services.AI.IDualAIAdvisor>(sp =>
+                    sp.GetRequiredService<PFMP_API.Services.AI.PrimaryBackupAIAdvisor>());
+            }
+
             builder.Services.AddScoped<PFMP_API.Services.AI.IAIMemoryService, PFMP_API.Services.AI.AIMemoryService>();
             builder.Services.AddScoped<PFMP_API.Services.AI.IAIIntelligenceService, PFMP_API.Services.AI.AIIntelligenceService>();
 

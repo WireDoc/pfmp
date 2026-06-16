@@ -1,9 +1,33 @@
 # Wave 22 — AI Architecture Overhaul (Fusion Spike + Admin UI + Model Aliases + News Slot)
 
-**Status:** 📋 Planned (drafted 2026-06-16)
+**Status:** 🟡 In progress (Phase A complete with rollback verdict; Phases C/D/E/F proceed)
 **Owner:** Solo project; user is sole customer
 **Predecessors:** Wave 16 (OpenRouter rewire), Wave 14 (Spending Analysis — provides the prompt's SPENDING ACTUALS section)
 **Successors blocked on this wave:** AI Chatbot with Memory (needs `ChatModel` slot properly wired); News Aggregator (needs `NewsModel` slot); future Market Context Awareness (needs web-search aware AI)
+
+---
+
+## Phase A outcome (recorded 2026-06-16)
+
+**Verdict: ROLLBACK.** Do not adopt Fusion for the routine analyze path.
+
+**Measured cost ratio**: 21.6× (Fusion at `general-high` preset + Sonnet judge override = **$2.305** per cash analysis vs. baseline Primary→Verifier = **$0.107**). Well past the user's 3× rollback threshold.
+
+**Measured latency ratio**: 5.3× (Fusion 463s vs. baseline 88s wall time). Fusion was slower, not faster — panel members made ~5 web search/fetch tool calls each, adding latency without the cost-equivalent quality lift.
+
+**Quality delta**: Fusion's output was meaningfully better (~20–30% richer) with 3 unique insights baseline missed (T-bill/state-tax exemption, HDHP/HSA at Open Season, deeper crypto custody framing). Instruction-following was inconsistent — Fusion nailed the Ally preference baseline's Primary violated, but missed the crypto "Reserved for bot investing" purpose statement. Of the 3 Fusion-unique insights, only 1 (HDHP/HSA) was actionable for the user; the T-bill recommendation trades down on liquidity and the crypto suggestion misread intent.
+
+**Web search did genuine work**: Fusion flagged a real ~$800 discrepancy between PFMP's stored brokerage value ($103,323) and live market prices ($102,545). Root cause: PriceRefreshJob runs at 10 PM ET, leaving the 6-hour post-close window (4 PM – 10 PM ET) using prior-day prices. Tracked as a separate small enhancement (move job to ~4:30 PM ET).
+
+**OpenRouter `usage.cost` aggregation bug**: For Fusion responses, the response-level `usage.cost` field reports only one underlying completion's cost (~$0.96 of the $2.30 total in this run, matching the Opus 4.8 panelist line). `FusionAIAdvisor.ParseFusionResponse` reads this field and therefore underreports actual Fusion cost by ~2.4×. Documented in code; aggregation fix deferred unless Fusion is revived as a Deep Dive feature.
+
+**Dormant code kept (not deleted)**: `FusionAIAdvisor.cs`, `AISpikeController.cs`, `OpenRouterOptions.FusionOptions`, `appsettings.AI.OpenRouter.Fusion` (Enabled: false). ~350 LOC total, low maintenance cost, available as scaffolding for a future "Deep Dive" opt-in feature (e.g., quarterly year-end planning at ~$2.30/run × 4/yr = ~$10/yr — defensible cadence).
+
+**Full report**: `docs/temp_fusion_spike_report.log` (gitignored — local-only scratch).
+
+**Total spike spend**: $2.41 (one baseline call + one Fusion call; runs 3c and 4 skipped as data was conclusive).
+
+---
 
 ---
 
@@ -182,20 +206,15 @@ All three slots configurable via admin UI; all use the `~provider/model-latest` 
 | Fusion cost ≥ 2.5× without obvious quality win | **Roll back** — keep current architecture, proceed with admin UI + aliases only (Phase C/D), skip Phase B |
 | Fusion quality worse | **Roll back** unconditionally |
 
-### Phase B — Full Fusion adoption (conditional on Phase A pass)
+### Phase B — Full Fusion adoption ❌ CANCELED
 
-If Phase A passes:
+Phase A failed the cost gate (21.6× vs. the 3× rollback threshold). Phase B is canceled.
+Primary→Verifier flow remains the production analyze path; `ConsensusEngine` and
+`PrimaryBackupAIAdvisor` keep running unchanged.
 
-1. Delete `PrimaryBackupAIAdvisor.cs` and `ConsensusEngine.cs`.
-2. Reshape `ConsensusResult` (or replace with `FusionAnalysisResult`) to expose the structured fields directly: `Consensus`, `Contradictions`, `PartialCoverage`, `UniqueInsights`, `BlindSpots`, `PanelistRecommendations[]`, `JudgeReasoning`.
-3. Update `AIIntelligenceController` action methods to return the new shape.
-4. **Frontend refactor** (the bulk of the work):
-   - Replace any UI consuming `PrimaryRecommendation` / `BackupCorroboration` with components rendering the 5 JSON fields.
-   - Add a "Blind spots" callout panel — this is the unique-value field, deserves prominent treatment.
-   - Add a "Contradictions" disclosure for when the panel disagrees.
-   - Wire `PanelistRecommendations[]` into an expandable "Individual model takes" section.
-5. Update `AIIntelligenceService.cs` system prompt to drop the "you are the PRIMARY analyst, a VERIFIER AI will review you" framing (irrelevant in Fusion mode).
-6. Migrate tests: delete `ConsensusEngineTests` (if any), add `FusionAIAdvisor` tests with mocked OpenRouter responses.
+If a "Deep Dive" opt-in feature is later spec'd, the dormant scaffolding
+(`FusionAIAdvisor` + `AISpikeController` + `OpenRouterOptions.FusionOptions`)
+can be revived behind its own feature flag without needing this refactor.
 
 ### Phase C — Admin UI for model selection
 

@@ -75,7 +75,10 @@ public class OpenRouterService : IAIFinancialAdvisor
             model = modelToUse,
             messages,
             max_tokens = request.MaxTokens > 0 ? request.MaxTokens : _options.MaxTokens,
-            temperature = (double)(request.Temperature > 0 ? request.Temperature : _options.Temperature)
+            temperature = (double)(request.Temperature > 0 ? request.Temperature : _options.Temperature),
+            // Opt in to OpenRouter usage accounting so the response includes the dollar cost
+            // of the call in usage.cost. Without this, ParseResponse cannot populate EstimatedCost.
+            usage = new { include = true }
         };
 
         return await CallOpenRouterAsync(payload, request.UserId, modelToUse);
@@ -236,10 +239,12 @@ public class OpenRouterService : IAIFinancialAdvisor
             .GetProperty("content")
             .GetString() ?? "";
 
-        // Extract token usage
+        // Extract token usage + dollar cost (cost is populated when we send usage:{include:true})
         int inputTokens = 0;
         int outputTokens = 0;
         int totalTokens = 0;
+        decimal cost = 0m;
+        bool costReported = false;
 
         if (root.TryGetProperty("usage", out var usage))
         {
@@ -249,10 +254,23 @@ public class OpenRouterService : IAIFinancialAdvisor
                 outputTokens = ct.GetInt32();
             if (usage.TryGetProperty("total_tokens", out var tt))
                 totalTokens = tt.GetInt32();
+            // OpenRouter reports actual dollar cost when usage.include=true is set on the request
+            if (usage.TryGetProperty("cost", out var costEl) && costEl.ValueKind == JsonValueKind.Number)
+            {
+                cost = costEl.GetDecimal();
+                costReported = true;
+            }
         }
 
         if (totalTokens == 0)
             totalTokens = inputTokens + outputTokens;
+
+        if (!costReported)
+        {
+            _logger.LogWarning(
+                "OpenRouter response missing usage.cost — verify usage:{{include:true}} is set on the request (role={Role}, model={Model})",
+                _role, modelUsed);
+        }
 
         // Extract actual model from response (OpenRouter may return different variant)
         var actualModel = modelUsed;
@@ -268,7 +286,7 @@ public class OpenRouterService : IAIFinancialAdvisor
             ActionItems = ExtractActionItems(content),
             ConfidenceScore = EstimateConfidence(content),
             TokensUsed = totalTokens,
-            EstimatedCost = 0m, // OpenRouter tracks cost on their dashboard
+            EstimatedCost = cost,
             Metadata = new Dictionary<string, object>
             {
                 ["userId"] = userId,
@@ -276,7 +294,8 @@ public class OpenRouterService : IAIFinancialAdvisor
                 ["outputTokens"] = outputTokens,
                 ["role"] = _role,
                 ["requestedModel"] = modelUsed,
-                ["actualModel"] = actualModel
+                ["actualModel"] = actualModel,
+                ["costReported"] = costReported
             }
         };
     }
