@@ -1108,7 +1108,7 @@ Your analysis will be reviewed by a backup AI system for validation.",
                 if (allocParts.Any())
                     sb.AppendLine($"Allocations: {string.Join(" | ", allocParts)}");
 
-                // Individual positions with units, price, value, and mix %
+                // Individual positions with units, price, value, mix % (by value), and contribution % (target split)
                 if (activeTspPositions.Any())
                 {
                     sb.AppendLine("Positions:");
@@ -1117,7 +1117,7 @@ Your analysis will be reviewed by a backup AI system for validation.",
                         var value = p.CurrentMarketValue ?? (p.Units * p.CurrentPrice ?? 0);
                         var mixPct = totalBalance > 0 ? (value / totalBalance * 100) : 0;
                         var priceStr = p.CurrentPrice.HasValue ? $"${p.CurrentPrice:F2}/unit" : "";
-                        sb.AppendLine($"  - {p.FundCode} | {p.Units:F2} units | {priceStr} | Value: ${value:N0} | {mixPct:F1}% of TSP");
+                        sb.AppendLine($"  - {p.FundCode} | {p.Units:F2} units | {priceStr} | Value: ${value:N0} | {mixPct:F1}% of TSP | Contribution: {p.ContributionPercent:F1}%");
                     }
                 }
                 sb.AppendLine();

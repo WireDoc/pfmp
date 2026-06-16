@@ -180,6 +180,11 @@ export const TspDetailView: React.FC = () => {
     }).format(value);
   };
 
+  const formatPercent = (value: number | null) => {
+    if (value === null || value === undefined) return '—';
+    return `${value.toFixed(1)}%`;
+  };
+
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return '—';
     // Parse as UTC date to avoid timezone shift issues
@@ -423,52 +428,77 @@ export const TspDetailView: React.FC = () => {
             <TableHead>
               <TableRow>
                 <TableCell><strong>Fund</strong></TableCell>
+                <TableCell align="right"><strong>Contribution %</strong></TableCell>
                 <TableCell align="right"><strong>Units</strong></TableCell>
                 <TableCell align="right"><strong>Price</strong></TableCell>
+                <TableCell align="right"><strong>% of Total</strong></TableCell>
                 <TableCell align="right"><strong>Market Value</strong></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {activePositions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} align="center">
+                  <TableCell colSpan={6} align="center">
                     <Typography color="text.secondary" sx={{ py: 2 }}>
                       No active positions
                     </Typography>
                   </TableCell>
                 </TableRow>
               ) : (
-                activePositions.map((position) => (
-                  <TableRow key={position.fundCode} hover>
-                    <TableCell>
-                      <Box>
-                        <Typography fontWeight={500}>{position.fundCode}</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {TSP_FUND_NAMES[position.fundCode] ?? position.fundCode}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell align="right">{formatUnits(position.units)}</TableCell>
-                    <TableCell align="right">{formatPrice(position.currentPrice)}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600 }}>
-                      {formatCurrency(position.currentMarketValue)}
-                    </TableCell>
-                  </TableRow>
-                ))
+                activePositions.map((position) => {
+                  const total = data?.totalMarketValue ?? 0;
+                  const value = position.currentMarketValue ?? 0;
+                  const mixPct = position.currentMixPercent ?? (total > 0 ? (value / total) * 100 : null);
+                  return (
+                    <TableRow key={position.fundCode} hover>
+                      <TableCell>
+                        <Box>
+                          <Typography fontWeight={500}>{position.fundCode}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {TSP_FUND_NAMES[position.fundCode] ?? position.fundCode}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell align="right">{formatPercent(position.contributionPercent)}</TableCell>
+                      <TableCell align="right">{formatUnits(position.units)}</TableCell>
+                      <TableCell align="right">{formatPrice(position.currentPrice)}</TableCell>
+                      <TableCell align="right">{formatPercent(mixPct)}</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600 }}>
+                        {formatCurrency(position.currentMarketValue)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
               {/* Total row */}
-              {activePositions.length > 0 && (
-                <TableRow sx={{ bgcolor: 'action.hover' }}>
-                  <TableCell colSpan={3}>
-                    <Typography fontWeight={600}>Total</Typography>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Typography fontWeight={600} color="primary">
-                      {formatCurrency(data?.totalMarketValue ?? 0)}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              )}
+              {activePositions.length > 0 && (() => {
+                const contribTotal = activePositions.reduce(
+                  (sum, p) => sum + (p.contributionPercent ?? 0),
+                  0
+                );
+                const anyContrib = activePositions.some(p => p.contributionPercent != null);
+                return (
+                  <TableRow sx={{ bgcolor: 'action.hover' }}>
+                    <TableCell>
+                      <Typography fontWeight={600}>Total</Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography fontWeight={600}>
+                        {anyContrib ? `${contribTotal.toFixed(1)}%` : '—'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell colSpan={2} />
+                    <TableCell align="right">
+                      <Typography fontWeight={600}>100.0%</Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography fontWeight={600} color="primary">
+                        {formatCurrency(data?.totalMarketValue ?? 0)}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                );
+              })()}
             </TableBody>
           </Table>
         </TableContainer>
