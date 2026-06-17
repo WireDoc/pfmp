@@ -65,6 +65,16 @@ namespace PFMP_API
                     sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<PFMP_API.Services.AI.OpenRouterOptions>>(),
                     sp.GetRequiredService<ILogger<PFMP_API.Services.AI.OpenRouterService>>(),
                     "Verifier"));
+            // Wave 22 Phase E — News slot registered for the future Market Context Awareness
+            // wave. No consumer in PFMP today. PrimaryBackupAIAdvisor selects services by name
+            // from the IEnumerable<IAIFinancialAdvisor>, so the News instance won't be picked
+            // up accidentally by the analyze flow.
+            builder.Services.AddScoped<PFMP_API.Services.AI.IAIFinancialAdvisor>(sp =>
+                new PFMP_API.Services.AI.OpenRouterService(
+                    sp.GetRequiredService<IHttpClientFactory>(),
+                    sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<PFMP_API.Services.AI.OpenRouterOptions>>(),
+                    sp.GetRequiredService<ILogger<PFMP_API.Services.AI.OpenRouterService>>(),
+                    "News"));
 
             builder.Services.AddScoped<PFMP_API.Services.AI.ConsensusEngine>();
 

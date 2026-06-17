@@ -8,9 +8,18 @@ public class OpenRouterOptions
 {
     public string ApiKey { get; set; } = string.Empty;
     public string BaseUrl { get; set; } = "https://openrouter.ai/api/v1/chat/completions";
-    public string PrimaryModel { get; set; } = "google/gemini-3.1-pro-preview";
-    public string VerifierModel { get; set; } = "anthropic/claude-sonnet-4.6";
-    public string ChatModel { get; set; } = "google/gemini-3.1-pro-preview";
+    // Wave 22 Phase D — adopted `~provider/model-latest` aliases so model selection
+    // auto-updates to the latest stable model in each family. See OpenRouter docs.
+    public string PrimaryModel { get; set; } = "~google/gemini-pro-latest";
+    public string VerifierModel { get; set; } = "~anthropic/claude-sonnet-latest";
+    public string ChatModel { get; set; } = "~google/gemini-pro-latest";
+
+    // Wave 22 Phase E — News slot. No consumer yet; reserved for the future
+    // Market Context Awareness wave that will run a periodic Hangfire job to
+    // summarize current headlines and write them into the AI prompt's
+    // === MARKET CONTEXT === section. Flash is the right tier — cheap,
+    // summarization-heavy workload.
+    public string NewsModel { get; set; } = "~google/gemini-flash-latest";
     public int MaxTokens { get; set; } = 4000;
     public decimal Temperature { get; set; } = 0.3m;
     public int TimeoutSeconds { get; set; } = 120;

@@ -59,6 +59,20 @@ public interface IDualAIAdvisor
 }
 
 /// <summary>
+/// Workload classification — picks which configured model slot answers the request.
+/// Replaces the legacy substring-sniff in OpenRouterService.DetermineModel.
+/// </summary>
+public enum AIPromptMode
+{
+    /// <summary>Long-form financial analysis (the dashboard analyze endpoints). Uses PrimaryModel / VerifierModel.</summary>
+    Analysis = 0,
+    /// <summary>Conversational turn (future chatbot). Uses ChatModel for the Primary role.</summary>
+    Chat = 1,
+    /// <summary>News aggregation / summarization (future Market Context Awareness wave). Uses NewsModel.</summary>
+    News = 2
+}
+
+/// <summary>
 /// Request object for AI prompts.
 /// </summary>
 public class AIPromptRequest
@@ -69,7 +83,14 @@ public class AIPromptRequest
     public int MaxTokens { get; set; } = 4000;
     public decimal Temperature { get; set; } = 0.3m;
     public Dictionary<string, object>? Context { get; set; }
-    
+
+    /// <summary>
+    /// Workload mode. Defaults to Analysis (the dashboard analyze flow).
+    /// Set Chat for chatbot turns or News for the news aggregator to route through
+    /// the appropriate model slot configured in AI:OpenRouter.
+    /// </summary>
+    public AIPromptMode Mode { get; set; } = AIPromptMode.Analysis;
+
     // Prompt Caching Support (Claude only)
     /// <summary>
     /// Cacheable context that stays constant across multiple requests.

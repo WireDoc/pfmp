@@ -37,6 +37,7 @@ public class OpenRouterService : IAIFinancialAdvisor
         {
             "Primary" => _options.PrimaryModel,
             "Verifier" => _options.VerifierModel,
+            "News" => _options.NewsModel,
             _ => _options.PrimaryModel
         };
 
@@ -121,15 +122,18 @@ public class OpenRouterService : IAIFinancialAdvisor
 
     private string DetermineModel(AIPromptRequest request)
     {
-        // For short/chat prompts, use the chat model (if this is the primary)
-        if (_role == "Primary" &&
-            (request.SystemPrompt?.Contains("chat", StringComparison.OrdinalIgnoreCase) == true ||
-             request.SystemPrompt?.Contains("conversation", StringComparison.OrdinalIgnoreCase) == true))
+        // Wave 22 Phase F — route by explicit AIPromptMode rather than sniffing the
+        // system prompt for "chat" / "conversation" substrings (which was brittle and
+        // could mis-route any prompt that happened to mention those words).
+        // Mode.Analysis (default) → the role-mapped model (PrimaryModel for Primary, etc.)
+        // Mode.Chat               → ChatModel (only meaningful on the Primary role)
+        // Mode.News               → NewsModel (only meaningful on the News role)
+        return (request.Mode, _role) switch
         {
-            return _options.ChatModel;
-        }
-
-        return _model;
+            (AIPromptMode.Chat, "Primary") => _options.ChatModel,
+            (AIPromptMode.News, _) => _options.NewsModel,
+            _ => _model
+        };
     }
 
     private async Task<AIRecommendation> CallOpenRouterAsync(object payload, string userId, string modelUsed)
