@@ -104,9 +104,19 @@ namespace PFMP_API
     public DbSet<PFMP_API.Models.Spending.SpendingCategoryRollup> SpendingCategoryRollups { get; set; }
     public DbSet<PFMP_API.Models.Spending.SpendingAnomaly> SpendingAnomalies { get; set; }
 
+    // AI Architecture (Wave 22 Phase C) — per-slot model + sampling overrides editable from admin UI
+    public DbSet<AISettings> AISettings { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // AISettings — unique on Slot (one row per workload type)
+            modelBuilder.Entity<AISettings>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.Slot).IsUnique();
+            });
 
             // User Configuration
             modelBuilder.Entity<User>(entity =>

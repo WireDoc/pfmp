@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using PFMP_API.Models;
 
 namespace PFMP_API.Services.AI;
 
@@ -15,42 +16,65 @@ public class OpenRouterService : IAIFinancialAdvisor
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly OpenRouterOptions _options;
+    private readonly IAIModelResolver _resolver;
     private readonly ILogger<OpenRouterService> _logger;
-    private readonly string _role;   // "Primary" or "Verifier"
-    private readonly string _model;  // Resolved from role → config
+    private readonly string _role;            // "Primary" | "Verifier" | "News"
+    private readonly AIModelSlot _defaultSlot; // Maps role → default slot when Mode = Analysis
 
     public string ServiceName => _role;
-    public string ModelVersion => _model;
+    // Wave 22 Phase C: model is now resolved per-request via AIModelResolver,
+    // so there is no single static ModelVersion. We surface the appsettings default
+    // as a hint for telemetry / display; the actual model used per call is logged.
+    public string ModelVersion => _defaultSlot switch
+    {
+        AIModelSlot.Primary => _options.PrimaryModel,
+        AIModelSlot.Verifier => _options.VerifierModel,
+        AIModelSlot.News => _options.NewsModel,
+        _ => _options.PrimaryModel
+    };
 
     public OpenRouterService(
         IHttpClientFactory httpClientFactory,
         IOptions<OpenRouterOptions> options,
+        IAIModelResolver resolver,
         ILogger<OpenRouterService> logger,
         string role)
     {
         _httpClientFactory = httpClientFactory;
         _options = options.Value;
+        _resolver = resolver;
         _logger = logger;
         _role = role;
 
-        _model = role switch
+        _defaultSlot = role switch
         {
-            "Primary" => _options.PrimaryModel,
-            "Verifier" => _options.VerifierModel,
-            "News" => _options.NewsModel,
-            _ => _options.PrimaryModel
+            "Primary" => AIModelSlot.Primary,
+            "Verifier" => AIModelSlot.Verifier,
+            "News" => AIModelSlot.News,
+            _ => AIModelSlot.Primary
         };
 
-        _logger.LogInformation("OpenRouterService initialized: role={Role}, model={Model}", _role, _model);
+        _logger.LogInformation("OpenRouterService initialized: role={Role}, defaultSlot={Slot}", _role, _defaultSlot);
     }
 
     public async Task<AIRecommendation> GetRecommendationAsync(AIPromptRequest request)
     {
-        var modelToUse = DetermineModel(request);
+        // Wave 22 Phase C: pick the slot from (Mode, role), then resolve config from
+        // the DB-backed AIModelResolver (with appsettings fallback).
+        // Mode.Chat on the Primary role uses the Chat slot's config; Mode.News uses
+        // News regardless of role; otherwise use the role's default slot.
+        var slot = (request.Mode, _role) switch
+        {
+            (AIPromptMode.Chat, "Primary") => AIModelSlot.Chat,
+            (AIPromptMode.News, _) => AIModelSlot.News,
+            _ => _defaultSlot
+        };
+        var config = await _resolver.ResolveAsync(slot);
+        var modelToUse = config.Model;
 
         _logger.LogInformation(
-            "OpenRouter API call: role={Role}, model={Model}, promptLength={Length}, temperature={Temp}",
-            _role, modelToUse, request.UserPrompt.Length, request.Temperature);
+            "OpenRouter API call: role={Role}, slot={Slot}, model={Model}, promptLength={Length}, temperature={Temp}",
+            _role, slot, modelToUse, request.UserPrompt.Length, config.Temperature);
 
         // Build messages array
         var messages = new List<object>();
@@ -71,18 +95,52 @@ public class OpenRouterService : IAIFinancialAdvisor
 
         messages.Add(new { role = "user", content = userContent.ToString() });
 
-        var payload = new
+        // Per-request override (>0) takes precedence over resolved slot config.
+        var maxTokens = request.MaxTokens > 0 ? request.MaxTokens : config.MaxTokens;
+        var temperature = (double)(request.Temperature > 0 ? request.Temperature : config.Temperature);
+
+        var payload = BuildPayload(modelToUse, messages, maxTokens, temperature, config);
+        return await CallOpenRouterAsync(payload, request.UserId, modelToUse);
+    }
+
+    /// <summary>
+    /// Builds the OpenRouter chat completion payload, including the optional
+    /// reasoning + top_p params when the slot has them configured.
+    /// </summary>
+    private static Dictionary<string, object> BuildPayload(
+        string model,
+        List<object> messages,
+        int maxTokens,
+        double temperature,
+        ResolvedModelConfig config)
+    {
+        var payload = new Dictionary<string, object>
         {
-            model = modelToUse,
-            messages,
-            max_tokens = request.MaxTokens > 0 ? request.MaxTokens : _options.MaxTokens,
-            temperature = (double)(request.Temperature > 0 ? request.Temperature : _options.Temperature),
-            // Opt in to OpenRouter usage accounting so the response includes the dollar cost
-            // of the call in usage.cost. Without this, ParseResponse cannot populate EstimatedCost.
-            usage = new { include = true }
+            ["model"] = model,
+            ["messages"] = messages,
+            ["max_tokens"] = maxTokens,
+            ["temperature"] = temperature,
+            // Opt in to OpenRouter usage accounting so the response includes the dollar
+            // cost of the call in usage.cost. Without this, ParseResponse can't populate cost.
+            ["usage"] = new { include = true }
         };
 
-        return await CallOpenRouterAsync(payload, request.UserId, modelToUse);
+        if (config.TopP.HasValue)
+            payload["top_p"] = (double)config.TopP.Value;
+
+        if (config.ReasoningEffort.HasValue || config.ReasoningExclude.HasValue || config.ReasoningMaxTokens.HasValue)
+        {
+            var reasoning = new Dictionary<string, object>();
+            if (config.ReasoningEffort.HasValue)
+                reasoning["effort"] = config.ReasoningEffort.Value.ToString().ToLowerInvariant();
+            if (config.ReasoningExclude.HasValue)
+                reasoning["exclude"] = config.ReasoningExclude.Value;
+            if (config.ReasoningMaxTokens.HasValue)
+                reasoning["max_tokens"] = config.ReasoningMaxTokens.Value;
+            payload["reasoning"] = reasoning;
+        }
+
+        return payload;
     }
 
     public async Task<AIRecommendation> GetRetirementAdviceAsync(string userId)
@@ -119,22 +177,9 @@ public class OpenRouterService : IAIFinancialAdvisor
     }
 
     // ===== Private Helpers =====
-
-    private string DetermineModel(AIPromptRequest request)
-    {
-        // Wave 22 Phase F — route by explicit AIPromptMode rather than sniffing the
-        // system prompt for "chat" / "conversation" substrings (which was brittle and
-        // could mis-route any prompt that happened to mention those words).
-        // Mode.Analysis (default) → the role-mapped model (PrimaryModel for Primary, etc.)
-        // Mode.Chat               → ChatModel (only meaningful on the Primary role)
-        // Mode.News               → NewsModel (only meaningful on the News role)
-        return (request.Mode, _role) switch
-        {
-            (AIPromptMode.Chat, "Primary") => _options.ChatModel,
-            (AIPromptMode.News, _) => _options.NewsModel,
-            _ => _model
-        };
-    }
+    // Wave 22 Phase C: DetermineModel (the substring/mode → model picker) was
+    // replaced by the inline (Mode, role) → AIModelSlot resolution in
+    // GetRecommendationAsync above, which delegates to IAIModelResolver.
 
     private async Task<AIRecommendation> CallOpenRouterAsync(object payload, string userId, string modelUsed)
     {
@@ -227,7 +272,7 @@ public class OpenRouterService : IAIFinancialAdvisor
         }
 
         throw new InvalidOperationException(
-            $"OpenRouter API failed after {_options.MaxRetries} attempts (role={_role}, model={_model})",
+            $"OpenRouter API failed after {_options.MaxRetries} attempts (role={_role}, defaultSlot={_defaultSlot})",
             lastException);
     }
 

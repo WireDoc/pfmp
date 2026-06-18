@@ -49,6 +49,12 @@ export function HeaderBar() {
         >
           Scheduler
         </NavLink>
+        <NavLink
+          to="/dashboard/admin/ai-models"
+          style={({ isActive }) => ({ textDecoration: 'none', fontSize: 13, color: isActive ? '#38bdf8' : '#e2e8f0' })}
+        >
+          AI Models
+        </NavLink>
       </nav>
 
       <div style={{ marginLeft: 'auto', fontSize: 12, color: '#e2e8f0' }}>

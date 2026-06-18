@@ -52,17 +52,28 @@ namespace PFMP_API
 
             builder.Services.AddHttpClient("OpenRouter");
 
+            // Wave 22 Phase C — DB-backed per-slot model + sampling resolver.
+            // Reads AISettings; falls back to AI:OpenRouter defaults; caches ~30s.
+            // Registered BEFORE the advisor factories so they can resolve it.
+            builder.Services.AddScoped<PFMP_API.Services.AI.IAIModelResolver, PFMP_API.Services.AI.AIModelResolver>();
+
+            // Wave 22 Phase C — OpenRouter model catalog cache (singleton so the cached
+            // list survives across requests; 24h TTL, manual-refresh only per user request).
+            builder.Services.AddSingleton<PFMP_API.Services.AI.IOpenRouterModelCatalog, PFMP_API.Services.AI.OpenRouterModelCatalog>();
+
             // Register two OpenRouterService instances with different roles (Primary + Verifier)
             builder.Services.AddScoped<PFMP_API.Services.AI.IAIFinancialAdvisor>(sp =>
                 new PFMP_API.Services.AI.OpenRouterService(
                     sp.GetRequiredService<IHttpClientFactory>(),
                     sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<PFMP_API.Services.AI.OpenRouterOptions>>(),
+                    sp.GetRequiredService<PFMP_API.Services.AI.IAIModelResolver>(),
                     sp.GetRequiredService<ILogger<PFMP_API.Services.AI.OpenRouterService>>(),
                     "Primary"));
             builder.Services.AddScoped<PFMP_API.Services.AI.IAIFinancialAdvisor>(sp =>
                 new PFMP_API.Services.AI.OpenRouterService(
                     sp.GetRequiredService<IHttpClientFactory>(),
                     sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<PFMP_API.Services.AI.OpenRouterOptions>>(),
+                    sp.GetRequiredService<PFMP_API.Services.AI.IAIModelResolver>(),
                     sp.GetRequiredService<ILogger<PFMP_API.Services.AI.OpenRouterService>>(),
                     "Verifier"));
             // Wave 22 Phase E — News slot registered for the future Market Context Awareness
@@ -73,6 +84,7 @@ namespace PFMP_API
                 new PFMP_API.Services.AI.OpenRouterService(
                     sp.GetRequiredService<IHttpClientFactory>(),
                     sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<PFMP_API.Services.AI.OpenRouterOptions>>(),
+                    sp.GetRequiredService<PFMP_API.Services.AI.IAIModelResolver>(),
                     sp.GetRequiredService<ILogger<PFMP_API.Services.AI.OpenRouterService>>(),
                     "News"));
 

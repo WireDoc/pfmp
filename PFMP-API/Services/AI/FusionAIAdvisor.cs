@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using PFMP_API.Models;
 
 namespace PFMP_API.Services.AI;
 
@@ -23,33 +24,39 @@ public class FusionAIAdvisor : IDualAIAdvisor
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly OpenRouterOptions _options;
+    private readonly IAIModelResolver _resolver;
     private readonly ILogger<FusionAIAdvisor> _logger;
 
     public FusionAIAdvisor(
         IHttpClientFactory httpClientFactory,
         IOptions<OpenRouterOptions> options,
+        IAIModelResolver resolver,
         ILogger<FusionAIAdvisor> logger)
     {
         _httpClientFactory = httpClientFactory;
         _options = options.Value;
+        _resolver = resolver;
         _logger = logger;
 
         _logger.LogInformation(
-            "FusionAIAdvisor initialized: model={Model}, preset={Preset}, judgeOverride={Judge}, panelOverride={Panel}, maxToolCalls={MaxToolCalls}",
-            _options.Fusion.Model,
-            _options.Fusion.Preset,
-            string.IsNullOrEmpty(_options.Fusion.JudgeModel) ? "(preset default)" : _options.Fusion.JudgeModel,
-            _options.Fusion.AnalysisModels.Length == 0 ? "(preset default)" : string.Join(",", _options.Fusion.AnalysisModels),
-            _options.Fusion.MaxToolCalls);
+            "FusionAIAdvisor initialized (config resolved per-request): defaultModel={Model}",
+            _options.Fusion.Model);
     }
 
     public async Task<ConsensusResult> GetConsensusRecommendationAsync(AIPromptRequest request)
     {
         var startTime = DateTime.UtcNow;
 
+        // Wave 22 Phase C — resolve Fusion config per-request so admin UI edits apply
+        // without restart. Falls back to appsettings.AI.OpenRouter.Fusion if no DB row.
+        var config = await _resolver.ResolveAsync(AIModelSlot.Fusion);
+
         _logger.LogInformation(
-            "Fusion AI request started: userId={UserId}, promptLength={Length}, cacheableContextLength={CacheLength}",
-            request.UserId, request.UserPrompt.Length, request.CacheableContext?.Length ?? 0);
+            "Fusion AI request started: userId={UserId}, preset={Preset}, judgeOverride={Judge}, promptLength={Length}",
+            request.UserId,
+            config.FusionPreset ?? "(default)",
+            string.IsNullOrEmpty(config.FusionJudgeModel) ? "(preset default)" : config.FusionJudgeModel,
+            request.UserPrompt.Length);
 
         // Build messages array — same shape as OpenRouterService
         var messages = new List<object>();
@@ -69,20 +76,24 @@ public class FusionAIAdvisor : IDualAIAdvisor
         var fusionPlugin = new Dictionary<string, object>
         {
             ["id"] = "fusion",
-            ["preset"] = _options.Fusion.Preset,
-            ["max_tool_calls"] = _options.Fusion.MaxToolCalls
+            ["preset"] = config.FusionPreset ?? _options.Fusion.Preset,
+            ["max_tool_calls"] = config.FusionMaxToolCalls ?? _options.Fusion.MaxToolCalls
         };
+        // Analysis_models override still comes from appsettings (not yet exposed in AISettings)
         if (_options.Fusion.AnalysisModels.Length > 0)
             fusionPlugin["analysis_models"] = _options.Fusion.AnalysisModels;
-        if (!string.IsNullOrEmpty(_options.Fusion.JudgeModel))
-            fusionPlugin["model"] = _options.Fusion.JudgeModel;
+        if (!string.IsNullOrEmpty(config.FusionJudgeModel))
+            fusionPlugin["model"] = config.FusionJudgeModel;
+
+        var maxTokens = request.MaxTokens > 0 ? request.MaxTokens : config.MaxTokens;
+        var temperature = (double)(request.Temperature > 0 ? request.Temperature : config.Temperature);
 
         var payload = new
         {
-            model = _options.Fusion.Model,
+            model = config.Model,
             messages,
-            max_tokens = request.MaxTokens > 0 ? request.MaxTokens : _options.MaxTokens,
-            temperature = (double)(request.Temperature > 0 ? request.Temperature : _options.Temperature),
+            max_tokens = maxTokens,
+            temperature,
             usage = new { include = true },
             plugins = new object[] { fusionPlugin }
         };
@@ -110,7 +121,7 @@ public class FusionAIAdvisor : IDualAIAdvisor
             {
                 ["userId"] = request.UserId,
                 ["mode"] = "fusion",
-                ["preset"] = _options.Fusion.Preset,
+                ["preset"] = config.FusionPreset ?? _options.Fusion.Preset,
                 ["rawResponse"] = rawResponse
             }
         };
@@ -133,8 +144,8 @@ public class FusionAIAdvisor : IDualAIAdvisor
             Metadata = new Dictionary<string, object>
             {
                 ["mode"] = "fusion",
-                ["fusionModel"] = _options.Fusion.Model,
-                ["preset"] = _options.Fusion.Preset,
+                ["fusionModel"] = config.Model,
+                ["preset"] = config.FusionPreset ?? _options.Fusion.Preset,
                 ["elapsedMs"] = elapsed.TotalMilliseconds,
                 ["rawResponse"] = rawResponse
             }

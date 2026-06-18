@@ -96,10 +96,17 @@ describe('HeaderBar', () => {
       expect(schedulerLink).toHaveAttribute('href', '/dashboard/admin/scheduler');
     });
 
-    it('should have 5 navigation links total', () => {
+    it('should render AI Models link', () => {
+      renderHeaderBar();
+      const aiModelsLink = screen.getByRole('link', { name: 'AI Models' });
+      expect(aiModelsLink).toBeInTheDocument();
+      expect(aiModelsLink).toHaveAttribute('href', '/dashboard/admin/ai-models');
+    });
+
+    it('should have 6 navigation links total', () => {
       renderHeaderBar();
       const links = screen.getAllByRole('link');
-      expect(links).toHaveLength(5);
+      expect(links).toHaveLength(6);
     });
   });
 
