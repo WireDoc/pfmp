@@ -323,10 +323,12 @@ public class CreateCashAccountRequest
     public decimal Balance { get; set; }
     
     public decimal? InterestRateApr { get; set; }
-    
-    [StringLength(500)]
+
+    // Matches CashAccount.Purpose column cap (2000) so DTO model-validation doesn't
+    // 400 a request before the controller action ever runs.
+    [StringLength(2000)]
     public string? Purpose { get; set; }
-    
+
     public bool IsEmergencyFund { get; set; }
 }
 
@@ -334,24 +336,25 @@ public class UpdateCashAccountRequest
 {
     [StringLength(100)]
     public string? Institution { get; set; }
-    
+
     [StringLength(200)]
     public string? Nickname { get; set; }
-    
+
     [StringLength(40)]
     public string? AccountType { get; set; }
-    
+
     [StringLength(50)]
     public string? AccountNumber { get; set; }
-    
+
     [StringLength(20)]
     public string? RoutingNumber { get; set; }
-    
+
     public decimal? Balance { get; set; }
-    
+
     public decimal? InterestRateApr { get; set; }
-    
-    [StringLength(500)]
+
+    // Matches CashAccount.Purpose column cap (2000) — see comment on CreateCashAccountRequest.Purpose.
+    [StringLength(2000)]
     public string? Purpose { get; set; }
     
     public bool? IsEmergencyFund { get; set; }
