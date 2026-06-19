@@ -39,8 +39,11 @@ namespace PFMP_API.Models.FinancialProfile
 
         public bool HasBeneficiaryDesignation { get; set; }
 
-        [MaxLength(500)]
-        public string? Purpose { get; set; } // e.g., "Transactional Account", "Emergency Fund", "Home Improvement Savings"
+        // 2000 chars — gives room for multi-sentence strategy notes (e.g. "Target $20k, sticking with Ally
+        // because of buckets feature, excess moves to brokerage after mortgage + CC paid, etc."). Previous
+        // 500 cap was tripping saves for user-written purpose strings already approaching 480–490 chars.
+        [MaxLength(2000)]
+        public string? Purpose { get; set; }
 
         public DateTime? RateLastChecked { get; set; }
 
