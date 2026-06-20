@@ -219,7 +219,12 @@ public class NetWorthSnapshotJob
         };
     }
 
-    private static decimal? GetCachedTspFundPrice(TSPFundPrice cachedPrices, string fundCode)
+    // internal so AIIntelligenceService can apply the same live-pricing logic when rendering
+    // the TSP block — keeps the AI prompt's TSP total in lock-step with the snapshot job and
+    // the dashboard. Without this, the prompt would read frozen-as-of-statement-upload values
+    // from TspLifecyclePositions.CurrentMarketValue and drift by thousands of dollars vs.
+    // the snapshot, triggering spurious DATA INCONSISTENCY flags from the AI.
+    internal static decimal? GetCachedTspFundPrice(TSPFundPrice cachedPrices, string fundCode)
     {
         var code = fundCode.Trim().ToUpperInvariant();
         
