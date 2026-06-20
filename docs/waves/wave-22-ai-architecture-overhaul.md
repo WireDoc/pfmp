@@ -1,6 +1,6 @@
 # Wave 22 — AI Architecture Overhaul (Fusion Spike + Admin UI + Model Aliases + News Slot)
 
-**Status:** 🟡 In progress (Phase A complete with rollback verdict; Phases C/D/E/F proceed)
+**Status:** ✅ Complete (Phase A spike → rollback verdict; Phase B canceled; Phases C/D/E/F shipped)
 **Owner:** Solo project; user is sole customer
 **Predecessors:** Wave 16 (OpenRouter rewire), Wave 14 (Spending Analysis — provides the prompt's SPENDING ACTUALS section)
 **Successors blocked on this wave:** AI Chatbot with Memory (needs `ChatModel` slot properly wired); News Aggregator (needs `NewsModel` slot); future Market Context Awareness (needs web-search aware AI)
@@ -316,12 +316,87 @@ Phase F (chat slot proper) ── independent, ~half day ────┘
 
 ## Acceptance criteria for wave closeout
 
-- [ ] Phase A spike report committed to `docs/` with measured cost + quality comparison
-- [ ] Decision recorded in this doc (Section "Phase A outcome")
-- [ ] Phase D model aliases migrated in both appsettings files
-- [ ] Phase E News slot registered in DI (no consumer required)
-- [ ] Phase F ChatModel triggered by `AIPromptRequest.Mode` enum, not substring sniffing
-- [ ] Phase C admin UI live at `/dashboard/settings/ai-models` with test-ping per slot
-- [ ] If Phase B ran: ConsensusEngine + PrimaryBackupAIAdvisor deleted; frontend rendering the new structured fields; legacy tests removed; new FusionAIAdvisor tests added
+- [x] Phase A spike report committed to `docs/temp_fusion_spike_report.log` with measured cost + quality comparison
+- [x] Decision recorded in this doc (Section "Phase A outcome")
+- [x] Phase D model aliases migrated in both appsettings files
+- [x] Phase E News slot registered in DI (no consumer required)
+- [x] Phase F ChatModel triggered by `AIPromptRequest.Mode` enum, not substring sniffing
+- [x] Phase C admin UI live at `/dashboard/admin/ai-models` with test-ping per slot
+- [n/a] Phase B ran — canceled per rollback verdict, no frontend / refactor needed
 - [ ] Roadmap header updated (currently still says "v0.23.0-alpha"; Wave 14 already bumped VERSION to v0.24.0-alpha)
 - [ ] VERSION bumped to v0.25.0-alpha at close
+
+---
+
+## Closeout summary (2026-06-20)
+
+### What shipped
+
+**Phase A** — Empirical spike measured Fusion vs. current Primary→Verifier on user 20's cash analysis. Cost ratio 21.6× ($2.305 vs. $0.107), latency 5.3×, quality ~20–30% richer with only 1 of 3 unique insights actually actionable. Past the user's 3× rollback threshold by 7×. Verdict: rollback. Full report at `docs/temp_fusion_spike_report.log`.
+
+**Phase B** — Canceled. The 21.6× cost ratio made it indefensible for routine analyze. Fusion code (`FusionAIAdvisor.cs`, `AISpikeController.cs`, `OpenRouterOptions.FusionOptions`) kept dormant (~350 LOC, `Enabled: false`) as scaffolding for a possible future quarterly "Deep Dive" feature where the cost would amortize.
+
+**Phase C** — Admin UI shipped at `/dashboard/admin/ai-models`. Per-slot cards (Primary / Verifier / Chat / News / Fusion) with model picker (Autocomplete + freeSolo), MaxTokens / Temperature / TopP / ReasoningEffort / ReasoningExclude / ReasoningMaxTokens, Fusion-only fields (Preset / JudgeModel / MaxToolCalls), Test / Clear / Save buttons per slot, and a manual-refresh OpenRouter model catalog. Backed by the `AISettings` EF table, `IAIModelResolver` (DB-first with appsettings fallback + 30s in-memory cache), and `GET/PUT/POST /api/admin/ai-models` endpoints. Test endpoint issues a real "Reply with exactly the word OK" / `max_tokens=10` ping to validate reachability + auth.
+
+**Phase D** — Model aliases adopted: `~google/gemini-pro-latest`, `~anthropic/claude-sonnet-latest`, `~google/gemini-flash-latest` (News default). No more manual model-bump treadmill when OpenRouter promotes a new stable release.
+
+**Phase E** — Third `IAIFinancialAdvisor` instance registered with `"News"` role in DI ([Program.cs:83-89](../../PFMP-API/Program.cs#L83-L89)). No consumer code yet — slot is ready for the future News Aggregator wave.
+
+**Phase F** — `OpenRouterService.DetermineModel` (substring-sniffing the prompt to guess Chat vs. Analysis) replaced by typed `AIPromptMode` enum (`Analysis | Chat | News`) on `AIPromptRequest`. Service now picks the slot from `(Mode, role)` tuple and delegates to `IAIModelResolver`. No more brittle string matching.
+
+### Post-Phase-A prompt refinements (analyst-driven)
+
+After Phase C shipped, the user ran a separate Gemini Pro pass over the full AI prompt to flag remaining issues. That feedback drove a follow-up pass on `AIIntelligenceService.BuildFullFinancialContextAsync` and the system prompt:
+
+**Prompt expansion** (previously-missing fields surfaced to the AI):
+- TAX PROFILE: Federal Withholding %, Expected Refund, Expected Payment, Uses CPA flag, Notes textarea.
+- New BENEFITS & PROGRAMS section iterating `BenefitCoverage` (non-federal civilian benefits).
+- USER PROFILE: HouseholdServiceNotes, explicit Employment Type for non-federal (Military / Contractor / Private).
+- Long-Term Obligations: Notes field per item.
+
+**Prompt directives added** (in `SYSTEM_PROMPT`):
+- `CONTEXTUAL OVERRIDE PROTOCOL` — account-level notes + behavioral guardrails outrank the generic Analysis Scope and global Financial Goals. Lets the AI honor "frozen / bot-managed" assets without re-recommending movement, and apply Desired Checking Balance against the functional checking vehicle named in account notes rather than the rigid account type.
+- `NUMERICAL DATA TRUST POLICY` — pre-computed numerics are authoritative; don't re-fetch to verify prices. Qualitative web research on holdings / institutions still encouraged. Internal-inconsistency flags emit as `DATA INCONSISTENCY:` lines.
+- `RESPONSE FORMAT` directive — no conversational preamble, start directly with `## CRITICAL_ALERTS` so parsers don't break on "Here is the analysis you requested" framing.
+
+**Prompt wording / fidelity fixes**:
+- "Target Monthly Passive Income" relabeled "Target Monthly Retirement Cash Inflow (All Sources Combined — pension, SS, VA, investments, rental, dividends)" so a literalist LLM doesn't compare it against dividend income alone.
+- "Liquidity Buffer: 6.0 months" reframed as "6.0 months of un-covered expenses" with cross-reference to `LIQUIDITY BUFFER ANALYSIS` section — heads off hallucinated shortfalls.
+- USER PROFILE "Years of Service" now whole-month arithmetic (`23y 7m`) matching the FEDERAL RETIREMENT BENEFITS "Creditable Service" line. Eliminates 23.6-vs-23y-7m precision drift the verifier was flagging.
+- SPENDING ACTUALS empty paths now tell the AI to use the EXPENSES section as the authoritative outflow baseline instead of complaining about missing Plaid data.
+- Crypto block's static trailing "Note:" disclaimer removed — was being confused with user-authored notes.
+
+**TSP total alignment with snapshot**:
+- The TSP section was reading `TspLifecyclePositions.CurrentMarketValue` (stale unless `TspPriceRefreshJob` happened to have run in the last few hours). Now re-prices every position live from `TSPFundPrices` at prompt-render time, using the same `NetWorthSnapshotJob.GetCachedTspFundPrice` helper the snapshot uses. The ~$4k drift between the TSP section and the snapshot is gone.
+
+### Job scheduling fixes (data integrity prerequisite for the prompt refinements)
+
+Empirical investigation of the TSP / snapshot drift revealed a job-cadence bug: `TspPriceRefreshJob` was scheduled at 22:00 ET and `NetWorthSnapshotJob` at 23:30 ET, but DailyTSP_API observably posts the previous day's EOD prices to its endpoint at ~03:00 ET. Both jobs were running 12 hours before the data was available; the snapshot was always one trading day behind.
+
+- TSP refresh moved to 04:00 ET (1 hour after DailyTSP posts).
+- Net worth snapshot moved to 05:00 ET (1 hour after the TSP refresh — clean dependency chain).
+- Snapshot job converted from idempotent-skip-if-exists to upsert (so manual re-triggers actually recompute).
+- Hangfire `MisfireHandlingMode.Ignorable` applied to both jobs — missed cron ticks are skipped rather than fired late on next startup.
+- Timezone resolution switched to IANA `America/New_York` with Windows `Eastern Standard Time` as fallback.
+
+### Code provenance
+
+Final closeout commits:
+
+| Commit | What |
+|---|---|
+| `cc1cafa` | AI prompt expansion + directives + TSP live-pricing alignment |
+| `b58f915` | Job rescheduling + snapshot upsert + misfire handling |
+| `dbb5ffb` | Investment Account.Purpose cap 500 → 2000 (parallel to cash-account fix) |
+| Earlier | `8654d2c` (Phase A spike), `f4c0c3d` (Phases D/E/F), `ce2fcbe` (Phase C admin UI) |
+
+### What this wave unblocks
+
+- **Next: News Aggregator** — the `News` role advisor is wired and waiting. Slot defaults to `~google/gemini-flash-latest` (cheap, fast, periodic). No consumer yet — that's the Wave 23 candidate.
+- **After: AI Chatbot with Memory** — `Chat` slot is properly wired via `AIPromptMode.Chat`. The chatbot UI + persistent conversation memory is the Wave 24 candidate.
+
+### Lessons / non-obvious takeaways
+
+- **Fusion is not a drop-in cheaper replacement for hand-built dual-AI**; it's a different product targeting "deep deliberation at frontier cost." For routine analyze the existing Primary→Verifier with a tight prompt wins on cost AND quality-per-dollar.
+- **OpenRouter's `usage.cost` aggregation is broken for Fusion responses** — reports only one underlying completion's cost. Don't trust the API field; use the OpenRouter dashboard as source of truth. Documented in `FusionAIAdvisor.ParseFusionResponse` for future revival.
+- **Background-job ordering matters more than the cron string suggests** — the schedule pre-Wave-22 looked sensible on paper (TSP refresh "before" snapshot) but the data source's actual posting cadence made both jobs systematically stale. Worth verifying real cadence against external data sources rather than trusting their published schedule comments.
