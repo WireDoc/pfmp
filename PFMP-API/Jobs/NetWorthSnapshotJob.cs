@@ -50,28 +50,37 @@ public class NetWorthSnapshotJob
                 return;
             }
 
-            // Check for existing snapshots today (idempotent)
-            var existingSnapshots = await _context.NetWorthSnapshots
+            // Upsert today's snapshot per user — if one already exists for today (e.g. from a
+            // manual trigger earlier in the day), recalculate and overwrite it with fresh values.
+            // Previous behavior skipped if today's row existed, which left stale TSP / asset
+            // prices baked into the snapshot when DailyTSP_API posted later than expected.
+            var existingByUser = await _context.NetWorthSnapshots
                 .Where(s => s.SnapshotDate == today)
-                .Select(s => s.UserId)
-                .ToHashSetAsync(cancellationToken);
+                .ToDictionaryAsync(s => s.UserId, cancellationToken);
 
             int created = 0;
-            int skipped = 0;
+            int updated = 0;
             int errors = 0;
 
             foreach (var userId in eligibleUsers)
             {
-                if (existingSnapshots.Contains(userId))
-                {
-                    skipped++;
-                    continue;
-                }
-
                 try
                 {
                     var snapshot = await CaptureUserSnapshotAsync(userId, today, cancellationToken);
-                    if (snapshot != null)
+                    if (snapshot == null) continue;
+
+                    if (existingByUser.TryGetValue(userId, out var existing))
+                    {
+                        existing.TotalNetWorth = snapshot.TotalNetWorth;
+                        existing.InvestmentsTotal = snapshot.InvestmentsTotal;
+                        existing.CashTotal = snapshot.CashTotal;
+                        existing.RealEstateEquity = snapshot.RealEstateEquity;
+                        existing.RetirementTotal = snapshot.RetirementTotal;
+                        existing.LiabilitiesTotal = snapshot.LiabilitiesTotal;
+                        existing.CreatedAt = DateTime.UtcNow;
+                        updated++;
+                    }
+                    else
                     {
                         _context.NetWorthSnapshots.Add(snapshot);
                         created++;
@@ -88,8 +97,8 @@ public class NetWorthSnapshotJob
 
             var elapsed = DateTime.UtcNow - startTime;
             _logger.LogInformation(
-                "Net worth snapshot job completed. Created: {Created}, Skipped: {Skipped}, Errors: {Errors}, Duration: {Duration:F2}s",
-                created, skipped, errors, elapsed.TotalSeconds);
+                "Net worth snapshot job completed. Created: {Created}, Updated: {Updated}, Errors: {Errors}, Duration: {Duration:F2}s",
+                created, updated, errors, elapsed.TotalSeconds);
         }
         catch (Exception ex)
         {

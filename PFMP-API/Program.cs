@@ -404,8 +404,34 @@ namespace PFMP_API
             // Skip in Testing environment - Hangfire is not configured
             if (!app.Environment.IsEnvironment("Testing"))
             {
-                // These run when the API is running; in dev that's when your laptop is on
-                var easternTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+                // These run when the API is running; in dev that's when your laptop is on.
+                //
+                // Eastern Time zone resolution: prefer the IANA id (cross-platform; the canonical
+                // name everywhere except old Windows builds) and fall back to the Windows id only
+                // if IANA isn't registered. Both represent the full Eastern zone *including* the
+                // DST transitions — the misleading Windows name "Eastern Standard Time" means
+                // "the Eastern zone, which observes EST in winter and EDT in summer," NOT "fixed
+                // at UTC-5." So with this zone, `"0 4 * * *"` fires at 4 AM EDT in summer
+                // (= 08:00 UTC) and 4 AM EST in winter (= 09:00 UTC).
+                TimeZoneInfo easternTimeZone;
+                try
+                {
+                    easternTimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/New_York");
+                }
+                catch (TimeZoneNotFoundException)
+                {
+                    easternTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+                }
+
+                // Misfire policy: if the API was offline when a cron tick was due, skip the missed
+                // run entirely rather than firing late. Critical for NetWorthSnapshotJob — a delayed
+                // run hours after the cron time would capture intraday-volatile asset prices into
+                // the daily snapshot. Better to wait for tomorrow's clean cron tick.
+                var ignoreMissed = new RecurringJobOptions
+                {
+                    TimeZone = easternTimeZone,
+                    MisfireHandling = Hangfire.MisfireHandlingMode.Ignorable,
+                };
                 
                 // Daily price refresh at 11 PM ET (after market close)
                 RecurringJob.AddOrUpdate<PFMP_API.Jobs.PriceRefreshJob>(
@@ -421,19 +447,26 @@ namespace PFMP_API
                     "15 23 * * *", // 11:15 PM daily
                     new RecurringJobOptions { TimeZone = easternTimeZone });
 
-                // Daily net worth snapshot at 11:30 PM ET (after price refresh)
+                // Daily net worth snapshot at 5 AM ET — runs AFTER TspPriceRefreshJob (4 AM ET)
+                // so today's TSP positions are repriced from today's DailyTSP cache before the
+                // snapshot computes RetirementTotal. Previous 11:30 PM ET schedule ran ~12 hours
+                // before DailyTSP posted the day's EOD prices (~3 AM ET arrival), so every
+                // snapshot used stale (yesterday's) TSP prices and disagreed with the dashboard.
                 RecurringJob.AddOrUpdate<PFMP_API.Jobs.NetWorthSnapshotJob>(
                     "daily-networth-snapshot",
                     job => job.CaptureAllUserSnapshotsAsync(CancellationToken.None),
-                    "30 23 * * *", // 11:30 PM daily
-                    new RecurringJobOptions { TimeZone = easternTimeZone });
+                    "0 5 * * *", // 5 AM ET daily
+                    ignoreMissed);
 
-                // Daily TSP price refresh at 10 PM ET (before general price refresh)
+                // Daily TSP price refresh at 4 AM ET — DailyTSP_API reliably has the previous
+                // trading day's EOD prices by ~3 AM ET. We run 1 hour after that to absorb any
+                // variance in their posting time. Must complete before NetWorthSnapshotJob runs
+                // at 5 AM ET so positions are repriced before the snapshot reads them.
                 RecurringJob.AddOrUpdate<PFMP_API.Jobs.TspPriceRefreshJob>(
                     "daily-tsp-refresh",
                     job => job.RefreshTspPricesAsync(CancellationToken.None),
-                    "0 22 * * *", // 10 PM daily
-                    new RecurringJobOptions { TimeZone = easternTimeZone });
+                    "0 4 * * *", // 4 AM ET daily
+                    ignoreMissed);
 
                 // Daily Plaid bank account balance sync at 10 PM ET (Wave 11)
                 RecurringJob.AddOrUpdate<PFMP_API.Jobs.PlaidSyncJob>(
