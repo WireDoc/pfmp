@@ -29,7 +29,9 @@ namespace PFMP_API.Models.DTOs
         [MaxLength(50)]
         public string? AccountNumber { get; set; }
 
-        [MaxLength(500)]
+        // Matches Account.Purpose column cap (2000) so DTO model-validation doesn't
+        // 400 a request before the controller action ever runs.
+        [MaxLength(2000)]
         public string? Purpose { get; set; }
     }
 }

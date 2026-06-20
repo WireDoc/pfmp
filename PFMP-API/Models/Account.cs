@@ -88,8 +88,12 @@ namespace PFMP_API.Models
         public bool HasBeneficiaryDesignation { get; set; }
 
         // Account Purpose & Context
-        [MaxLength(500)]
-        public string? Purpose { get; set; } // e.g., "Transactional Account", "Emergency Fund", "Home Improvement Savings", "Vacation Fund"
+        // 2000 chars to match CashAccount.Purpose — gives room for multi-sentence strategy notes
+        // (e.g. "Roth IRA, holding VTI + AVUV, contributing $7k/yr, planning to convert traditional
+        // 401k chunks during gap years before RMDs, etc."). Previous 500 cap was rejecting saves
+        // for user-written purpose strings as short as 1300 chars.
+        [MaxLength(2000)]
+        public string? Purpose { get; set; }
 
         // Metadata
         [Required]

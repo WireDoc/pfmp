@@ -26,7 +26,8 @@ namespace PFMP_API.Models.DTOs
         [MaxLength(50)]
         public string? AccountNumber { get; set; }
 
-        [MaxLength(500)]
+        // Matches Account.Purpose column cap (2000) — see comment on AccountCreateRequest.Purpose.
+        [MaxLength(2000)]
         public string? Purpose { get; set; }
 
         public bool HasBeneficiaryDesignation { get; set; }
