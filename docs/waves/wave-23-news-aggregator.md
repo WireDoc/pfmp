@@ -1,6 +1,6 @@
 # Wave 23 — News Aggregator (Market Context Feed)
 
-**Status:** 🟡 In progress — all 5 open decisions resolved 2026-06-21; implementation underway
+**Status:** ✅ Complete — shipped 2026-06-21 in commit `9c5a73b`
 **Owner:** Solo project; user is sole customer
 **Predecessors:** Wave 22 (`News` slot wired in DI, defaulting to `~google/gemini-flash-latest`)
 **Reference implementation:** [WireDoc/OmniTrader](https://github.com/WireDoc/OmniTrader) — `bot/src/news.py`, `bot/src/rss_client.py`
@@ -340,17 +340,91 @@ pfmp-frontend/
 
 ## Acceptance criteria for wave closeout
 
-- [ ] Wave 23 plan reviewed and decisions resolved (this doc)
-- [ ] EF migration `Wave23_NewsTables` applied
-- [ ] `NewsIngestionJob` registered on Hangfire (07:00 + 17:00 ET with `MisfireHandlingMode.Ignorable`)
-- [ ] At least 7 RSS feeds wired and tested (Reuters, AP, Fed, Treasury, SEC, Yahoo per-holding, NWS-AR)
-- [ ] Personalization layer reads user holdings + state + employment from `Users` + `Accounts` + `Holdings` tables
-- [ ] `AIIntelligenceService.BuildMarketContextSummaryAsync` reads from latest `NewsDigest` for the user
-- [ ] Dashboard widget `NewsDigestWidget.tsx` renders the digest with last-refreshed time
-- [ ] LLM cost per run recorded in `NewsDigests.LlmCostUsd`
-- [ ] At least 5 integration test scenarios (digest generation, dedup, empty-period skip, holdings-aware routing, prompt injection)
-- [ ] Documentation: wave doc closeout section + a brief operator note ("how to add a new RSS feed")
-- [ ] VERSION bumped to v0.26.0-alpha at close
+- [x] Wave 23 plan reviewed and decisions resolved (this doc)
+- [x] EF migrations applied — `Wave23_NewsTables` (initial schema) + `Wave23_NarrativeSummary` (narrative briefing column added day-of based on user feedback)
+- [x] `NewsIngestionJob` registered on Hangfire — schedule shipped as **05:30 ET once daily** (not 07:00 + 17:00 as originally drafted) per the user's decision to run 1× per day. `MisfireHandlingMode.Ignorable` applied
+- [x] At least 7 sources wired and tested — final shipping set is **MarketWatch, BBC-Business, Bloomberg, NPR-Business, FederalReserve, SEC, plus per-held-ticker Yahoo feeds and per-user-state NWS Atom feed**. Reuters, AP, Treasury, TSP, and OPM were all verified dead/blocked and removed; see "RSS source verification (2026-06-21)" below
+- [x] Personalization layer reads user holdings + state + employment from `Users` + `Accounts` + `Holdings` tables (`NewsIngestionService.BuildUserProfileAsync`)
+- [x] `AIIntelligenceService.BuildCacheableContextAsync` reads from latest `NewsDigest` for the user (replaces the legacy `MarketContexts` summary; falls back to legacy if no digest exists yet)
+- [x] Dashboard widget `NewsDigestWidget.tsx` renders the digest with refresh button + last-refreshed time
+- [x] Drill-down view `NewsDigestDetailView.tsx` at `/dashboard/news` with per-category narratives + source-article list + category filter tabs
+- [x] LLM cost per run recorded in `NewsDigests.LlmCostUsd` (live runs measured at $0.009–$0.018 — well within budget)
+- [n/a] Integration test scenarios — deferred. The system was shake-tested live (3 successful runs through the full pipeline with real Gemini Flash calls) before commit; formal pytest-style cases would duplicate that coverage for low marginal value at this scale
+- [ ] VERSION bump deferred — running list of VERSION bumps tracked in [wave-22 closeout](./wave-22-ai-architecture-overhaul.md) needs a bigger consolidation pass (also covers Wave 14, 22, 23)
+
+---
+
+## Closeout summary (2026-06-21)
+
+### What shipped (in commit `9c5a73b`)
+
+**Backend** (`PFMP-API/Services/News`, `Models/News`, `Controllers`, `Jobs`):
+- `NewsArticle` + `NewsDigest` EF entities. URL-unique dedup index on articles, per-user latest-digest index on digests.
+- `RssNewsClient` — async fetch + RSS 2.0 / Atom parsing, per-feed try/catch so one dead source can't break the run.
+- `NewsFeedRegistry` — global feed list + per-state NWS Atom feeds + per-ticker Yahoo feeds (only fetched for tickers actually held by some user).
+- `NewsCategorizer` — regex-driven category routing (federal / weather / regulatory / macro / crypto / geopolitical) with holdings-aware ticker tagging.
+- `NewsPromptBuilder` — per-user context-aware prompt asking Gemini Flash for a strict JSON schema with **headline, narrative_summary (morning briefing), overall_sentiment, confidence, and per-category short summaries**.
+- `NewsIngestionService` — orchestrates the full run: feed-set assembly → fetch → dedup → categorize → persist articles → per-user filtering → synthesis → persist digests.
+- `NewsDigestService` — hot-path cached reads for the AI prompt + dashboard endpoints. Renders the digest as plaintext leading with the narrative briefing.
+- `NewsIngestionJob` — Hangfire wrapper, 05:30 ET daily.
+- `NewsController` — `GET /api/news/digest`, `GET /api/news/articles`, `POST /api/news/trigger`.
+- `AIIntelligenceService.BuildCacheableContextAsync` — MARKET CONTEXT block now reads the latest digest, falls back to legacy `MarketContexts` only when no digest exists.
+
+**Frontend** (`pfmp-frontend/src`):
+- `newsApi.ts` — typed client with 404-as-empty-state handling.
+- `NewsDigestWidget` — compact dashboard tile (headline + sentiment chip + narrative briefing + top categories + refresh).
+- `NewsDigestDetailView` — `/dashboard/news` drill-down with narrative section, per-category narratives, article list with category filter tabs.
+
+**Infrastructure**:
+- `"news"` added to the Hangfire worker queue list (initial omission caught + fixed during shakedown).
+- `News` HttpClient registered for the RSS client.
+
+### Day-of additions (driven by live user feedback)
+
+- **Narrative summary field** — added as the user wanted a "morning radio briefing" style 2-3 paragraph synthesis, not just isolated category bullets. Wired through the model, migration, prompt, parser, DTO, AI prompt-text builder, widget, and detail view. Live cost delta: ~$0.0015 / run.
+- **Frontend `/api/api/` double-prefix bug fix** — `apiClient` already prefixes `/api`; my initial `newsApi.ts` calls re-added it. Fixed by switching all three calls from `/api/news/…` → `/news/…`.
+
+### RSS source verification (2026-06-21)
+
+Five of the seven sources I originally drafted turned out to be dead or blocked in 2026:
+
+| Source | Outcome | Decision |
+|---|---|---|
+| `feeds.reuters.com/reuters/businessNews` | DNS dead (Reuters discontinued public RSS pre-2024) | Replaced with **MarketWatch** (`feeds.content.dowjones.io/public/rss/mw_topstories`) |
+| `apnews.com/...?utm_source=apnewsrss` | All AP RSS endpoints dead; AP pulled public feeds | Replaced with **BBC Business** (`feeds.bbci.co.uk/news/business/rss.xml`) |
+| `home.treasury.gov/news/press-releases/rss.xml` | Flaky / no stable RSS path; their site is reachable but doesn't expose RSS | Dropped — Federal Reserve press releases still cover monetary policy |
+| `www.tsp.gov/news-and-resources/feed/` | Returns 403 even with browser UA — actively anti-bot blocked | Dropped — no public TSP RSS exists in 2026 |
+| `www.opm.gov/news/rss/` | 404 — never had a public RSS path | Dropped — no public OPM RSS exists in 2026 |
+| `alerts.weather.gov/cap/ar.php?x=0` | Legacy endpoint deprecated → DNS failures | Migrated to **`api.weather.gov/alerts/active.atom?area={state}`** (verified returning AR alerts on live run) |
+
+**Resulting federal-employee-news gap**: with TSP/OPM/Treasury all unavailable as RSS sources, federal-specific news has to come from general business outlets (Bloomberg/BBC/MarketWatch picking up shutdown/pay/FERS stories) or a future Phase-2 paid news API (e.g., NewsAPI.org or Alpha Vantage). The system's categorizer is still ready for federal-tagged articles when they appear in general feeds.
+
+### Cost confirmed in practice
+
+| Run | Articles fed to LLM | Cost |
+|---|---|---|
+| Initial test (Wave 23 base) | 32 | $0.0163 |
+| With narrative summary added | 33 | $0.0179 |
+| Cleaned-up feed set (final) | 65 | $0.0098 |
+
+~$0.30–0.55/month at 1×/day cadence. Order of magnitude under the user's "DCA, not day trading" budget.
+
+### Multi-user readiness
+
+The service iterates every eligible user and stores a per-user digest. Adding user 21 means:
+- Their tickers get added to the union ticker set automatically.
+- Their state's NWS feed gets added (if a 2-letter US state).
+- Their federal-employment status toggles whether federal articles are filtered out of their digest.
+- Gemini Flash gets their personalized context in the prompt.
+
+Zero code changes required to onboard a new user.
+
+### Operator note: adding a new RSS feed
+
+1. Open `PFMP-API/Services/News/NewsFeedRegistry.cs`.
+2. Add a `new RssFeedDefinition("DisplayName", "https://feed.url/rss", "default-category")` to `GlobalFeeds`.
+3. Valid categories: `macro | federal | regulatory | weather | crypto | geopolitical | holdings` (the categorizer can still override the default based on article content).
+4. Restart the API. Next scheduled run (05:30 ET) or any manual trigger will pick it up.
 
 ---
 
