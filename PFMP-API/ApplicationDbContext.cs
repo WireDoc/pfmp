@@ -107,6 +107,10 @@ namespace PFMP_API
     // AI Architecture (Wave 22 Phase C) — per-slot model + sampling overrides editable from admin UI
     public DbSet<AISettings> AISettings { get; set; }
 
+    // News Aggregator (Wave 23) — RSS-driven daily digest for MARKET CONTEXT
+    public DbSet<PFMP_API.Models.News.NewsArticle> NewsArticles { get; set; }
+    public DbSet<PFMP_API.Models.News.NewsDigest> NewsDigests { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -116,6 +120,22 @@ namespace PFMP_API
             {
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.Slot).IsUnique();
+            });
+
+            // News Aggregator (Wave 23) — articles are global; URL is the dedup key
+            modelBuilder.Entity<PFMP_API.Models.News.NewsArticle>(entity =>
+            {
+                entity.HasKey(e => e.NewsArticleId);
+                entity.HasIndex(e => e.Url).IsUnique();
+                entity.HasIndex(e => e.PublishedAt);
+                entity.HasIndex(e => e.Category);
+            });
+
+            modelBuilder.Entity<PFMP_API.Models.News.NewsDigest>(entity =>
+            {
+                entity.HasKey(e => e.NewsDigestId);
+                // Latest-digest-per-user lookup is the hottest read path
+                entity.HasIndex(e => new { e.UserId, e.GeneratedAt });
             });
 
             // User Configuration

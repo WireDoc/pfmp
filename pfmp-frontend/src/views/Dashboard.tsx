@@ -18,6 +18,7 @@ import { CashFlowWidget } from '../components/dashboard/CashFlowWidget';
 import { UpcomingObligationsWidget } from '../components/dashboard/UpcomingObligationsWidget';
 import { QuickActionsBar } from '../components/dashboard/QuickActionsBar';
 import { GoalProjectionsWidget } from '../components/dashboard/GoalProjectionsWidget';
+import { NewsDigestWidget } from '../components/dashboard/NewsDigestWidget';
 import { AccountsPanel } from './dashboard/AccountsPanel';
 import { InsightsPanel } from './dashboard/InsightsPanel';
 import { AlertsPanel } from './dashboard/AlertsPanel';
@@ -807,6 +808,9 @@ export const Dashboard: React.FC = () => {
         </Grid>
         <Grid size={{ xs: 12, md: 6 }}>
           <GoalProjectionsWidget />
+        </Grid>
+        <Grid size={12}>
+          <NewsDigestWidget userId={devUserId ?? Number(import.meta.env.VITE_PFMP_DASHBOARD_USER_ID || '1')} />
         </Grid>
         <Grid size={12}>
           <Paper variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>

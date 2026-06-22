@@ -35,6 +35,7 @@ const ConnectionsSettingsView = lazy(() => import('./views/settings/ConnectionsS
 const CryptoSettingsView = lazy(() => import('./views/settings/CryptoSettingsView').then(m => ({ default: m.CryptoSettingsView })));
 const SchedulerAdminView = lazy(() => import('./views/admin/SchedulerAdminView'));
 const AIModelsAdminView = lazy(() => import('./views/admin/AIModelsAdminView'));
+const NewsDigestDetailView = lazy(() => import('./views/dashboard/NewsDigestDetailView').then(m => ({ default: m.NewsDigestDetailView })));
 
 // NotFound lazy component supplied via staticRoutes (staticNotFound)
 
@@ -195,6 +196,10 @@ export function AppRouter(props: AppRouterProps) {
         {
           path: 'admin/ai-models',
           element: <Suspense fallback={<PageSpinner />}><AIModelsAdminView /></Suspense>,
+        },
+        {
+          path: 'news',
+          element: <Suspense fallback={<PageSpinner />}><NewsDigestDetailView /></Suspense>,
         },
       ];
     }

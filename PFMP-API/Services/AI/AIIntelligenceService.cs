@@ -93,15 +93,19 @@ namespace PFMP_API.Services.AI
             return (false, null);
         }
 
+        private readonly Services.News.INewsDigestService _newsDigests;
+
         public AIIntelligenceService(
             ApplicationDbContext context,
             IDualAIAdvisor dualAI,
             IAIMemoryService memory,
+            Services.News.INewsDigestService newsDigests,
             ILogger<AIIntelligenceService> logger)
         {
             _context = context;
             _dualAI = dualAI;
             _memory = memory;
+            _newsDigests = newsDigests;
             _logger = logger;
         }
 
@@ -2124,10 +2128,22 @@ Your analysis will be reviewed by a backup AI system for validation.",
             sb.AppendLine();
             sb.AppendLine();
 
-            // Market context summary
-            var marketSummary = await _memory.BuildMarketContextSummaryAsync(30);
+            // Market context: prefer the Wave 23 news digest (RSS-driven, daily,
+            // personalized to this user's holdings + federal status + state) when
+            // one exists. Fall back to the legacy MarketContexts table summary
+            // when no digest has been generated yet (e.g. brand-new install before
+            // the first ingestion run).
             sb.AppendLine("=== MARKET CONTEXT ===");
-            sb.AppendLine(marketSummary.TrimEnd());
+            var digestText = await _newsDigests.GetLatestDigestAsPromptTextAsync(userId);
+            if (!string.IsNullOrWhiteSpace(digestText))
+            {
+                sb.AppendLine(digestText.TrimEnd());
+            }
+            else
+            {
+                var marketSummary = await _memory.BuildMarketContextSummaryAsync(30);
+                sb.AppendLine(marketSummary.TrimEnd());
+            }
             sb.AppendLine();
             sb.AppendLine();
 

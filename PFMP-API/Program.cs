@@ -192,7 +192,7 @@ namespace PFMP_API
                 builder.Services.AddHangfireServer(options =>
                 {
                     options.WorkerCount = Environment.ProcessorCount * 2;
-                    options.Queues = new[] { "default", "price-refresh", "snapshots" };
+                    options.Queues = new[] { "default", "price-refresh", "snapshots", "news" };
                 });
             }
 
@@ -200,6 +200,15 @@ namespace PFMP_API
             builder.Services.AddScoped<PFMP_API.Jobs.PriceRefreshJob>();
             builder.Services.AddScoped<PFMP_API.Jobs.NetWorthSnapshotJob>();
             builder.Services.AddScoped<PFMP_API.Jobs.TspPriceRefreshJob>();
+
+            // News Aggregator (Wave 23)
+            builder.Services.AddHttpClient("News");
+            builder.Services.AddScoped<PFMP_API.Services.News.IRssNewsClient, PFMP_API.Services.News.RssNewsClient>();
+            builder.Services.AddSingleton<PFMP_API.Services.News.INewsCategorizer, PFMP_API.Services.News.NewsCategorizer>();
+            builder.Services.AddSingleton<PFMP_API.Services.News.INewsPromptBuilder, PFMP_API.Services.News.NewsPromptBuilder>();
+            builder.Services.AddScoped<PFMP_API.Services.News.INewsIngestionService, PFMP_API.Services.News.NewsIngestionService>();
+            builder.Services.AddScoped<PFMP_API.Services.News.INewsDigestService, PFMP_API.Services.News.NewsDigestService>();
+            builder.Services.AddScoped<PFMP_API.Jobs.NewsIngestionJob>();
 
             // Plaid Integration Services (Wave 11)
             builder.Services.AddDataProtection();
@@ -466,6 +475,16 @@ namespace PFMP_API
                     "daily-tsp-refresh",
                     job => job.RefreshTspPricesAsync(CancellationToken.None),
                     "0 4 * * *", // 4 AM ET daily
+                    ignoreMissed);
+
+                // Wave 23 — Daily news ingestion at 5:30 AM ET. Runs after
+                // NetWorthSnapshotJob (5 AM ET) so the snapshot's numbers and the
+                // day's news digest are both ready by ~6 AM ET for first dashboard
+                // load. MisfireHandling.Ignorable so missed runs don't fire late.
+                RecurringJob.AddOrUpdate<PFMP_API.Jobs.NewsIngestionJob>(
+                    "daily-news-ingestion",
+                    job => job.RunAsync(CancellationToken.None),
+                    "30 5 * * *", // 5:30 AM ET daily
                     ignoreMissed);
 
                 // Daily Plaid bank account balance sync at 10 PM ET (Wave 11)
