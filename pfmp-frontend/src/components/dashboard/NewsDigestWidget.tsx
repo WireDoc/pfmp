@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Box, Typography, Paper, Stack, Chip, Skeleton, Button, IconButton, Tooltip, Alert } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { Link as RouterLink } from 'react-router-dom';
 import { fetchLatestDigest, triggerNewsIngestion, type NewsDigest } from '../../services/newsApi';
+import { formatRelative, formatAbsolute } from '../../utils/relativeTime';
 
 interface NewsDigestWidgetProps {
   userId: number;
@@ -29,14 +30,6 @@ const sentimentColor = (sentiment: string | null | undefined): 'success' | 'warn
 const sentimentLabel = (sentiment: string | null | undefined): string =>
   (sentiment ?? 'neutral').replace(/_/g, ' ');
 
-const formatGeneratedAt = (iso: string): string => {
-  const d = new Date(iso);
-  const now = new Date();
-  const sameDay = d.toDateString() === now.toDateString();
-  return sameDay
-    ? `today at ${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
-    : d.toLocaleString();
-};
 
 export const NewsDigestWidget: React.FC<NewsDigestWidgetProps> = ({ userId }) => {
   const [digest, setDigest] = useState<NewsDigest | null>(null);
@@ -45,30 +38,57 @@ export const NewsDigestWidget: React.FC<NewsDigestWidgetProps> = ({ userId }) =>
   const [error, setError] = useState<string | null>(null);
   const [refreshNotice, setRefreshNotice] = useState<string | null>(null);
 
+  const fetchDigest = useCallback(async (): Promise<NewsDigest | null> => {
+    return await fetchLatestDigest(userId);
+  }, [userId]);
+
   useEffect(() => {
     let cancelled = false;
-    async function load() {
+    (async () => {
       setLoading(true);
       setError(null);
       try {
-        const d = await fetchLatestDigest(userId);
+        const d = await fetchDigest();
         if (!cancelled) setDigest(d);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load news digest');
       } finally {
         if (!cancelled) setLoading(false);
       }
-    }
-    load();
+    })();
     return () => { cancelled = true; };
-  }, [userId]);
+  }, [fetchDigest]);
+
+  // After a manual "Generate new digest" click, poll every 5s for up to 60s
+  // and auto-replace the displayed digest when a fresher one appears. Saves
+  // the user from having to click reload after the ingestion job completes.
+  const pollForNewerDigest = useCallback(async (priorGeneratedAt: string | null) => {
+    const deadline = Date.now() + 60_000;
+    while (Date.now() < deadline) {
+      await new Promise(r => setTimeout(r, 5000));
+      try {
+        const fresh = await fetchDigest();
+        if (fresh && (!priorGeneratedAt || fresh.generatedAt !== priorGeneratedAt)) {
+          setDigest(fresh);
+          setRefreshNotice(null);
+          return;
+        }
+      } catch {
+        // Poll errors are non-fatal — try again next tick.
+      }
+    }
+    setRefreshNotice('Job still running — click "Reload page data" in a few seconds to see the new digest.');
+  }, [fetchDigest]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
     setRefreshNotice(null);
+    const priorGeneratedAt = digest?.generatedAt ?? null;
     try {
-      const result = await triggerNewsIngestion();
-      setRefreshNotice(`Refresh queued (job ${result.jobId.slice(0, 8)}…). Reload in ~30s to see the new digest.`);
+      await triggerNewsIngestion();
+      setRefreshNotice('New digest is being generated (~30 seconds). The widget will update automatically.');
+      // Don't await: let the poll run in the background and update state on its own.
+      void pollForNewerDigest(priorGeneratedAt);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to trigger refresh');
     } finally {
@@ -99,12 +119,14 @@ export const NewsDigestWidget: React.FC<NewsDigestWidgetProps> = ({ userId }) =>
       <Paper sx={{ p: 2 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
           <Typography variant="h6">News Digest</Typography>
-          <Button size="small" onClick={handleRefresh} disabled={refreshing} startIcon={<RefreshIcon />}>
-            Generate
-          </Button>
+          <Tooltip title="Run the news ingestion job (~30 seconds, costs about $0.02)">
+            <Button size="small" onClick={handleRefresh} disabled={refreshing} startIcon={<RefreshIcon />}>
+              Generate new digest
+            </Button>
+          </Tooltip>
         </Stack>
         <Typography variant="body2" color="text.secondary">
-          No digest available yet. The daily ingestion runs at 5:30 AM ET; click Generate to run it now.
+          No digest available yet. The daily ingestion runs at 5:30 AM ET; click <strong>Generate new digest</strong> to run it now.
         </Typography>
         {refreshNotice && <Alert sx={{ mt: 1 }} severity="info">{refreshNotice}</Alert>}
       </Paper>
@@ -127,17 +149,19 @@ export const NewsDigestWidget: React.FC<NewsDigestWidgetProps> = ({ userId }) =>
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={1}>
         <Box>
           <Typography variant="h6" gutterBottom>News Digest</Typography>
-          <Typography variant="caption" color="text.secondary">
-            Generated {formatGeneratedAt(digest.generatedAt)} · {digest.articleCount} articles
-          </Typography>
+          <Tooltip title={`Generated ${formatAbsolute(digest.generatedAt)}`}>
+            <Typography variant="caption" color="text.secondary" sx={{ cursor: 'help' }}>
+              Generated {formatRelative(digest.generatedAt)} · {digest.articleCount} articles
+            </Typography>
+          </Tooltip>
         </Box>
         <Stack direction="row" spacing={1} alignItems="center">
-          <Tooltip title="Open detail view">
+          <Tooltip title="Open detail view (per-category drill-down + source articles)">
             <IconButton size="small" component={RouterLink} to="/dashboard/news">
               <OpenInNewIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Refresh digest (runs ingestion now)">
+          <Tooltip title="Generate a new digest — runs the news ingestion job (~30 seconds, costs about $0.02). The widget will update automatically when done.">
             <span>
               <IconButton size="small" onClick={handleRefresh} disabled={refreshing}>
                 <RefreshIcon fontSize="small" />

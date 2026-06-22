@@ -15,6 +15,7 @@ import {
   type NewsDigest,
   type NewsArticle,
 } from '../../services/newsApi';
+import { formatRelative, formatAbsolute } from '../../utils/relativeTime';
 
 /**
  * Wave 23 — Full per-category drill-down view. Shows each category's narrative
@@ -41,7 +42,6 @@ const CATEGORY_ORDER: { key: string; label: string }[] = [
   { key: 'crypto',       label: 'Crypto' },
 ];
 
-const formatDateTime = (iso: string): string => new Date(iso).toLocaleString();
 
 export const NewsDigestDetailView: React.FC = () => {
   const userId = useDevUserId() ?? 1;
@@ -70,12 +70,37 @@ export const NewsDigestDetailView: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
+  // After a "Generate new digest" trigger, poll the API every 5s for up to 60s
+  // and auto-reload the page state when a fresher digest appears. Saves the
+  // user from manually clicking "Reload page data".
+  const pollForNewerDigest = useCallback(async (priorGeneratedAt: string | null) => {
+    const deadline = Date.now() + 60_000;
+    while (Date.now() < deadline) {
+      await new Promise(r => setTimeout(r, 5000));
+      try {
+        const fresh = await fetchLatestDigest(userId);
+        if (fresh && (!priorGeneratedAt || fresh.generatedAt !== priorGeneratedAt)) {
+          setDigest(fresh);
+          const a = await fetchDigestArticles(userId);
+          setArticles(a);
+          setRefreshNotice(null);
+          return;
+        }
+      } catch {
+        // Non-fatal — try again next tick.
+      }
+    }
+    setRefreshNotice('Job still running — click "Reload page data" in a few seconds to see the new digest.');
+  }, [userId]);
+
   const handleRefresh = async () => {
     setRefreshing(true);
     setRefreshNotice(null);
+    const priorGeneratedAt = digest?.generatedAt ?? null;
     try {
-      const result = await triggerNewsIngestion();
-      setRefreshNotice(`Refresh queued (job ${result.jobId.slice(0, 8)}…). Click reload in ~30s.`);
+      await triggerNewsIngestion();
+      setRefreshNotice('New digest is being generated (~30 seconds). The page will update automatically.');
+      void pollForNewerDigest(priorGeneratedAt);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to trigger refresh');
     } finally {
@@ -145,10 +170,18 @@ export const NewsDigestDetailView: React.FC = () => {
           <Typography variant="h4">News Digest</Typography>
         </Stack>
         <Stack direction="row" spacing={1}>
-          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={handleRefresh} disabled={refreshing}>
-            {refreshing ? 'Queued…' : 'Refresh now'}
-          </Button>
-          <Button variant="outlined" onClick={load} disabled={loading}>Reload</Button>
+          <Tooltip title="Runs the news ingestion job: pulls fresh RSS feeds, dedupes, categorizes, and asks Gemini Flash to write a new briefing. ~30 seconds, costs about $0.02. The page will auto-update when done.">
+            <span>
+              <Button variant="outlined" startIcon={<RefreshIcon />} onClick={handleRefresh} disabled={refreshing}>
+                {refreshing ? 'Queued…' : 'Generate new digest'}
+              </Button>
+            </span>
+          </Tooltip>
+          <Tooltip title="Re-fetch the latest digest data from the database (instant). Use after a manual database edit or if the auto-update didn't catch the new digest.">
+            <span>
+              <Button variant="outlined" onClick={load} disabled={loading}>Reload page data</Button>
+            </span>
+          </Tooltip>
         </Stack>
       </Stack>
 
@@ -182,9 +215,11 @@ export const NewsDigestDetailView: React.FC = () => {
                 {digest.articleCount} articles · LLM cost ${digest.llmCostUsd.toFixed(4)}
               </Typography>
             </Stack>
-            <Typography variant="caption" color="text.secondary">
-              Generated {formatDateTime(digest.generatedAt)} · Period {formatDateTime(digest.periodStart)} → {formatDateTime(digest.periodEnd)}
-            </Typography>
+            <Tooltip title={`Exact: ${formatAbsolute(digest.generatedAt)} · Period: ${formatAbsolute(digest.periodStart)} → ${formatAbsolute(digest.periodEnd)}`}>
+              <Typography variant="caption" color="text.secondary" sx={{ cursor: 'help' }}>
+                Generated {formatRelative(digest.generatedAt)} · Period {formatRelative(digest.periodStart)} → {formatRelative(digest.periodEnd)}
+              </Typography>
+            </Tooltip>
           </Paper>
 
           {/* Narrative briefing — radio-style morning summary */}
@@ -280,9 +315,11 @@ export const NewsDigestDetailView: React.FC = () => {
                             <Typography variant="caption" color="text.secondary">{a.source}</Typography>
                           </Tooltip>
                           <Typography variant="caption" color="text.secondary">·</Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {formatDateTime(a.publishedAt)}
-                          </Typography>
+                          <Tooltip title={formatAbsolute(a.publishedAt)}>
+                            <Typography variant="caption" color="text.secondary" sx={{ cursor: 'help' }}>
+                              {formatRelative(a.publishedAt)}
+                            </Typography>
+                          </Tooltip>
                           {a.tags && (
                             <>
                               <Typography variant="caption" color="text.secondary">·</Typography>
@@ -296,7 +333,7 @@ export const NewsDigestDetailView: React.FC = () => {
                     />
                     {a.summary && (
                       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                        {a.summary.length > 280 ? a.summary.slice(0, 280) + '…' : a.summary}
+                        {a.summary}
                       </Typography>
                     )}
                   </ListItem>
