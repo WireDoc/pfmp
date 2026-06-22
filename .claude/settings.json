@@ -8,7 +8,10 @@
       "PowerShell(& \"c:\\\\pfmp\\\\restart-dev-servers.bat\")",
       "mcp__pfmp-postgres__get_table_schema",
       "mcp__pfmp-postgres__get_foreign_keys",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "PowerShell(Start-Process -FilePath \"$pwd\\\\start-dev-servers.bat\" -WorkingDirectory $pwd)",
+      "Bash(curl -fsS http://localhost:5052/health)",
+      "PowerShell(Start-Process -FilePath \"$pwd\\\\stop-dev-servers.bat\" -WorkingDirectory $pwd -Wait)"
     ]
   }
 }
