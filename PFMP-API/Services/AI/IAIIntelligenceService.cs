@@ -37,6 +37,22 @@ namespace PFMP_API.Services.AI
         /// </summary>
         Task<Advice> GenerateAdviceFromAlertAsync(int alertId, int userId);
 
+        // ===== Context Assembly (Wave 24) =====
+        /// <summary>
+        /// Builds the full financial context block (USER PROFILE, HOLDINGS, TSP,
+        /// CASH, LIABILITIES, etc.). Used by analysis prompts and by the chatbot
+        /// snapshot service.
+        /// </summary>
+        Task<string> BuildFullFinancialContextAsync(int userId);
+
+        /// <summary>
+        /// Builds the full cacheable prompt prefix: financial profile + memory + market
+        /// context + active alerts/advice. Sent verbatim across requests so provider-
+        /// level prompt caching can reuse it. Used by the chat snapshot service to
+        /// produce daily UserContextSnapshots rows.
+        /// </summary>
+        Task<string> BuildCacheableContextAsync(int userId);
+
         // ===== Chatbot with Memory =====
         /// <summary>
         /// Conversational AI with full user context and memory

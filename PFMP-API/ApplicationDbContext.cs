@@ -111,6 +111,9 @@ namespace PFMP_API
     public DbSet<PFMP_API.Models.News.NewsArticle> NewsArticles { get; set; }
     public DbSet<PFMP_API.Models.News.NewsDigest> NewsDigests { get; set; }
 
+    // Chatbot (Wave 24) — cacheable per-user context snapshot used as the prompt prefix
+    public DbSet<PFMP_API.Models.AI.UserContextSnapshot> UserContextSnapshots { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -136,6 +139,13 @@ namespace PFMP_API
                 entity.HasKey(e => e.NewsDigestId);
                 // Latest-digest-per-user lookup is the hottest read path
                 entity.HasIndex(e => new { e.UserId, e.GeneratedAt });
+            });
+
+            // Chatbot (Wave 24) — daily context snapshot, unique per (UserId, SnapshotDate)
+            modelBuilder.Entity<PFMP_API.Models.AI.UserContextSnapshot>(entity =>
+            {
+                entity.HasKey(e => e.UserContextSnapshotId);
+                entity.HasIndex(e => new { e.UserId, e.SnapshotDate }).IsUnique();
             });
 
             // User Configuration

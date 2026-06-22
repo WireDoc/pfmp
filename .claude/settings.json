@@ -11,7 +11,9 @@
       "Bash(git commit -m ' *)",
       "PowerShell(Start-Process -FilePath \"$pwd\\\\start-dev-servers.bat\" -WorkingDirectory $pwd)",
       "Bash(curl -fsS http://localhost:5052/health)",
-      "PowerShell(Start-Process -FilePath \"$pwd\\\\stop-dev-servers.bat\" -WorkingDirectory $pwd -Wait)"
+      "PowerShell(Start-Process -FilePath \"$pwd\\\\stop-dev-servers.bat\" -WorkingDirectory $pwd -Wait)",
+      "Bash(./stop-dev-servers.bat)",
+      "Bash(./start-dev-servers.bat)"
     ]
   }
 }

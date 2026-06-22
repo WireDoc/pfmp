@@ -38,10 +38,31 @@ namespace PFMP_API.Models
         public string ConversationType { get; set; } = "Chat";
 
         /// <summary>
-        /// AI-generated summary of the conversation (created when conversation ends)
+        /// AI-generated summary of the conversation (created when conversation ends
+        /// or when older turns are folded into a "previously" block to stay under the
+        /// token cap). No length cap — summaries can run long for older long threads.
         /// </summary>
-        [MaxLength(1000)]
         public string? ConversationSummary { get; set; }
+
+        /// <summary>
+        /// Wave 24 — Conversation title shown in the chat sidebar. Auto-generated
+        /// from the first user message (truncated) when null. The user can rename
+        /// any time via the sidebar UI.
+        /// </summary>
+        [MaxLength(200)]
+        public string? Title { get; set; }
+
+        /// <summary>
+        /// Wave 24 — When set, the conversation is hidden from the active sidebar
+        /// but kept in the DB for "browse archived" recovery. Null means active.
+        /// </summary>
+        public DateTime? ArchivedAt { get; set; }
+
+        /// <summary>
+        /// Wave 24 — Updated whenever a message is appended. Used to sort the
+        /// sidebar by recency (most recent activity first).
+        /// </summary>
+        public DateTime LastMessageAt { get; set; } = DateTime.UtcNow;
 
         /// <summary>
         /// Total tokens used across all messages

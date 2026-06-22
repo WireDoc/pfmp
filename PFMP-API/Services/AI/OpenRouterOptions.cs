@@ -12,7 +12,9 @@ public class OpenRouterOptions
     // auto-updates to the latest stable model in each family. See OpenRouter docs.
     public string PrimaryModel { get; set; } = "~google/gemini-pro-latest";
     public string VerifierModel { get; set; } = "~anthropic/claude-sonnet-latest";
-    public string ChatModel { get; set; } = "~google/gemini-pro-latest";
+    // Wave 24 — pinned to Gemini 3.1 Pro Preview (current Pro tier in the 3.x line).
+    // The admin UI can swap any time via the AISettings table; this is the fallback.
+    public string ChatModel { get; set; } = "google/gemini-3.1-pro-preview";
 
     // Wave 22 Phase E — News slot. No consumer yet; reserved for the future
     // Market Context Awareness wave that will run a periodic Hangfire job to
@@ -30,6 +32,17 @@ public class OpenRouterOptions
 
     // Wave 22 — Fusion spike configuration
     public FusionOptions Fusion { get; set; } = new();
+
+    // Wave 24 — Monthly hard cap on chat spend. When the user's MTD cost exceeds
+    // this value, /api/chat/conversations/{id}/messages/stream returns 402 with
+    // a message asking them to raise the cap or wait for the next billing cycle.
+    // Default $20 — enough room for ~500 typical messages with caching warm.
+    public ChatOptions Chat { get; set; } = new();
+}
+
+public class ChatOptions
+{
+    public decimal MonthlyCapUsd { get; set; } = 20m;
 }
 
 /// <summary>

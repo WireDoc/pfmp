@@ -210,6 +210,10 @@ namespace PFMP_API
             builder.Services.AddScoped<PFMP_API.Services.News.INewsDigestService, PFMP_API.Services.News.NewsDigestService>();
             builder.Services.AddScoped<PFMP_API.Jobs.NewsIngestionJob>();
 
+            // Chatbot with Memory (Wave 24) — streaming chat backed by daily context snapshot
+            builder.Services.AddScoped<PFMP_API.Services.AI.Chat.IUserContextSnapshotService, PFMP_API.Services.AI.Chat.UserContextSnapshotService>();
+            builder.Services.AddScoped<PFMP_API.Services.AI.Chat.IChatService, PFMP_API.Services.AI.Chat.ChatService>();
+
             // Plaid Integration Services (Wave 11)
             builder.Services.AddDataProtection();
             builder.Services.AddSingleton<PFMP_API.Services.Plaid.ICredentialEncryptionService, PFMP_API.Services.Plaid.DataProtectionEncryptionService>();

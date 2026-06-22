@@ -28,7 +28,9 @@ _Last updated: 2026-05-04_
 | Wave 19: Advanced Retirement Planning | ✅ Complete | April 2026 |
 | Wave 20: FEHB Auto-Fill & LES Enhancements | ✅ Complete | April 2026 |
 | Wave 21: Estate Planning & Beneficiaries | ✅ Complete | April 2026 |
-| Wave 22: AI Architecture Overhaul (Fusion spike + admin UI + model aliases + news slot) | 📋 Planned | Q3 2026 |
+| Wave 22: AI Architecture Overhaul (Fusion spike + admin UI + model aliases + News/Chat slots) | ✅ Complete | June 2026 |
+| Wave 23: News Aggregator (RSS digest → AI market context + dashboard widget) | ✅ Complete | June 2026 |
+| Wave 24: AI Chatbot with Memory (streaming chat, daily context snapshot, deep-think toggle) | ✅ Complete | June 2026 |
 
 **Current Version**: v0.24.0-alpha (Wave 14 closeout shipped: spending rollups, cash-flow forecast, recurring detection, anomaly alerts)
 

@@ -28,6 +28,7 @@ import {
   Savings as TspIcon,
   CurrencyBitcoin as CryptoIcon,
   Paid as SpendingIcon,
+  Chat as ChatIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/auth/useAuth';
 
@@ -54,6 +55,7 @@ const navigationItems: NavItem[] = [
   { path: '/dashboard/tsp', label: 'TSP', icon: <TspIcon /> },
   { path: '/dashboard/insights', label: 'Insights', icon: <InsightsIcon /> },
   { path: '/dashboard/actions', label: 'Actions', icon: <TasksIcon /> },
+  { path: '/dashboard/chat', label: 'Chat', icon: <ChatIcon /> },
 ];
 
 const secondaryItems: NavItem[] = [

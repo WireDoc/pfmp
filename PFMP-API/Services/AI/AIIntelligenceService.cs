@@ -2108,10 +2108,14 @@ Your analysis will be reviewed by a backup AI system for validation.",
         }
 
         /// <summary>
-        /// Legacy: Builds cacheable context for backward compatibility.
-        /// Now delegates to BuildFullFinancialContextAsync plus memory/market context.
+        /// Builds the full cacheable context block: financial profile + recent action
+        /// memory + market context (news digest) + active alerts/advice. Sent as the
+        /// prompt prefix so prompt-caching can reuse the bytes across requests.
+        ///
+        /// Wave 24 — also called by UserContextSnapshotService to produce the daily
+        /// snapshot stored in the UserContextSnapshots table.
         /// </summary>
-        private async Task<string> BuildCacheableContextAsync(int userId)
+        public async Task<string> BuildCacheableContextAsync(int userId)
         {
             var sb = new StringBuilder();
 
