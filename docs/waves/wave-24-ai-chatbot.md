@@ -1,6 +1,6 @@
 # Wave 24 — AI Chatbot with Memory
 
-**Status:** ✅ v1 complete — shipped 2026-06-22
+**Status:** ✅ Complete — shipped 2026-06-22, closed out 2026-06-23
 **Owner:** Solo project; user is sole customer
 **Predecessors:** Wave 22 Phase F (`Chat` slot wired in DI + `AIPromptMode.Chat` routing), Wave 23 (news digest folded into the cacheable context)
 **Successors potentially unblocked:** Chat → Advice conversion flow; per-message reasoning trace UI; tool-calling for portfolio actions
@@ -184,3 +184,62 @@ First message of the day (cache cold): snapshot is uncached → ~$0.02-0.04. Sub
 - `GET /api/chat/conversations?userId=20` → list includes the new conversation ✅
 
 Live SSE stream + end-to-end model call deferred to user-driven testing — no API key in the dev `appsettings.json` and the user manages OpenRouter spend.
+
+---
+
+## Closeout summary (2026-06-23)
+
+After the v1 commit (`e70e2c2`), real user testing surfaced several follow-on
+needs. Each got resolved in the same wave rather than carried forward:
+
+### Live-use enhancements (shipped post-v1)
+
+| Commit | What it added | Why |
+| ------ | ------------- | --- |
+| `a845897` | News ingestion 4×/day (7:30/11:30/15:30/19:30 CT) in `America/Chicago` instead of 1×/day in ET | User wanted news through the day, not just morning. Cost ~$0.04-0.08/day in Gemini Flash. |
+| `f43701b` | News ingestion job auto-calls `ForceRebuildAsync` for each user whose digest was updated | Without this, chats started in the afternoon still referenced the morning's digest until next day. Hash-gated so no-op signals don't churn the prompt cache. |
+| `8a0cbe9` | Smart auto-refresh snapshot — source-change watermark + 120 min max-age safety net | Manual refresh button isn't enough. Every chat message now runs a one round-trip `GREATEST(MAX(UpdatedAt))` across ~20 user-scoped tables; rebuild fires if any source updated after the snapshot. Hard max-age (configurable via `AI:OpenRouter:Chat:SnapshotMaxAgeMinutes`) for global tables not in the per-user watermark. ~30ms overhead per message. |
+| `fba7820` | Three-layer clock-skew defense | A transient Windows clock skew (+5h = CDT offset, likely NTP correction event) stamped one chat row and one news digest ~5h in the future, and caused the upstream model call to return an empty stream. Defenses: (1) frontend `formatRelative` clamps future timestamps >60s to "just now"; (2) snapshot smart-check piggybacks a `now()` vs `DateTime.UtcNow` comparison and logs a `CLOCK DRIFT` warning on >60s drift; (3) `ChatService` counts SSE delta events and dumps the last 2KB of stream + surfaces a clear "model returned no content" error when zero deltas land. |
+| `7e3d3d8` | News shortcut in the top-bar nav | Sidebar trip felt heavy for a frequently-checked view. |
+
+### Live-use issues + how they were handled
+
+1. **Empty assistant turn (conv 3)** — clock-skewed UTC during the model call caused the upstream to return zero deltas. The empty assistant bubble + "started in 5 hours" UI was the user-visible symptom. Hardening in `fba7820` prevents both the rendering nonsense and the silent-failure mode going forward (now logs the SSE tail and surfaces a real error message in the UI).
+2. **News widget "generated in 5 hours"** — same clock skew. Same `formatRelative` defensive fix handles it.
+3. **Stale data after long breaks** — pre-`8a0cbe9`, returning to chat after lunch would still use the morning's snapshot. Now: max-age fires after 2h, source-change watermark fires immediately when anything updates.
+
+### Live-measured cost (one assistant turn, deep-think off)
+
+- Snapshot read + smart-check + watermark query: ~30ms, $0
+- OpenRouter call with cache warm: typically $0.01-0.02 per turn (Gemini 3.1 Pro Preview + web plugin)
+- News ingestion (Gemini Flash synthesis): $0.009-0.018 per run × 4×/day = ~$1-2/month
+- Snapshot rebuild on source change: ~1-2s wall clock, $0 (text assembly only)
+
+Monthly cap default $20 (`AI:OpenRouter:Chat:MonthlyCapUsd`) — covers ~1000 typical turns.
+
+### Acceptance criteria
+
+- [x] AIConversation + AIMessage tables extended with Title/ArchivedAt/LastMessageAt/Input-Output-CachedTokens/ReasoningEffort
+- [x] New `UserContextSnapshots` table — one row per (UserId, SnapshotDate), hash-keyed
+- [x] `UserContextSnapshotService` with `GetCurrentSnapshotAsync` (smart-refresh), `GetOrCreateTodaySnapshotAsync` (legacy fast-path), `ForceRebuildAsync` (manual)
+- [x] `ChatService.StreamMessageAsync` — SSE-streaming orchestrator with auto-title, monthly cap check, deep-think reasoning override
+- [x] `ChatController` — conversations CRUD + snapshot info/rebuild + monthly cost + SSE message-stream endpoint
+- [x] Frontend `/dashboard/chat[/:id]` — sidebar with conversation list/cost chip/snapshot info, main pane with streaming bubbles + composer + deep-think toggle
+- [x] News shortcut in top bar
+- [x] Chat slot pinned to `google/gemini-3.1-pro-preview` (admin UI can swap)
+- [x] News ingestion paired with snapshot rebuild
+- [x] Smart auto-refresh: source-change watermark + max-age safety net
+- [x] Clock-skew defenses across frontend rendering + backend logging + empty-stream surfacing
+- [x] Live end-to-end test passed: user verified streaming chat works after the empty-stream hardening landed
+- [ ] VERSION bump deferred to the consolidation pass that covers Waves 14/22/23/24
+
+### What's deferred to future waves (no Wave 24 follow-up planned)
+
+See the "What's deliberately deferred" table above. The user explicitly closed v1 without addressing these — supplement docs may follow:
+
+- Auto-summarize long threads (Wave 24.5 if needed; only matters at ~80+ turn threads)
+- Chat → Advice conversion (Wave 24.5 — needs UX design)
+- Tool-calling for portfolio actions (Wave 25 — write-side safety surface)
+- `react-markdown` upgrade (polish wave)
+- Per-conversation snapshot pinning (speculative, not requested)
+- Per-message reasoning trace UI (blocked on Gemini exposing reasoning text via OpenRouter)
