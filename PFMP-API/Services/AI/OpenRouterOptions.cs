@@ -43,6 +43,16 @@ public class OpenRouterOptions
 public class ChatOptions
 {
     public decimal MonthlyCapUsd { get; set; } = 20m;
+
+    /// <summary>
+    /// Hard ceiling on snapshot staleness. Even when the source-change detector
+    /// says nothing has updated, force a rebuild after this many minutes. Acts
+    /// as a safety net for any source table the watermark query doesn't cover
+    /// (e.g. global tables like TSPFundPrices that don't have a per-user link).
+    /// Default 120 — captures "I'm back after lunch" without burning rebuild
+    /// cycles during an active chat session.
+    /// </summary>
+    public int SnapshotMaxAgeMinutes { get; set; } = 120;
 }
 
 /// <summary>

@@ -76,9 +76,15 @@ PFMP-API/
 
 ### `UserContextSnapshotService`
 
-`GetOrCreateTodaySnapshotAsync(userId)` — fast path: returns today's row if it exists. Slow path: calls `IAIIntelligenceService.BuildCacheableContextAsync(userId)` (full profile + memory + market context + active alerts/advice — same builder the analysis prompt uses), hashes it, persists, returns. ~5k tokens / ~20k chars for the dev user.
+`GetCurrentSnapshotAsync(userId)` — **the always-fresh path used on every chat message + snapshot info request.** Two checks gate the cached row:
+1. **Source-change watermark** — a one round-trip Postgres query computing `GREATEST(MAX(UpdatedAt))` across ~20 user-scoped tables (Users, all account types, Holdings, TspLifecyclePositions, all FinancialProfile* tables, UserNotes, Alerts, Advice, NewsDigests, NetWorthSnapshots, AccountConnections.LastSyncedAt, etc.). If anything updated after the snapshot's `UpdatedAt`, rebuild.
+2. **Hard max-age** (default 120 min, `AI:OpenRouter:Chat:SnapshotMaxAgeMinutes`) — safety net for global tables (TSPFundPrices, market data) that don't have a per-user link. Forces rebuild after the cap regardless of source-change signal.
 
-`ForceRebuildAsync(userId)` — recomputes and only writes back to the DB if the hash differs. Keeps the provider cache hot when nothing actually changed.
+Rebuilds are content-hash-compared inside `ForceRebuildAsync` — if the AI-visible bytes didn't actually change (e.g. Plaid sync touched `LastSyncedAt` but no balance moved), the row is kept and the provider prompt cache stays warm.
+
+`GetOrCreateTodaySnapshotAsync(userId)` — legacy fast-path kept for background jobs that don't need per-second freshness. Returns today's row if it exists; builds if not. Does NOT detect mid-day source changes.
+
+`ForceRebuildAsync(userId)` — recomputes via `IAIIntelligenceService.BuildCacheableContextAsync` and only writes back if the hash differs.
 
 ### `ChatService.StreamMessageAsync`
 

@@ -221,8 +221,11 @@ public class ChatService : IChatService
         var slot = await _resolver.ResolveAsync(AIModelSlot.Chat, ct);
         var reasoningEffort = deepThink ? AIReasoningEffort.High : (slot.ReasoningEffort ?? AIReasoningEffort.Medium);
 
-        // Get the cacheable context snapshot — builds today's if it doesn't exist yet.
-        var snapshot = await _snapshots.GetOrCreateTodaySnapshotAsync(userId, ct);
+        // Smart-fetch the snapshot: auto-rebuild if any source table has been
+        // updated since the last build, OR if the snapshot is older than the
+        // configured max age. Hash-compare inside rebuild keeps the provider
+        // cache warm when the content didn't actually change.
+        var snapshot = await _snapshots.GetCurrentSnapshotAsync(userId, ct);
 
         // Load conversation history (last MaxHistoryTurns messages, ordered oldest-first).
         // We exclude the just-persisted user turn from the history block because we'll

@@ -14,9 +14,20 @@ namespace PFMP_API.Services.AI.Chat;
 public interface IUserContextSnapshotService
 {
     /// <summary>
+    /// Always-fresh path: returns today's snapshot, auto-rebuilding when stale.
+    /// Staleness fires on either (a) any chat-context source table has a newer
+    /// MAX(UpdatedAt) than the snapshot's UpdatedAt, or (b) the snapshot is
+    /// older than Chat:SnapshotMaxAgeMinutes regardless. Use this on the hot
+    /// chat path — the watermark query is one round-trip (~30ms) and rebuilds
+    /// only happen when the content actually differs (hash-compared).
+    /// </summary>
+    Task<UserContextSnapshot> GetCurrentSnapshotAsync(int userId, CancellationToken ct = default);
+
+    /// <summary>
     /// Returns today's snapshot for the user, building one on first call of the day.
-    /// Subsequent calls within the same UTC date return the cached row unchanged
-    /// (so the bytes sent to the LLM stay identical and cache hits accrue).
+    /// Does NOT detect mid-day source changes — use <see cref="GetCurrentSnapshotAsync"/>
+    /// for the smart-refresh path. Kept for callers that explicitly want the cached
+    /// daily snapshot (e.g. background jobs that don't need per-second freshness).
     /// </summary>
     Task<UserContextSnapshot> GetOrCreateTodaySnapshotAsync(int userId, CancellationToken ct = default);
 

@@ -167,7 +167,10 @@ public class ChatController : ControllerBase
         [FromQuery] int userId,
         CancellationToken ct = default)
     {
-        var snapshot = await _snapshots.GetOrCreateTodaySnapshotAsync(userId, ct);
+        // Smart fetch so opening the chat page after hours away triggers the
+        // staleness check and rebuilds if needed — the sidebar then reflects
+        // the fresh snapshot immediately.
+        var snapshot = await _snapshots.GetCurrentSnapshotAsync(userId, ct);
         return Ok(new
         {
             snapshot.SnapshotDate,
