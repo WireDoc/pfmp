@@ -69,6 +69,10 @@ public class UserContextSnapshotService : IUserContextSnapshotService
     /// GeneratedAt/LastSyncedAt across all chat-context source tables for the user.
     /// Each subquery hits a per-user index, so total time is well under 50ms even
     /// on a populated install. COALESCE('epoch') protects against empty tables.
+    ///
+    /// Also compares Postgres now() against DateTime.UtcNow at the same instant
+    /// and logs a warning if they drift by >60s — catches host clock skews that
+    /// would otherwise silently stamp DB rows with future timestamps.
     /// </summary>
     private async Task<DateTime> ComputeSourceLatestUpdateAsync(int userId, CancellationToken ct)
     {
@@ -100,6 +104,21 @@ SELECT GREATEST(
 ) AS "Value"
 """;
         var result = await _db.Database.SqlQuery<DateTime>(sql).FirstAsync(ct);
+
+        // Free clock-skew check: compare DB clock to .NET clock. Postgres returns
+        // timestamptz as UTC; if it's >60s away from DateTime.UtcNow, the API
+        // process clock has drifted and any new rows will get bad timestamps.
+        var dbNow = await _db.Database.SqlQuery<DateTime>($"SELECT (now() AT TIME ZONE 'UTC') AS \"Value\"").FirstAsync(ct);
+        var drift = (dbNow - DateTime.UtcNow).TotalSeconds;
+        if (Math.Abs(drift) > 60)
+        {
+            _logger.LogWarning(
+                "CLOCK DRIFT: DateTime.UtcNow={ApiUtc:O} vs DB now()={DbUtc:O}, drift={Drift:F1}s. " +
+                "New timestamps written by this process will be wrong until the host clock resyncs. " +
+                "Check Windows time service (w32tm) or VM time-sync settings.",
+                DateTime.UtcNow, dbNow, drift);
+        }
+
         return result;
     }
 

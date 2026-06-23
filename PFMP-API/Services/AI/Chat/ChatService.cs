@@ -244,8 +244,10 @@ public class ChatService : IChatService
         int inputTokens = 0;
         int outputTokens = 0;
         int cachedTokens = 0;
+        int deltaCount = 0;
         decimal cost = 0m;
         string actualModel = slot.Model;
+        var diagnosticTail = new StringBuilder();  // last ~2KB of SSE for empty-stream debug
 
         var client = _httpClientFactory.CreateClient("OpenRouter");
         client.Timeout = TimeSpan.FromSeconds(_options.TimeoutSeconds);
@@ -300,6 +302,16 @@ public class ChatService : IChatService
                 var line = await reader.ReadLineAsync(ct);
                 if (line == null) break;
                 if (line.Length == 0) continue;
+
+                // Capture every non-empty line into a rolling tail so we can dump
+                // it when the stream finishes with zero deltas (debug aid for
+                // OpenRouter empty-response failures).
+                if (diagnosticTail.Length < 2048)
+                {
+                    diagnosticTail.Append(line);
+                    diagnosticTail.Append('\n');
+                }
+
                 if (!line.StartsWith("data: ", StringComparison.Ordinal)) continue;
 
                 var data = line[6..];
@@ -313,6 +325,15 @@ public class ChatService : IChatService
                 {
                     var root = doc.RootElement;
 
+                    // Error events surfaced inline by some upstreams — bubble up.
+                    if (root.TryGetProperty("error", out var errEl))
+                    {
+                        var errMsg = errEl.ValueKind == JsonValueKind.Object && errEl.TryGetProperty("message", out var em)
+                            ? em.GetString() ?? errEl.ToString()
+                            : errEl.ToString();
+                        _logger.LogWarning("OpenRouter inline error event: {Error}", errMsg);
+                    }
+
                     // Delta text
                     if (root.TryGetProperty("choices", out var choices) && choices.GetArrayLength() > 0)
                     {
@@ -325,6 +346,7 @@ public class ChatService : IChatService
                             if (!string.IsNullOrEmpty(deltaText))
                             {
                                 responseBuilder.Append(deltaText);
+                                deltaCount++;
                                 yield return new ChatStreamEvent("delta", deltaText, null);
                             }
                         }
@@ -355,6 +377,27 @@ public class ChatService : IChatService
 
         var finalText = responseBuilder.ToString();
         var elapsed = DateTime.UtcNow - startedAt;
+
+        if (deltaCount == 0)
+        {
+            // Empty stream — dump what we did receive so we can diagnose. Common causes:
+            // upstream model rejecting the request (returns OK + empty stream), unknown
+            // plugin/parameter combo, or model id not actually available on the route.
+            _logger.LogWarning(
+                "Chat stream returned zero deltas (conv={ConvId}, model={Model}, elapsed={Elapsed}ms). " +
+                "SSE tail (up to 2KB):\n{Tail}",
+                conversationId, actualModel, (int)elapsed.TotalMilliseconds,
+                diagnosticTail.Length > 0 ? diagnosticTail.ToString() : "(no SSE data received)");
+            // Surface a clear error to the user instead of an empty assistant bubble.
+            yield return new ChatStreamEvent("error",
+                $"The model returned no content (after {elapsed.TotalSeconds:F0}s). " +
+                "Check the API log for the SSE tail — usually means the model id or a request " +
+                "parameter was rejected upstream.",
+                null);
+            // Skip persisting an empty assistant turn — leave the user message in place
+            // so they can retry without re-typing.
+            yield break;
+        }
 
         // Persist the assistant turn.
         var asstMsg = new AIMessage

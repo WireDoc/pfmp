@@ -19,6 +19,12 @@ export function formatRelative(iso: string, now: Date = new Date()): string {
   const absSec = Math.abs(deltaSec);
   const future = deltaSec > 0;
 
+  // Defensive: a stored timestamp >60s in the future is almost certainly a
+  // clock-skew artifact, not real future scheduling. Render as "just now"
+  // instead of nonsense like "in 5 hours" so the UI degrades gracefully when
+  // the API or DB clock drifts.
+  if (future && deltaSec > 60) return 'just now';
+
   // Under 45 seconds counts as "just now" in either direction — sub-minute
   // precision isn't interesting for digest timestamps.
   if (absSec < 45) return 'just now';
