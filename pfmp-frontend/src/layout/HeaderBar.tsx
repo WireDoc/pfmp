@@ -26,6 +26,12 @@ export function HeaderBar() {
           Dashboard
         </NavLink>
         <NavLink
+          to="/dashboard/news"
+          style={({ isActive }) => ({ textDecoration: 'none', fontSize: 13, color: isActive ? '#38bdf8' : '#e2e8f0' })}
+        >
+          News
+        </NavLink>
+        <NavLink
           to="/onboarding"
           style={({ isActive }) => ({ textDecoration: 'none', fontSize: 13, color: isActive ? '#38bdf8' : '#e2e8f0' })}
         >
