@@ -436,6 +436,17 @@ namespace PFMP_API
                     easternTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
                 }
 
+                // Central time for jobs anchored to the user's local day rather than market hours.
+                TimeZoneInfo centralTimeZone;
+                try
+                {
+                    centralTimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Chicago");
+                }
+                catch (TimeZoneNotFoundException)
+                {
+                    centralTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Central Standard Time");
+                }
+
                 // Misfire policy: if the API was offline when a cron tick was due, skip the missed
                 // run entirely rather than firing late. Critical for NetWorthSnapshotJob — a delayed
                 // run hours after the cron time would capture intraday-volatile asset prices into
@@ -443,6 +454,12 @@ namespace PFMP_API
                 var ignoreMissed = new RecurringJobOptions
                 {
                     TimeZone = easternTimeZone,
+                    MisfireHandling = Hangfire.MisfireHandlingMode.Ignorable,
+                };
+
+                var ignoreMissedCentral = new RecurringJobOptions
+                {
+                    TimeZone = centralTimeZone,
                     MisfireHandling = Hangfire.MisfireHandlingMode.Ignorable,
                 };
                 
@@ -481,15 +498,17 @@ namespace PFMP_API
                     "0 4 * * *", // 4 AM ET daily
                     ignoreMissed);
 
-                // Wave 23 — Daily news ingestion at 5:30 AM ET. Runs after
-                // NetWorthSnapshotJob (5 AM ET) so the snapshot's numbers and the
-                // day's news digest are both ready by ~6 AM ET for first dashboard
-                // load. MisfireHandling.Ignorable so missed runs don't fire late.
+                // Wave 23 — News ingestion 4×/day in user's local (Central) time:
+                // 7:30 AM (morning brief), 11:30 AM (pre-lunch update), 3:30 PM
+                // (afternoon), 7:30 PM (evening wrap). News has no market-hour anchor
+                // like TSP/net-worth jobs do, so it runs on the user's calendar instead
+                // of ET. MisfireHandling.Ignorable so a sleeping laptop doesn't trigger
+                // a late catch-up run.
                 RecurringJob.AddOrUpdate<PFMP_API.Jobs.NewsIngestionJob>(
                     "daily-news-ingestion",
                     job => job.RunAsync(CancellationToken.None),
-                    "30 5 * * *", // 5:30 AM ET daily
-                    ignoreMissed);
+                    "30 7,11,15,19 * * *", // 7:30 AM, 11:30 AM, 3:30 PM, 7:30 PM CT
+                    ignoreMissedCentral);
 
                 // Daily Plaid bank account balance sync at 10 PM ET (Wave 11)
                 RecurringJob.AddOrUpdate<PFMP_API.Jobs.PlaidSyncJob>(
