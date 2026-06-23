@@ -27,8 +27,8 @@ public class NewsIngestionJob
         _logger.LogInformation("[NewsIngestionJob] Starting daily news ingestion");
         var result = await _service.RunOnceAsync(cancellationToken);
         _logger.LogInformation(
-            "[NewsIngestionJob] Completed. fetched={Fetched}, new={New}, digests={Digests}, cost=${Cost:F4}, duration={Duration:F1}s",
-            result.ArticlesFetched, result.ArticlesNew, result.DigestsCreated,
+            "[NewsIngestionJob] Completed. fetched={Fetched}, new={New}, digests={Digests}, snapshotsRebuilt={Rebuilt}, cost=${Cost:F4}, duration={Duration:F1}s",
+            result.ArticlesFetched, result.ArticlesNew, result.DigestsCreated, result.SnapshotsRebuilt,
             result.TotalCostUsd, result.Duration.TotalSeconds);
 
         foreach (var w in result.Warnings)

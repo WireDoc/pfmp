@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
 using PFMP_API.Models.News;
 using PFMP_API.Services.AI;
+using PFMP_API.Services.AI.Chat;
 
 namespace PFMP_API.Services.News
 {
@@ -31,7 +32,8 @@ namespace PFMP_API.Services.News
         int DigestsCreated,
         decimal TotalCostUsd,
         TimeSpan Duration,
-        IReadOnlyList<string> Warnings
+        IReadOnlyList<string> Warnings,
+        int SnapshotsRebuilt = 0
     );
 
     public sealed class NewsIngestionService : INewsIngestionService
@@ -41,6 +43,7 @@ namespace PFMP_API.Services.News
         private readonly INewsCategorizer _categorizer;
         private readonly INewsPromptBuilder _promptBuilder;
         private readonly IEnumerable<IAIFinancialAdvisor> _advisors;
+        private readonly IUserContextSnapshotService _snapshots;
         private readonly ILogger<NewsIngestionService> _logger;
 
         public NewsIngestionService(
@@ -49,6 +52,7 @@ namespace PFMP_API.Services.News
             INewsCategorizer categorizer,
             INewsPromptBuilder promptBuilder,
             IEnumerable<IAIFinancialAdvisor> advisors,
+            IUserContextSnapshotService snapshots,
             ILogger<NewsIngestionService> logger)
         {
             _db = db;
@@ -56,6 +60,7 @@ namespace PFMP_API.Services.News
             _categorizer = categorizer;
             _promptBuilder = promptBuilder;
             _advisors = advisors;
+            _snapshots = snapshots;
             _logger = logger;
         }
 
@@ -156,6 +161,7 @@ namespace PFMP_API.Services.News
             // the last digest — saves the LLM cost on quiet days.
             int digestsCreated = 0;
             decimal totalCost = 0m;
+            var usersWithNewDigests = new List<int>();
 
             var newsAdvisor = _advisors.FirstOrDefault(a => a.ServiceName == "News");
             if (newsAdvisor == null)
@@ -183,6 +189,7 @@ namespace PFMP_API.Services.News
                             _db.NewsDigests.Add(digest);
                             digestsCreated++;
                             totalCost += digest.LlmCostUsd;
+                            usersWithNewDigests.Add(userId);
                         }
                     }
                     catch (Exception ex)
@@ -198,6 +205,30 @@ namespace PFMP_API.Services.News
                 }
             }
 
+            // Wave 24 — after the new digests are persisted, rebuild each affected user's
+            // chat context snapshot so the next chat message sees the fresh news in the
+            // cacheable block (instead of waiting for tomorrow's daily snapshot). The
+            // rebuild is text-only (no LLM call) — ~1-2s per user on a single-user install.
+            // ForceRebuildAsync compares content hashes and skips the DB write if nothing
+            // actually changed, so this stays cheap.
+            int snapshotsRebuilt = 0;
+            foreach (var userId in usersWithNewDigests)
+            {
+                if (ct.IsCancellationRequested) break;
+                try
+                {
+                    await _snapshots.ForceRebuildAsync(userId, ct);
+                    snapshotsRebuilt++;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex,
+                        "News ingestion: snapshot rebuild failed for user {UserId} (digest still persisted)",
+                        userId);
+                    warnings.Add($"user {userId}: snapshot rebuild failed ({ex.GetType().Name})");
+                }
+            }
+
             stopwatch.Stop();
             return new NewsIngestionResult(
                 ArticlesFetched: fetched.Count,
@@ -205,7 +236,8 @@ namespace PFMP_API.Services.News
                 DigestsCreated: digestsCreated,
                 TotalCostUsd: totalCost,
                 Duration: stopwatch.Elapsed,
-                Warnings: warnings);
+                Warnings: warnings,
+                SnapshotsRebuilt: snapshotsRebuilt);
         }
 
         // ===== Helpers =====
