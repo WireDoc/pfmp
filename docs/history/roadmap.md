@@ -1,6 +1,6 @@
 # PFMP Product Roadmap (2025–2026)
 
-_Last updated: 2026-05-04_
+_Last updated: 2026-06-23_
 
 ## Current Status Summary
 
@@ -31,6 +31,11 @@ _Last updated: 2026-05-04_
 | Wave 22: AI Architecture Overhaul (Fusion spike + admin UI + model aliases + News/Chat slots) | ✅ Complete | June 2026 |
 | Wave 23: News Aggregator (RSS digest → AI market context + dashboard widget) | ✅ Complete | June 2026 |
 | Wave 24: AI Chatbot with Memory (streaming chat, daily context snapshot, deep-think toggle) | ✅ Complete | June 2026 |
+| **Phase 5: Production Readiness Campaign** | 📋 Active campaign | Q3 2026 |
+| Wave 25: Microsoft Entra ID auth + first real login + onboarding audit | 📋 Planned | Q3 2026 |
+| Wave 26: RBAC + admin user management + dev-mode toggle | 📋 Planned | Q3 2026 |
+| Wave 27: Plaid sandbox → production (prep + readiness + filing) | 📋 Planned | Q3 2026 |
+| Wave 28: Production hardening + self-hosted deploy (Cloudflare Tunnel) | 📋 Planned | Q3-Q4 2026 |
 
 **Current Version**: v0.24.0-alpha (Wave 14 closeout shipped: spending rollups, cash-flow forecast, recurring detection, anomaly alerts)
 
@@ -306,43 +311,29 @@ All 8 sidebar pages are now functional. Wave 17 closed the placeholder gap:
 
 Full TSP detail page at `/dashboard/tsp` with holdings table (G/F/C/S/I + L2030–L2075), edit dialog, allocation pie chart, historical price chart powered by `DailyTspService`, and price refresh button. Subsequent waves layered TSP Roth/traditional split, COLA modeling, and survivor benefit modeling (Wave 19). TSP.gov has no public API, so unit edits remain manual; no transaction history or interfund-transfer execution by design.
 
-### AI Chatbot with Memory 📋
-**Priority**: High (Core differentiator)
-**Target**: Q2 2026
-**Prerequisite**: Wave 16 (AI Enhancement & Vetting) must be complete
+### AI Chatbot with Memory ✅
+**Shipped**: Wave 24, June 2026 (`docs/waves/wave-24-ai-chatbot.md`)
 
-The dual AI pipeline (Wave 7) laid groundwork. Wave 16 expands context coverage. Chatbot extends this:
+Built the streaming-chat advisor on top of the Wave 22 Chat slot and Wave 23 news context. What landed:
+- Reused Wave 7 `AIConversation` + `AIMessage` tables, extended with Title/ArchivedAt/LastMessageAt/InputTokens/OutputTokens/CachedTokens/ReasoningEffort
+- New `UserContextSnapshots` table — daily per-user cacheable prompt prefix, hash-keyed, smart auto-refresh on source-data change (~20-table watermark) + 120 min max-age safety net
+- `ChatService` — SSE-streaming orchestrator with auto-title, monthly cap ($20 default), Deep-think reasoning override
+- `/dashboard/chat[/:id]` — sidebar with conversation list/cost chip/snapshot info, main pane with streaming bubbles + composer + Deep-think toggle
+- News ingestion 4×/day in CT (7:30/11:30/15:30/19:30) with paired snapshot rebuild so afternoon chats see the latest digest
+- Three-layer clock-skew defense (future-timestamp clamping, DB-vs-API drift warning, empty-stream surfacing)
+- Chat → Advice conversion + auto-summarize for long threads explicitly deferred to follow-on waves
 
-**Database Schema**
-- `AIConversation` - Conversation sessions with user context
-- `AIMessage` - Individual messages with role, content, timestamps
-- `AIActionMemory` - Record user decisions to prevent contradictions
-- `AIUserMemory` - Learn user preferences over time
+**Live cost**: ~$0.01-0.02 per typical turn (Gemini 3.1 Pro Preview + web grounding, cache warm), ~$1-2/month news synthesis.
 
-**Backend**
-- `AIChatService` - Multi-turn conversations with full financial profile injection
-- Context injection: profile + memory + recent actions in every chat
-- Rate limiting: 20 messages/day free tier
+### Market Context Awareness ✅
+**Shipped**: Wave 23, June 2026 (`docs/waves/wave-23-news-aggregator.md`)
 
-**Frontend**
-- MUI ChatBox component with real-time streaming
-- Conversation export (PDF/email)
-- "Convert to Advice" button - promote chat recommendations to Advice records
-
-**Memory Features**
-- Track conversation context across sessions
-- "Why did you recommend this?" explanation system
-- Memory pruning: action memory expires 90 days, preferences persist
-
-### Market Context Awareness 📋
-**Target**: Q2 2026
-
-**Components**
-- `MarketContext` table - Store news, sentiment, economic indicators
-- News aggregation service - RSS/API feeds from financial sources
-- Daily market digest - AI-powered summarization
-- Context injection into AI prompts for time-sensitive advice
-- "What's happening in markets?" dashboard widget
+RSS-driven daily news digest per user. What landed:
+- `NewsArticle` + `NewsDigest` tables; global article pool + per-user filtering by holdings + state + federal status
+- `NewsIngestionService` — RSS fetch from MarketWatch, BBC-Business, Bloomberg, NPR-Business, FederalReserve, SEC, per-ticker Yahoo, per-state NWS Atom; Gemini Flash synthesis with strict JSON schema
+- Per-category narratives (macro, federal, holdings, weather, regulatory, crypto, geopolitical) + 2-3 paragraph "morning briefing" narrative
+- `NewsDigestWidget` (dashboard) + `NewsDigestDetailView` (drill-down at `/dashboard/news`)
+- Wave 24 added: 4×/day cadence in CT + automatic chat snapshot rebuild after each ingestion
 
 ### Daily Experience & Notifications 📋
 **Target**: Q2-Q3 2026 (Phase 4)
@@ -358,91 +349,200 @@ The dual AI pipeline (Wave 7) laid groundwork. Wave 16 expands context coverage.
 - Wave 10 historical snapshots for trend data
 - Notification infrastructure (Hangfire jobs)
 
-### Production Hardening 📋
-**Target**: H2 2026 (Phase 5)
+## Phase 5: Production Readiness Campaign 📋
 
-**Security & Auth**
-- Re-enable Azure Entra ID with full token flow, MFA-ready
-- Role-based access (user vs admin)
-- Audit logging for all financial actions
+**Decision context** (locked 2026-06-23): the app is currently single-user (the project owner), with architecture provisional for multi-user later if family or others ever need access. Deploy target is **self-host on Ubuntu** (same network as the existing Synology Postgres NAS) with **Cloudflare Tunnel** for public reachability — keeps DB local, leaves Tailscale for admin/SSH access, and preserves a 1-day migration path to Azure if needs ever change. Code audit is opportunistic during the campaign rather than a dedicated wave.
 
-**Infrastructure**
-- Secrets management (Azure Key Vault)
-- Encryption at rest for sensitive fields
-- SLA/perf targets with load testing
-- Error budget and monitoring dashboards
+The campaign is 4 waves running roughly in series:
 
-**Compliance**
-- Data retention policies
-- Backup/restore rehearsals
-- Privacy policy documentation
+### Wave 25: Microsoft Entra ID auth + first real login + onboarding audit (concurrent) 📋
+
+**What ships**
+- Activate MSAL on the frontend (toggle `use_simulated_auth` to false by default; keep available via env override for dev work)
+- Backend: validate Entra-issued JWTs (`AddOpenIdConnect("AzureAD", ...)` is already wired in `Program.cs`; just needs real config values)
+- `[Authorize]` audit across every controller — currently `app.UseAuthentication()` is on but controllers don't enforce
+- First-login auto-provisions a new `User` row linked by `AzureObjectId` (User 20 stays as a dev-only seed — owner explicitly wanted to start fresh)
+- After provisioning: redirect into the Onboarding wizard so all profile data gets entered cleanly
+- **Onboarding audit runs concurrent with this wave** — as the project owner walks the 15-section flow for the first time post-login, every section's field→column mapping gets verified, validation refreshed, and orphans (UI field with no backend save) or gaps (model field with no UI) get fixed inline. Data migration of any wanted bits from User 20 → real account happens via MCP scripts as a one-shot manual step.
+
+**Key files touched**
+- `pfmp-frontend/src/contexts/auth/AuthProvider.tsx`, `src/config/authConfig.ts`
+- `PFMP-API/Program.cs` (auth pipeline), `PFMP-API/Services/Auth/*`
+- All `PFMP-API/Controllers/*.cs` — `[Authorize]` annotation pass
+- `PFMP-API/Models/User.cs` — wire `AzureObjectId` lookup on token validation
+- `pfmp-frontend/src/onboarding/sections/*` — fix what the audit surfaces
+
+### Wave 26: RBAC + admin user management + dev-mode toggle 📋
+
+**What ships**
+- Add `IsAdmin` bool to `User` model (migration)
+- First-login provisioning: if the token's `oid` matches a configured `AzureAD:AdminObjectIds` allowlist, user is created with `IsAdmin = true` — otherwise rejected (single-user mode for now, easily flipped to "pending approval" if multi-user comes)
+- `[Authorize(Roles = "Admin")]` on admin endpoints
+- New `/dashboard/admin/users` page — list users (real + dev), show onboarding status + chat-cost per user, promote/demote admin, activate/deactivate
+- Admin-only sidebar toggle: **"Switch to dev users"** — when on, the app behaves as if dev mode active (you can pick dev user 1-20, see seeded data) without losing your real session. Persists across page loads; hidden from non-admins.
+- Wire `useDevUserId()` to honor the toggle so the existing widget consumers keep working
+
+**Key files touched**
+- New EF migration: `Wave26_UserAdminFlag`
+- `PFMP-API/Controllers/Admin/UsersController.cs` (new)
+- `pfmp-frontend/src/views/admin/UsersManagementView.tsx` (new)
+- `pfmp-frontend/src/dev/devUserState.ts` — admin-toggle integration
+- `pfmp-frontend/src/layout/DashboardNav.tsx` — toggle UI
+
+### Wave 27: Plaid sandbox → production 📋
+
+**Owner clarification (2026-06-23)**: Plaid prod application is NOT filed yet. App must meet Plaid's criteria before applying; this wave builds to that bar then files.
+
+**What Plaid's process actually looks like** (current as of 2026, subject to verification when we start)
+
+| Step | Description | Typical timing |
+| ---- | ----------- | -------------- |
+| 1. Self-attestation | In Plaid dashboard, fill out "Production Access Request" — use case, target user count, anticipated transaction volume, data retention practices | Immediate |
+| 2. Compliance materials | Plaid requires: publicly accessible privacy policy that explicitly names Plaid as a data processor, terms of service, public app URL or screencast of working integration | Days to weeks (we control this) |
+| 3. Plaid review | Plaid reviews against their Integration Standards — error handling, OAuth flow, webhook handling (if used), data minimization | 1-4 weeks typically; can be longer for unusual use cases |
+| 4. Production credentials | On approval: new client_id + secret for production environment | Immediate after approval |
+| 5. Pricing tier selection | Plaid offers "Limited Production" (free tier for small apps, limits on number of items) or full Production (paid). Personal-use single-user qualifies for Limited | Selected during application |
+
+**What we have to build before filing**
+- Publicly reachable app URL (depends on Wave 28 deploy — likely we file mid-Wave-28 once Cloudflare Tunnel is up)
+- Privacy policy page explicitly covering Plaid data handling
+- Terms of service page
+- Audit existing Plaid error handling — Plaid reviews this; ITEM_LOGIN_REQUIRED, ITEM_LOCKED, NO_ACCOUNTS, INSTITUTION_DOWN, RATE_LIMIT_EXCEEDED all need graceful handling
+- Confirm we're following Plaid Integration Standards (https://plaid.com/docs/link/integration-best-practices/)
+- Verify the existing Data Protection API token encryption meets Plaid's security expectations
+- Screencast of the full Plaid Link → token exchange → balance sync flow working in sandbox
+
+**What changes when production lands**
+- `appsettings` flip: `Plaid:Environment` → `"production"`, new client_id + secret
+- Re-link the user's real bank accounts (sandbox tokens don't transfer)
+- Plaid pricing kicks in for transaction sync — Limited tier free up to their item limit; monitor for cost surprises
+- Production-only error scenarios appear (real banks have outages sandbox doesn't simulate) — keep eyes on logs first weeks
+- Webhook endpoint becomes valuable if not implemented (currently we poll via `PlaidSyncJob`)
+
+### Wave 28: Production hardening + self-hosted deploy (Cloudflare Tunnel) 📋
+
+**Target**: Self-hosted on Ubuntu server (same network as the existing Postgres NAS), public reachability via Cloudflare Tunnel.
+
+**Security**
+- Replace hardcoded `JWT:SecretKey` default `"PFMP-Dev-Secret-Key-Change-In-Production-2025"` with env-loaded secret
+- Move connection string, OpenRouter key, Plaid secret, FMP key, all sensitive config to env vars (or `.env.production` mounted into container, NOT committed)
+- Audit appsettings.json files — anything sensitive moves out, the file becomes safe-to-commit
+- HTTPS enforcement (Cloudflare Tunnel handles cert; backend trusts the proxy)
+- Tighten CORS from dev-friendly localhost list to production domain only
+- Add request rate limiting on public endpoints (chat especially, since per-message cost is real)
+- `[Authorize]` audit reconfirmed — no public-by-default endpoints other than `/health`, `/health/ready`
+
+**Observability**
+- Structured logging (Serilog or built-in `ILogger` to JSON) with log rotation + retention policy
+- Error tracking — Sentry self-hosted (compatible with Docker) or Seq (also Docker-friendly), so we're not paying SaaS for a personal app
+- Health check polish — existing `/health` + `/health/ready` get exercised by Cloudflare/Docker
+
+**Deploy plumbing**
+- `Dockerfile` for the API (multi-stage, .NET 9 publish → runtime image)
+- `Dockerfile` for the frontend (Vite build → nginx)
+- `docker-compose.yml` for local-equivalent prod stack (API + frontend + Cloudflare Tunnel daemon + optional reverse proxy)
+- Cloudflare Tunnel config: hostnames pointing at the API + frontend services; cert managed by Cloudflare
+- Postgres stays on the Synology NAS (no migration — the Ubuntu API container connects across the LAN exactly like the dev API does today)
+- Backup verification: confirm `pg_dump` cron on the NAS is current; document restore procedure
+
+**Cutover sequence (likely)**
+1. Build images, smoke-test the stack locally on the Ubuntu server (network-isolated)
+2. Open Cloudflare Tunnel to a test subdomain; verify HTTPS + cert
+3. Smoke-test from outside (phone on LTE)
+4. File Plaid production application using the public test URL (this is where Wave 27 meets Wave 28)
+5. Switch DNS to the production subdomain when Plaid approves
+6. Watch logs for a week, fix what breaks
+7. Mark Phase 5 complete
+
+### Cross-cutting: opportunistic code audit (no dedicated wave)
+
+Owner pick (8: A): refactor on the way, not in a dedicated wave. Across Waves 25-28 expect the working tree to see:
+- Dead-code removal where we find it
+- Pattern normalization (error handling, async, EF queries) where files get touched anyway
+- Comment cleanup — the older code has a lot of "what the code does" comments that don't add value
+- Test additions where behavior changes — especially the new auth path
+
+The legacy `archive/seeder/DevelopmentDataSeeder.cs` and similar archived files stay archived — they're not in the runtime, no need to refactor.
 
 ---
 
-## Azure Production Migration Checklist
+## Production Deployment Checklist (self-host + Cloudflare Tunnel)
 
-When migrating from development (Synology NAS + laptop) to production:
+Implementation details for Wave 28. Postgres stays on the Synology NAS; the API + frontend run as Docker containers on the Ubuntu server (same LAN), exposed publicly via Cloudflare Tunnel. Tailscale stays available for admin/SSH access.
 
-### Database Migration
-| Component | Development | Production |
-|-----------|-------------|------------|
-| PostgreSQL | Synology NAS (192.168.1.108:5433) | Azure PostgreSQL Flexible Server |
-| Backup | Manual/Synology | Azure automated backups |
-| Encryption | Column-level where needed | TDE + column-level |
+### Database
+| Component | Dev | Production |
+|-----------|-----|------------|
+| Host | Synology NAS (192.168.1.108:5433) | **Same** (no migration) |
+| Backup | `pg_dump` cron on NAS | Same, verified + restore-tested |
+| Connection | EF Core via local LAN | EF Core via local LAN (container → NAS) |
 
-### Secrets Management
-| Component | Development | Production |
-|-----------|-------------|------------|
-| Plaid Tokens | Data Protection API | Azure Key Vault |
-| API Keys | appsettings.local.json | Azure Key Vault |
-| Connection Strings | Environment variables | Azure Key Vault references |
+### Secrets
+| Component | Dev | Production |
+|-----------|-----|------------|
+| JWT signing key | Hardcoded `appsettings.json` default | Env var (Docker secret or `.env.production`) |
+| Connection string | `appsettings.json` | Env var |
+| OpenRouter API key | `appsettings.Development.local.json` (gitignored) | Env var |
+| Plaid client/secret | `appsettings.Development.local.json` (gitignored) | Env var |
+| FMP / other 3rd-party | `appsettings.Development.local.json` (gitignored) | Env var |
+| Plaid token encryption | Data Protection API (file system keys) | Same, but key persistence directory mounted as a Docker volume |
 
-### Application Hosting
-| Component | Development | Production |
-|-----------|-------------|------------|
-| Backend | localhost:5052 | Azure App Service (Linux) |
-| Frontend | localhost:3000 | Azure Static Web Apps |
-| Hangfire | Local process | Azure App Service ("Always On") |
+### Hosting
+| Component | Dev | Production |
+|-----------|-----|------------|
+| Backend | `dotnet run` on localhost:5052 | Docker container, behind Cloudflare Tunnel |
+| Frontend | Vite dev server on localhost:3000 | nginx Docker container serving Vite build, behind Cloudflare Tunnel |
+| Hangfire dashboard | `localhost:5052/hangfire` | Same path, gated by `[Authorize(Roles="Admin")]` |
+| TLS | None (HTTP) | Cloudflare-managed cert on the public hostname |
+| Public reachability | localhost only | Cloudflare Tunnel → public HTTPS hostname |
 
-### Plaid Configuration
-| Setting | Development | Production |
-|---------|-------------|------------|
-| Environment | `sandbox` | `production` |
-| Webhooks | Not implemented | Add webhook endpoint |
-| Token Storage | Data Protection API | Azure Key Vault |
+### Plaid configuration
+| Setting | Dev | Production |
+|---------|-----|------------|
+| Environment | `sandbox` | `production` (after Plaid approval) |
+| Webhooks | Not implemented; we poll via `PlaidSyncJob` | Optional — adds real-time updates; can defer |
+| Token storage | Data Protection API encrypted | Same |
 
-### Migration Steps
-1. **Provision Azure Resources**
-   - Azure PostgreSQL Flexible Server
-   - Azure App Service (Linux, P1v2 or higher for Always On)
-   - Azure Static Web Apps
-   - Azure Key Vault
-   - Azure Application Insights
+### Deploy steps (Wave 28)
+1. **Containerize**
+   - Write `Dockerfile` for the API (multi-stage .NET 9 publish → runtime image)
+   - Write `Dockerfile` for the frontend (Vite build → nginx serve)
+   - Write `docker-compose.yml` orchestrating API + frontend + Cloudflare Tunnel daemon
 
-2. **Migrate Database**
-   - Export from Synology PostgreSQL
-   - Import to Azure PostgreSQL
-   - Verify EF migrations are current
+2. **Move secrets**
+   - Audit all `appsettings*.json` files; anything sensitive moves to env vars
+   - Set up `.env.production` template (committed) + actual `.env.production` (gitignored, lives on the Ubuntu server)
+   - Bump the hardcoded JWT secret default to an obviously-bad value so production startup fails loudly if env override is missing
 
-3. **Configure Secrets**
-   - Move all secrets to Azure Key Vault
-   - Update App Service to use Key Vault references
-   - Migrate Plaid tokens (re-encrypt with Key Vault)
+3. **Test locally on Ubuntu**
+   - Run the stack via `docker compose up` on the Ubuntu server
+   - Verify the API connects to the NAS Postgres across the LAN
+   - Hit the frontend from a different LAN device
 
-4. **Update Configuration**
-   - Set `ASPNETCORE_ENVIRONMENT=Production`
-   - Update Plaid environment to `production`
-   - Configure CORS for production domain
+4. **Wire Cloudflare Tunnel**
+   - Install `cloudflared` on the Ubuntu server (or run it as a container)
+   - Configure tunnel with hostnames pointing at the API + frontend services
+   - Verify HTTPS works from outside the network (phone on LTE)
 
-5. **Enable Monitoring**
-   - Application Insights instrumentation
-   - Set up alerts for job failures
-   - Configure log retention
+5. **Flip Entra ID config to production**
+   - Update Azure App Registration's redirect URIs to include the public Cloudflare hostname
+   - Set `VITE_AZURE_AD_*` env vars in the frontend build
 
-6. **Security Hardening**
-   - Enable Azure Entra ID authentication
-   - Configure network security groups
-   - Enable Azure DDoS protection (if needed)
+6. **File Plaid production application**
+   - See Wave 27 for the prep checklist
+   - Submit with the now-public Cloudflare hostname as the app URL
+   - Wait for approval (1-4 weeks)
+   - On approval: rotate `Plaid:Environment` to `"production"` + new credentials; re-link the user's real bank accounts
+
+7. **Observability**
+   - Stand up structured logging (Serilog → JSON files, rotated)
+   - Stand up Sentry self-hosted (Docker) or Seq (Docker) for error tracking
+   - Verify health checks fire under Cloudflare's edge
+
+8. **Watch first week**
+   - Monitor logs for unexpected errors
+   - Verify `PlaidSyncJob`, `PriceRefreshJob`, `NetWorthSnapshotJob`, `TspPriceRefreshJob`, `NewsIngestionJob` all fire on schedule under prod
+   - Adjust as needed
 
 ---
 
@@ -455,9 +555,9 @@ The wave system provides tactical implementation milestones. These align with hi
 | **Phase 1** | Onboarding MVP | Waves 0-5 | ✅ Complete |
 | **Phase 1.5** | Navigation Polish | Wave 17 (8 placeholder pages built out) | ✅ Complete |
 | **Phase 2** | Data Aggregation | Waves 8-9, 11, 12, 12.5, 13, 14, 15 | ✅ Complete (Wave 14 closed out 2026-06-07) |
-| **Phase 3** | AI Advisory | Wave 7 + Wave 16 (OpenRouter) + Wave 18/19 federal benefits context | ✅ Materially complete; Chatbot still planned |
-| **Phase 4** | Daily Experience | Wave 10 + Wave 14 forecast + Notifications | ✅ Wave 14 forecast shipped; remaining Notifications stack |
-| **Phase 5** | Production Hardening | Auth, Security, Compliance | 📋 H2 2026 |
+| **Phase 3** | AI Advisory | Wave 7 + Wave 16 (OpenRouter) + Wave 18/19 federal benefits context + Wave 22-24 (architecture overhaul, news, chatbot) | ✅ Complete |
+| **Phase 4** | Daily Experience | Wave 10 + Wave 14 forecast + Wave 23 news digest | ✅ Materially complete (notifications stack still optional) |
+| **Phase 5** | Production Readiness | Wave 25-28 (Entra ID auth, admin RBAC, Plaid prod, self-hosted deploy) | 📋 Active campaign, Q3 2026 |
 
 ---
 
@@ -478,7 +578,9 @@ The wave system provides tactical implementation milestones. These align with hi
 | Job Scheduler | Hangfire | ✅ Active (Wave 10) |
 | Bank / Investment Linking | Plaid (banks, investments, liabilities) | ✅ Active (Wave 11–12.5) |
 | Crypto Exchanges | Kraken, Binance.US | ✅ Active (Wave 13) |
-| Auth | Azure Entra ID | ⏸️ Bypass mode (dev) |
+| Auth | Microsoft Entra ID (MSAL frontend + JWT bearer backend) | ⏸️ Scaffolded; activation lands in Wave 25 |
+| Public reachability | Cloudflare Tunnel (Wave 28) + Tailscale (admin / SSH / MCP) | 📋 Wave 28 |
+| Deploy target | Docker on Ubuntu server (LAN co-located with Postgres NAS) | 📋 Wave 28 |
 
 ---
 
@@ -502,19 +604,29 @@ The wave system provides tactical implementation milestones. These align with hi
 | April 2026 | Wave 20 FEHB / LES Enhancements Complete |
 | April 2026 | Wave 21 Estate Planning & Beneficiaries Complete |
 | April 2026 | Wave 13 Crypto Exchanges Complete (v0.23.0-alpha) |
-| Q3 2026 (target) | Wave 14 Spending Analysis & Budgeting |
+| 2026-06-07 | Wave 14 Spending Analysis & Budgeting Complete |
+| June 2026 | Wave 22 AI Architecture Overhaul Complete |
+| 2026-06-21 | Wave 23 News Aggregator Complete (RSS digest + per-user personalization) |
+| 2026-06-22 | Wave 24 AI Chatbot v1 Complete; closed out 2026-06-23 after the smart-snapshot + clock-skew hardening landed |
+| Q3 2026 (target) | Phase 5 Production Readiness Campaign — Waves 25-28 |
 
 ---
 
-## Future Considerations (Post-v1.0)
+## Future Considerations (Post-Phase-5)
 
-These items remain intentionally unscoped until Phase 5 production hardening is complete:
+These items remain intentionally unscoped until the Phase 5 production-readiness campaign is complete and the app is live for the project owner's daily use:
 
-- **Mobile App**: iOS/Android with push notifications
-- **Voice Interfaces**: Alexa/Google Assistant portfolio queries
-- **Advisor Mode**: Multi-tenant support, shared dashboards, white-label
+- **Wave 24 follow-ons** — Chat → Advice conversion, auto-summarize long threads, tool-calling for portfolio actions (the speculative items captured in `docs/waves/wave-24-ai-chatbot.md` closeout)
+- **Wave 13.5 — Self-Custody Wallets**: on-chain balances + DeFi protocols (read-only API keys only)
+- **Wave 14.5 — Tax Form Export (Form 8949)**: IRS forms from Wave 13 P3 realized P/L + Wave 14 cash-flow events
+- **Wave 15 P4 — Property advice integration**: refinance/HELOC suggestions surfaced as Advice records
+- **Mobile App**: iOS/Android — Cloudflare Tunnel architecture (Wave 28) already supports this, so the path is open whenever
+- **Notifications stack**: in-app + email + (optional) push notification subscriptions, especially for chat replies / alerts / advice
+- **Multi-user opening**: the Wave 26 architecture already supports pending-approval admin flow; flipping from single-user to "allowlist" or "open-with-approval" is a config flip
+- **Voice Interfaces**: Alexa/Google Assistant portfolio queries (very far future)
+- **Advisor Mode**: Multi-tenant, shared dashboards, white-label
 - **Auto-Execution**: Self-service rebalancing and cash sweeps (compliance gated)
-- **Monetization**: Premium tiers, faster refresh, advanced analytics
+- **Monetization**: Premium tiers, faster refresh, advanced analytics (only relevant if multi-user opens up)
 
 ---
 
