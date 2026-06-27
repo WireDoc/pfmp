@@ -8,6 +8,33 @@ import { AuthContext } from './AuthContextObject';
 import { msalInstance } from './msalInstance';
 import { SIMULATED_USERS } from './simulatedUsers';
 import type { AuthContextType, AuthProviderProps } from './types';
+import { setAuthToken, clearAuthToken } from '../../services/authToken';
+import { getDevUserId, subscribeDevUser } from '../../dev/devUserState';
+
+const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:5052/api';
+
+/**
+ * Wave 25 Phase C — fetches a dev JWT for the given dev-user id and stores it
+ * in the shared authToken module so axios + fetch attach it automatically.
+ * Idempotent within a single dev user id; safe to call multiple times.
+ */
+async function mintDevToken(userId: number): Promise<boolean> {
+    try {
+        const resp = await fetch(`${API_BASE}/auth/dev-login?userId=${userId}`, { method: 'POST' });
+        if (!resp.ok) {
+            console.warn('Dev login failed:', resp.status, await resp.text().catch(() => ''));
+            clearAuthToken();
+            return false;
+        }
+        const data = await resp.json() as { accessToken: string; expiresAtUtc: string };
+        setAuthToken(data.accessToken, new Date(data.expiresAtUtc));
+        return true;
+    } catch (err) {
+        console.warn('Dev login error:', err);
+        clearAuthToken();
+        return false;
+    }
+}
 
 // Vite dev flag (true for `npm run dev` / local development server)
 const DEV_MODE = import.meta.env.DEV;
@@ -72,6 +99,29 @@ export const AuthProvider: React.FC<InternalAuthProviderProps> = ({ children, __
         };
         initializeAuth();
     }, [__forceDevOff, setAuthenticationState]);
+
+    // Wave 25 Phase C — in simulated-auth mode, mint a real dev JWT whenever
+    // the dev user changes and stash it in the shared authToken module. The
+    // axios interceptor + chat fetch call read from there, so backend
+    // [Authorize] endpoints see a validated token even in dev. Resubscribes
+    // on dev user changes; clears the token if dev user is cleared.
+    useEffect(() => {
+        const simulate = isFeatureEnabled('use_simulated_auth');
+        if (!simulate || __forceDevOff) return;
+
+        const refresh = () => {
+            const id = getDevUserId();
+            if (id == null) {
+                clearAuthToken();
+                return;
+            }
+            void mintDevToken(id);
+        };
+
+        refresh();
+        const unsub = subscribeDevUser(refresh);
+        return () => { unsub(); };
+    }, [__forceDevOff]);
 
     const login = async () => {
         try {

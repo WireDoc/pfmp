@@ -6,6 +6,7 @@
  * endpoints go through the shared apiClient.
  */
 import apiClient from './api';
+import { getAuthToken } from './authToken';
 
 // ----- Types matching the C# DTOs in ChatController.cs / IChatService.cs -----
 
@@ -151,9 +152,16 @@ export async function streamChatMessage(opts: {
   const base = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:5052/api';
   const url = `${base}/chat/conversations/${opts.conversationId}/messages/stream`;
 
+  const token = getAuthToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Accept: 'text/event-stream',
+  };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
   const resp = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+    headers,
     body: JSON.stringify({ userId: opts.userId, message: opts.message, deepThink: opts.deepThink }),
     signal: opts.signal,
   });
