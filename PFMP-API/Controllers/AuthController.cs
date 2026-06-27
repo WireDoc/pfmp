@@ -1,7 +1,13 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using PFMP_API.Services;
+using PFMP_API.Services.Auth;
 using System.ComponentModel.DataAnnotations;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace PFMP_API.Controllers
 {
@@ -13,18 +19,27 @@ namespace PFMP_API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthenticationService _authService;
+        private readonly IUserProvisioningService _provisioning;
+        private readonly ApplicationDbContext _db;
         private readonly ILogger<AuthController> _logger;
         private readonly IConfiguration _configuration;
+        private readonly IWebHostEnvironment _env;
         private readonly bool _bypassAuthentication;
 
         public AuthController(
             IAuthenticationService authService,
+            IUserProvisioningService provisioning,
+            ApplicationDbContext db,
             ILogger<AuthController> logger,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IWebHostEnvironment env)
         {
             _authService = authService;
+            _provisioning = provisioning;
+            _db = db;
             _logger = logger;
             _configuration = configuration;
+            _env = env;
             _bypassAuthentication = _configuration.GetValue<bool>("Development:BypassAuthentication", false);
         }
 
@@ -181,52 +196,40 @@ namespace PFMP_API.Controllers
         }
 
         /// <summary>
-        /// Get current user information from JWT token
+        /// Wave 25 — Returns the PFMP user associated with the current bearer token.
+        /// Routes through <see cref="IUserProvisioningService"/> which handles both
+        /// dev tokens (UserId claim) and Entra tokens (oid claim, with on-first-login
+        /// admin provisioning gated by <c>AzureAD:AdminEmails</c>).
         /// </summary>
-        /// <returns>Current user information</returns>
         [HttpGet("me")]
         [Authorize]
-        public async Task<ActionResult<UserInfo>> GetCurrentUser()
+        public async Task<ActionResult<UserInfo>> GetCurrentUser(CancellationToken ct)
         {
             try
             {
-                if (_bypassAuthentication)
+                var result = await _provisioning.ResolveAsync(User, ct);
+                if (result.User == null)
                 {
-                    var defaultUserId = _configuration.GetValue<int>("Development:DefaultTestUserId", 1);
-                    return Ok(new UserInfo
+                    _logger.LogInformation("/auth/me rejected: {Outcome} ({Reason})", result.Outcome, result.Reason);
+                    return result.Outcome switch
                     {
-                        UserId = defaultUserId,
-                        Email = "dev.user@pfmp.local",
-                        FirstName = "Development",
-                        LastName = "User",
-                        IsSetupComplete = true
-                    });
+                        UserProvisioningOutcome.NotAllowed => StatusCode(403, new { message = result.Reason ?? "Not allowed" }),
+                        UserProvisioningOutcome.Inactive => StatusCode(403, new { message = result.Reason ?? "Account inactive" }),
+                        _ => Unauthorized(new { message = result.Reason ?? "Could not resolve user" })
+                    };
                 }
 
-                var userIdClaim = User.FindFirst("UserId")?.Value;
-                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
-                {
-                    return Unauthorized(new { message = "Invalid token" });
-                }
-
-                var user = await _authService.GetUserByAzureIdAsync(User.FindFirst("oid")?.Value ?? "");
-                if (user == null)
-                {
-                    // Try to get user by ID for local authentication
-                    // This would require a method in the auth service to get user by ID
-                    return NotFound(new { message = "User not found" });
-                }
-
+                var user = result.User;
                 return Ok(new UserInfo
                 {
                     UserId = user.UserId,
                     Email = user.Email,
                     FirstName = user.FirstName,
                     LastName = user.LastName,
-                    IsSetupComplete = !string.IsNullOrEmpty(user.FirstName) && 
-                                     !string.IsNullOrEmpty(user.LastName) &&
-                                     user.DateOfBirth.HasValue &&
-                                     !string.IsNullOrEmpty(user.EmploymentType)
+                    IsSetupComplete = !string.IsNullOrEmpty(user.FirstName)
+                                     && !string.IsNullOrEmpty(user.LastName)
+                                     && user.DateOfBirth.HasValue
+                                     && !string.IsNullOrEmpty(user.EmploymentType)
                 });
             }
             catch (Exception ex)
@@ -234,6 +237,64 @@ namespace PFMP_API.Controllers
                 _logger.LogError(ex, "Error getting current user");
                 return StatusCode(500, new { message = "Failed to get user information" });
             }
+        }
+
+        /// <summary>
+        /// Wave 25 — Mints a dev JWT for the requested user id. Only available in the
+        /// Development environment. Used by the simulated-auth path so the frontend can
+        /// hit <c>[Authorize]</c>-protected endpoints with a real validated token instead
+        /// of a mock string. The mint signs with the <c>JWT:SecretKey</c> symmetric key
+        /// that the "DevJwt" bearer scheme validates against.
+        /// </summary>
+        [HttpPost("dev-login")]
+        [AllowAnonymous]
+        public async Task<ActionResult<DevLoginResponse>> DevLogin([FromQuery] int userId, CancellationToken ct)
+        {
+            if (!_env.IsDevelopment())
+            {
+                return NotFound();
+            }
+
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId, ct);
+            if (user == null) return NotFound(new { message = $"User {userId} not found" });
+            if (!user.IsActive) return StatusCode(403, new { message = $"User {userId} is inactive" });
+
+            var jwtKey = _configuration["JWT:SecretKey"] ?? "PFMP-Dev-Secret-Key-Change-In-Production-2025";
+            var issuer = _configuration["JWT:Issuer"] ?? "PFMP-API";
+            var audience = _configuration["JWT:Audience"] ?? "PFMP-Frontend";
+            var expirationMinutes = _configuration.GetValue<int>("JWT:ExpirationMinutes", 60);
+
+            var claims = new List<Claim>
+            {
+                new(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                new(ClaimTypes.Email, user.Email ?? string.Empty),
+                new(ClaimTypes.Name, $"{user.FirstName} {user.LastName}".Trim()),
+                new("UserId", user.UserId.ToString())
+            };
+
+            var signing = new SigningCredentials(
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+                SecurityAlgorithms.HmacSha256Signature);
+
+            var token = new JwtSecurityToken(
+                issuer: issuer,
+                audience: audience,
+                claims: claims,
+                notBefore: DateTime.UtcNow,
+                expires: DateTime.UtcNow.AddMinutes(expirationMinutes),
+                signingCredentials: signing);
+
+            var encoded = new JwtSecurityTokenHandler().WriteToken(token);
+
+            _logger.LogInformation("Dev login minted token for user {UserId} ({Email})", user.UserId, user.Email);
+
+            return Ok(new DevLoginResponse(
+                AccessToken: encoded,
+                ExpiresAtUtc: token.ValidTo,
+                UserId: user.UserId,
+                Email: user.Email ?? string.Empty,
+                FirstName: user.FirstName ?? string.Empty,
+                LastName: user.LastName ?? string.Empty));
         }
 
         /// <summary>
@@ -344,6 +405,15 @@ namespace PFMP_API.Controllers
         public bool LocalAuthEnabled { get; set; }
         public bool RegistrationEnabled { get; set; }
     }
+
+    /// <summary>Wave 25 — response shape for /auth/dev-login.</summary>
+    public record DevLoginResponse(
+        string AccessToken,
+        DateTime ExpiresAtUtc,
+        int UserId,
+        string Email,
+        string FirstName,
+        string LastName);
 
     #endregion
 }

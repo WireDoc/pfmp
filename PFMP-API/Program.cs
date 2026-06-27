@@ -275,50 +275,92 @@ namespace PFMP_API
             builder.Services.AddHttpClient<IAuthenticationService, AuthenticationService>();
             builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 
-            // Add Authentication & Authorization
-            var authBuilder = builder.Services.AddAuthentication(options =>
-            {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            })
-            .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
-            {
-                var jwtKey = builder.Configuration["JWT:SecretKey"] ?? "PFMP-Dev-Secret-Key-Change-In-Production-2025";
-                var issuer = builder.Configuration["JWT:Issuer"] ?? "PFMP-API";
-                var audience = builder.Configuration["JWT:Audience"] ?? "PFMP-Frontend";
+            // Wave 25 — strongly-typed Entra config + provisioning service.
+            builder.Services.Configure<PFMP_API.Services.Auth.AzureAdOptions>(
+                builder.Configuration.GetSection(PFMP_API.Services.Auth.AzureAdOptions.SectionName));
+            builder.Services.AddScoped<PFMP_API.Services.Auth.IUserProvisioningService,
+                                       PFMP_API.Services.Auth.UserProvisioningService>();
 
-                options.TokenValidationParameters = new TokenValidationParameters
+            // Authentication: two JWT bearer schemes behind a forwarding policy scheme.
+            //   - "DevJwt"   : symmetric-key tokens minted by /api/auth/dev-login. Used when
+            //                  the frontend is in simulated-auth mode and during integration tests.
+            //   - "EntraJwt" : tokens from Microsoft Entra ID issued for the api://{ClientId}
+            //                  audience. Used when MSAL is wired up (Wave 25 Phase C+).
+            //   - Default "Bearer" is a policy scheme that inspects the token's issuer and
+            //     forwards to the right scheme. Controllers can use plain [Authorize] —
+            //     no need to specify which scheme is in play.
+            var entraConfig = builder.Configuration
+                .GetSection(PFMP_API.Services.Auth.AzureAdOptions.SectionName)
+                .Get<PFMP_API.Services.Auth.AzureAdOptions>() ?? new PFMP_API.Services.Auth.AzureAdOptions();
+
+            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                .AddPolicyScheme(JwtBearerDefaults.AuthenticationScheme, "Bearer (Dev or Entra)", options =>
                 {
-                    ValidateIssuer = true,
-                    ValidIssuer = issuer,
-                    ValidateAudience = true,
-                    ValidAudience = audience,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-                    ClockSkew = TimeSpan.Zero
-                };
-            });
-
-            // Only add Azure AD OIDC if configuration is provided
-            var tenantId = builder.Configuration["AzureAD:TenantId"];
-            var clientId = builder.Configuration["AzureAD:ClientId"];
-            var clientSecret = builder.Configuration["AzureAD:ClientSecret"];
-
-            if (!string.IsNullOrEmpty(tenantId) && !string.IsNullOrEmpty(clientId))
-            {
-                authBuilder.AddOpenIdConnect("AzureAD", options =>
+                    options.ForwardDefaultSelector = ctx =>
+                    {
+                        var auth = ctx.Request.Headers.Authorization.ToString();
+                        if (!auth.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                            return "DevJwt";
+                        var token = auth["Bearer ".Length..].Trim();
+                        try
+                        {
+                            var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+                            if (!handler.CanReadToken(token)) return "DevJwt";
+                            var jwt = handler.ReadJwtToken(token);
+                            return jwt.Issuer.Contains("login.microsoftonline.com", StringComparison.OrdinalIgnoreCase)
+                                || jwt.Issuer.Contains("sts.windows.net", StringComparison.OrdinalIgnoreCase)
+                                ? PFMP_API.Services.Auth.AzureAdOptions.Scheme
+                                : "DevJwt";
+                        }
+                        catch
+                        {
+                            return "DevJwt";
+                        }
+                    };
+                })
+                .AddJwtBearer("DevJwt", options =>
                 {
-                    options.Authority = $"https://login.microsoftonline.com/{tenantId}/v2.0";
-                    options.ClientId = clientId;
-                    options.ClientSecret = clientSecret;
-                    options.ResponseType = "code";
-                    options.SaveTokens = true;
-                    options.Scope.Add("openid");
-                    options.Scope.Add("profile");
-                    options.Scope.Add("email");
+                    var jwtKey = builder.Configuration["JWT:SecretKey"] ?? "PFMP-Dev-Secret-Key-Change-In-Production-2025";
+                    var issuer = builder.Configuration["JWT:Issuer"] ?? "PFMP-API";
+                    var audience = builder.Configuration["JWT:Audience"] ?? "PFMP-Frontend";
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidIssuer = issuer,
+                        ValidateAudience = true,
+                        ValidAudience = audience,
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+                        ClockSkew = TimeSpan.Zero
+                    };
+                })
+                .AddJwtBearer(PFMP_API.Services.Auth.AzureAdOptions.Scheme, options =>
+                {
+                    if (!entraConfig.IsConfigured)
+                    {
+                        // Registered but mis-configured (still in placeholder state). Leave validation
+                        // permissive so the policy scheme never crashes at startup; any Entra-shaped
+                        // token will simply fail signature validation and the request gets 401.
+                        options.TokenValidationParameters = new TokenValidationParameters { ValidateLifetime = false };
+                        return;
+                    }
+                    options.Authority = entraConfig.AuthorityV2;
+                    options.Audience = entraConfig.Audience;
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidIssuers = new[]
+                        {
+                            $"https://login.microsoftonline.com/{entraConfig.TenantId}/v2.0",
+                            $"https://sts.windows.net/{entraConfig.TenantId}/"
+                        },
+                        ValidateAudience = true,
+                        ValidAudiences = new[] { entraConfig.Audience, entraConfig.ClientId },
+                        ValidateLifetime = true,
+                        ClockSkew = TimeSpan.FromMinutes(2)
+                    };
                 });
-            }
 
             builder.Services.AddAuthorization();
 
