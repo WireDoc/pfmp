@@ -48,6 +48,7 @@ interface ApiDashboardSummaryResponse {
 
 // Use the configured API base URL from environment variable
 import { getDevUserId } from '../../dev/devUserState';
+import { getAuthToken } from '../authToken';
 
 const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || 'http://localhost:5052/api';
 const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, ''); // Remove trailing /api or /api/
@@ -105,12 +106,23 @@ async function resolveAuthHeaders(): Promise<Record<string, string>> {
   if (typeof window === 'undefined') {
     return {};
   }
+
+  // Wave 25 Phase C+D — primary source is the shared authToken module which
+  // is populated by AuthProvider for both simulated (dev JWT minted via
+  // /auth/dev-login) and real-MSAL (Entra access token) paths. Falling
+  // through to a direct MSAL acquire is the legacy path; kept as a safety
+  // net for the brief window before AuthProvider runs its effect on first
+  // load.
+  const localToken = getAuthToken();
+  if (localToken) {
+    return { Authorization: `Bearer ${localToken}` };
+  }
+
   if (isFeatureEnabled('use_simulated_auth')) {
     return {};
   }
 
   try {
-    // Initialize lazily; safe to call repeatedly.
     await msalInstance.initialize();
     const activeAccount = msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0] ?? null;
     if (!activeAccount) {

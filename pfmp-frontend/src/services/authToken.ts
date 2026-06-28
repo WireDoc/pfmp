@@ -49,3 +49,24 @@ export function subscribeAuthToken(cb: () => void): () => void {
 export function getAuthTokenSnapshot(): { token: string | null; expiresAt: Date | null } {
   return { token: currentToken, expiresAt: currentExpiresAt };
 }
+
+/**
+ * Drop-in replacement for window.fetch that auto-injects Authorization: Bearer
+ * when a token is available. Use for any service that calls fetch() directly
+ * (the chat SSE stream, dashboard summary, etc. — places where axios's
+ * apiClient interceptor doesn't reach). For axios callers, the request
+ * interceptor in services/api.ts already handles this.
+ *
+ * Signature matches window.fetch so it can be swapped in line-for-line.
+ */
+export async function authFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const token = getAuthToken();
+  if (!token) {
+    return fetch(input, init);
+  }
+  const headers = new Headers(init?.headers);
+  if (!headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  return fetch(input, { ...init, headers });
+}

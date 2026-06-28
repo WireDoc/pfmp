@@ -6,6 +6,7 @@
  */
 
 import { getDevUserId } from '../../dev/devUserState';
+import { authFetch } from '../authToken';
 
 const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL || 'http://localhost:5052/api';
 const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, '');
@@ -65,7 +66,7 @@ export interface UpcomingObligationsData {
 
 export async function fetchHealthScore(): Promise<HealthScoreData> {
   const userId = getEffectiveUserId();
-  const resp = await fetch(`${DASHBOARD_BASE}/health-score?userId=${encodeURIComponent(userId)}`);
+  const resp = await authFetch(`${DASHBOARD_BASE}/health-score?userId=${encodeURIComponent(userId)}`);
   if (!resp.ok) throw new Error(`Failed to fetch health score (${resp.status})`);
   return resp.json();
 }
@@ -74,7 +75,7 @@ export async function fetchHealthScore(): Promise<HealthScoreData> {
 
 export async function fetchUpcomingObligations(count = 3): Promise<UpcomingObligationsData> {
   const userId = getEffectiveUserId();
-  const resp = await fetch(`${DASHBOARD_BASE}/upcoming-obligations?userId=${encodeURIComponent(userId)}&count=${count}`);
+  const resp = await authFetch(`${DASHBOARD_BASE}/upcoming-obligations?userId=${encodeURIComponent(userId)}&count=${count}`);
   if (!resp.ok) throw new Error(`Failed to fetch upcoming obligations (${resp.status})`);
   return resp.json();
 }

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Scheduler Admin Service
  * Wave 10: Background Jobs & Automation - Phase 4
  * 
@@ -80,7 +80,7 @@ export interface JobHistoryResponse {
  * Get all recurring jobs with their status
  */
 export async function getRecurringJobs(): Promise<SchedulerJobsResponse> {
-  const response = await fetch(`${API_BASE}/api/admin/scheduler/jobs`);
+  const response = await authFetch(`${API_BASE}/api/admin/scheduler/jobs`);
   if (!response.ok) {
     throw new Error(`Failed to fetch jobs: ${response.statusText}`);
   }
@@ -91,7 +91,7 @@ export async function getRecurringJobs(): Promise<SchedulerJobsResponse> {
  * Get queue statistics
  */
 export async function getQueueStats(): Promise<QueueStatsResponse> {
-  const response = await fetch(`${API_BASE}/api/admin/scheduler/queues`);
+  const response = await authFetch(`${API_BASE}/api/admin/scheduler/queues`);
   if (!response.ok) {
     throw new Error(`Failed to fetch queue stats: ${response.statusText}`);
   }
@@ -102,7 +102,7 @@ export async function getQueueStats(): Promise<QueueStatsResponse> {
  * Trigger a recurring job to run immediately
  */
 export async function triggerJob(jobId: string): Promise<TriggerJobResponse> {
-  const response = await fetch(`${API_BASE}/api/admin/scheduler/jobs/${encodeURIComponent(jobId)}/trigger`, {
+  const response = await authFetch(`${API_BASE}/api/admin/scheduler/jobs/${encodeURIComponent(jobId)}/trigger`, {
     method: 'POST',
   });
   if (!response.ok) {
@@ -115,7 +115,7 @@ export async function triggerJob(jobId: string): Promise<TriggerJobResponse> {
  * Trigger the price refresh job
  */
 export async function triggerPriceRefresh(): Promise<TriggerJobResponse> {
-  const response = await fetch(`${API_BASE}/api/admin/scheduler/trigger/price-refresh`, {
+  const response = await authFetch(`${API_BASE}/api/admin/scheduler/trigger/price-refresh`, {
     method: 'POST',
   });
   if (!response.ok) {
@@ -128,7 +128,7 @@ export async function triggerPriceRefresh(): Promise<TriggerJobResponse> {
  * Trigger the net worth snapshot job
  */
 export async function triggerNetWorthSnapshot(): Promise<TriggerJobResponse> {
-  const response = await fetch(`${API_BASE}/api/admin/scheduler/trigger/networth-snapshot`, {
+  const response = await authFetch(`${API_BASE}/api/admin/scheduler/trigger/networth-snapshot`, {
     method: 'POST',
   });
   if (!response.ok) {
@@ -141,7 +141,7 @@ export async function triggerNetWorthSnapshot(): Promise<TriggerJobResponse> {
  * Get recent job history
  */
 export async function getJobHistory(limit = 20): Promise<JobHistoryResponse> {
-  const response = await fetch(`${API_BASE}/api/admin/scheduler/history?limit=${limit}`);
+  const response = await authFetch(`${API_BASE}/api/admin/scheduler/history?limit=${limit}`);
   if (!response.ok) {
     throw new Error(`Failed to fetch job history: ${response.statusText}`);
   }
@@ -160,7 +160,7 @@ export interface UpdateScheduleResponse {
  * Update the schedule (cron expression) for a recurring job
  */
 export async function updateJobSchedule(jobId: string, cronExpression: string): Promise<UpdateScheduleResponse> {
-  const response = await fetch(`${API_BASE}/api/admin/scheduler/jobs/${encodeURIComponent(jobId)}/schedule`, {
+  const response = await authFetch(`${API_BASE}/api/admin/scheduler/jobs/${encodeURIComponent(jobId)}/schedule`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',

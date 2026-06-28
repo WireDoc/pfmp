@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api';
+﻿const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api';
 
 export interface CashTransactionResponse {
   cashTransactionId: number;
@@ -94,7 +94,7 @@ export async function createCashTransaction(
   cashAccountId: string,
   request: CreateCashTransactionRequest
 ): Promise<CashTransactionResponse> {
-  const response = await fetch(`${API_BASE_URL}/cash-accounts/${cashAccountId}/transactions`, {
+  const response = await authFetch(`${API_BASE_URL}/cash-accounts/${cashAccountId}/transactions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(request),
@@ -111,7 +111,7 @@ export async function updateCashTransaction(
   transactionId: number,
   request: UpdateCashTransactionRequest
 ): Promise<CashTransactionResponse> {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE_URL}/cash-accounts/${cashAccountId}/transactions/${transactionId}`,
     {
       method: 'PUT',
@@ -130,7 +130,7 @@ export async function deleteCashTransaction(
   cashAccountId: string,
   transactionId: number
 ): Promise<void> {
-  const response = await fetch(
+  const response = await authFetch(
     `${API_BASE_URL}/cash-accounts/${cashAccountId}/transactions/${transactionId}`,
     { method: 'DELETE' }
   );

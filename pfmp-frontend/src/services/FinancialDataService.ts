@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Real Financial Data Service
  * Integrates with multiple financial data providers for live market data
  */
@@ -81,7 +81,7 @@ export class FinancialDataService {
 
       try {
         // Alpha Vantage API call
-        const response = await fetch(
+        const response = await authFetch(
           `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${this.alphaVantageKey}`
         );
         
@@ -136,7 +136,7 @@ export class FinancialDataService {
 
     try {
       const ids = symbols.join(',');
-      const response = await fetch(
+      const response = await authFetch(
         `${this.coinGeckoBaseUrl}/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true`
       );
       
