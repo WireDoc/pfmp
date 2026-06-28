@@ -1,10 +1,12 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using PFMP_API.Services;
 
 namespace PFMP_API.Controllers;
 
 [ApiController]
 [Route("api/price-history")]
+[Authorize]
 public class PriceHistoryController : ControllerBase
 {
     private readonly PriceHistoryService _priceHistoryService;

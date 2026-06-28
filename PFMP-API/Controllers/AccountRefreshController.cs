@@ -1,7 +1,8 @@
-using Hangfire;
+﻿using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Jobs;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PFMP_API.Controllers;
 
@@ -11,6 +12,7 @@ namespace PFMP_API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/accounts")]
+[Authorize]
 public class AccountRefreshController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

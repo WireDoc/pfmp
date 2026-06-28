@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API;
@@ -10,6 +10,7 @@ namespace PFMP_API.Controllers;
 // [Authorize] // Commented out - authentication not yet configured for development
 [ApiController]
 [Route("api/cash-accounts/{cashAccountId}/transactions")]
+[Authorize]
 public class CashTransactionsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

@@ -1,12 +1,14 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API;
 using PFMP_API.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PFMP_API.Controllers;
 
 [ApiController]
 [Route("api/accounts/{accountId}/transactions")]
+[Authorize]
 public class AccountTransactionsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

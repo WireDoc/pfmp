@@ -1,6 +1,7 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PFMP_API.Controllers;
 
@@ -10,6 +11,7 @@ namespace PFMP_API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/admin/users")] // explicit admin tooling route
+[Authorize]
 public class UserAdminController : ControllerBase
 {
     private readonly ApplicationDbContext _db;

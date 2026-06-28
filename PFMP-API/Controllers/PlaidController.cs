@@ -1,7 +1,8 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models.Plaid;
 using PFMP_API.Services.Plaid;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PFMP_API.Controllers;
 
@@ -10,6 +11,7 @@ namespace PFMP_API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class PlaidController : ControllerBase
 {
     private readonly IPlaidService _plaidService;

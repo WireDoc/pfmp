@@ -1,9 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.DTOs.Crypto;
 using PFMP_API.Models.Crypto;
 using PFMP_API.Services.Crypto;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PFMP_API.Controllers
 {
@@ -13,6 +14,7 @@ namespace PFMP_API.Controllers
     /// </summary>
     [ApiController]
     [Route("api/crypto")]
+    [Authorize]
     public class CryptoController : ControllerBase
     {
         private readonly ApplicationDbContext _context;

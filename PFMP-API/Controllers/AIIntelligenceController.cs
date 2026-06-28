@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PFMP_API.Models;
 using PFMP_API.Services.AI;
@@ -9,6 +9,7 @@ namespace PFMP_API.Controllers
     // [Authorize] // TODO: Re-enable after testing Wave 7 AI Intelligence
     [ApiController]
     [Route("api/ai")]
+    [Authorize]
     public class AIIntelligenceController : ControllerBase
     {
         private readonly IAIIntelligenceService _aiIntelligence;

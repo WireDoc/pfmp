@@ -1,18 +1,20 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using PFMP_API.Services.AI.Chat;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PFMP_API.Controllers;
 
 /// <summary>
-/// Wave 24 — Streaming chatbot API. Conversations + messages CRUD + the SSE
+/// Wave 24 â€” Streaming chatbot API. Conversations + messages CRUD + the SSE
 /// message-stream endpoint. Uses query-string userId for now (consistent with
 /// the rest of the API which has no auth wired yet); becomes [Authorize] when
 /// auth lands.
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ChatController : ControllerBase
 {
     private readonly IChatService _chat;
@@ -168,7 +170,7 @@ public class ChatController : ControllerBase
         CancellationToken ct = default)
     {
         // Smart fetch so opening the chat page after hours away triggers the
-        // staleness check and rebuilds if needed — the sidebar then reflects
+        // staleness check and rebuilds if needed â€” the sidebar then reflects
         // the fresh snapshot immediately.
         var snapshot = await _snapshots.GetCurrentSnapshotAsync(userId, ct);
         return Ok(new

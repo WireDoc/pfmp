@@ -1,11 +1,13 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PFMP_API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class UserNotesController : ControllerBase
     {
         private readonly ApplicationDbContext _context;

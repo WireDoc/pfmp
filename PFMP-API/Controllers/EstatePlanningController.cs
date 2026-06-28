@@ -1,12 +1,14 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.DTOs;
 using PFMP_API.Models.FinancialProfile;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PFMP_API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class EstatePlanningController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -30,7 +32,7 @@ namespace PFMP_API.Controllers
                     .FirstOrDefaultAsync(e => e.UserId == userId);
 
                 if (profile == null)
-                    return Ok(null); // Not yet configured — frontend shows empty form
+                    return Ok(null); // Not yet configured â€” frontend shows empty form
 
                 return Ok(MapToResponse(profile));
             }

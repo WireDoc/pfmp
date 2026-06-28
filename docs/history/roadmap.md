@@ -437,6 +437,20 @@ The campaign is 4 waves running roughly in series:
 - Error tracking — Sentry self-hosted (compatible with Docker) or Seq (also Docker-friendly), so we're not paying SaaS for a personal app
 - Health check polish — existing `/health` + `/health/ready` get exercised by Cloudflare/Docker
 
+**Frontend dedup & polling cleanup (surfaced 2026-06-27 during Wave 25 Phase C)**
+
+The dashboard makes a large number of duplicate API calls during normal use — flagged when inspecting Network tab on a fresh page load. Three layered causes, all pre-existing (not introduced by Phase C):
+
+- `apiDashboardService.subscribeToLongTermObligations` (`pfmp-frontend/src/services/dashboard/apiDashboardService.ts`) starts a fresh `setInterval(poll, 45000)` for **every subscriber**. Each subscriber polls `/api/dashboard/summary?userId=N` every 45 seconds. With multiple components mounting `useDashboardData`, the summary endpoint can be hit 20+ times in under 2 minutes.
+- Multiple components independently call the same fetch helper without any shared cache. `listExchangeConnections(userId)` was observed firing 13× in 96 seconds because Dashboard, `CryptoSummaryCard`, and `ConnectionsSettingsView` each request it on mount, and React Strict Mode double-fires effects in dev. `listCryptoHoldings(connectionId, userId)` showed the same pattern (8×).
+- `useDataRefresh({ refreshOnFocus: true })` on the dashboard re-fetches every time you tab back to the window — fine in isolation, additive on top of the per-subscriber polling.
+
+This is bandwidth + DB load that becomes embarrassing once the app is publicly reachable. Hardening options (decision deferred to Wave 28 kickoff):
+- **B — Surgical fixes** (recommended, ~half day): turn `subscribeToLongTermObligations` into a singleton poller that multicasts to listeners; memoize/promise-cache the crypto/connections fetch by userId; cap `refreshOnFocus` to once per N minutes.
+- **A — TanStack Query** (~1-2 days): adopt react-query as the global fetch layer. Single cache, automatic dedup, smart `staleTime`/`refetchInterval`/refetch-on-focus policies, stale-while-revalidate. Bigger lift, larger long-term win — every fetch helper migrates.
+
+Also surfaced: `POST /api/crypto/connections/{id}/sync` is rate-limited to **once per hour per connection** by `CryptoController.ManualSyncCooldown = TimeSpan.FromHours(1)`. The auto-sync that runs on dashboard mount counts against the quota, so a manual click within an hour returns 429 with `Retry-After`. Not a bug — by design. Worth verifying the cooldown is the right value once we're hitting real exchange APIs in production (Kraken + Binance.US tier limits may demand looser or tighter).
+
 **Deploy plumbing**
 - `Dockerfile` for the API (multi-stage, .NET 9 publish → runtime image)
 - `Dockerfile` for the frontend (Vite build → nginx)

@@ -1,14 +1,16 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
 using PFMP_API.Services;
 using PFMP_API.Services.MarketData;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PFMP_API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class HoldingsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -81,7 +83,7 @@ public class HoldingsController : ControllerBase
             var intradayPrices = await _marketDataService.GetIntradayPricesAsync(holding.Symbol);
             
             // Show the most recent full trading day. If today's session just started
-            // (fewer than 10 candles ≈ < 50 min of 5-min data), prefer the previous day.
+            // (fewer than 10 candles â‰ˆ < 50 min of 5-min data), prefer the previous day.
             var tradingDates = intradayPrices
                 .Select(p => p.Date.Date)
                 .Distinct()
@@ -98,7 +100,7 @@ public class HoldingsController : ControllerBase
                     break;
                 }
             }
-            // If no date has ≥ 10 candles, fall back to the latest date available
+            // If no date has â‰¥ 10 candles, fall back to the latest date available
             if (targetDate == default && tradingDates.Count > 0)
                 targetDate = tradingDates[0];
 
@@ -813,7 +815,7 @@ public class HoldingsController : ControllerBase
         {
             return BadRequest(new
             {
-                message = $"Cannot sell {request.Quantity} shares — only {holding.Quantity} available."
+                message = $"Cannot sell {request.Quantity} shares â€” only {holding.Quantity} available."
             });
         }
 

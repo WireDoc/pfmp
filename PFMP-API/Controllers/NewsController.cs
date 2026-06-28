@@ -1,16 +1,18 @@
-using Hangfire;
+﻿using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 using PFMP_API.Jobs;
 using PFMP_API.Models.News;
 using PFMP_API.Services.News;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PFMP_API.Controllers;
 
 /// <summary>
-/// Wave 23 — News digest API for the dashboard widget + drill-down view.
+/// Wave 23 â€” News digest API for the dashboard widget + drill-down view.
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class NewsController : ControllerBase
 {
     private readonly INewsDigestService _digests;
@@ -33,7 +35,7 @@ public class NewsController : ControllerBase
         var digest = await _digests.GetLatestDigestAsync(userId, ct);
         if (digest == null)
         {
-            return NotFound(new { message = "No digest available yet — run the ingestion job or wait for tomorrow's 05:30 ET cron." });
+            return NotFound(new { message = "No digest available yet â€” run the ingestion job or wait for tomorrow's 05:30 ET cron." });
         }
 
         return Ok(NewsDigestResponse.From(digest));
@@ -55,7 +57,7 @@ public class NewsController : ControllerBase
 
     /// <summary>
     /// Manually triggers the news ingestion job (queued in Hangfire). Used by the
-    /// admin "refresh now" button + for first-run priming. Idempotent — multiple
+    /// admin "refresh now" button + for first-run priming. Idempotent â€” multiple
     /// triggers in a row will queue multiple jobs but only the latest matters.
     /// </summary>
     [HttpPost("trigger")]

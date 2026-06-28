@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using PFMP_API.Models;
@@ -7,11 +7,12 @@ using System.Diagnostics;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PFMP_API.Controllers;
 
 /// <summary>
-/// Wave 22 Phase C — admin endpoints for the AI model picker UI.
+/// Wave 22 Phase C â€” admin endpoints for the AI model picker UI.
 ///
 /// All endpoints under /api/admin/ai-models. No auth in dev (matches existing
 /// AISpikeController pattern); add admin-role gating before any prod rollout.
@@ -19,6 +20,7 @@ namespace PFMP_API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/admin/ai-models")]
+[Authorize]
 public class AIModelsAdminController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
@@ -45,7 +47,7 @@ public class AIModelsAdminController : ControllerBase
     }
 
     /// <summary>
-    /// GET /api/admin/ai-models — returns the resolved (DB + appsettings fallback) config
+    /// GET /api/admin/ai-models â€” returns the resolved (DB + appsettings fallback) config
     /// for every slot, plus the raw AISettings row when one exists. The frontend uses this
     /// to render the form with "(default from appsettings)" placeholders for unset fields.
     /// </summary>
@@ -88,7 +90,7 @@ public class AIModelsAdminController : ControllerBase
     }
 
     /// <summary>
-    /// PUT /api/admin/ai-models/{slot} — upserts overrides for one slot.
+    /// PUT /api/admin/ai-models/{slot} â€” upserts overrides for one slot.
     /// Body fields are nullable; any field omitted/null clears the override and falls
     /// back to appsettings on the next resolve.
     /// </summary>
@@ -142,7 +144,7 @@ public class AIModelsAdminController : ControllerBase
     }
 
     /// <summary>
-    /// POST /api/admin/ai-models/{slot}/test — issues a tiny "Reply OK" completion against
+    /// POST /api/admin/ai-models/{slot}/test â€” issues a tiny "Reply OK" completion against
     /// the slot's resolved model. Measures latency and dollar cost. Used by the per-slot
     /// "Test" button in the admin UI.
     /// </summary>
@@ -241,7 +243,7 @@ public class AIModelsAdminController : ControllerBase
     }
 
     /// <summary>
-    /// GET /api/admin/ai-models/catalog — returns the cached OpenRouter model catalog.
+    /// GET /api/admin/ai-models/catalog â€” returns the cached OpenRouter model catalog.
     /// Will cold-fetch on first call after startup; otherwise returns the cached copy.
     /// </summary>
     [HttpGet("catalog")]
@@ -265,7 +267,7 @@ public class AIModelsAdminController : ControllerBase
     }
 
     /// <summary>
-    /// POST /api/admin/ai-models/catalog/refresh — force-refetches the catalog from OpenRouter.
+    /// POST /api/admin/ai-models/catalog/refresh â€” force-refetches the catalog from OpenRouter.
     /// </summary>
     [HttpPost("catalog/refresh")]
     public async Task<ActionResult> RefreshCatalog(CancellationToken ct)

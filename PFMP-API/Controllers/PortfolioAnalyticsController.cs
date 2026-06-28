@@ -1,8 +1,9 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using PFMP_API.Models.Analytics;
 using PFMP_API.Services;
 using PFMP_API.Services.MarketData;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PFMP_API.Controllers;
 
@@ -11,6 +12,7 @@ namespace PFMP_API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/portfolios")]
+[Authorize]
 public class PortfolioAnalyticsController : ControllerBase
 {
     private readonly PerformanceCalculationService _performanceService;
@@ -492,7 +494,7 @@ public class PortfolioAnalyticsController : ControllerBase
     }
 
     /// <summary>
-    /// Normalize country names to a consistent format (e.g. "US" → "United States")
+    /// Normalize country names to a consistent format (e.g. "US" â†’ "United States")
     /// </summary>
     private static string NormalizeCountryName(string country)
     {

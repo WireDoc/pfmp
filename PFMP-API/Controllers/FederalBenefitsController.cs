@@ -1,13 +1,15 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.DTOs;
 using PFMP_API.Models.FinancialProfile;
 using PFMP_API.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PFMP_API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class FederalBenefitsController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -37,7 +39,7 @@ namespace PFMP_API.Controllers
                     .FirstOrDefaultAsync(f => f.UserId == userId);
 
                 if (profile == null)
-                    return Ok(null); // Not yet configured — frontend shows empty form
+                    return Ok(null); // Not yet configured â€” frontend shows empty form
 
                 return Ok(MapToResponse(profile));
             }
@@ -107,7 +109,7 @@ namespace PFMP_API.Controllers
             }
         }
 
-        // POST: api/FederalBenefits/debug-pdf — returns raw extracted text for parser development
+        // POST: api/FederalBenefits/debug-pdf â€” returns raw extracted text for parser development
         [HttpPost("debug-pdf")]
         public ActionResult DebugPdf(IFormFile file)
         {
@@ -253,7 +255,7 @@ namespace PFMP_API.Controllers
                 }
 
                 // Apply LES deductions to federal benefits profile
-                // Biweekly → monthly: × 26 pay periods / 12 months (exact conversion)
+                // Biweekly â†’ monthly: Ã— 26 pay periods / 12 months (exact conversion)
                 if (parseResult.FegliDeduction.HasValue)
                 {
                     profile.HasFegliBasic = true;
@@ -276,7 +278,7 @@ namespace PFMP_API.Controllers
                         profile.HasFegliOptionC = optCode.Contains('C');
                     }
 
-                    // Parse FEGLI basic code digit (e.g., "F5" → 5) for option multiples
+                    // Parse FEGLI basic code digit (e.g., "F5" â†’ 5) for option multiples
                     if (!string.IsNullOrEmpty(parseResult.FegliBasicCode))
                     {
                         var digitChar = parseResult.FegliBasicCode.LastOrDefault(c => char.IsDigit(c));
@@ -495,7 +497,7 @@ namespace PFMP_API.Controllers
             }
 
             // --- Projected annuity ---
-            // Formula: multiplier × High-3 × total creditable service (years + months/12)
+            // Formula: multiplier Ã— High-3 Ã— total creditable service (years + months/12)
             // Multiplier: 1.1% if retiring at age 62+ with 20+ years; else 1.0%
             if (profile.High3AverageSalary.HasValue && profile.CreditableYearsOfService.HasValue)
             {
@@ -900,7 +902,7 @@ namespace PFMP_API.Controllers
             decimal totalService = svcYears + (svcMonths / 12m);
 
             // Projected High-3: grow current salary, then average the last 3 years
-            // Simplified: project salary forward, High-3 ≈ salary grown by (yearsUntilRetire - 1.5) years
+            // Simplified: project salary forward, High-3 â‰ˆ salary grown by (yearsUntilRetire - 1.5) years
             decimal projectedHigh3 = currentHigh3;
             if (growthRate > 0 && yearsUntilRetire > 0)
             {
@@ -936,12 +938,12 @@ namespace PFMP_API.Controllers
             else if (retireAgeTotalMonths >= mraTotalMonths && svcYears >= 30)
             {
                 isEligible = true;
-                eligibilityNote = "MRA + 30 years — immediate unreduced annuity";
+                eligibilityNote = "MRA + 30 years â€” immediate unreduced annuity";
             }
             else if (retireAgeY >= 60 && svcYears >= 20)
             {
                 isEligible = true;
-                eligibilityNote = "Age 60 + 20 years — immediate unreduced annuity";
+                eligibilityNote = "Age 60 + 20 years â€” immediate unreduced annuity";
             }
             else if (retireAgeTotalMonths >= mraTotalMonths && svcYears >= 10)
             {
@@ -951,11 +953,11 @@ namespace PFMP_API.Controllers
                 decimal reductionPct = Math.Round(monthsBelow62 * (5m / 12m), 1);
                 annualAnnuity = Math.Round(annualAnnuity * (1m - (reductionPct / 100m)), 2);
                 monthlyPension = Math.Round(annualAnnuity / 12m, 2);
-                eligibilityNote = $"MRA + 10 — reduced annuity ({reductionPct:0.#}% reduction)";
+                eligibilityNote = $"MRA + 10 â€” reduced annuity ({reductionPct:0.#}% reduction)";
             }
             else if (retireAgeTotalMonths < mraTotalMonths)
             {
-                eligibilityNote = "Below MRA — not eligible for voluntary retirement";
+                eligibilityNote = "Below MRA â€” not eligible for voluntary retirement";
             }
             else
             {
@@ -974,7 +976,7 @@ namespace PFMP_API.Controllers
                     int monthsToAge62 = (62 * 12) - retireAgeTotalMonths;
                     supplementMonths = Math.Max(0, monthsToAge62);
 
-                    // SRS ≈ SS benefit at 62 × (FERS service years / 40), inflation-adjusted
+                    // SRS â‰ˆ SS benefit at 62 Ã— (FERS service years / 40), inflation-adjusted
                     if (inflatedSsAt62.HasValue && inflatedSsAt62.Value > 0)
                     {
                         supplementEstimate = Math.Round(inflatedSsAt62.Value * (totalService / 40m), 2);
@@ -990,7 +992,7 @@ namespace PFMP_API.Controllers
             }
 
             // VA disability: flat amount today, adjusted by COLA (follows SS COLA) to nominal dollars at retirement
-            // Unlike SS, VA disability doesn't change with claiming age — it's the same from day one
+            // Unlike SS, VA disability doesn't change with claiming age â€” it's the same from day one
             decimal? vaDisabilityMonthly = null;
             if (vaMonthly > 0 && yearsUntilRetire >= 0)
             {

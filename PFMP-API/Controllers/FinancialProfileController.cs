@@ -1,13 +1,15 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models.FinancialProfile;
 using PFMP_API.Services.FinancialProfile;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PFMP_API.Controllers
 {
     [ApiController]
     [Route("api/financial-profile")]
+    [Authorize]
     public class FinancialProfileController : ControllerBase
     {
         private readonly IFinancialProfileService _service;

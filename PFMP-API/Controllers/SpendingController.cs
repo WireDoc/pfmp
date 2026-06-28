@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +7,7 @@ using PFMP_API.Models.FinancialProfile;
 using PFMP_API.Models.Spending;
 using PFMP_API.Services.Plaid;
 using PFMP_API.Services.Spending;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PFMP_API.Controllers;
 
@@ -15,6 +16,7 @@ namespace PFMP_API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class SpendingController : ControllerBase
 {
     private static readonly ConcurrentDictionary<int, DateTime> _lastRecomputeByUser = new();

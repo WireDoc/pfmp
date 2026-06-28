@@ -1,4 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 
 namespace PFMP_API.Controllers;
@@ -9,6 +10,7 @@ namespace PFMP_API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/dashboard/net-worth")]
+[Authorize]
 public class NetWorthTimelineController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

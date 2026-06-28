@@ -1,15 +1,17 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
 using PFMP_API.Models.Crypto;
 using PFMP_API.Models.FinancialProfile;
 using PFMP_API.Services.FinancialProfile;
 using PFMP_API.Services.MarketData;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PFMP_API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class DashboardController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -498,7 +500,7 @@ public class DashboardController : ControllerBase
     }
 
     /// <summary>
-    /// Financial Health Score — 0-100 composite score computed from existing user data.
+    /// Financial Health Score â€” 0-100 composite score computed from existing user data.
     /// Weights: Emergency Fund 20%, Debt-to-Income 20%, Savings Rate 20%,
     ///          Insurance Coverage 15%, Diversification 15%, Goal Progress 10%.
     /// </summary>
@@ -662,16 +664,16 @@ public class DashboardController : ControllerBase
         }
     }
 
-    // GET /api/dashboard/cash-flow-summary — removed 2026-06-09.
+    // GET /api/dashboard/cash-flow-summary â€” removed 2026-06-09.
     // Superseded by Wave 14's GET /api/spending/cash-flow-summary, which is what
     // both /dashboard/spending's CashFlowSummaryCard and the main /dashboard's
     // CashFlowWidget now consume. The old endpoint summed IncomeSources +
     // ExpenseBudgets directly and knew nothing about allotments, basis (gross
-    // vs net), paycheck-deducted insurance, or internal-transfer exclusion —
+    // vs net), paycheck-deducted insurance, or internal-transfer exclusion â€”
     // so its numbers drifted from what users saw on the Spending page.
 
     /// <summary>
-    /// Upcoming obligations — next N obligations by target date with funding progress.
+    /// Upcoming obligations â€” next N obligations by target date with funding progress.
     /// </summary>
     [HttpGet("upcoming-obligations")]
     public async Task<ActionResult<object>> GetUpcomingObligations([FromQuery] int? userId = null, [FromQuery] int count = 3)

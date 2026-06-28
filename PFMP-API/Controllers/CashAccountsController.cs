@@ -1,13 +1,15 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models.FinancialProfile;
 using PFMP_API.Services;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PFMP_API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class CashAccountsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -353,7 +355,7 @@ public class UpdateCashAccountRequest
 
     public decimal? InterestRateApr { get; set; }
 
-    // Matches CashAccount.Purpose column cap (2000) — see comment on CreateCashAccountRequest.Purpose.
+    // Matches CashAccount.Purpose column cap (2000) â€” see comment on CreateCashAccountRequest.Purpose.
     [StringLength(2000)]
     public string? Purpose { get; set; }
     

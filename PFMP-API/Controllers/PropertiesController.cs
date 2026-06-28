@@ -1,9 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.Models;
 using PFMP_API.Models.FinancialProfile;
 using PFMP_API.Services;
 using PFMP_API.Services.Properties;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PFMP_API.Controllers;
 
@@ -12,6 +13,7 @@ namespace PFMP_API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class PropertiesController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -149,7 +151,7 @@ public class PropertiesController : ControllerBase
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Initial valuation failed for property {PropertyId} — user can retry manually", property.PropertyId);
+                _logger.LogWarning(ex, "Initial valuation failed for property {PropertyId} â€” user can retry manually", property.PropertyId);
             }
         });
 
@@ -322,7 +324,7 @@ public class PropertiesController : ControllerBase
                 City = request.City?.Trim() ?? "",
                 State = request.State?.Trim() ?? "",
                 Zip = request.Zip?.Trim() ?? "",
-                Message = "Partial address — manual entry accepted"
+                Message = "Partial address â€” manual entry accepted"
             });
         }
 

@@ -1,6 +1,7 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using PFMP_API.Services;
 using PFMP_API.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PFMP_API.Controllers
 {
@@ -9,6 +10,7 @@ namespace PFMP_API.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class AIController : ControllerBase
     {
         private readonly IAIService _aiService;

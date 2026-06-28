@@ -1,11 +1,13 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using PFMP_API.Services;
 using PFMP_API.Services.MarketData;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PFMP_API.Controllers;
 
 [ApiController]
 [Route("api/market-data")]
+[Authorize]
 public class MarketDataController : ControllerBase
 {
     private readonly IMarketDataService _marketDataService;

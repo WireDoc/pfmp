@@ -1,7 +1,8 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PFMP_API.DTOs;
 using PFMP_API.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PFMP_API.Controllers;
 
@@ -10,6 +11,7 @@ namespace PFMP_API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/loan-analytics")]
+[Authorize]
 public class LoanAnalyticsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

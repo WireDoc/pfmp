@@ -1,23 +1,25 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using PFMP_API.Services.AI;
 using System.Diagnostics;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PFMP_API.Controllers;
 
 /// <summary>
-/// Wave 22 Phase A — Fusion vs. Primary→Verifier side-by-side comparison endpoint.
+/// Wave 22 Phase A â€” Fusion vs. Primaryâ†’Verifier side-by-side comparison endpoint.
 ///
 /// Runs both advisors against the same production prompt for a user, returns
 /// cost / token / latency / response text for each, plus computed ratios.
 ///
 /// Intended to be deleted once the Phase A decision is made:
-/// - If Fusion passes the 2× / 3× cost gate → Phase B refactor replaces this with the production path
-/// - If Fusion fails → this controller is removed in cleanup
+/// - If Fusion passes the 2Ã— / 3Ã— cost gate â†’ Phase B refactor replaces this with the production path
+/// - If Fusion fails â†’ this controller is removed in cleanup
 ///
 /// See: docs/waves/wave-22-ai-architecture-overhaul.md
 /// </summary>
 [ApiController]
 [Route("api/admin/spike")]
+[Authorize]
 public class AISpikeController : ControllerBase
 {
     private readonly IAIIntelligenceService _intel;
@@ -88,7 +90,7 @@ public class AISpikeController : ControllerBase
                     await _fusion.GetConsensusRecommendationAsync(promptRequest));
             }
 
-            // Computed ratios — only meaningful when both modes ran
+            // Computed ratios â€” only meaningful when both modes ran
             object? ratios = null;
             if (baselineRun != null && fusionRun != null && baselineRun.TotalCost > 0)
             {
@@ -171,7 +173,7 @@ public class AISpikeController : ControllerBase
 
     private static string ClassifyCostRatio(decimal ratio)
     {
-        // Per Wave 22 decision gate (user chose 2× commit / 3× discuss)
+        // Per Wave 22 decision gate (user chose 2Ã— commit / 3Ã— discuss)
         if (ratio <= 2.0m) return "commit";
         if (ratio <= 3.0m) return "discuss";
         return "rollback";

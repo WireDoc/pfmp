@@ -1,4 +1,5 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using PFMP_API.Services;
 
 namespace PFMP_API.Controllers
@@ -8,6 +9,7 @@ namespace PFMP_API.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class PortfolioController : ControllerBase
     {
         private readonly IPortfolioValuationService _portfolioService;

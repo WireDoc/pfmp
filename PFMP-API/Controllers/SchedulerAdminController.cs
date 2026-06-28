@@ -1,8 +1,9 @@
-using Hangfire;
+﻿using Hangfire;
 using Hangfire.Storage;
 using Hangfire.Storage.Monitoring;
 using Microsoft.AspNetCore.Mvc;
 using PFMP_API.Jobs;
+using Microsoft.AspNetCore.Authorization;
 
 namespace PFMP_API.Controllers;
 
@@ -12,6 +13,7 @@ namespace PFMP_API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/admin/scheduler")]
+[Authorize]
 public class SchedulerAdminController : ControllerBase
 {
     private readonly IRecurringJobManager _recurringJobManager;
