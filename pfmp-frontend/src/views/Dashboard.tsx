@@ -6,6 +6,7 @@ import { Navigate, Link as RouterLink } from 'react-router-dom';
 import { useDevUserId } from '../dev/devUserState';
 import { useDashboardData } from '../services/dashboard/useDashboardData';
 import { useDataRefresh } from '../hooks/useDataRefresh';
+import { authFetch } from '../services/authToken';
 import { useOfflineDetection } from '../hooks/useOfflineDetection';
 import { performanceMark, performanceMeasure } from '../hooks/usePerformanceMetric';
 import { DataRefreshIndicator } from '../components/data/DataRefreshIndicator';
@@ -134,7 +135,7 @@ export const Dashboard: React.FC = () => {
     );
 
     for (const acct of investmentAccounts) {
-      fetch(`${apiBase}/holdings/refresh-prices?accountId=${acct.id}`, { method: 'POST' })
+      authFetch(`${apiBase}/holdings/refresh-prices?accountId=${acct.id}`, { method: 'POST' })
         .then(() => console.debug(`[dashboard] Refreshed prices for account ${acct.id}`))
         .catch(err => console.warn(`[dashboard] Price refresh failed for account ${acct.id}`, err));
     }

@@ -5,6 +5,7 @@ import type {
   UpdateTransactionRequest,
   TransactionType,
 } from '../types/investmentTransactions';
+import { attachAuthInterceptor } from './authToken';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api';
 
@@ -13,6 +14,7 @@ const axiosInstance = axios.create({
   timeout: 60000,
   baseURL: API_BASE_URL,
 });
+attachAuthInterceptor(axiosInstance);
 
 export interface FetchTransactionsParams {
   accountId: number;

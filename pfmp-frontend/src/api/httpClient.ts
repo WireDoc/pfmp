@@ -1,12 +1,15 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig } from 'axios';
 import type { paths } from './generated/openapi-types';
+import { attachAuthInterceptor } from '../services/authToken';
 
-// Basic axios instance (can add auth interceptors later)
+// Second axios instance used by src/api/* modules (Wave 12.5 property API,
+// generated openapi types). Same auth interceptor pattern as services/api.ts.
 export const http: AxiosInstance = axios.create({
   baseURL: '/api',
   timeout: 60000, // 60 seconds for long-running analytics calculations
 });
+attachAuthInterceptor(http);
 
 // Helper types to extract response body type from OpenAPI generated types
 // Usage: ApiResponse<'/api/Advice/user/{userId}','get'>

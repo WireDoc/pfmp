@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { Task, CreateTaskRequest, UpdateTaskRequest, CompleteTaskRequest } from '../types/Task';
 import { TaskStatus } from '../types/Task';
-import { getAuthToken } from './authToken';
+import { attachAuthInterceptor } from './authToken';
 
 // Use environment variable or fallback to localhost for development
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api';
@@ -13,19 +13,10 @@ const apiClient = axios.create({
   },
 });
 
-// Wave 25 Phase C — attach the current bearer token to every request when one
-// is available. Token is null in early bootstrap (before AuthProvider mints
-// the dev JWT or MSAL completes) — those requests go out without auth and
-// the backend currently still allows them (the [Authorize] audit lands in
-// Phase D). Once Phase D is in, callers should wait for the token to settle.
-apiClient.interceptors.request.use((config) => {
-  const token = getAuthToken();
-  if (token) {
-    config.headers = config.headers ?? {};
-    (config.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
-  }
-  return config;
-});
+// Wave 25 Phase C+D — attach the current bearer token to every request; waits
+// on whenAuthReady() internally to close the first-request race against
+// AuthProvider's dev-token mint.
+attachAuthInterceptor(apiClient);
 
 // User types
 export interface User {

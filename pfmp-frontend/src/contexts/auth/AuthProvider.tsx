@@ -13,10 +13,16 @@ import { getDevUserId, subscribeDevUser } from '../../dev/devUserState';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:5052/api';
 
+// Proactive renewal timer — re-mints ~5 minutes before the current dev token
+// expires so a tab left open past the 60-min token lifetime doesn't start
+// 401ing (previously required a manual hard refresh the next morning).
+let devTokenRenewTimer: ReturnType<typeof setTimeout> | undefined;
+
 /**
  * Wave 25 Phase C — fetches a dev JWT for the given dev-user id and stores it
  * in the shared authToken module so axios + fetch attach it automatically.
  * Idempotent within a single dev user id; safe to call multiple times.
+ * Schedules its own renewal before expiry.
  */
 async function mintDevToken(userId: number): Promise<boolean> {
     try {
@@ -27,7 +33,15 @@ async function mintDevToken(userId: number): Promise<boolean> {
             return false;
         }
         const data = await resp.json() as { accessToken: string; expiresAtUtc: string };
-        setAuthToken(data.accessToken, new Date(data.expiresAtUtc));
+        const expiresAt = new Date(data.expiresAtUtc);
+        setAuthToken(data.accessToken, expiresAt);
+
+        // Chain the next renewal. If the tab sleeps past expiry, the timer fires
+        // on wake and re-mints immediately (floor of 15s guards against tight loops
+        // when the clock says we're already past the renewal point).
+        if (devTokenRenewTimer) clearTimeout(devTokenRenewTimer);
+        const renewInMs = Math.max(15_000, expiresAt.getTime() - Date.now() - 5 * 60_000);
+        devTokenRenewTimer = setTimeout(() => { void mintDevToken(userId); }, renewInMs);
         return true;
     } catch (err) {
         console.warn('Dev login error:', err);
@@ -73,6 +87,17 @@ export const AuthProvider: React.FC<InternalAuthProviderProps> = ({ children, __
                     const defaultUser = SIMULATED_USERS[0];
                     setUser(defaultUser as AccountInfo);
                     setIsAuthenticated(true);
+                    // Wave 25 Phase D regression fix: mint the dev token BEFORE
+                    // signaling loading=false. Otherwise widgets/contexts (e.g.
+                    // OnboardingContext) fire their first authorized fetch in
+                    // the gap and 401 — which onboarding misinterprets as "user
+                    // not provisioned" and redirects to /onboarding. We accept
+                    // a small extra mount latency to keep first-paint requests
+                    // authenticated.
+                    const devId = getDevUserId();
+                    if (devId != null) {
+                        await mintDevToken(devId);
+                    }
                     setLoading(false);
                     return;
                 }
@@ -100,17 +125,19 @@ export const AuthProvider: React.FC<InternalAuthProviderProps> = ({ children, __
         initializeAuth();
     }, [__forceDevOff, setAuthenticationState]);
 
-    // Wave 25 Phase C — in simulated-auth mode, mint a real dev JWT whenever
-    // the dev user changes and stash it in the shared authToken module. The
-    // axios interceptor + chat fetch call read from there, so backend
-    // [Authorize] endpoints see a validated token even in dev. Resubscribes
-    // on dev user changes; clears the token if dev user is cleared.
+    // Wave 25 Phase C — in simulated-auth mode, re-mint the dev JWT whenever
+    // the dev user CHANGES (e.g. switching via DevUserSwitcher). Initial mint
+    // happens inline above in initializeAuth so widgets don't race against a
+    // missing token on first paint.
     useEffect(() => {
         const simulate = isFeatureEnabled('use_simulated_auth');
         if (!simulate || __forceDevOff) return;
 
+        let lastSeenId = getDevUserId();
         const refresh = () => {
             const id = getDevUserId();
+            if (id === lastSeenId) return; // dedupe — only react to real changes
+            lastSeenId = id;
             if (id == null) {
                 clearAuthToken();
                 return;
@@ -118,7 +145,6 @@ export const AuthProvider: React.FC<InternalAuthProviderProps> = ({ children, __
             void mintDevToken(id);
         };
 
-        refresh();
         const unsub = subscribeDevUser(refresh);
         return () => { unsub(); };
     }, [__forceDevOff]);
