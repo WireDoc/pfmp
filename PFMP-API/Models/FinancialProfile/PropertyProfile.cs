@@ -179,6 +179,32 @@ namespace PFMP_API.Models.FinancialProfile
         /// </summary>
         public bool AddressValidated { get; set; }
 
+        // --- Provider Selection (Wave 25 follow-on) ---
+
+        /// <summary>
+        /// Which valuation provider drives this property's EstimatedValue:
+        /// "rentcast", "fhfa-hpi", or "manual". Null = use the global default
+        /// (PropertyValuation:DefaultProvider in appsettings, default rentcast).
+        /// "manual" means the auto-refresh job skips this property entirely and
+        /// EstimatedValue stays whatever the user last entered.
+        /// </summary>
+        [MaxLength(30)]
+        public string? PreferredValuationProvider { get; set; }
+
+        /// <summary>
+        /// Anchor value for the FHFA HPI walk-forward provider — a trusted
+        /// valuation (lender estimate, appraisal, purchase price) that gets
+        /// appreciated by the state's FHFA house-price index from
+        /// <see cref="ValuationAnchorDate"/> to the latest quarter.
+        /// </summary>
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? ValuationAnchorValue { get; set; }
+
+        /// <summary>
+        /// The as-of date for <see cref="ValuationAnchorValue"/>.
+        /// </summary>
+        public DateTime? ValuationAnchorDate { get; set; }
+
         // --- End Valuation Fields ---
 
         [Required]

@@ -391,6 +391,94 @@ public class PropertiesController : ControllerBase
         });
     }
 
+    /// <summary>
+    /// Update which provider drives this property's value (and the FHFA anchor
+    /// fields). When the provider changes to an auto provider, a refresh runs
+    /// immediately (not subject to the 24h manual-refresh limit) so the stored
+    /// value + net worth reflect the new source right away.
+    /// </summary>
+    [HttpPatch("{propertyId}/valuation-settings")]
+    [ProducesResponseType(typeof(ValuationSettingsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ValuationSettingsResponse>> UpdateValuationSettings(
+        Guid propertyId,
+        [FromBody] ValuationSettingsRequest request)
+    {
+        var property = await _context.Properties.FindAsync(propertyId);
+        if (property == null)
+            return NotFound($"Property {propertyId} not found");
+
+        var allowed = new[] { "rentcast", "fhfa-hpi", "manual" };
+        string? normalized = null;
+        if (!string.IsNullOrWhiteSpace(request.PreferredValuationProvider))
+        {
+            normalized = request.PreferredValuationProvider.Trim().ToLowerInvariant();
+            if (!allowed.Contains(normalized))
+                return BadRequest(new { message = $"Unknown provider '{request.PreferredValuationProvider}'. Allowed: {string.Join(", ", allowed)} or null for the global default." });
+        }
+
+        if (normalized == "fhfa-hpi"
+            && (request.ValuationAnchorValue ?? property.ValuationAnchorValue) is not > 0)
+        {
+            return BadRequest(new { message = "The FHFA index provider needs an anchor value (a trusted valuation) and its as-of date." });
+        }
+
+        var providerChanged = property.PreferredValuationProvider != normalized;
+        property.PreferredValuationProvider = normalized;
+        if (request.ValuationAnchorValue.HasValue)
+            property.ValuationAnchorValue = request.ValuationAnchorValue.Value > 0 ? request.ValuationAnchorValue : null;
+        if (request.ValuationAnchorDate.HasValue)
+            property.ValuationAnchorDate = request.ValuationAnchorDate;
+        property.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        // Immediate refresh when the active source changed (skips 24h limit).
+        PropertyValuation? refreshed = null;
+        if (providerChanged && normalized != "manual")
+        {
+            refreshed = await _valuationService.RefreshValuationAsync(propertyId);
+        }
+
+        return Ok(new ValuationSettingsResponse
+        {
+            PreferredValuationProvider = property.PreferredValuationProvider,
+            ValuationAnchorValue = property.ValuationAnchorValue,
+            ValuationAnchorDate = property.ValuationAnchorDate,
+            RefreshedValue = refreshed?.EstimatedValue,
+            RefreshedSource = refreshed?.Source,
+            Message = refreshed != null
+                ? $"Provider updated; value refreshed to ${refreshed.EstimatedValue:N0} via {refreshed.Source}"
+                : "Valuation settings updated"
+        });
+    }
+
+    /// <summary>
+    /// Side-by-side estimates from every configured provider. Display-only —
+    /// nothing is persisted; the active provider is flagged in the response.
+    /// </summary>
+    [HttpGet("{propertyId}/estimates")]
+    [ProducesResponseType(typeof(List<ProviderEstimateDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<List<ProviderEstimateDto>>> GetProviderEstimates(Guid propertyId)
+    {
+        var property = await _context.Properties.FindAsync(propertyId);
+        if (property == null)
+            return NotFound($"Property {propertyId} not found");
+
+        var estimates = await _valuationService.GetAllEstimatesAsync(propertyId);
+        return Ok(estimates.Select(e => new ProviderEstimateDto
+        {
+            Provider = e.Provider,
+            IsActive = e.IsActive,
+            EstimatedValue = e.EstimatedValue,
+            LowEstimate = e.LowEstimate,
+            HighEstimate = e.HighEstimate,
+            Confidence = e.Confidence,
+            Note = e.Note
+        }).ToList());
+    }
+
     #region Mapping
 
     private static decimal MonthlyAmount(decimal? amount, string frequency) =>
@@ -430,7 +518,10 @@ public class PropertiesController : ControllerBase
         ValuationHigh = p.ValuationHigh,
         LastValuationAt = p.LastValuationAt,
         AutoValuationEnabled = p.AutoValuationEnabled,
-        AddressValidated = p.AddressValidated
+        AddressValidated = p.AddressValidated,
+        PreferredValuationProvider = p.PreferredValuationProvider,
+        ValuationAnchorValue = p.ValuationAnchorValue,
+        ValuationAnchorDate = p.ValuationAnchorDate
     };
 
     private static PropertyDetailDto MapToDetailDto(
@@ -478,6 +569,9 @@ public class PropertiesController : ControllerBase
         LastValuationAt = p.LastValuationAt,
         AutoValuationEnabled = p.AutoValuationEnabled,
         AddressValidated = p.AddressValidated,
+        PreferredValuationProvider = p.PreferredValuationProvider,
+        ValuationAnchorValue = p.ValuationAnchorValue,
+        ValuationAnchorDate = p.ValuationAnchorDate,
         LinkedMortgage = mortgage != null ? new MortgageSummaryDto
         {
             LiabilityAccountId = mortgage.LiabilityAccountId,
@@ -546,6 +640,10 @@ public class PropertyDto
     public DateTime? LastValuationAt { get; set; }
     public bool AutoValuationEnabled { get; set; }
     public bool AddressValidated { get; set; }
+    /// <summary>Provider driving EstimatedValue: "rentcast" | "fhfa-hpi" | "manual" | null (global default).</summary>
+    public string? PreferredValuationProvider { get; set; }
+    public decimal? ValuationAnchorValue { get; set; }
+    public DateTime? ValuationAnchorDate { get; set; }
 }
 
 public class PropertyDetailDto : PropertyDto
@@ -664,6 +762,38 @@ public class ValuationRefreshResponse
     public string? Source { get; set; }
     public decimal? Confidence { get; set; }
     public string? Message { get; set; }
+}
+
+/// <summary>Request body for PATCH {propertyId}/valuation-settings.</summary>
+public class ValuationSettingsRequest
+{
+    /// <summary>"rentcast" | "fhfa-hpi" | "manual" | null (= global default).</summary>
+    public string? PreferredValuationProvider { get; set; }
+    /// <summary>FHFA anchor value; pass 0/negative to clear.</summary>
+    public decimal? ValuationAnchorValue { get; set; }
+    public DateTime? ValuationAnchorDate { get; set; }
+}
+
+public class ValuationSettingsResponse
+{
+    public string? PreferredValuationProvider { get; set; }
+    public decimal? ValuationAnchorValue { get; set; }
+    public DateTime? ValuationAnchorDate { get; set; }
+    public decimal? RefreshedValue { get; set; }
+    public string? RefreshedSource { get; set; }
+    public string? Message { get; set; }
+}
+
+/// <summary>One provider's estimate in the compare view (GET {propertyId}/estimates).</summary>
+public class ProviderEstimateDto
+{
+    public string Provider { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
+    public decimal? EstimatedValue { get; set; }
+    public decimal? LowEstimate { get; set; }
+    public decimal? HighEstimate { get; set; }
+    public decimal? Confidence { get; set; }
+    public string? Note { get; set; }
 }
 
 #endregion

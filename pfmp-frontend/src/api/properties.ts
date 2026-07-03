@@ -43,6 +43,10 @@ export interface PropertyDto {
   lastValuationAt: string | null;
   autoValuationEnabled: boolean;
   addressValidated: boolean;
+  /** Provider driving estimatedValue: 'rentcast' | 'fhfa-hpi' | 'manual' | null (global default). */
+  preferredValuationProvider: string | null;
+  valuationAnchorValue: number | null;
+  valuationAnchorDate: string | null;
 }
 
 export interface MortgageSummaryDto {
@@ -255,6 +259,63 @@ export const refreshValuation = async (
 ): Promise<ValuationRefreshResponse> => {
   const response = await http.post<ValuationRefreshResponse>(
     `/properties/${propertyId}/refresh-valuation`
+  );
+  return response.data;
+};
+
+// ============================================================================
+// Valuation provider selection (Wave 25 follow-on)
+// ============================================================================
+
+export interface ValuationSettingsRequest {
+  /** 'rentcast' | 'fhfa-hpi' | 'manual' | null (= global default) */
+  preferredValuationProvider?: string | null;
+  valuationAnchorValue?: number | null;
+  valuationAnchorDate?: string | null; // ISO date
+}
+
+export interface ValuationSettingsResponse {
+  preferredValuationProvider: string | null;
+  valuationAnchorValue: number | null;
+  valuationAnchorDate: string | null;
+  refreshedValue: number | null;
+  refreshedSource: string | null;
+  message: string | null;
+}
+
+export interface ProviderEstimateDto {
+  provider: string;
+  isActive: boolean;
+  estimatedValue: number | null;
+  lowEstimate: number | null;
+  highEstimate: number | null;
+  confidence: number | null;
+  note: string | null;
+}
+
+/**
+ * Update the valuation provider + FHFA anchor for a property. Switching to an
+ * auto provider triggers an immediate refresh server-side (skips the 24h limit).
+ */
+export const updateValuationSettings = async (
+  propertyId: string,
+  request: ValuationSettingsRequest
+): Promise<ValuationSettingsResponse> => {
+  const response = await http.patch<ValuationSettingsResponse>(
+    `/properties/${propertyId}/valuation-settings`,
+    request
+  );
+  return response.data;
+};
+
+/**
+ * Fetch side-by-side estimates from every configured provider (display-only).
+ */
+export const fetchProviderEstimates = async (
+  propertyId: string
+): Promise<ProviderEstimateDto[]> => {
+  const response = await http.get<ProviderEstimateDto[]>(
+    `/properties/${propertyId}/estimates`
   );
   return response.data;
 };

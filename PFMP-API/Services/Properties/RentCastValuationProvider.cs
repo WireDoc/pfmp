@@ -53,15 +53,18 @@ public class RentCastValuationProvider : IPropertyValuationProvider
         }
     }
 
-    public async Task<PropertyValuation?> GetValuationAsync(string street, string city, string state, string zip)
+    public async Task<PropertyValuation?> GetValuationAsync(PropertyValuationRequest req)
     {
         if (!_hasKey || !_enabled)
             return null;
 
         try
         {
-            var combinedAddress = $"{street}, {city}, {state}, {zip}";
-            var url = $"{BaseUrl}?address={Uri.EscapeDataString(combinedAddress)}&compCount=5";
+            var combinedAddress = $"{req.Street}, {req.City}, {req.State}, {req.Zip}";
+            // compCount raised 5 → 15 (2026-06-30): a 5-comp blend was skewing low vs
+            // lender/homes.com estimates — one stale comp moves the whole number. More
+            // comps smooths stale-record skew in appreciating markets.
+            var url = $"{BaseUrl}?address={Uri.EscapeDataString(combinedAddress)}&compCount=15";
 
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             request.Headers.Add("X-Api-Key", _apiKey);
@@ -83,7 +86,7 @@ public class RentCastValuationProvider : IPropertyValuationProvider
         catch (Exception ex)
         {
             _logger.LogError(ex, "RentCast valuation lookup failed for {Street}, {City}, {State} {Zip}",
-                street, city, state, zip);
+                req.Street, req.City, req.State, req.Zip);
             return null;
         }
     }

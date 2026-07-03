@@ -39,9 +39,32 @@ import {
   Refresh as RefreshIcon,
   AttachMoney as AttachMoneyIcon,
 } from '@mui/icons-material';
-import { fetchProperty, deleteProperty, refreshValuation, type PropertyDetailDto, type PropertyValueHistoryDto } from '../../api/properties';
+import {
+  fetchProperty,
+  deleteProperty,
+  refreshValuation,
+  updateValuationSettings,
+  fetchProviderEstimates,
+  type PropertyDetailDto,
+  type PropertyValueHistoryDto,
+  type ProviderEstimateDto,
+} from '../../api/properties';
 import EditPropertyDialog from '../../components/properties/EditPropertyDialog';
 import UpdateValueDialog from '../../components/properties/UpdateValueDialog';
+import { MenuItem, TextField, Stack } from '@mui/material';
+
+/** Display metadata for the provider picker. Values match the backend ids. */
+const PROVIDER_OPTIONS = [
+  { value: '', label: 'Default (RentCast AVM)', hint: 'Uses the global default provider' },
+  { value: 'rentcast', label: 'RentCast AVM', hint: 'Comps-based estimate from public records + listings' },
+  { value: 'fhfa-hpi', label: 'FHFA index (anchored)', hint: 'Your anchor value appreciated by your state’s FHFA house-price index' },
+  { value: 'manual', label: 'Manual', hint: 'You set the value; auto-refresh never overwrites it' },
+] as const;
+
+const providerLabel = (id: string | null): string => {
+  const match = PROVIDER_OPTIONS.find(o => o.value === (id ?? ''));
+  return match ? match.label : (id ?? 'Default');
+};
 
 // ============================================================================
 // Helper Functions
@@ -148,6 +171,14 @@ export function PropertyDetailView() {
   const [refreshing, setRefreshing] = useState(false);
   const [actionMsg, setActionMsg] = useState<{ text: string; severity: 'success' | 'error' | 'warning' } | null>(null);
 
+  // Valuation provider selection (Wave 25 follow-on)
+  const [providerChoice, setProviderChoice] = useState<string>('');
+  const [anchorValue, setAnchorValue] = useState<string>('');
+  const [anchorDate, setAnchorDate] = useState<string>('');
+  const [savingProvider, setSavingProvider] = useState(false);
+  const [estimates, setEstimates] = useState<ProviderEstimateDto[] | null>(null);
+  const [loadingEstimates, setLoadingEstimates] = useState(false);
+
   const loadProperty = async () => {
     if (!propertyId) return;
 
@@ -156,6 +187,9 @@ export function PropertyDetailView() {
       setError(null);
       const data = await fetchProperty(propertyId);
       setProperty(data);
+      setProviderChoice(data.preferredValuationProvider ?? '');
+      setAnchorValue(data.valuationAnchorValue != null ? String(data.valuationAnchorValue) : '');
+      setAnchorDate(data.valuationAnchorDate ? data.valuationAnchorDate.slice(0, 10) : '');
     } catch (err: unknown) {
       console.error('Error fetching property:', err);
       const status = (err as { response?: { status?: number } })?.response?.status;
@@ -181,6 +215,43 @@ export function PropertyDetailView() {
     } finally {
       setDeleting(false);
       setDeleteConfirmOpen(false);
+    }
+  };
+
+  const handleSaveProvider = async () => {
+    if (!propertyId) return;
+    if (providerChoice === 'fhfa-hpi' && (!anchorValue || Number(anchorValue) <= 0 || !anchorDate)) {
+      setActionMsg({ text: 'The FHFA index provider needs an anchor value and its as-of date.', severity: 'warning' });
+      return;
+    }
+    setSavingProvider(true);
+    setActionMsg(null);
+    try {
+      const result = await updateValuationSettings(propertyId, {
+        preferredValuationProvider: providerChoice || null,
+        valuationAnchorValue: anchorValue ? Number(anchorValue) : undefined,
+        valuationAnchorDate: anchorDate || undefined,
+      });
+      setActionMsg({ text: result.message ?? 'Valuation settings updated', severity: 'success' });
+      setEstimates(null); // stale after a provider change
+      await loadProperty();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setActionMsg({ text: msg ?? 'Failed to update valuation settings', severity: 'error' });
+    } finally {
+      setSavingProvider(false);
+    }
+  };
+
+  const handleCompareEstimates = async () => {
+    if (!propertyId) return;
+    setLoadingEstimates(true);
+    try {
+      setEstimates(await fetchProviderEstimates(propertyId));
+    } catch {
+      setActionMsg({ text: 'Failed to fetch provider estimates', severity: 'error' });
+    } finally {
+      setLoadingEstimates(false);
     }
   };
 
@@ -431,38 +502,138 @@ export function PropertyDetailView() {
           </Grid>
         )}
 
-        {/* Full Width - Automated Valuation */}
-        {(property.valuationSource || property.autoValuationEnabled) && (
-          <Grid size={{ xs: 12 }}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Automated Valuation
+        {/* Full Width - Valuation (source, provider picker, compare) */}
+        <Grid size={{ xs: 12 }}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Valuation
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+
+            {property.valuationSource ? (
+              <>
+                <SummaryRow label="Source" value={providerLabel(property.valuationSource)} />
+                {property.valuationConfidence != null && (
+                  <SummaryRow label="Confidence" value={`${(property.valuationConfidence * 100).toFixed(1)}%`} />
+                )}
+                {property.valuationLow != null && property.valuationHigh != null && (
+                  <SummaryRow
+                    label="Value Range"
+                    value={`${formatCurrency(property.valuationLow)} – ${formatCurrency(property.valuationHigh)}`}
+                  />
+                )}
+                <SummaryRow label="Last Valuation" value={formatDate(property.lastValuationAt)} />
+              </>
+            ) : (
+              <Typography color="text.secondary" sx={{ mb: 1 }}>
+                {property.addressValidated
+                  ? 'No automated valuation yet. Click the refresh button above to request one.'
+                  : 'Add a complete address to enable automated valuation.'}
               </Typography>
-              <Divider sx={{ mb: 2 }} />
-              {property.valuationSource ? (
+            )}
+
+            {/* Provider picker — which source drives EstimatedValue (and net worth) */}
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="subtitle2" gutterBottom>
+              Value source
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+              The selected source writes this property's stored value — that number is what flows into your
+              net worth. Others are shown for comparison only.
+            </Typography>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'flex-start' }}>
+              <TextField
+                select
+                size="small"
+                label="Provider"
+                value={providerChoice}
+                onChange={(e) => setProviderChoice(e.target.value)}
+                sx={{ minWidth: 260 }}
+                helperText={PROVIDER_OPTIONS.find(o => o.value === providerChoice)?.hint}
+              >
+                {PROVIDER_OPTIONS.map(o => (
+                  <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
+                ))}
+              </TextField>
+              {providerChoice === 'fhfa-hpi' && (
                 <>
-                  <SummaryRow label="Source" value={property.valuationSource} />
-                  {property.valuationConfidence != null && (
-                    <SummaryRow label="Confidence" value={`${(property.valuationConfidence * 100).toFixed(1)}%`} />
-                  )}
-                  {property.valuationLow != null && property.valuationHigh != null && (
-                    <SummaryRow
-                      label="Value Range"
-                      value={`${formatCurrency(property.valuationLow)} – ${formatCurrency(property.valuationHigh)}`}
-                    />
-                  )}
-                  <SummaryRow label="Last Valuation" value={formatDate(property.lastValuationAt)} />
+                  <TextField
+                    size="small"
+                    label="Anchor value ($)"
+                    type="number"
+                    value={anchorValue}
+                    onChange={(e) => setAnchorValue(e.target.value)}
+                    helperText="A valuation you trust (lender, appraisal)"
+                    sx={{ maxWidth: 200 }}
+                  />
+                  <TextField
+                    size="small"
+                    label="Anchor as-of date"
+                    type="date"
+                    value={anchorDate}
+                    onChange={(e) => setAnchorDate(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ maxWidth: 200 }}
+                  />
                 </>
-              ) : (
-                <Typography color="text.secondary">
-                  {property.addressValidated
-                    ? 'No automated valuation yet. Click the refresh button above to request one.'
-                    : 'Add a complete address to enable automated valuation.'}
-                </Typography>
               )}
-            </Paper>
-          </Grid>
-        )}
+              <Button
+                variant="contained"
+                size="small"
+                onClick={handleSaveProvider}
+                disabled={savingProvider}
+                sx={{ mt: 0.25 }}
+              >
+                {savingProvider ? 'Saving…' : 'Save'}
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={handleCompareEstimates}
+                disabled={loadingEstimates}
+                sx={{ mt: 0.25 }}
+              >
+                {loadingEstimates ? 'Comparing…' : 'Compare estimates'}
+              </Button>
+            </Stack>
+
+            {estimates && (
+              <TableContainer sx={{ mt: 2 }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Provider</TableCell>
+                      <TableCell align="right">Estimate</TableCell>
+                      <TableCell align="right">Range</TableCell>
+                      <TableCell align="right">Confidence</TableCell>
+                      <TableCell>Note</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {estimates.map(e => (
+                      <TableRow key={e.provider} selected={e.isActive}>
+                        <TableCell>
+                          {providerLabel(e.provider)}
+                          {e.isActive && <Chip size="small" label="active" color="primary" sx={{ ml: 1, height: 18 }} />}
+                        </TableCell>
+                        <TableCell align="right">{e.estimatedValue != null ? formatCurrency(e.estimatedValue) : '—'}</TableCell>
+                        <TableCell align="right">
+                          {e.lowEstimate != null && e.highEstimate != null
+                            ? `${formatCurrency(e.lowEstimate)} – ${formatCurrency(e.highEstimate)}`
+                            : '—'}
+                        </TableCell>
+                        <TableCell align="right">{e.confidence != null ? `${(e.confidence * 100).toFixed(0)}%` : '—'}</TableCell>
+                        <TableCell>
+                          <Typography variant="caption" color="text.secondary">{e.note ?? ''}</Typography>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </Paper>
+        </Grid>
 
         {/* Full Width - Value History */}
         <Grid size={{ xs: 12 }}>

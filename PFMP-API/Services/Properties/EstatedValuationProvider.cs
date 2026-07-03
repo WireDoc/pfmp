@@ -39,11 +39,12 @@ public class EstatedValuationProvider : IPropertyValuationProvider
 
     public bool IsConfigured => _isConfigured;
 
-    public async Task<PropertyValuation?> GetValuationAsync(string street, string city, string state, string zip)
+    public async Task<PropertyValuation?> GetValuationAsync(PropertyValuationRequest req)
     {
         if (!_isConfigured)
             return null;
 
+        var (street, city, state, zip) = (req.Street, req.City, req.State, req.Zip);
         try
         {
             var url = $"{BaseUrl}?token={_apiToken}" +

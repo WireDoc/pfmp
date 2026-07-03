@@ -172,9 +172,14 @@ namespace PFMP_API
             builder.Services.AddScoped<LesParserService>();
             builder.Services.AddSingleton<FehbPlanLookupService>();
 
-            // Property Valuation & Address Services (Wave 15)
+            // Property Valuation & Address Services (Wave 15; multi-provider Wave 25 follow-on)
+            // All IPropertyValuationProvider registrations are injected as IEnumerable into
+            // PropertyValuationService, which resolves the active one per property
+            // (Properties.PreferredValuationProvider → PropertyValuation:DefaultProvider).
             builder.Services.AddScoped<PFMP_API.Services.Properties.IAddressValidationService, PFMP_API.Services.Properties.UspsAddressValidationService>();
             builder.Services.AddScoped<PFMP_API.Services.Properties.IPropertyValuationProvider, PFMP_API.Services.Properties.RentCastValuationProvider>();
+            builder.Services.AddScoped<PFMP_API.Services.Properties.IPropertyValuationProvider, PFMP_API.Services.Properties.FhfaHpiValuationProvider>();
+            builder.Services.AddHttpClient("Fhfa");
             builder.Services.AddScoped<PFMP_API.Services.Properties.IPropertyValuationService, PFMP_API.Services.Properties.PropertyValuationService>();
 
             // Background Jobs - Hangfire (Wave 10)
