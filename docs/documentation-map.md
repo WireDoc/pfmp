@@ -80,6 +80,10 @@ This index lists every active document under `docs/` following the subject-first
 ## 🌊 waves
 
 ### Active Wave Plans
+- `docs/waves/wave-25-entra-id-auth.md` – **Wave 25 In Progress** (Jun-Jul 2026) - Microsoft Entra ID auth, [Authorize] audit, first real login + onboarding audit. First wave of the Phase 5 Production Readiness campaign (Waves 25-28, plan in `docs/history/roadmap.md`)
+- `docs/waves/wave-24-ai-chatbot.md` – **Wave 24 Complete** (Jun 2026) - AI Chatbot with Memory: streaming chat, daily context snapshot w/ smart refresh, deep-think toggle
+- `docs/waves/wave-23-news-aggregator.md` – **Wave 23 Complete** (Jun 2026) - RSS news digest 4×/day → AI market context + dashboard widget
+- `docs/waves/wave-22-ai-architecture-overhaul.md` – **Wave 22 Complete** (Jun 2026) - Fusion spike, AI models admin UI, model aliases, News/Chat slots
 - `docs/waves/wave-17-dashboard-expansion.md` – **Wave 17 Complete** (Apr 2026) - Dashboard Expansion & Profile Management
 - `docs/waves/wave-18-federal-benefits.md` – **Wave 18 Complete** (Apr 2026) - Federal Benefits Deep Dive & FERS Retirement Projector
 - `docs/waves/wave-19-retirement-planning-advanced.md` – **Wave 19 Planned** - Advanced Retirement Planning (TSP Roth/Trad, Tax Modeling, COLA)
