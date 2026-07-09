@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/auth/useAuth';
 import { LogoMark } from '../components/branding/LogoMark';
 
 export function HeaderBar() {
-  const { user, isAuthenticated, isDev } = useAuth();
+  const { user, isAuthenticated, isDev, logout } = useAuth();
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -63,8 +63,27 @@ export function HeaderBar() {
         </NavLink>
       </nav>
 
-      <div style={{ marginLeft: 'auto', fontSize: 12, color: '#e2e8f0' }}>
-        {isAuthenticated ? `User: ${user?.name || 'SimUser'}` : 'Guest'}
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12, fontSize: 12, color: '#e2e8f0' }}>
+        <span>{isAuthenticated ? `User: ${user?.name || 'SimUser'}` : 'Guest'}</span>
+        {/* Wave 25 Phase E: real-auth sessions need a way out (ends the MSAL
+            session via logoutRedirect). Hidden in simulated mode — the dev
+            user switcher covers that flow. */}
+        {isAuthenticated && !isDev && (
+          <button
+            onClick={() => void logout()}
+            style={{
+              background: 'transparent',
+              border: '1px solid #475569',
+              color: '#cbd5e1',
+              borderRadius: 4,
+              padding: '2px 8px',
+              fontSize: 11,
+              cursor: 'pointer',
+            }}
+          >
+            Sign out
+          </button>
+        )}
       </div>
     </div>
   );

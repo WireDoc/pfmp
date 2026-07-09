@@ -3,6 +3,8 @@
  * Integrates with multiple financial data providers for live market data
  */
 
+import { authFetch } from './authToken';
+
 export interface MarketDataResponse {
   symbol: string;
   price: number;

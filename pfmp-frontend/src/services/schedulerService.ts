@@ -5,6 +5,8 @@
  * API client for managing Hangfire scheduled jobs
  */
 
+import { authFetch } from './authToken';
+
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api').replace(/\/api\/?$/, '');
 
 export interface RecurringJobInfo {

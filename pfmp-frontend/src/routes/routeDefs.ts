@@ -15,7 +15,7 @@ export const ROUTES: AppRoute[] = [
   { id: 'onboarding', path: '/onboarding', protected: true, lazyImport: () => import('../views/OnboardingPage') },
   // Dashboard route (previously Wave 4)
   { id: 'dashboard-wave4', path: '/dashboard', protected: true, lazyImport: () => import('../views/Dashboard') },
-  { id: 'login', path: '/login', protected: false, lazyImport: () => import('../views/LoginPlaceholder') },
+  { id: 'login', path: '/login', protected: false, lazyImport: () => import('../views/LoginPage') },
   { id: 'notfound', path: '*', protected: false, lazyImport: () => import('../views/NotFoundPage') },
 ];
 

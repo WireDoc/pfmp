@@ -39,7 +39,11 @@ export function AppLayout() {
       <footer style={{ padding: 12, textAlign: 'center', borderTop: '1px solid #ddd', fontSize: 12 }}>
         © {new Date().getFullYear()} PFMP
       </footer>
-      {isDev && <DevFlagsPanel />}
+      {/* Wave 25 Phase E: the flags panel is the escape hatch back to simulated
+          auth, so it's gated on the BUILD (dev server) rather than isDev
+          (= simulated auth active) — otherwise flipping to real auth would
+          hide the very toggle needed to flip back. Not present in prod builds. */}
+      {import.meta.env.DEV && <DevFlagsPanel />}
     </div>
   );
 }

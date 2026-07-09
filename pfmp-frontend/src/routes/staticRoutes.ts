@@ -6,7 +6,7 @@ type RouteComponent = ComponentType | LazyExoticComponent<ComponentType>;
 const DashboardLegacyLazy = lazyWithPreload(() => import('../views/DashboardPage'));
 const OnboardingLazy = lazyWithPreload(() => import('../views/OnboardingPage'));
 const DashboardLazy = lazyWithPreload(() => import('../views/Dashboard'));
-const LoginLazy = lazyWithPreload(() => import('../views/LoginPlaceholder'));
+const LoginLazy = lazyWithPreload(() => import('../views/LoginPage'));
 const NotFoundLazy = lazyWithPreload(() => import('../views/NotFoundPage'));
 const NetWorthTimelineLazy = lazyWithPreload(() => import('../views/dashboard/NetWorthTimelineView'));
 const SchedulerAdminLazy = lazyWithPreload(() => import('../views/admin/SchedulerAdminView'));

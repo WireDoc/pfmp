@@ -1,4 +1,6 @@
-﻿const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api';
+﻿import { authFetch } from './authToken';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api';
 
 export interface CashTransactionResponse {
   cashTransactionId: number;

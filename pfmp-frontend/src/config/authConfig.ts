@@ -23,7 +23,9 @@ export const msalConfig: Configuration = {
         postLogoutRedirectUri: window.location.origin, // Redirect after logout
     },
     cache: {
-        cacheLocation: 'sessionStorage', // This configures where your cache will be stored
+        // Wave 25 Phase E: localStorage so the signed-in account survives browser
+        // restarts (sessionStorage forced a fresh interactive login every session).
+        cacheLocation: 'localStorage',
         storeAuthStateInCookie: false, // Set this to "true" if you are having issues on IE11 or Edge
     },
     system: {
@@ -64,7 +66,12 @@ export const msalConfig: Configuration = {
  * https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-permissions-and-consent#openid-connect-scopes
  */
 export const loginRequest: PopupRequest = {
-    scopes: ['User.Read'], // Microsoft Graph API scope to read user profile
+    // Wave 25 Phase E: request the PFMP API scope at login so (a) consent covers
+    // the API on first sign-in and (b) the redirect response already carries an
+    // access token for our backend — no second round-trip. MSAL adds the OIDC
+    // scopes (openid/profile/email) automatically. Note: a single token request
+    // can only target ONE resource, so Graph's User.Read must not be mixed in.
+    scopes: [`api://${msalConfig.auth.clientId}/user_impersonation`],
     prompt: 'select_account', // Forces account selection dialog
 };
 

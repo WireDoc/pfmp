@@ -1,6 +1,6 @@
 # Wave 25 — Microsoft Entra ID Auth + First Real Login + Onboarding Audit
 
-**Status:** 🟡 In progress — Phases A–D complete (2026-06-27 → 2026-06-30); Phase E next
+**Status:** 🟡 In progress — Phases A–D complete (2026-06-27 → 2026-06-30); Phase E implemented 2026-07-08, awaiting first-login verification; Phase F next
 **Owner:** Solo project; user is sole customer
 **Campaign:** First wave of Phase 5 (Production Readiness) — see `docs/history/roadmap.md` § "Phase 5: Production Readiness Campaign" for the full 4-wave plan (25: auth, 26: RBAC + admin, 27: Plaid prod, 28: hardening + deploy)
 **Predecessors:** Wave 22-24 (app feature-complete for single-user daily use)
@@ -116,20 +116,53 @@ Mid-wave side-quest (user request): selectable valuation providers per property
 compare-estimates endpoint + UI, RentCast compCount 5→15. Documented in the
 commit; schema migration `Wave25b_ValuationProviderSelection`.
 
-### Phase E — Real MSAL login 📋 NEXT
+### Phase E — Real MSAL login 🟡 implemented 2026-07-08, awaiting first-login verification
 
-- Flip `use_simulated_auth` default to **false** (dev override still possible
-  via Dev Flags panel / env)
-- Login page: "Sign in with Microsoft" via `loginRedirect`
-- After redirect: acquire an access token for `api://{clientId}/user_impersonation`,
-  store it in the `authToken` module (same pipe the dev tokens use), call
-  `/auth/me` → first call provisions the fresh admin user row
-- `AuthProvider.getAccessToken` drops the `mock-dev-token-` stub; MSAL
-  `acquireTokenSilent` becomes the renewal path (replaces the dev-token timer
-  when in real mode)
-- Landing: onboarding wizard (new user has no data) — kicks off Phase F
-- Verify the EntraJwt scheme end-to-end (first real token exercises the
-  policy-scheme forwarding + issuer/audience validation)
+**What shipped (frontend only — the Phase B backend needed zero changes):**
+
+- `use_simulated_auth` default flipped to **false** (`featureFlags.ts`). Test
+  mode (Vitest) keeps it true so the existing suite exercises the dev path.
+  Three ways back to simulated auth, all persisted:
+  1. `VITE_USE_SIMULATED_AUTH=true` in `.env.development.local`
+  2. Dev Flags panel toggle — flag overrides now persist to localStorage
+     (`pfmp_flag_overrides`), so the toggle survives refresh
+  3. "Use simulated dev auth instead" button on the login page (dev builds only)
+- `views/LoginPage.tsx` (replaces `LoginPlaceholder`): "Sign in with Microsoft"
+  → `loginRedirect` for the `api://{clientId}/user_impersonation` scope (one
+  consent, one token — no Graph scope mixed in; a token request targets ONE
+  resource). Shows `/auth/me` rejection reasons (403 not-allowed/inactive).
+- `AuthProvider` real path: `handleRedirectPromise` → `acquireTokenSilent` →
+  token into the shared `authToken` module (same pipe as dev tokens, so all
+  five transport paths Just Work) → `/auth/me` (first call provisions the
+  allowlisted admin) → **the returned `userId` is pushed into the
+  `devUserState` store**, which doubles as the current-user store — the ~40
+  views that resolve their userId from it work unchanged in real mode.
+  Silent-renewal timer re-acquires ~5 min before expiry. `getAccessToken`
+  mock stub removed (simulated → dev JWT; real → `acquireTokenSilent`).
+- **`isDev` semantic change**: now means "simulated auth active", not "Vite
+  dev build". ProtectedRoute/guards/dev tooling all inherit the right
+  behavior; the DEV badge shows only in simulated mode; `DevFlagsPanel`
+  stays available in dev builds (it's the escape hatch).
+- `ProtectedRoute` waits for auth `loading` before redirecting — otherwise the
+  redirect to /login strips the MSAL auth code from the URL fragment mid-login.
+- MSAL cache moved `sessionStorage` → `localStorage` (sign-in survives browser
+  restarts); header gains a "Sign out" button in real mode (`logoutRedirect`).
+- Bug fixes found on the way: three services (`schedulerService`,
+  `cashTransactionsApi`, `FinancialDataService`) called `authFetch` without
+  importing it (latent Phase D `ReferenceError` on those pages); stale
+  HeaderBar test count (News link was never added to it).
+
+**Verification checklist (owner, first real login):**
+- [ ] `/login` renders; "Sign in with Microsoft" round-trips via
+      `wiredoc@outlook.com`
+- [ ] EntraJwt scheme validates the token (policy-scheme forwards on issuer)
+- [ ] `/auth/me` provisions a fresh user row (AzureObjectId set, allowlist email)
+- [ ] Lands in onboarding wizard (Phase F starts)
+- [ ] Dev-mode escape hatch returns to simulated auth + dev users
+
+**Known gap (accepted, Wave 26 scope):** API endpoints still trust the
+`userId` query parameter — the token↔userId cross-check lands with RBAC in
+Wave 26. Single-machine dev risk only.
 
 ### Phase F — Onboarding audit 📋 (concurrent with E)
 
@@ -145,7 +178,8 @@ UI) fixed inline. One-shot MCP data copy from user 20 for anything worth keeping
 - [x] Dev-login mint + full frontend transport coverage (5 paths)
 - [x] `[Authorize]` on all user-data controllers; public surface minimized
 - [x] Provisioning service with admin allowlist, no email-linking
-- [ ] `use_simulated_auth` defaults to false; real MSAL login works end-to-end
+- [x] `use_simulated_auth` defaults to false; login page + MSAL wiring shipped
+      (end-to-end verification = owner's first real login, checklist in Phase E)
 - [ ] First real login provisions a fresh admin user and lands in onboarding
 - [ ] Onboarding walk-through complete; mismatches fixed (Phase F)
 - [ ] Selective data copy from user 20 via MCP (one-shot)

@@ -1,22 +1,28 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { isFeatureEnabled } from '../../flags/featureFlags';
+import React, { useEffect, useState } from 'react';
+import { useFeatureFlag } from '../../flags/featureFlags';
 // Using only msal-browser to avoid peer dependency mismatch of @azure/msal-react with React 19.
 import { InteractionRequiredAuthError } from '@azure/msal-browser';
-import type { AuthenticationResult, AccountInfo, SilentRequest } from '@azure/msal-browser';
+import type { AccountInfo, SilentRequest } from '@azure/msal-browser';
 import { msalConfig, loginRequest, pfmpApiScopes } from '../../config/authConfig';
 import { AuthContext } from './AuthContextObject';
 import { msalInstance } from './msalInstance';
 import { SIMULATED_USERS } from './simulatedUsers';
 import type { AuthContextType, AuthProviderProps } from './types';
-import { setAuthToken, clearAuthToken } from '../../services/authToken';
-import { getDevUserId, subscribeDevUser } from '../../dev/devUserState';
+import { setAuthToken, clearAuthToken, getAuthToken, authFetch } from '../../services/authToken';
+import { getDevUserId, setDevUserId, subscribeDevUser } from '../../dev/devUserState';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:5052/api';
 
-// Proactive renewal timer — re-mints ~5 minutes before the current dev token
-// expires so a tab left open past the 60-min token lifetime doesn't start
-// 401ing (previously required a manual hard refresh the next morning).
+// Proactive renewal timers — one per auth mode, both re-arming ~5 minutes
+// before the current token expires so a tab left open past the token lifetime
+// doesn't start 401ing (previously required a manual hard refresh).
 let devTokenRenewTimer: ReturnType<typeof setTimeout> | undefined;
+let entraTokenRenewTimer: ReturnType<typeof setTimeout> | undefined;
+
+function clearRenewTimers() {
+    if (devTokenRenewTimer) { clearTimeout(devTokenRenewTimer); devTokenRenewTimer = undefined; }
+    if (entraTokenRenewTimer) { clearTimeout(entraTokenRenewTimer); entraTokenRenewTimer = undefined; }
+}
 
 /**
  * Wave 25 Phase C — fetches a dev JWT for the given dev-user id and stores it
@@ -50,14 +56,127 @@ async function mintDevToken(userId: number): Promise<boolean> {
     }
 }
 
-// Vite dev flag (true for `npm run dev` / local development server)
-const DEV_MODE = import.meta.env.DEV;
+/**
+ * Wave 25 Phase E — acquires an Entra access token for the PFMP API scope and
+ * stores it in the shared authToken module (same pipe the dev tokens use).
+ * Schedules a silent renewal ~5 minutes before expiry; MSAL's own cache/refresh
+ * token machinery does the heavy lifting under the hood.
+ */
+async function acquireEntraApiToken(account: AccountInfo): Promise<boolean> {
+    try {
+        const silentRequest: SilentRequest = { scopes: pfmpApiScopes.read, account };
+        const result = await msalInstance.acquireTokenSilent(silentRequest);
+        const expiresAt = result.expiresOn ?? new Date(Date.now() + 55 * 60_000);
+        setAuthToken(result.accessToken, expiresAt);
+
+        if (entraTokenRenewTimer) clearTimeout(entraTokenRenewTimer);
+        const renewInMs = Math.max(15_000, expiresAt.getTime() - Date.now() - 5 * 60_000);
+        entraTokenRenewTimer = setTimeout(() => { void acquireEntraApiToken(account); }, renewInMs);
+        return true;
+    } catch (err) {
+        // InteractionRequired means the refresh token is gone/expired — the user
+        // has to sign in again interactively. Anything else is unexpected.
+        if (err instanceof InteractionRequiredAuthError) {
+            console.warn('Entra silent token acquisition requires interaction; user must sign in again.');
+        } else {
+            console.error('Entra token acquisition failed:', err);
+        }
+        clearAuthToken();
+        return false;
+    }
+}
+
+interface MeResponse { userId: number; email: string | null; firstName: string | null; lastName: string | null; isSetupComplete: boolean }
+type MeResult = { ok: true; me: MeResponse } | { ok: false; status: number; message: string };
+
+/**
+ * Wave 25 Phase E — resolves the PFMP user for the current bearer token via
+ * /auth/me. On the very first real login this PROVISIONS the user row
+ * (allowlist-gated server-side). The returned userId is pushed into the
+ * current-user store (devUserState) so the ~40 views that resolve their
+ * userId from it keep working unchanged in real-auth mode.
+ */
+async function resolveCurrentUser(): Promise<MeResult> {
+    try {
+        const resp = await authFetch(`${API_BASE}/auth/me`);
+        if (!resp.ok) {
+            let message = `Sign-in rejected (${resp.status})`;
+            try {
+                const body = await resp.json() as { message?: string };
+                if (body?.message) message = body.message;
+            } catch { /* non-JSON body */ }
+            return { ok: false, status: resp.status, message };
+        }
+        const me = await resp.json() as MeResponse;
+        return { ok: true, me };
+    } catch (err) {
+        console.error('/auth/me failed:', err);
+        return { ok: false, status: 0, message: 'Could not reach the PFMP API' };
+    }
+}
+
+type RealInitOutcome =
+    | { status: 'signed-out' }
+    | { status: 'ok'; account: AccountInfo }
+    | { status: 'rejected'; message: string };
+
+// Deduped real-mode initialization. React StrictMode double-mounts the provider,
+// firing two init effects near-simultaneously; without this guard both chains
+// would run handleRedirectPromise → acquireToken → /auth/me concurrently, and
+// the FIRST-EVER login could provision two user rows (the backend's
+// check-then-insert has a unique index as backstop, but don't invite the race).
+let realInitInFlight: Promise<RealInitOutcome> | null = null;
+
+function initializeRealAuth(): Promise<RealInitOutcome> {
+    if (!realInitInFlight) {
+        realInitInFlight = (async (): Promise<RealInitOutcome> => {
+            try {
+                await msalInstance.initialize();
+                // Completes a loginRedirect round-trip if we just came back from
+                // Microsoft (auth code in the URL fragment); null otherwise.
+                const response = await msalInstance.handleRedirectPromise();
+                const account = response?.account ?? msalInstance.getAllAccounts()[0] ?? null;
+                if (!account) {
+                    // Signed out — ProtectedRoute sends the user to /login.
+                    return { status: 'signed-out' };
+                }
+                msalInstance.setActiveAccount(account);
+
+                const gotToken = await acquireEntraApiToken(account);
+                if (!gotToken) {
+                    // Refresh token expired — interactive sign-in needed again.
+                    return { status: 'signed-out' };
+                }
+
+                const me = await resolveCurrentUser();
+                if (!me.ok) {
+                    // 403 = not on the allowlist / inactive; surface the server's
+                    // reason on the login page and stay signed out app-side.
+                    clearAuthToken();
+                    clearRenewTimers();
+                    return { status: 'rejected', message: me.message };
+                }
+
+                // Repoint the current-user store at the real PFMP user so every
+                // view that resolves userId from it targets the right rows.
+                if (getDevUserId() !== me.me.userId) {
+                    setDevUserId(me.me.userId);
+                }
+                return { status: 'ok', account };
+            } finally {
+                // Allow future re-inits (e.g. simulated-auth flag flipped off later).
+                realInitInFlight = null;
+            }
+        })();
+    }
+    return realInitInFlight;
+}
 
 // AuthContext now defined in AuthContextObject.ts
 
 interface InternalAuthProviderProps extends AuthProviderProps {
     /**
-     * Test hook: allow forcing dev mode off even when import.meta.env.DEV is true so that
+     * Test hook: allow forcing dev mode off even when simulated auth is on so that
      * unauthenticated flows (e.g., ProtectedRoute redirects) can be exercised.
      */
     __forceDevOff?: boolean;
@@ -69,20 +188,17 @@ export const AuthProvider: React.FC<InternalAuthProviderProps> = ({ children, __
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const setAuthenticationState = useCallback((response: AuthenticationResult) => {
-        if (response.account) {
-            msalInstance.setActiveAccount(response.account);
-            setUser(response.account);
-            setIsAuthenticated(true);
-            setError(null);
-        }
-    }, []);
+    // Wave 25 Phase E: "dev mode" now means SIMULATED AUTH IS ACTIVE, not
+    // "running under the Vite dev server". Real MSAL login in a dev build is
+    // NOT dev mode — guards enforce authentication and dev tooling hides.
+    const simulatedAuth = useFeatureFlag('use_simulated_auth');
+    const simulate = simulatedAuth && !__forceDevOff;
 
     useEffect(() => {
         const initializeAuth = async () => {
+            setLoading(true);
             try {
-                const simulate = isFeatureEnabled('use_simulated_auth');
-                if (simulate && !__forceDevOff) {
+                if (simulate) {
                     // Auto-login with first simulated user in dev mode.
                     const defaultUser = SIMULATED_USERS[0];
                     setUser(defaultUser as AccountInfo);
@@ -98,23 +214,22 @@ export const AuthProvider: React.FC<InternalAuthProviderProps> = ({ children, __
                     if (devId != null) {
                         await mintDevToken(devId);
                     }
-                    setLoading(false);
                     return;
                 }
 
-                await msalInstance.initialize();
-                const response = await msalInstance.handleRedirectPromise();
-                if (response) {
-                    setAuthenticationState(response);
+                // ---- Real MSAL path (Wave 25 Phase E) ----
+                const outcome = await initializeRealAuth();
+                if (outcome.status === 'signed-out') {
+                    // ProtectedRoute sends the user to /login.
+                    return;
                 }
-
-                const accounts = msalInstance.getAllAccounts();
-                if (accounts.length > 0) {
-                    const account = accounts[0];
-                    msalInstance.setActiveAccount(account);
-                    setUser(account);
-                    setIsAuthenticated(true);
+                if (outcome.status === 'rejected') {
+                    setError(outcome.message);
+                    return;
                 }
+                setUser(outcome.account);
+                setIsAuthenticated(true);
+                setError(null);
             } catch (err) {
                 console.error('Authentication initialization error:', err);
                 setError('Failed to initialize authentication');
@@ -123,15 +238,14 @@ export const AuthProvider: React.FC<InternalAuthProviderProps> = ({ children, __
             }
         };
         initializeAuth();
-    }, [__forceDevOff, setAuthenticationState]);
+    }, [simulate]);
 
     // Wave 25 Phase C — in simulated-auth mode, re-mint the dev JWT whenever
     // the dev user CHANGES (e.g. switching via DevUserSwitcher). Initial mint
     // happens inline above in initializeAuth so widgets don't race against a
     // missing token on first paint.
     useEffect(() => {
-        const simulate = isFeatureEnabled('use_simulated_auth');
-        if (!simulate || __forceDevOff) return;
+        if (!simulate) return;
 
         let lastSeenId = getDevUserId();
         const refresh = () => {
@@ -147,12 +261,15 @@ export const AuthProvider: React.FC<InternalAuthProviderProps> = ({ children, __
 
         const unsub = subscribeDevUser(refresh);
         return () => { unsub(); };
-    }, [__forceDevOff]);
+    }, [simulate]);
 
     const login = async () => {
         try {
             setLoading(true);
             setError(null);
+            // Full-page redirect to Microsoft; execution resumes in
+            // handleRedirectPromise() after the round-trip.
+            await msalInstance.initialize();
             await msalInstance.loginRedirect(loginRequest);
         } catch (err: unknown) {
             console.error('Login error:', err);
@@ -160,7 +277,6 @@ export const AuthProvider: React.FC<InternalAuthProviderProps> = ({ children, __
             setError(`Login failed: ${message || 'Unknown error'}`);
             setIsAuthenticated(false);
             setUser(null);
-        } finally {
             setLoading(false);
         }
     };
@@ -168,6 +284,15 @@ export const AuthProvider: React.FC<InternalAuthProviderProps> = ({ children, __
     const logout = async () => {
         try {
             setLoading(true);
+            clearRenewTimers();
+            clearAuthToken();
+            if (simulate) {
+                // Simulated mode: no identity provider session to end.
+                setIsAuthenticated(false);
+                setUser(null);
+                setError(null);
+                return;
+            }
             await msalInstance.logoutRedirect({
                 postLogoutRedirectUri: msalConfig.auth.postLogoutRedirectUri,
             });
@@ -185,8 +310,10 @@ export const AuthProvider: React.FC<InternalAuthProviderProps> = ({ children, __
 
     const getAccessToken = async (scopes?: string[]) => {
         try {
-            if (DEV_MODE) {
-                return 'mock-dev-token-' + Date.now();
+            if (simulate) {
+                // Wave 25 Phase E: the dev JWT from /auth/dev-login (no more
+                // 'mock-dev-token-' stub — every consumer gets a real token).
+                return getAuthToken();
             }
             const account = msalInstance.getActiveAccount();
             if (!account) throw new Error('No active account');
@@ -211,7 +338,7 @@ export const AuthProvider: React.FC<InternalAuthProviderProps> = ({ children, __
     };
 
     const switchUser = (userIndex: number) => {
-        if (isFeatureEnabled('use_simulated_auth') && userIndex >= 0 && userIndex < SIMULATED_USERS.length) {
+        if (simulate && userIndex >= 0 && userIndex < SIMULATED_USERS.length) {
             const selectedUser = SIMULATED_USERS[userIndex];
             setUser(selectedUser as AccountInfo);
             setIsAuthenticated(true);
@@ -226,7 +353,7 @@ export const AuthProvider: React.FC<InternalAuthProviderProps> = ({ children, __
         getAccessToken,
         loading,
         error,
-    isDev: __forceDevOff ? false : DEV_MODE,
+        isDev: simulate,
         switchUser,
         availableUsers: SIMULATED_USERS,
     };

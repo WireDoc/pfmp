@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { getDevUserId, setDevUserId, isDevUserReady } from './devUserState';
+import { isFeatureEnabled } from '../flags/featureFlags';
 
 interface DevUserInfo { userId: number; email: string; isDefault: boolean; }
 interface DevUsersResponse { users: DevUserInfo[] }
@@ -17,6 +18,11 @@ export function useDevUserInit() {
 
   useEffect(() => {
     if (import.meta.env.MODE === 'test') return;
+
+    // Wave 25 Phase E: in real-auth mode the current-user store is populated
+    // from /auth/me after MSAL login — do NOT overwrite it with the dev-users
+    // default here.
+    if (!isFeatureEnabled('use_simulated_auth')) return;
 
     // Already ready from localStorage — no fetch needed, but still sync from API
     // to ensure the server-side default stays in sync.

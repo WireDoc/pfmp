@@ -10,7 +10,7 @@ import { render, screen } from '@testing-library/react';
 const futureConfig = { v7_startTransition: true, v7_relativeSplatPath: true } as const;
 
 describe('ProtectedRoute', () => {
-  it('redirects unauthenticated user to /login (dev mode off)', () => {
+  it('redirects unauthenticated user to /login (dev mode off)', async () => {
     render(
       <MemoryRouter initialEntries={['/secure']} future={futureConfig}>
         <AuthProvider __forceDevOff>
@@ -29,7 +29,10 @@ describe('ProtectedRoute', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText('LoginPage')).toBeInTheDocument();
+    // Wave 25 Phase E: ProtectedRoute holds rendering (spinner) until auth
+    // init settles — redirecting mid-MSAL-redirect would strip the auth code
+    // from the URL. The redirect is therefore async now.
+    expect(await screen.findByText('LoginPage')).toBeInTheDocument();
   });
 
   it('renders children when authenticated (dev mode auto auth)', () => {

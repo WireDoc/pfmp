@@ -25,6 +25,16 @@ export interface FeatureFlagsState {
   dashboard_wave4_real_data: boolean;
 }
 
+// Wave 25 Phase E — real Microsoft login is now the default. Simulated auth
+// stays available for development three ways (any one works):
+//   1. VITE_USE_SIMULATED_AUTH=true in .env.development.local (build-time default)
+//   2. Dev Flags panel toggle (persisted in localStorage, survives refresh)
+//   3. "Use simulated dev auth" button on the login page (dev builds only)
+// Vitest keeps simulated auth on so the existing suite exercises the dev path.
+const IS_TEST_MODE = import.meta.env.MODE === 'test';
+const SIMULATED_AUTH_DEFAULT =
+  IS_TEST_MODE || import.meta.env.VITE_USE_SIMULATED_AUTH === 'true';
+
 const defaultFlags: FeatureFlagsState = {
   routing_enabled: true, // Wave 1 target
   onboarding_enabled: true, // Enabled for active onboarding dev testing
@@ -32,15 +42,48 @@ const defaultFlags: FeatureFlagsState = {
   exp_intelligence_dashboards: false, // Wave 4
   exp_dual_ai_pipeline: false, // Wave 5
   storybook_docs_enabled: false,
-  use_simulated_auth: true, // keep true during early waves for velocity
+  use_simulated_auth: SIMULATED_AUTH_DEFAULT, // Wave 25 Phase E: real MSAL login by default
   enableDashboardWave4: true, // Wave 5 MVP - real dashboard with onboarding complete
   dashboard_wave4_real_data: true, // Wave 5 MVP - use real API instead of mocks
 };
 
-let dynamicOverrides: Partial<FeatureFlagsState> = {};
+// Runtime overrides persist across refreshes so a Dev Flags panel toggle (e.g.
+// switching back to simulated auth) sticks. Test mode skips persistence to keep
+// runs hermetic.
+const OVERRIDES_STORAGE_KEY = 'pfmp_flag_overrides';
+
+function readPersistedOverrides(): Partial<FeatureFlagsState> {
+  if (IS_TEST_MODE) return {};
+  try {
+    const raw = localStorage.getItem(OVERRIDES_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const out: Partial<FeatureFlagsState> = {};
+    for (const key of Object.keys(defaultFlags) as (keyof FeatureFlagsState)[]) {
+      if (typeof parsed[key] === 'boolean') out[key] = parsed[key] as boolean;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function persistOverrides(overrides: Partial<FeatureFlagsState>) {
+  if (IS_TEST_MODE) return;
+  try {
+    if (Object.keys(overrides).length === 0) {
+      localStorage.removeItem(OVERRIDES_STORAGE_KEY);
+    } else {
+      localStorage.setItem(OVERRIDES_STORAGE_KEY, JSON.stringify(overrides));
+    }
+  } catch { /* restricted storage */ }
+}
+
+let dynamicOverrides: Partial<FeatureFlagsState> = readPersistedOverrides();
 
 export function setFeatureFlag<K extends keyof FeatureFlagsState>(key: K, value: FeatureFlagsState[K]) {
   dynamicOverrides[key] = value;
+  persistOverrides(dynamicOverrides);
 }
 
 // Internal cached snapshot to satisfy useSyncExternalStore requirement that
@@ -90,6 +133,7 @@ export function updateFlags(partial: Partial<FeatureFlagsState>) {
     return;
   }
   dynamicOverrides = { ...dynamicOverrides, ...partial };
+  persistOverrides(dynamicOverrides);
   recomputeSnapshot();
   emit();
 }

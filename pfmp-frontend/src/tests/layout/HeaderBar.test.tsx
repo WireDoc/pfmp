@@ -103,10 +103,17 @@ describe('HeaderBar', () => {
       expect(aiModelsLink).toHaveAttribute('href', '/dashboard/admin/ai-models');
     });
 
-    it('should have 6 navigation links total', () => {
+    it('should render News link', () => {
+      renderHeaderBar();
+      const newsLink = screen.getByRole('link', { name: 'News' });
+      expect(newsLink).toBeInTheDocument();
+      expect(newsLink).toHaveAttribute('href', '/dashboard/news');
+    });
+
+    it('should have 7 navigation links total', () => {
       renderHeaderBar();
       const links = screen.getAllByRole('link');
-      expect(links).toHaveLength(6);
+      expect(links).toHaveLength(7);
     });
   });
 

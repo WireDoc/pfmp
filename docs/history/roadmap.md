@@ -355,7 +355,13 @@ RSS-driven daily news digest per user. What landed:
 
 The campaign is 4 waves running roughly in series:
 
-### Wave 25: Microsoft Entra ID auth + first real login + onboarding audit (concurrent) 📋
+### Wave 25: Microsoft Entra ID auth + first real login + onboarding audit (concurrent) 🟡
+
+> Status 2026-07-08: Phases A–E implemented (dual-scheme JWT backend,
+> `[Authorize]` audit across 38 controllers, five-path frontend token plumbing,
+> real MSAL login page, `use_simulated_auth` default flipped to false).
+> Awaiting the owner's first real login to verify end-to-end and kick off the
+> Phase F onboarding audit. Details: `docs/waves/wave-25-entra-id-auth.md`.
 
 **What ships**
 - Activate MSAL on the frontend (toggle `use_simulated_auth` to false by default; keep available via env override for dev work)

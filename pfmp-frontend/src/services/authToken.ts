@@ -180,27 +180,24 @@ export function whenAuthReady(timeoutMs = 2000): Promise<void> {
   if (currentToken) return Promise.resolve();
   return new Promise<void>((resolve) => {
     let done = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let cleanup: (() => void) | undefined;
-    const finish = () => {
-      if (done) return;
-      done = true;
-      if (cleanup) cleanup();
-      if (timer !== undefined) clearTimeout(timer);
-      resolve();
-    };
+    const timer = setTimeout(() => finish(), timeoutMs);
     // Subscribe FIRST, then re-check — closes the race where the mint
     // completes between the initial check and the subscribe call. Without
     // this, we'd register a subscriber after the event fired and wait
     // through the full timeout before proceeding without auth.
-    cleanup = subscribeAuthToken(() => {
+    const cleanup = subscribeAuthToken(() => {
       if (currentToken) finish();
     });
+    function finish() {
+      if (done) return;
+      done = true;
+      cleanup();
+      clearTimeout(timer);
+      resolve();
+    }
     if (currentToken) {
       finish();
-      return;
     }
-    timer = setTimeout(finish, timeoutMs);
   });
 }
 

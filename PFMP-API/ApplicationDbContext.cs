@@ -153,6 +153,11 @@ namespace PFMP_API
             {
                 entity.HasKey(e => e.UserId);
                 entity.HasIndex(e => e.Email).IsUnique();
+                // Wave 25 Phase E: one PFMP user per Entra identity. Backstops the
+                // check-then-insert race in UserProvisioningService (two concurrent
+                // first-login /auth/me calls). Postgres treats NULLs as distinct,
+                // so the dev users (AzureObjectId = null) are unaffected.
+                entity.HasIndex(e => e.AzureObjectId).IsUnique();
                 entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
                 entity.Property(e => e.FirstName).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.LastName).IsRequired().HasMaxLength(100);
