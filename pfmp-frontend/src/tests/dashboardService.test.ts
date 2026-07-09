@@ -5,6 +5,7 @@ import { createApiDashboardService } from '../services/dashboard/apiDashboardSer
 import { getDashboardService, __resetDashboardServiceForTest } from '../services/dashboard';
 import { updateFlags } from '../flags/featureFlags';
 import { msalInstance } from '../contexts/auth/msalInstance';
+import { clearAuthToken } from '../services/authToken';
 import type { AccountInfo, AuthenticationResult } from '@azure/msal-browser';
 
 afterEach(() => {
@@ -168,6 +169,11 @@ describe('Dashboard services', () => {
     vi.spyOn(msalInstance, 'acquireTokenSilent').mockResolvedValue({ accessToken: 'token-123' } as AuthenticationResult);
 
     updateFlags({ use_simulated_auth: false });
+    // This test exercises the MSAL FALLBACK path of resolveAuthHeaders. The
+    // suite-wide seeded token (vitest.setup.ts) would win first otherwise —
+    // clear it so the service has to go through acquireTokenSilent.
+    // (The setup beforeEach re-seeds it for subsequent tests.)
+    clearAuthToken();
 
     const apiService = createApiDashboardService();
     const data = await apiService.load();

@@ -214,6 +214,84 @@ export const defaultHandlers = [
   ),
   // User notes (default empty so NotePopover doesn't surface unhandled-request noise)
   http.get(/\/usernotes\/entity\/[^/]+\/[^/?]+(?:\?.*)?$/, () => HttpResponse.json([], { status: 200 })),
+  // Dashboard overview widgets (Waves 17–24) — these fire on every Dashboard
+  // mount but never had default handlers, so the strict unhandled-request
+  // policy raised InternalErrors after unrelated tests. Benign empty defaults;
+  // OPTIONS included because the Authorization header triggers CORS preflights.
+  http.get(/\/api\/dashboard\/health-score(?:\?.*)?$/i, () =>
+    HttpResponse.json(
+      {
+        overallScore: 0,
+        grade: 'N/A',
+        breakdown: {
+          emergencyFund: { score: 0, weight: 0, monthsCovered: null },
+          debtToIncome: { score: 0, weight: 0, dtiPercent: null },
+          savingsRate: { score: 0, weight: 0, ratePercent: 0 },
+          insuranceCoverage: { score: 0, weight: 0, policiesCount: 0, adequateCount: 0 },
+          diversification: { score: 0, weight: 0, assetClassCount: 0 },
+          goalProgress: { score: 0, weight: 0, goalsCount: 0 },
+        },
+        computedAt: new Date().toISOString(),
+      },
+      { status: 200 },
+    ),
+  ),
+  http.options(/\/api\/dashboard\/health-score(?:\?.*)?$/i, () => new HttpResponse(null, { status: 204 })),
+  http.get(/\/api\/dashboard\/upcoming-obligations(?:\?.*)?$/i, () =>
+    HttpResponse.json({ obligations: [], total: 0 }, { status: 200 }),
+  ),
+  http.options(/\/api\/dashboard\/upcoming-obligations(?:\?.*)?$/i, () => new HttpResponse(null, { status: 204 })),
+  http.get(/\/api\/Goals\/user\/\d+(?:\?.*)?$/i, () => HttpResponse.json([], { status: 200 })),
+  http.options(/\/api\/Goals\/user\/\d+(?:\?.*)?$/i, () => new HttpResponse(null, { status: 204 })),
+  // 404 = "no digest yet" — newsApi.fetchLatestDigest maps it to an empty state.
+  http.get(/\/api\/news\/digest(?:\?.*)?$/i, () =>
+    HttpResponse.json({ message: 'No digest yet' }, { status: 404 }),
+  ),
+  http.options(/\/api\/news\/digest(?:\?.*)?$/i, () => new HttpResponse(null, { status: 204 })),
+  // CashFlowWidget (Wave 14 spendingApi.getCashFlowSummary shape)
+  http.get(/\/api\/spending\/cash-flow-summary(?:\?.*)?$/i, () =>
+    HttpResponse.json(
+      {
+        totalMonthlyInflows: 0,
+        totalMonthlyOutflows: 0,
+        netMonthlyCashFlow: 0,
+        inflows: { byIncomeType: [], savingsAllotments: [] },
+        outflows: {
+          byPlaidPrimary: [],
+          insurancePremiums: [],
+          paycheckDeductedInsurance: [],
+          externalAllotments: [],
+        },
+        variances: [],
+        asOfUtc: new Date().toISOString(),
+      },
+      { status: 200 },
+    ),
+  ),
+  http.options(/\/api\/spending\/cash-flow-summary(?:\?.*)?$/i, () => new HttpResponse(null, { status: 204 })),
+  // Wave 25 auth endpoints — AuthProvider mints a dev JWT on init in simulated
+  // mode (POST /auth/dev-login) and resolves the user via GET /auth/me in real
+  // mode. Default happy-path responses keep the strict unhandled-request policy
+  // from nuking unrelated tests.
+  http.post(/\/api\/auth\/dev-login(?:\?.*)?$/, () =>
+    HttpResponse.json(
+      {
+        accessToken: 'msw-dev-jwt',
+        expiresAtUtc: new Date(Date.now() + 3600_000).toISOString(),
+        userId: 1,
+        email: 'dev@test.local',
+        firstName: 'Dev',
+        lastName: 'User',
+      },
+      { status: 200 },
+    ),
+  ),
+  http.get(/\/api\/auth\/me$/, () =>
+    HttpResponse.json(
+      { userId: 1, email: 'dev@test.local', firstName: 'Dev', lastName: 'User', isSetupComplete: true },
+      { status: 200 },
+    ),
+  ),
 ];
 
 export const mockDashboardSummary = (data: JsonValue, init?: ResponseInit) =>
