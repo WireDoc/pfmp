@@ -27,38 +27,20 @@ export const OverviewPanel: React.FC<Props> = ({ data, loading, userId }) => {
     return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
   };
 
-  // TODO: Replace with real historical data from backend once available
-  // Use real sparkline data from API if available, otherwise generate mock data
+  // Wave 25 Phase F: real snapshots only. The old fallback synthesized a
+  // 30-day random walk when history was missing, which showed a fresh account
+  // a month of net-worth movement that never happened. With fewer than the
+  // minimum snapshots we render a "collecting data" caption instead.
   const sparklineValues = useMemo(() => {
-    // Use real data from API if available
     if (sparklineData?.hasEnoughData && sparklineData.points.length > 0) {
       return sparklineData.points.map(p => p.value);
     }
-    
-    // Fallback to mock data for backwards compatibility
-    if (!data) return [];
-    
-    const currentValue = data.netWorth.netWorth.amount;
-    const change30dPct = data.netWorth.change30dPct ?? 0;
-    
-    // Calculate starting value 30 days ago
-    const startValue = currentValue / (1 + change30dPct / 100);
-    
-    // Generate 30 data points with some realistic variation
-    const points: number[] = [];
-    for (let i = 0; i < 30; i++) {
-      const progress = i / 29; // 0 to 1
-      // Linear interpolation with slight randomness
-      const baseValue = startValue + (currentValue - startValue) * progress;
-      const variation = baseValue * (Math.random() * 0.02 - 0.01); // ±1% daily variation
-      points.push(Math.round(baseValue + variation));
-    }
-    
-    return points;
-  }, [data, sparklineData]);
+    return [];
+  }, [sparklineData]);
 
   // Only show sparkline in non-test environment or when explicitly enabled
   const showSparkline = sparklineValues.length > 0 && typeof window !== 'undefined' && !import.meta.env.VITEST;
+  const collectingHistory = !showSparkline && sparklineData != null && !sparklineData.hasEnoughData;
 
   return (
     <Box display="flex" gap={4} flexWrap="wrap" data-testid="overview-panel">
@@ -71,12 +53,17 @@ export const OverviewPanel: React.FC<Props> = ({ data, loading, userId }) => {
               <Typography variant="h5">${data.netWorth.netWorth.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Typography>
               {showSparkline && (
                 <Link to="/dashboard/net-worth" style={{ textDecoration: 'none' }}>
-                  <NetWorthSparkline 
-                    values={sparklineValues} 
+                  <NetWorthSparkline
+                    values={sparklineValues}
                     height={40}
                     width={200}
                   />
                 </Link>
+              )}
+              {collectingHistory && (
+                <Typography variant="caption" color="text.secondary">
+                  Trend appears after a few daily snapshots
+                </Typography>
               )}
             </Box>
           </Box>

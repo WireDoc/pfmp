@@ -342,17 +342,20 @@ public class CashFlowSummaryService : ICashFlowSummaryService
     private static string NormalizeIncomeTypeLabel(string? raw)
     {
         if (string.IsNullOrWhiteSpace(raw)) return "Other";
+        // Hyphen/short variants are the onboarding income form's stored values
+        // (va-disability, ssi, business, annuity).
         return raw.ToLowerInvariant() switch
         {
             "salary" => "Salary",
             "wages" => "Wages",
-            "va_disability" or "vadisability" => "VADisability",
+            "va-disability" or "va_disability" or "vadisability" => "VADisability",
             "pension" => "Pension",
-            "social_security" or "socialsecurity" => "SocialSecurity",
+            "ssi" or "social_security" or "socialsecurity" => "SocialSecurity",
             "dividends" => "Dividends",
             "interest" => "Interest",
             "rental_income" or "rentalincome" or "rental" => "RentalIncome",
-            "self_employment" or "selfemployment" => "SelfEmployment",
+            "business" or "self_employment" or "selfemployment" => "SelfEmployment",
+            "annuity" => "Annuity",
             "other" => "Other",
             _ => char.ToUpperInvariant(raw[0]) + raw.Substring(1)
         };

@@ -719,12 +719,30 @@ namespace PFMP_API.Controllers
                 var taxSnapshot = await _context.FinancialProfileSnapshots
                     .FirstOrDefaultAsync(s => s.UserId == userId);
 
+                // Wave 25 Phase F: when the profile-level VA amount is empty, fall
+                // back to the user's va-disability income stream (the onboarding
+                // income section is now the primary entry point). The
+                // IncludeVaDisabilityInProjections toggle remains the opt-in.
+                decimal? vaStreamFallback = null;
+                if (user.IncludeVaDisabilityInProjections
+                    && (!user.VADisabilityMonthlyAmount.HasValue || user.VADisabilityMonthlyAmount.Value <= 0))
+                {
+                    var vaStreamTypes = new[] { "va-disability", "va_disability", "vadisability" };
+                    var streamSum = await _context.IncomeStreams
+                        .AsNoTracking()
+                        .Where(s => s.UserId == userId && s.IsActive
+                            && s.IncomeType != null && vaStreamTypes.Contains(s.IncomeType.ToLower()))
+                        .SumAsync(s => (decimal?)(s.MonthlyNetAmount ?? s.MonthlyAmount));
+                    if (streamSum.HasValue && streamSum.Value > 0) vaStreamFallback = streamSum.Value;
+                }
+
                 var result = BuildRetirementProjection(
                     profile, user, tspProfile, tspBalance,
                     customAge, survivorElection, colaRate,
                     taxSnapshot?.MarginalTaxRatePercent,
                     taxSnapshot?.EffectiveTaxRatePercent,
-                    incomeGoal);
+                    incomeGoal,
+                    vaStreamFallback);
                 return Ok(result);
             }
             catch (Exception ex)
@@ -741,7 +759,8 @@ namespace PFMP_API.Controllers
             int? customAge = null, string? survivorElection = null,
             decimal? colaRateOverride = null,
             decimal? marginalTaxRate = null, decimal? effectiveTaxRate = null,
-            decimal? incomeGoal = null)
+            decimal? incomeGoal = null,
+            decimal? vaMonthlyFallback = null)
         {
             var today = DateTime.UtcNow.Date;
             var dob = user.DateOfBirth!.Value.Date;
@@ -779,9 +798,16 @@ namespace PFMP_API.Controllers
             var tspTradBalance = tspProfile?.TraditionalBalance ?? 0m;
             var tspRothContribPct = tspProfile?.RothContributionRatePercent; // % of employee contrib going to Roth
 
-            // VA disability
-            var includeVa = user.IncludeVaDisabilityInProjections && user.VADisabilityMonthlyAmount.HasValue && user.VADisabilityMonthlyAmount.Value > 0;
-            var vaMonthly = includeVa ? user.VADisabilityMonthlyAmount!.Value : 0m;
+            // VA disability. Profile field first; the caller passes the summed
+            // va-disability IncomeStream amount as fallback when the profile field
+            // is empty (onboarding income section is the primary entry point).
+            var profileVaAmount = user.VADisabilityMonthlyAmount;
+            if ((!profileVaAmount.HasValue || profileVaAmount.Value <= 0) && vaMonthlyFallback.HasValue)
+            {
+                profileVaAmount = vaMonthlyFallback;
+            }
+            var includeVa = user.IncludeVaDisabilityInProjections && profileVaAmount.HasValue && profileVaAmount.Value > 0;
+            var vaMonthly = includeVa ? profileVaAmount!.Value : 0m;
 
             var response = new RetirementProjectionResponse
             {

@@ -349,7 +349,11 @@ public class DashboardController : ControllerBase
 
             var summary = new
             {
-                userName = $"{user.FirstName} {user.LastName}".Trim(),
+                // Prefer the name the user asked to be addressed by (onboarding
+                // household section) over the identity-provider name.
+                userName = !string.IsNullOrWhiteSpace(user.PreferredName)
+                    ? user.PreferredName.Trim()
+                    : $"{user.FirstName} {user.LastName}".Trim(),
                 netWorth = new
                 {
                     totalAssets = new { amount = totalAssets, currency = "USD" },

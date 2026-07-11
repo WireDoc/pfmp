@@ -62,6 +62,7 @@ This index lists every active document under `docs/` following the subject-first
 
 ## 🧪 testing
 - `docs/testing/README.md` – Testing index with backend/frontend guides
+- `docs/testing/onboarding-walkthrough-template.md` – **Wave 25 Phase F** fictitious persona ("Alex Morgan") with field-by-field data for all 16 onboarding sections; doubles as the persistence-audit fixture
 - `docs/testing/plaid-custom-users.md` – Custom Plaid sandbox user configurations (investments + liabilities)
 - `docs/testing/wave-12-5-testing-guide.md` – Wave 12.5 unified Plaid frontend testing checklist
 - `docs/testing/alerts-advice-testing.md` – Alert/advice flow testing

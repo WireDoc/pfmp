@@ -280,52 +280,87 @@ namespace PFMP_API.Services.FinancialProfile
         {
             await using var tx = await _db.Database.BeginTransactionAsync(ct);
 
-            // Delete existing cash accounts from unified Accounts table
+            // Wave 25 Phase F: cash accounts live in the CashAccounts table — the
+            // store the dashboard, cash-flow services, and transaction ledger all
+            // read. (This section previously wrote legacy rows into the unified
+            // Accounts table, which nothing on the dashboard displays — accounts
+            // "vanished" right after onboarding.) Clear any legacy unified rows so
+            // older users self-heal on their next save.
             await _db.Accounts
-                .Where(a => a.UserId == userId && 
-                    (a.AccountType == AccountType.Checking || 
-                     a.AccountType == AccountType.Savings || 
+                .Where(a => a.UserId == userId &&
+                    (a.AccountType == AccountType.Checking ||
+                     a.AccountType == AccountType.Savings ||
                      a.AccountType == AccountType.MoneyMarket ||
                      a.AccountType == AccountType.CertificateOfDeposit))
                 .ExecuteDeleteAsync(ct);
 
+            // Nickname-matched upsert instead of delete-and-recreate: CashAccounts
+            // rows are GUID-keyed and carry the transaction ledger, so their ids
+            // must be stable across onboarding autosaves.
+            var existingManual = await _db.CashAccounts
+                .Where(c => c.UserId == userId && c.Source == Models.Plaid.AccountSource.Manual)
+                .ToListAsync(ct);
+
             if (input.OptOut?.IsOptedOut != true)
             {
                 var now = DateTime.UtcNow;
+                var seen = new HashSet<Guid>();
                 foreach (var account in input.Accounts)
                 {
-                    // Map old account type strings to new enum
-                    var accountType = account.AccountType?.ToLower() switch
-                    {
-                        "checking" => AccountType.Checking,
-                        "savings" => AccountType.Savings,
-                        "money_market" or "money market" => AccountType.MoneyMarket,
-                        "cd" or "certificate_of_deposit" => AccountType.CertificateOfDeposit,
-                        _ => AccountType.Checking // Default to checking
-                    };
+                    var nickname = account.Nickname.Trim();
+                    var match = existingManual.FirstOrDefault(c =>
+                        !seen.Contains(c.CashAccountId) &&
+                        string.Equals(c.Nickname, nickname, StringComparison.OrdinalIgnoreCase));
 
-                    var category = accountType == AccountType.MoneyMarket || accountType == AccountType.Savings 
-                        ? AccountCategory.Cash 
-                        : AccountCategory.Cash;
-
-                    _db.Accounts.Add(new Account
+                    if (match != null)
                     {
-                        UserId = userId,
-                        AccountName = account.Nickname.Trim(),
-                        AccountType = accountType,
-                        Category = category,
-                        Institution = account.Institution?.Trim(),
-                        CurrentBalance = account.Balance,
-                        InterestRate = account.InterestRateApr.HasValue ? account.InterestRateApr.Value / 100m : null, // Convert APR% to decimal
-                        InterestRateUpdatedAt = account.RateLastChecked,
-                        IsEmergencyFund = account.IsEmergencyFund,
-                        RateLastChecked = account.RateLastChecked,
-                        Purpose = account.Purpose?.Trim(),
-                        CreatedAt = now,
-                        UpdatedAt = now,
-                        LastBalanceUpdate = now,
-                        IsActive = true
-                    });
+                        seen.Add(match.CashAccountId);
+                        match.Nickname = nickname;
+                        // AccountType is a free string in CashAccounts — store the
+                        // form's value verbatim so it round-trips exactly.
+                        if (!string.IsNullOrWhiteSpace(account.AccountType))
+                        {
+                            match.AccountType = account.AccountType.Trim();
+                        }
+                        match.Institution = account.Institution?.Trim();
+                        match.Balance = account.Balance;
+                        match.InterestRateApr = account.InterestRateApr;
+                        match.IsEmergencyFund = account.IsEmergencyFund;
+                        match.RateLastChecked = account.RateLastChecked;
+                        match.Purpose = account.Purpose?.Trim();
+                        match.UpdatedAt = now;
+                    }
+                    else
+                    {
+                        _db.CashAccounts.Add(new CashAccount
+                        {
+                            UserId = userId,
+                            Nickname = nickname,
+                            AccountType = string.IsNullOrWhiteSpace(account.AccountType) ? "checking" : account.AccountType.Trim(),
+                            Institution = account.Institution?.Trim(),
+                            Balance = account.Balance,
+                            InterestRateApr = account.InterestRateApr,
+                            IsEmergencyFund = account.IsEmergencyFund,
+                            RateLastChecked = account.RateLastChecked,
+                            Purpose = account.Purpose?.Trim(),
+                            Source = Models.Plaid.AccountSource.Manual,
+                            CreatedAt = now,
+                            UpdatedAt = now
+                        });
+                    }
+                }
+
+                // Rows the user removed from the form: delete only when they carry
+                // no transaction history (deleting would orphan the ledger);
+                // otherwise leave them to the dashboard's cash CRUD.
+                foreach (var stale in existingManual.Where(c => !seen.Contains(c.CashAccountId)))
+                {
+                    var hasTransactions = await _db.CashTransactions
+                        .AnyAsync(t => t.CashAccountId == stale.CashAccountId, ct);
+                    if (!hasTransactions)
+                    {
+                        _db.CashAccounts.Remove(stale);
+                    }
                 }
             }
 
@@ -335,18 +370,64 @@ namespace PFMP_API.Services.FinancialProfile
             await RecalculateSnapshotAsync(userId, ct);
         }
 
+        // ── Wave 25 Phase F: investments section mapping ─────────────────────
+        // Canonical, BIDIRECTIONAL map between the onboarding form's category
+        // values and AccountType. GetInvestmentAccountsAsync must return these
+        // exact strings so a save→load→save cycle round-trips losslessly.
+        // (Previously the read side emitted enum ToString() values the form's
+        // dropdown didn't recognize, and the write side didn't match them —
+        // every second autosave silently degraded accounts to Brokerage.)
+        private static readonly AccountType[] InvestmentSectionAccountTypes =
+        {
+            AccountType.Brokerage,
+            AccountType.RetirementAccount401k,
+            AccountType.RetirementAccountIRA,
+            AccountType.RetirementAccountRoth,
+            AccountType.HSA,
+            AccountType.Education529,
+            AccountType.CryptocurrencyExchange,
+            AccountType.PreciousMetals,
+        };
+
+        private static AccountType MapInvestmentCategoryToAccountType(string? category) =>
+            category?.Trim().ToLowerInvariant() switch
+            {
+                "brokerage" or "taxable" => AccountType.Brokerage,
+                // Legacy enum-derived strings included defensively — rows saved
+                // through the old degraded read path may still echo them once.
+                "401k" or "401(k)" or "retirementaccount401k" => AccountType.RetirementAccount401k,
+                "ira" or "traditional_ira" or "retirementaccountira" => AccountType.RetirementAccountIRA,
+                "roth-ira" or "roth_ira" or "roth" or "retirementaccountroth" => AccountType.RetirementAccountRoth,
+                "hsa" => AccountType.HSA,
+                "529" or "education529" => AccountType.Education529,
+                "crypto" or "cryptocurrencyexchange" => AccountType.CryptocurrencyExchange,
+                "precious-metals" or "preciousmetals" => AccountType.PreciousMetals,
+                _ => AccountType.Brokerage
+            };
+
+        private static string MapAccountTypeToInvestmentCategory(AccountType type) => type switch
+        {
+            AccountType.RetirementAccount401k => "401k",
+            AccountType.RetirementAccountIRA => "ira",
+            AccountType.RetirementAccountRoth => "roth-ira",
+            AccountType.HSA => "hsa",
+            AccountType.Education529 => "529",
+            AccountType.CryptocurrencyExchange => "crypto",
+            AccountType.PreciousMetals => "precious-metals",
+            _ => "brokerage"
+        };
+
         public async Task UpsertInvestmentAccountsAsync(int userId, InvestmentAccountsInput input, CancellationToken ct = default)
         {
             await using var tx = await _db.Database.BeginTransactionAsync(ct);
 
-            // Delete existing investment accounts from unified Accounts table
+            // Replace the MANUAL investment accounts only (Source 0). Plaid-linked
+            // accounts (Source 2/3) must survive an onboarding save — this section
+            // is not their source of truth.
             await _db.Accounts
-                .Where(a => a.UserId == userId && 
-                    (a.AccountType == AccountType.Brokerage || 
-                     a.AccountType == AccountType.RetirementAccountIRA || 
-                     a.AccountType == AccountType.RetirementAccount401k || 
-                     a.AccountType == AccountType.RetirementAccountRoth ||
-                     a.AccountType == AccountType.HSA))
+                .Where(a => a.UserId == userId
+                    && a.Source == 0
+                    && InvestmentSectionAccountTypes.Contains(a.AccountType))
                 .ExecuteDeleteAsync(ct);
 
             if (input.OptOut?.IsOptedOut != true)
@@ -354,24 +435,19 @@ namespace PFMP_API.Services.FinancialProfile
                 var now = DateTime.UtcNow;
                 foreach (var account in input.Accounts)
                 {
-                    // Map old account category strings to new enums
-                    var accountType = account.AccountCategory?.ToLower() switch
-                    {
-                        "brokerage" or "taxable" => AccountType.Brokerage,
-                        "401k" or "401(k)" => AccountType.RetirementAccount401k,
-                        "ira" or "traditional_ira" => AccountType.RetirementAccountIRA,
-                        "roth_ira" or "roth" => AccountType.RetirementAccountRoth,
-                        "hsa" => AccountType.HSA,
-                        _ => AccountType.Brokerage // Default to brokerage
-                    };
+                    var accountType = MapInvestmentCategoryToAccountType(account.AccountCategory);
 
-                    var category = accountType switch
-                    {
-                        AccountType.Brokerage => AccountCategory.Taxable,
-                        AccountType.RetirementAccountRoth => AccountCategory.TaxFree,
-                        AccountType.HSA => AccountCategory.TaxAdvantaged,
-                        _ => AccountCategory.TaxDeferred
-                    };
+                    // The user's tax-advantaged checkbox drives Category (and is
+                    // recovered from it on read). Previously the checkbox was
+                    // ignored and Category was inferred from the account type.
+                    var category = account.IsTaxAdvantaged
+                        ? accountType switch
+                        {
+                            AccountType.RetirementAccount401k or AccountType.RetirementAccountIRA => AccountCategory.TaxDeferred,
+                            AccountType.RetirementAccountRoth => AccountCategory.TaxFree,
+                            _ => AccountCategory.TaxAdvantaged
+                        }
+                        : AccountCategory.Taxable;
 
                     _db.Accounts.Add(new Account
                     {
@@ -381,6 +457,9 @@ namespace PFMP_API.Services.FinancialProfile
                         Category = category,
                         Institution = account.Institution?.Trim(),
                         CurrentBalance = account.CurrentValue,
+                        CostBasis = account.CostBasis,
+                        ContributionRatePercent = account.ContributionRatePercent,
+                        LastContributionDate = account.LastContributionDate,
                         CreatedAt = now,
                         UpdatedAt = now,
                         LastBalanceUpdate = now,
@@ -473,6 +552,12 @@ namespace PFMP_API.Services.FinancialProfile
             if (input.OptOut?.IsOptedOut != true)
             {
                 var now = DateTime.UtcNow;
+                // Wave 25 Phase F: baseline budgets apply to the WHOLE current month.
+                // CashFlowSummaryService asks for budgets "effective as of" the 1st;
+                // defaulting EffectiveFrom to save-time meant anything entered
+                // mid-month was invisible in outflows until the next month rolled
+                // over (dashboard showed insurance-only outflows after onboarding).
+                var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
                 foreach (var expense in input.Expenses)
                 {
                     _db.ExpenseBudgets.Add(new ExpenseBudget
@@ -482,6 +567,7 @@ namespace PFMP_API.Services.FinancialProfile
                         MonthlyAmount = expense.MonthlyAmount,
                         IsEstimated = expense.IsEstimated,
                         Notes = string.IsNullOrWhiteSpace(expense.Notes) ? null : expense.Notes.Trim(),
+                        EffectiveFrom = monthStart,
                         CreatedAt = now,
                         UpdatedAt = now
                     });
@@ -1020,23 +1106,22 @@ namespace PFMP_API.Services.FinancialProfile
 
         public async Task<CashAccountsInput> GetCashAccountsAsync(int userId, CancellationToken ct = default)
         {
-            var accounts = await _db.Accounts.AsNoTracking()
-                .Where(a => a.UserId == userId && 
-                    (a.AccountType == AccountType.Checking || 
-                     a.AccountType == AccountType.Savings || 
-                     a.AccountType == AccountType.MoneyMarket ||
-                     a.AccountType == AccountType.CertificateOfDeposit))
-                .OrderBy(a => a.CreatedAt)
-                .Select(a => new CashAccountInput
+            // Wave 25 Phase F: read from CashAccounts (same store the upsert now
+            // writes). Manual accounts only — Plaid-linked cash is managed by the
+            // sync pipeline and must not become editable/deletable onboarding rows.
+            var accounts = await _db.CashAccounts.AsNoTracking()
+                .Where(c => c.UserId == userId && c.Source == Models.Plaid.AccountSource.Manual)
+                .OrderBy(c => c.CreatedAt)
+                .Select(c => new CashAccountInput
                 {
-                    Nickname = a.AccountName,
-                    AccountType = a.AccountType.ToString().ToLower(),
-                    Institution = a.Institution,
-                    Balance = a.CurrentBalance,
-                    InterestRateApr = a.InterestRate.HasValue ? a.InterestRate.Value * 100m : null, // Convert decimal to APR%
-                    IsEmergencyFund = a.IsEmergencyFund,
-                    RateLastChecked = a.RateLastChecked,
-                    Purpose = a.Purpose
+                    Nickname = c.Nickname,
+                    AccountType = c.AccountType, // stored verbatim; round-trips exactly
+                    Institution = c.Institution,
+                    Balance = c.Balance,
+                    InterestRateApr = c.InterestRateApr,
+                    IsEmergencyFund = c.IsEmergencyFund,
+                    RateLastChecked = c.RateLastChecked,
+                    Purpose = c.Purpose
                 })
                 .ToListAsync(ct);
 
@@ -1051,31 +1136,34 @@ namespace PFMP_API.Services.FinancialProfile
 
         public async Task<InvestmentAccountsInput> GetInvestmentAccountsAsync(int userId, CancellationToken ct = default)
         {
-            var accounts = await _db.Accounts.AsNoTracking()
-                .Where(a => a.UserId == userId && 
-                    (a.AccountType == AccountType.Brokerage || 
-                     a.AccountType == AccountType.RetirementAccountIRA || 
-                     a.AccountType == AccountType.RetirementAccount401k || 
-                     a.AccountType == AccountType.RetirementAccountRoth ||
-                     a.AccountType == AccountType.HSA))
+            // Manual accounts only — mirrors the upsert's replace scope so the
+            // form doesn't hydrate (and then re-save) Plaid-linked accounts.
+            var rows = await _db.Accounts.AsNoTracking()
+                .Where(a => a.UserId == userId
+                    && a.Source == 0
+                    && InvestmentSectionAccountTypes.Contains(a.AccountType))
                 .OrderBy(a => a.CreatedAt)
+                .ToListAsync(ct);
+
+            var accounts = rows
                 .Select(a => new InvestmentAccountInput
                 {
                     AccountName = a.AccountName,
-                    AccountCategory = a.AccountType.ToString().ToLower(),
+                    // Canonical form value (see MapInvestmentCategoryToAccountType)
+                    AccountCategory = MapAccountTypeToInvestmentCategory(a.AccountType),
                     Institution = a.Institution,
-                    AssetClass = a.Notes != null && a.Notes.StartsWith("Asset Class:") 
-                        ? a.Notes.Substring("Asset Class:".Length).Trim() 
+                    AssetClass = a.Notes != null && a.Notes.StartsWith("Asset Class:")
+                        ? a.Notes.Substring("Asset Class:".Length).Trim()
                         : null,
                     CurrentValue = a.CurrentBalance,
-                    CostBasis = null, // Not stored in unified table yet
-                    ContributionRatePercent = null, // Not stored in unified table yet
-                    IsTaxAdvantaged = a.Category == AccountCategory.TaxDeferred || 
-                                     a.Category == AccountCategory.TaxFree || 
+                    CostBasis = a.CostBasis,
+                    ContributionRatePercent = a.ContributionRatePercent,
+                    IsTaxAdvantaged = a.Category == AccountCategory.TaxDeferred ||
+                                     a.Category == AccountCategory.TaxFree ||
                                      a.Category == AccountCategory.TaxAdvantaged,
-                    LastContributionDate = null // Not stored in unified table yet
+                    LastContributionDate = a.LastContributionDate
                 })
-                .ToListAsync(ct);
+                .ToList();
 
             var optOut = await GetSectionOptOutAsync(userId, "investments", ct);
 
@@ -1389,22 +1477,15 @@ namespace PFMP_API.Services.FinancialProfile
 
             var completionPercent = SectionKeys.Length == 0 ? 0 : Math.Round(((decimal)(completed.Count + optedOut.Count) / SectionKeys.Length) * 100, 2);
 
-            // Updated to use unified Accounts table
-            var cashTotal = await _db.Accounts
-                .Where(c => c.UserId == userId && 
-                    (c.AccountType == AccountType.Checking || 
-                     c.AccountType == AccountType.Savings || 
-                     c.AccountType == AccountType.MoneyMarket ||
-                     c.AccountType == AccountType.CertificateOfDeposit))
-                .SumAsync(c => (decimal?)c.CurrentBalance, ct) ?? 0m;
-                
+            // Wave 25 Phase F: cash lives in CashAccounts (all sources — Plaid
+            // balances count toward net worth too), investments in the unified
+            // Accounts table using the shared section type list.
+            var cashTotal = await _db.CashAccounts
+                .Where(c => c.UserId == userId)
+                .SumAsync(c => (decimal?)c.Balance, ct) ?? 0m;
+
             var investmentTotal = await _db.Accounts
-                .Where(c => c.UserId == userId && 
-                    (c.AccountType == AccountType.Brokerage || 
-                     c.AccountType == AccountType.RetirementAccountIRA || 
-                     c.AccountType == AccountType.RetirementAccount401k || 
-                     c.AccountType == AccountType.RetirementAccountRoth ||
-                     c.AccountType == AccountType.HSA))
+                .Where(c => c.UserId == userId && InvestmentSectionAccountTypes.Contains(c.AccountType))
                 .SumAsync(c => (decimal?)c.CurrentBalance, ct) ?? 0m;
                 
             var propertyValue = await _db.Properties.Where(c => c.UserId == userId).SumAsync(c => (decimal?)c.EstimatedValue, ct) ?? 0m;

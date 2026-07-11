@@ -85,6 +85,13 @@ function sanitizeOptOut(optOut?: SectionOptOutPayload | null): SectionOptOutPayl
   };
 }
 
+// Wave 25 Phase F: this form's picker is 1–5, but the backend/User record and
+// the Profile tab work on a canonical 1–10 scale (AI risk guidance reads it as
+// x/10 — saving a raw "4 · Growth" would read as 4/10, conservative). Store ×2
+// (2/4/6/8/10) and map back ÷2 on hydrate; odd values set via the Profile tab
+// round to the nearest picker step.
+const UI_TO_STORED_SCALE = 2;
+
 function sanitizePayload(draft: RiskGoalsProfilePayload): RiskGoalsProfilePayload {
   if (draft.optOut?.isOptedOut) {
     return {
@@ -93,7 +100,9 @@ function sanitizePayload(draft: RiskGoalsProfilePayload): RiskGoalsProfilePayloa
   }
 
   return {
-    riskTolerance: draft.riskTolerance ?? undefined,
+    riskTolerance: typeof draft.riskTolerance === 'number'
+      ? Math.min(10, Math.max(1, draft.riskTolerance * UI_TO_STORED_SCALE))
+      : undefined,
     targetRetirementDate: draft.targetRetirementDate ? new Date(draft.targetRetirementDate).toISOString() : undefined,
     passiveIncomeGoal: draft.passiveIncomeGoal ?? undefined,
     liquidityBufferMonths: draft.liquidityBufferMonths ?? undefined,
@@ -148,7 +157,9 @@ export default function RiskGoalsSectionForm({ userId, onStatusChange, currentSt
     }
 
     return {
-      riskTolerance: typeof payload.riskTolerance === 'number' ? payload.riskTolerance : undefined,
+      riskTolerance: typeof payload.riskTolerance === 'number'
+        ? Math.min(5, Math.max(1, Math.round(payload.riskTolerance / UI_TO_STORED_SCALE)))
+        : undefined,
       targetRetirementDate: payload.targetRetirementDate ? payload.targetRetirementDate.slice(0, 10) : undefined,
       passiveIncomeGoal: typeof payload.passiveIncomeGoal === 'number' ? payload.passiveIncomeGoal : undefined,
       liquidityBufferMonths: typeof payload.liquidityBufferMonths === 'number' ? payload.liquidityBufferMonths : undefined,

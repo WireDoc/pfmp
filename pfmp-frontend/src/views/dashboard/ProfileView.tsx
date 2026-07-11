@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -106,12 +106,142 @@ function TabPanel({ children, value, index }: TabPanelProps) {
 const MARITAL_OPTIONS = ['Single', 'Married', 'Divorced', 'Widowed', 'Separated', 'Domestic Partnership'];
 const EMPLOYMENT_TYPES = ['Federal', 'Military', 'Contractor', 'Private'];
 const RETIREMENT_SYSTEMS = ['FERS', 'Military', 'None'];
-const FILING_STATUSES = ['single', 'married_filing_jointly', 'married_filing_separately', 'head_of_household', 'qualifying_widow'];
-const EXPENSE_CATEGORIES = ['Housing', 'Utilities', 'Transportation', 'Food', 'Healthcare', 'Insurance', 'Childcare', 'Entertainment', 'Clothing', 'Personal', 'Subscriptions', 'Debt Payments', 'Charitable', 'Other'];
-const INSURANCE_TYPES = ['Life', 'Disability', 'Health', 'Auto', 'Homeowners', 'Renters', 'Umbrella', 'Professional', 'Travel', 'Other'];
-const PREMIUM_FREQUENCIES = ['Monthly', 'Quarterly', 'SemiAnnually', 'Annually'];
-const OBLIGATION_TYPES = ['general', 'education', 'wedding', 'major_purchase', 'home_improvement', 'vehicle', 'medical', 'legal', 'travel', 'other'];
-const INCOME_TYPES = ['salary', 'rental', 'pension', 'va_disability', 'social_security', 'business', 'annuity', 'dividends', 'other'];
+
+// ─── Wave 25 Phase F: shared vocabularies ────────────────────────────────────
+// These option VALUES must match the onboarding section forms exactly — both
+// UIs edit the same rows, and MUI Selects render BLANK when the stored value
+// isn't in their options list (which is how every dropdown on this tab went
+// empty after an onboarding walkthrough). Values stored by the older
+// Profile-tab vocabulary are normalized to canonical on load via
+// LEGACY_VALUE_ALIASES; anything unrecognized is preserved through
+// withCurrent() so it still displays instead of blanking.
+
+type SelectOption = { value: string; label: string };
+
+const FILING_STATUS_OPTIONS: SelectOption[] = [
+  { value: 'single', label: 'Single' },
+  { value: 'married_joint', label: 'Married filing jointly' },
+  { value: 'married_separate', label: 'Married filing separately' },
+  { value: 'head_of_household', label: 'Head of household' },
+  { value: 'widow', label: 'Qualifying widow(er)' },
+];
+
+const EXPENSE_CATEGORY_OPTIONS: SelectOption[] = [
+  { value: 'housing', label: 'Housing & utilities' },
+  { value: 'transportation', label: 'Transportation' },
+  { value: 'food', label: 'Groceries & dining' },
+  { value: 'childcare', label: 'Childcare / education' },
+  { value: 'healthcare', label: 'Healthcare & insurance' },
+  { value: 'lifestyle', label: 'Lifestyle & subscriptions' },
+  { value: 'debt-service', label: 'Debt service' },
+  { value: 'savings', label: 'Savings contributions' },
+  { value: 'other', label: 'Other' },
+];
+
+const INSURANCE_TYPE_OPTIONS: SelectOption[] = [
+  { value: 'term-life', label: 'Term life' },
+  { value: 'whole-life', label: 'Whole life' },
+  { value: 'disability', label: 'Disability' },
+  { value: 'long-term-care', label: 'Long-term care' },
+  { value: 'umbrella', label: 'Umbrella' },
+  { value: 'auto', label: 'Auto' },
+  { value: 'homeowners', label: 'Homeowners' },
+  { value: 'renters', label: 'Renters' },
+];
+
+const PREMIUM_FREQUENCY_OPTIONS: SelectOption[] = [
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'quarterly', label: 'Quarterly' },
+  { value: 'semi-annual', label: 'Semi-annual' },
+  { value: 'annual', label: 'Annual' },
+];
+
+const OBLIGATION_TYPE_OPTIONS: SelectOption[] = [
+  { value: 'education', label: 'Education' },
+  { value: 'housing', label: 'Housing / relocation' },
+  { value: 'vehicle', label: 'Vehicle' },
+  { value: 'medical', label: 'Medical / care' },
+  { value: 'wedding', label: 'Wedding / celebration' },
+  { value: 'business', label: 'Business investment' },
+  { value: 'vacation', label: 'Major travel / sabbatical' },
+  { value: 'other', label: 'Other milestone' },
+];
+
+const FUNDING_STATUS_OPTIONS: SelectOption[] = [
+  { value: 'planning', label: 'Planning' },
+  { value: 'saving', label: 'Saving in progress' },
+  { value: 'funded', label: 'Fully funded' },
+  { value: 'on-hold', label: 'On hold' },
+];
+
+const INCOME_TYPE_OPTIONS: SelectOption[] = [
+  { value: 'salary', label: 'Salary / wages' },
+  { value: 'rental', label: 'Rental income' },
+  { value: 'pension', label: 'Pension' },
+  { value: 'va-disability', label: 'VA or disability benefits (nontaxable)' },
+  { value: 'ssi', label: 'Social Security retirement' },
+  { value: 'business', label: 'Business / self-employed' },
+  { value: 'annuity', label: 'Annuity' },
+  { value: 'dividends', label: 'Dividends / interest' },
+  { value: 'other', label: 'Other' },
+];
+
+// Older Profile-tab vocabulary → canonical onboarding values. Lossy where the
+// old list was more granular (e.g. Utilities folds into housing).
+const LEGACY_VALUE_ALIASES: Record<string, string> = {
+  // filing status
+  married_filing_jointly: 'married_joint',
+  married_filing_separately: 'married_separate',
+  qualifying_widow: 'widow',
+  // income types
+  va_disability: 'va-disability',
+  social_security: 'ssi',
+  // premium frequencies
+  Monthly: 'monthly',
+  Quarterly: 'quarterly',
+  SemiAnnually: 'semi-annual',
+  Annually: 'annual',
+  // expense categories
+  Housing: 'housing',
+  Utilities: 'housing',
+  Transportation: 'transportation',
+  Food: 'food',
+  Healthcare: 'healthcare',
+  Insurance: 'healthcare',
+  Childcare: 'childcare',
+  Entertainment: 'lifestyle',
+  Clothing: 'lifestyle',
+  Personal: 'lifestyle',
+  Subscriptions: 'lifestyle',
+  'Debt Payments': 'debt-service',
+  Charitable: 'other',
+  Other: 'other',
+  // insurance types
+  Life: 'term-life',
+  Disability: 'disability',
+  Auto: 'auto',
+  Homeowners: 'homeowners',
+  Renters: 'renters',
+  Umbrella: 'umbrella',
+  // obligation types
+  general: 'other',
+  major_purchase: 'other',
+  home_improvement: 'housing',
+  legal: 'other',
+  travel: 'vacation',
+};
+
+const canonize = (v: string | null | undefined): string => {
+  if (!v) return '';
+  return LEGACY_VALUE_ALIASES[v] ?? v;
+};
+
+// Keep unknown/legacy stored values visible in a Select instead of blanking.
+const withCurrent = (options: SelectOption[], current: string | null | undefined): SelectOption[] =>
+  current && !options.some(o => o.value === current)
+    ? [...options, { value: current, label: current }]
+    : options;
+// ─── end shared vocabularies ─────────────────────────────────────────────────
 
 const US_STATES = [
   'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
@@ -293,7 +423,9 @@ export function ProfileView() {
         setUserCore(userRes.data);
         setHousehold(hh);
         setRiskGoals(rg);
-        setIncomeStreams(inc.streams ?? []);
+        // Wave 25 Phase F: normalize legacy vocabulary values to the canonical
+        // (onboarding) ones so the selects below render them.
+        setIncomeStreams((inc.streams ?? []).map(s => ({ ...s, incomeType: canonize(s.incomeType) || null })));
         const invOptions: AllotmentDestOption[] = accts.map((a: { accountId: number; accountName: string }) => ({
           kind: 'investment' as const,
           id: a.accountId,
@@ -307,10 +439,14 @@ export function ProfileView() {
           sublabel: `Cash · ${a.accountType}`,
         }));
         setAllotmentDestOptions([...cashOptions, ...invOptions]);
-        setTaxProfile(tax);
-        setExpenses(exp.expenses ?? []);
-        setInsurance(ins.policies ?? []);
-        setObligations(obl.obligations ?? []);
+        setTaxProfile({ ...tax, filingStatus: canonize(tax.filingStatus) || null });
+        setExpenses((exp.expenses ?? []).map(x => ({ ...x, category: canonize(x.category) || null })));
+        setInsurance((ins.policies ?? []).map(p => ({
+          ...p,
+          policyType: canonize(p.policyType) || null,
+          premiumFrequency: canonize(p.premiumFrequency) || null,
+        })));
+        setObligations((obl.obligations ?? []).map(o => ({ ...o, obligationType: canonize(o.obligationType) || null })));
         setBenefits(ben.benefits ?? []);
         if (fb) {
           setFedBen(fb);
@@ -480,12 +616,19 @@ export function ProfileView() {
   const updateFed = <K extends keyof SaveFederalBenefitsRequest>(key: K, value: SaveFederalBenefitsRequest[K]) =>
     setFedForm(prev => ({ ...prev, [key]: value }));
 
-  // Load retirement projection when Federal Benefits tab is shown
+  // Load retirement projection once when the Federal Benefits tab is shown.
+  // Guarded by a ref: when the projection fails (e.g. fresh account with no
+  // DOB/SCD yet, loadProjection sets projection back to null), re-running on
+  // `!projection` produced an infinite fetch loop — the tab visibly "bounced"
+  // between Calculating and idle while hammering the API. Manual refresh via
+  // the button still works any time.
+  const projectionAutoLoadedRef = useRef(false);
   useEffect(() => {
-    if (tab === 8 && !projection && !projectionLoading) {
+    if (tab === 8 && !projectionAutoLoadedRef.current) {
+      projectionAutoLoadedRef.current = true;
       loadProjection();
     }
-  }, [tab, projection, projectionLoading, loadProjection]);
+  }, [tab, loadProjection]);
 
   // Auto-calculate FERS pension fields when SCD, DOB, High-3, or SS estimate change
   useEffect(() => {
@@ -689,7 +832,7 @@ export function ProfileView() {
                       <FormControl fullWidth>
                         <InputLabel>Type</InputLabel>
                         <Select value={stream.incomeType ?? 'salary'} label="Type" onChange={e => { const next = [...incomeStreams]; next[i] = { ...next[i], incomeType: e.target.value }; setIncomeStreams(next); }}>
-                          {INCOME_TYPES.map(t => <MenuItem key={t} value={t}>{t.replace(/_/g, ' ')}</MenuItem>)}
+                          {withCurrent(INCOME_TYPE_OPTIONS, stream.incomeType).map(t => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
                         </Select>
                       </FormControl>
                     </Grid>
@@ -950,7 +1093,7 @@ export function ProfileView() {
                   <FormControl fullWidth>
                     <InputLabel>Filing Status</InputLabel>
                     <Select value={taxProfile.filingStatus ?? 'single'} label="Filing Status" onChange={e => setTaxProfile(p => ({ ...p, filingStatus: e.target.value }))}>
-                      {FILING_STATUSES.map(s => <MenuItem key={s} value={s}>{s.replace(/_/g, ' ')}</MenuItem>)}
+                      {withCurrent(FILING_STATUS_OPTIONS, taxProfile.filingStatus).map(s => <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>)}
                     </Select>
                   </FormControl>
                 </Grid>
@@ -1003,7 +1146,7 @@ export function ProfileView() {
                       <FormControl fullWidth>
                         <InputLabel>Category</InputLabel>
                         <Select value={exp.category ?? ''} label="Category" onChange={e => { const next = [...expenses]; next[i] = { ...next[i], category: e.target.value }; setExpenses(next); }}>
-                          {EXPENSE_CATEGORIES.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+                          {withCurrent(EXPENSE_CATEGORY_OPTIONS, exp.category).map(c => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}
                         </Select>
                       </FormControl>
                     </Grid>
@@ -1038,7 +1181,7 @@ export function ProfileView() {
             <Stack spacing={2}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="h6">Insurance Policies</Typography>
-                <Button startIcon={<AddIcon />} onClick={() => setInsurance(p => [...p, { policyType: '', carrier: '', coverageAmount: null, premiumAmount: null, premiumFrequency: 'Monthly', notes: '' }])}>Add Policy</Button>
+                <Button startIcon={<AddIcon />} onClick={() => setInsurance(p => [...p, { policyType: '', carrier: '', coverageAmount: null, premiumAmount: null, premiumFrequency: 'monthly', notes: '' }])}>Add Policy</Button>
               </Box>
               {insurance.length === 0 && <Typography color="text.secondary">No insurance policies. Click "Add Policy" to begin.</Typography>}
               {insurance.map((pol, i) => (
@@ -1057,7 +1200,7 @@ export function ProfileView() {
                       <FormControl fullWidth>
                         <InputLabel>Type</InputLabel>
                         <Select value={pol.policyType ?? ''} label="Type" onChange={e => { const next = [...insurance]; next[i] = { ...next[i], policyType: e.target.value }; setInsurance(next); }}>
-                          {INSURANCE_TYPES.map(t => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+                          {withCurrent(INSURANCE_TYPE_OPTIONS, pol.policyType).map(t => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
                         </Select>
                       </FormControl>
                     </Grid>
@@ -1073,8 +1216,8 @@ export function ProfileView() {
                     <Grid size={{ xs: 6, md: 2 }}>
                       <FormControl fullWidth>
                         <InputLabel>Frequency</InputLabel>
-                        <Select value={pol.premiumFrequency ?? 'Monthly'} label="Frequency" onChange={e => { const next = [...insurance]; next[i] = { ...next[i], premiumFrequency: e.target.value }; setInsurance(next); }}>
-                          {PREMIUM_FREQUENCIES.map(f => <MenuItem key={f} value={f}>{f}</MenuItem>)}
+                        <Select value={pol.premiumFrequency ?? 'monthly'} label="Frequency" onChange={e => { const next = [...insurance]; next[i] = { ...next[i], premiumFrequency: e.target.value }; setInsurance(next); }}>
+                          {withCurrent(PREMIUM_FREQUENCY_OPTIONS, pol.premiumFrequency).map(f => <MenuItem key={f.value} value={f.value}>{f.label}</MenuItem>)}
                         </Select>
                       </FormControl>
                     </Grid>
@@ -1112,7 +1255,7 @@ export function ProfileView() {
             <Stack spacing={2}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="h6">Long-Term Obligations</Typography>
-                <Button startIcon={<AddIcon />} onClick={() => setObligations(p => [...p, { obligationName: '', obligationType: 'general', estimatedCost: null, isCritical: false }])}>Add Obligation</Button>
+                <Button startIcon={<AddIcon />} onClick={() => setObligations(p => [...p, { obligationName: '', obligationType: 'other', estimatedCost: null, fundsAllocated: null, fundingStatus: 'planning', isCritical: false, notes: null }])}>Add Obligation</Button>
               </Box>
               {obligations.length === 0 && <Typography color="text.secondary">No obligations. Click "Add Obligation" to begin.</Typography>}
               {obligations.map((obl, i) => (
@@ -1124,8 +1267,8 @@ export function ProfileView() {
                     <Grid size={{ xs: 6, md: 2 }}>
                       <FormControl fullWidth>
                         <InputLabel>Type</InputLabel>
-                        <Select value={obl.obligationType ?? 'general'} label="Type" onChange={e => { const next = [...obligations]; next[i] = { ...next[i], obligationType: e.target.value }; setObligations(next); }}>
-                          {OBLIGATION_TYPES.map(t => <MenuItem key={t} value={t}>{t.replace(/_/g, ' ')}</MenuItem>)}
+                        <Select value={obl.obligationType ?? 'other'} label="Type" onChange={e => { const next = [...obligations]; next[i] = { ...next[i], obligationType: e.target.value }; setObligations(next); }}>
+                          {withCurrent(OBLIGATION_TYPE_OPTIONS, obl.obligationType).map(t => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
                         </Select>
                       </FormControl>
                     </Grid>
@@ -1133,10 +1276,24 @@ export function ProfileView() {
                       <TextField fullWidth type="number" label="Est. Cost $" value={obl.estimatedCost ?? ''} onChange={e => { const next = [...obligations]; next[i] = { ...next[i], estimatedCost: Number(e.target.value) || null }; setObligations(next); }} />
                     </Grid>
                     <Grid size={{ xs: 6, md: 2 }}>
+                      <TextField fullWidth type="number" label="Funds Allocated $" value={obl.fundsAllocated ?? ''} onChange={e => { const next = [...obligations]; next[i] = { ...next[i], fundsAllocated: Number(e.target.value) || null }; setObligations(next); }} />
+                    </Grid>
+                    <Grid size={{ xs: 6, md: 2 }}>
+                      <FormControl fullWidth>
+                        <InputLabel>Funding Status</InputLabel>
+                        <Select value={obl.fundingStatus ?? 'planning'} label="Funding Status" onChange={e => { const next = [...obligations]; next[i] = { ...next[i], fundingStatus: e.target.value }; setObligations(next); }}>
+                          {withCurrent(FUNDING_STATUS_OPTIONS, obl.fundingStatus).map(f => <MenuItem key={f.value} value={f.value}>{f.label}</MenuItem>)}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid size={{ xs: 6, md: 2 }}>
                       <TextField fullWidth type="date" label="Target Date" value={obl.targetDate?.split('T')[0] ?? ''} onChange={e => { const next = [...obligations]; next[i] = { ...next[i], targetDate: e.target.value }; setObligations(next); }} slotProps={{ inputLabel: { shrink: true } }} />
                     </Grid>
                     <Grid size={{ xs: 6, md: 2 }}>
                       <FormControlLabel control={<Switch checked={obl.isCritical ?? false} onChange={e => { const next = [...obligations]; next[i] = { ...next[i], isCritical: e.target.checked }; setObligations(next); }} />} label="Critical" />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <TextField fullWidth label="Notes" value={obl.notes ?? ''} onChange={e => { const next = [...obligations]; next[i] = { ...next[i], notes: e.target.value }; setObligations(next); }} />
                     </Grid>
                     <Grid size={{ xs: 12, md: 1 }}>
                       <IconButton color="error" onClick={() => setObligations(p => p.filter((_, idx) => idx !== i))} aria-label="Delete obligation"><DeleteIcon /></IconButton>
@@ -1171,7 +1328,13 @@ export function ProfileView() {
                       <TextField fullWidth type="number" label="Monthly Cost $" value={ben.monthlyCost ?? ''} onChange={e => { const next = [...benefits]; next[i] = { ...next[i], monthlyCost: Number(e.target.value) || null }; setBenefits(next); }} />
                     </Grid>
                     <Grid size={{ xs: 6, md: 2 }}>
+                      <TextField fullWidth type="number" label="Employer Contribution %" value={ben.employerContributionPercent ?? ''} onChange={e => { const next = [...benefits]; next[i] = { ...next[i], employerContributionPercent: Number(e.target.value) || null }; setBenefits(next); }} inputProps={{ min: 0, max: 100, step: 0.5 }} />
+                    </Grid>
+                    <Grid size={{ xs: 6, md: 2 }}>
                       <FormControlLabel control={<Switch checked={ben.isEnrolled ?? false} onChange={e => { const next = [...benefits]; next[i] = { ...next[i], isEnrolled: e.target.checked }; setBenefits(next); }} />} label="Enrolled" />
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <TextField fullWidth label="Notes" value={ben.notes ?? ''} onChange={e => { const next = [...benefits]; next[i] = { ...next[i], notes: e.target.value }; setBenefits(next); }} />
                     </Grid>
                     <Grid size={{ xs: 12, md: 1 }}>
                       <IconButton color="error" onClick={() => setBenefits(p => p.filter((_, idx) => idx !== i))} aria-label="Delete benefit"><DeleteIcon /></IconButton>

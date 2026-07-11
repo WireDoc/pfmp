@@ -387,6 +387,15 @@ The campaign is 4 waves running roughly in series:
 - New `/dashboard/admin/users` page — list users (real + dev), show onboarding status + chat-cost per user, promote/demote admin, activate/deactivate
 - Admin-only sidebar toggle: **"Switch to dev users"** — when on, the app behaves as if dev mode active (you can pick dev user 1-20, see seeded data) without losing your real session. Persists across page loads; hidden from non-admins.
 - Wire `useDevUserId()` to honor the toggle so the existing widget consumers keep working
+- **Cleanup queue from Wave 25 Phase F findings:**
+  - Unify VA disability on `IncomeStreams` as the canonical income store; the
+    Profile tab's VA amount becomes a synced view (percentage + projections
+    toggle stay as User metadata). Interim state: onboarding stream is primary,
+    consumers dedup on `va-disability`, FERS projections fall back to the stream.
+  - Retire the legacy `IncomeSources` table + `VADisabilityTracker` component
+    (third VA store; only reachable from the pre-router dashboard).
+  - Delete the legacy `Development:BypassAuthentication` code paths in
+    `AuthenticationService` (flag already flipped off; endpoints unused).
 
 **Key files touched**
 - New EF migration: `Wave26_UserAdminFlag`

@@ -84,6 +84,15 @@ namespace PFMP_API.Models
         public decimal? OptimalInterestRate { get; set; } // Market comparison rate
         public DateTime? RateLastChecked { get; set; }
 
+        // Investment account profile (Wave 25 Phase F — onboarding investments section)
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? CostBasis { get; set; }
+
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal? ContributionRatePercent { get; set; }
+
+        public DateTime? LastContributionDate { get; set; }
+
         // Beneficiary Designation
         public bool HasBeneficiaryDesignation { get; set; }
 
@@ -179,7 +188,12 @@ namespace PFMP_API.Models
         // Other
         RealEstate,
         Business,
-        Other
+        Other,
+
+        // Wave 25 Phase F — appended AFTER Other so previously stored int values
+        // keep their meaning. Never insert new members above this line.
+        Education529 = 15,
+        PreciousMetals = 16
     }
 
     public enum AccountCategory

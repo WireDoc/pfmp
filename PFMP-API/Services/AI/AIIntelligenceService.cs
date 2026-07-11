@@ -1510,9 +1510,11 @@ Your analysis will be reviewed by a backup AI system for validation.",
                     {
                         return false;
                     }
-                    if (t is "va_disability" or "vadisability"
+                    // "va-disability" (hyphen) is what the onboarding income form stores.
+                    if (t is "va-disability" or "va_disability" or "vadisability"
                         or "pension"
                         or "social_security" or "socialsecurity"
+                        or "ssi"
                         or "disability_insurance" or "disabilityinsurance")
                     {
                         return true;
@@ -1530,7 +1532,9 @@ Your analysis will be reviewed by a backup AI system for validation.",
                 var hasVaDisabilityStream = guaranteedStreams.Any(s =>
                 {
                     var t = (s.IncomeType ?? string.Empty).Trim().ToLowerInvariant();
-                    return t is "va_disability" or "vadisability";
+                    // Hyphen variant = onboarding income form's stored value; without it
+                    // this dedup misses and VA gets counted twice (stream + profile).
+                    return t is "va-disability" or "va_disability" or "vadisability";
                 });
                 var profileVaMonthly = (!hasVaDisabilityStream
                     && user?.VADisabilityMonthlyAmount.HasValue == true

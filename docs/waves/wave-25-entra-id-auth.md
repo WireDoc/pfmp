@@ -1,6 +1,6 @@
 # Wave 25 — Microsoft Entra ID Auth + First Real Login + Onboarding Audit
 
-**Status:** 🟡 In progress — Phases A–D complete (2026-06-27 → 2026-06-30); Phase E implemented 2026-07-08, awaiting first-login verification; Phase F next
+**Status:** 🟡 In progress — Phases A–E complete (Phase E verified with the first real login 2026-07-09, user 21 provisioned); Phase F (onboarding audit) active
 **Owner:** Solo project; user is sole customer
 **Campaign:** First wave of Phase 5 (Production Readiness) — see `docs/history/roadmap.md` § "Phase 5: Production Readiness Campaign" for the full 4-wave plan (25: auth, 26: RBAC + admin, 27: Plaid prod, 28: hardening + deploy)
 **Predecessors:** Wave 22-24 (app feature-complete for single-user daily use)
@@ -152,13 +152,20 @@ commit; schema migration `Wave25b_ValuationProviderSelection`.
   importing it (latent Phase D `ReferenceError` on those pages); stale
   HeaderBar test count (News link was never added to it).
 
-**Verification checklist (owner, first real login):**
-- [ ] `/login` renders; "Sign in with Microsoft" round-trips via
+**Verification checklist (owner, first real login — verified 2026-07-09):**
+- [x] `/login` renders; "Sign in with Microsoft" round-trips via
       `wiredoc@outlook.com`
-- [ ] EntraJwt scheme validates the token (policy-scheme forwards on issuer)
-- [ ] `/auth/me` provisions a fresh user row (AzureObjectId set, allowlist email)
-- [ ] Lands in onboarding wizard (Phase F starts)
+- [x] EntraJwt scheme validates the token (policy-scheme forwards on issuer)
+- [x] `/auth/me` provisioned **user 21** (AzureObjectId
+      `d0f53d93-a4c5-471b-8c75-b0f3f76cf40a`, exactly one row — the
+      StrictMode dedupe + unique index held)
+- [x] Landed in onboarding wizard (Phase F starts)
 - [ ] Dev-mode escape hatch returns to simulated auth + dev users
+
+Cosmetic note: the Entra token carried `given_name` but no surname claim, so
+user 21 provisioned as "Carl User" (fallback). Onboarding/profile fills the
+real name; `IsSetupComplete` flips once FirstName+LastName+DOB+EmploymentType
+are set.
 
 **Known gap (accepted, Wave 26 scope):** API endpoints still trust the
 `userId` query parameter — the token↔userId cross-check lands with RBAC in
@@ -178,9 +185,10 @@ UI) fixed inline. One-shot MCP data copy from user 20 for anything worth keeping
 - [x] Dev-login mint + full frontend transport coverage (5 paths)
 - [x] `[Authorize]` on all user-data controllers; public surface minimized
 - [x] Provisioning service with admin allowlist, no email-linking
-- [x] `use_simulated_auth` defaults to false; login page + MSAL wiring shipped
-      (end-to-end verification = owner's first real login, checklist in Phase E)
-- [ ] First real login provisions a fresh admin user and lands in onboarding
+- [x] `use_simulated_auth` defaults to false; real MSAL login verified end-to-end
+      (2026-07-09)
+- [x] First real login provisioned a fresh admin user (user 21) and landed in
+      onboarding
 - [ ] Onboarding walk-through complete; mismatches fixed (Phase F)
 - [ ] Selective data copy from user 20 via MCP (one-shot)
 - [ ] Wave doc closeout summary
