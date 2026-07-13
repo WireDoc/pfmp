@@ -20,6 +20,8 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import EditIcon from '@mui/icons-material/Edit';
+import AddIcon from '@mui/icons-material/Add';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useDevUserId } from '../../dev/devUserState';
 import { useDashboardData } from '../../services/dashboard/useDashboardData';
@@ -27,9 +29,10 @@ import type { AccountSnapshot, PropertySnapshot, LiabilitySnapshot } from '../..
 import { fetchTspSummaryLite } from '../../services/financialProfileApi';
 import type { TspSummaryLite } from '../../services/financialProfileApi';
 import { CashAccountModal } from '../../components/accounts/CashAccountModal';
+import { AddAccountModal, type NewAccountData } from '../../components/accounts/AddAccountModal';
 import { NotePopover } from '../../components/notes/NotePopover';
 import { AccountModal } from '../../components/accounts/AccountModal';
-import { getCashAccount, updateCashAccount, deleteCashAccount, type CashAccountResponse, type CreateCashAccountRequest, type UpdateCashAccountRequest } from '../../services/cashAccountsApi';
+import { getCashAccount, createCashAccount, updateCashAccount, deleteCashAccount, CASH_ACCOUNT_TYPE_VALUES, type CashAccountResponse, type CreateCashAccountRequest, type UpdateCashAccountRequest } from '../../services/cashAccountsApi';
 import { getAccount, updateAccount, deleteAccount, type AccountResponse, type UpdateAccountRequest } from '../../services/accountsApi';
 import { CryptoAccountsCard } from '../../components/crypto/CryptoAccountsCard';
 
@@ -86,6 +89,7 @@ export function AccountsView() {
   const [tsp, setTsp] = useState<TspSummaryLite | null>(null);
   const [filter, setFilter] = useState('');
   const [cashModalOpen, setCashModalOpen] = useState(false);
+  const [addAccountOpen, setAddAccountOpen] = useState(false);
   const [editingCashAccount, setEditingCashAccount] = useState<CashAccountResponse | null>(null);
   const [editingAccount, setEditingAccount] = useState<AccountResponse | null>(null);
   const [loadingEdit, setLoadingEdit] = useState(false);
@@ -118,6 +122,29 @@ export function AccountsView() {
   const handleCashSave = async (request: CreateCashAccountRequest | UpdateCashAccountRequest, accountId?: string) => {
     if (accountId) {
       await updateCashAccount(accountId, request as UpdateCashAccountRequest);
+    }
+    refetch();
+  };
+
+  // Wave 25 Phase F: this page previously had no way to CREATE accounts —
+  // creation only existed on the dashboard's accounts panel. Same routing:
+  // cash types → CashAccounts table, everything else → unified Accounts.
+  const handleCreateAccount = async (accountData: NewAccountData) => {
+    if ((CASH_ACCOUNT_TYPE_VALUES as readonly string[]).includes(accountData.type)) {
+      await createCashAccount({
+        userId: accountData.userId,
+        institution: accountData.institution,
+        nickname: accountData.name,
+        accountType: accountData.type,
+        balance: accountData.balance,
+        purpose: accountData.purpose,
+        interestRateApr: accountData.interestRateApr,
+        rateLastChecked: accountData.rateLastChecked,
+        isEmergencyFund: accountData.isEmergencyFund,
+      });
+    } else {
+      const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052/api';
+      await axios.post(`${apiBase}/accounts`, accountData);
     }
     refetch();
   };
@@ -182,7 +209,12 @@ export function AccountsView() {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>All Accounts</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+        <Typography variant="h4">All Accounts</Typography>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddAccountOpen(true)}>
+          Add Account
+        </Button>
+      </Box>
 
       {/* Summary cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -416,6 +448,14 @@ export function AccountsView() {
         onClose={() => setEditingAccount(null)}
         onSave={handleAccountSave}
         onDelete={handleAccountDelete}
+      />
+
+      <AddAccountModal
+        open={addAccountOpen}
+        userId={userId}
+        onClose={() => setAddAccountOpen(false)}
+        onSave={handleCreateAccount}
+        onLinkSuccess={refetch}
       />
     </Box>
   );

@@ -11,9 +11,12 @@ import {
   Alert,
   Typography,
   Divider,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import { PlaidUnifiedLinkButton } from '../plaid';
+import { CASH_ACCOUNT_TYPE_VALUES } from '../../services/cashAccountsApi';
 
 interface Props {
   open: boolean;
@@ -31,11 +34,18 @@ export interface NewAccountData {
   balance: number;
   accountNumber?: string;
   purpose?: string;
+  // Cash-only extras (Wave 25 Phase F) — populated when a cash type is picked.
+  interestRateApr?: number;
+  rateLastChecked?: string; // ISO date
+  isEmergencyFund?: boolean;
 }
 
 const accountTypes = [
-  { label: 'Checking', value: 'Checking' },
-  { label: 'Savings', value: 'Savings' },
+  { label: 'Checking', value: 'checking' },
+  { label: 'Savings', value: 'savings' },
+  { label: 'High-Yield Savings', value: 'high_yield_savings' },
+  { label: 'Money Market', value: 'money_market' },
+  { label: 'CD (Certificate of Deposit)', value: 'cd' },
   { label: 'Brokerage', value: 'Brokerage' },
   { label: 'IRA', value: 'RetirementAccountIRA' },
   { label: 'Roth IRA', value: 'RetirementAccountRoth' },
@@ -45,6 +55,8 @@ const accountTypes = [
   { label: 'Real Estate', value: 'RealEstate' },
   { label: 'Other', value: 'Other' },
 ];
+
+const isCashType = (type: string) => (CASH_ACCOUNT_TYPE_VALUES as readonly string[]).includes(type);
 
 /**
  * AddAccountModal - Create new manual account or link bank
@@ -56,16 +68,19 @@ export function AddAccountModal({ open, userId, onClose, onSave, onLinkSuccess }
   const [formData, setFormData] = useState({
     name: '',
     institution: '',
-    type: 'Checking',
+    type: 'checking',
     balance: 0,
     accountNumber: '',
     purpose: '',
+    interestRateApr: 0,
+    rateLastChecked: '',
+    isEmergencyFund: false,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const handleChange = (field: keyof typeof formData, value: string | number) => {
+  const handleChange = (field: keyof typeof formData, value: string | number | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error for this field when user starts typing
     if (errors[field]) {
@@ -109,6 +124,7 @@ export function AddAccountModal({ open, userId, onClose, onSave, onLinkSuccess }
     setSaveError(null);
 
     try {
+      const cash = isCashType(formData.type);
       await onSave({
         userId,
         name: formData.name.trim(),
@@ -117,16 +133,22 @@ export function AddAccountModal({ open, userId, onClose, onSave, onLinkSuccess }
         balance: formData.balance,
         accountNumber: formData.accountNumber.trim() || undefined,
         purpose: formData.purpose.trim() || undefined,
+        interestRateApr: cash && formData.interestRateApr ? formData.interestRateApr : undefined,
+        rateLastChecked: cash && formData.rateLastChecked ? formData.rateLastChecked : undefined,
+        isEmergencyFund: cash ? formData.isEmergencyFund : undefined,
       });
 
       // Reset form on success
       setFormData({
         name: '',
         institution: '',
-        type: 'Checking',
+        type: 'checking',
         balance: 0,
         accountNumber: '',
         purpose: '',
+        interestRateApr: 0,
+        rateLastChecked: '',
+        isEmergencyFund: false,
       });
       setErrors({});
       onClose();
@@ -146,10 +168,13 @@ export function AddAccountModal({ open, userId, onClose, onSave, onLinkSuccess }
       setFormData({
         name: '',
         institution: '',
-        type: 'Checking',
+        type: 'checking',
         balance: 0,
         accountNumber: '',
         purpose: '',
+        interestRateApr: 0,
+        rateLastChecked: '',
+        isEmergencyFund: false,
       });
       setErrors({});
       setSaveError(null);
@@ -291,6 +316,43 @@ export function AddAccountModal({ open, userId, onClose, onSave, onLinkSuccess }
             fullWidth
             disabled={saving}
           />
+
+          {/* Cash-only fields (Wave 25 Phase F) — these are first-class columns
+              on CashAccounts; previously this dialog silently dropped them. */}
+          {isCashType(formData.type) && (
+            <>
+              <TextField
+                label="Interest Rate (APR %)"
+                type="number"
+                value={formData.interestRateApr}
+                onChange={(e) => handleChange('interestRateApr', parseFloat(e.target.value) || 0)}
+                helperText='e.g., 4.5 for 4.5%'
+                fullWidth
+                disabled={saving}
+                inputProps={{ min: 0, max: 100, step: 0.01 }}
+              />
+              <TextField
+                label="Rate Last Checked (Optional)"
+                type="date"
+                value={formData.rateLastChecked}
+                onChange={(e) => handleChange('rateLastChecked', e.target.value)}
+                helperText="When you last verified this rate with the bank"
+                fullWidth
+                disabled={saving}
+                InputLabelProps={{ shrink: true }}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={formData.isEmergencyFund}
+                    onChange={(e) => handleChange('isEmergencyFund', e.target.checked)}
+                    disabled={saving}
+                  />
+                }
+                label="This is my emergency fund"
+              />
+            </>
+          )}
         </Box>
       </DialogContent>
       <DialogActions>

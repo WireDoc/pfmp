@@ -45,6 +45,7 @@ public class CashAccountsController : ControllerBase
             RoutingNumber = a.RoutingNumber,
             Balance = a.Balance,
             InterestRateApr = a.InterestRateApr,
+            RateLastChecked = a.RateLastChecked,
             Purpose = a.Purpose,
             IsEmergencyFund = a.IsEmergencyFund,
             HasBeneficiaryDesignation = a.HasBeneficiaryDesignation,
@@ -82,6 +83,7 @@ public class CashAccountsController : ControllerBase
             RoutingNumber = account.RoutingNumber,
             Balance = account.Balance,
             InterestRateApr = account.InterestRateApr,
+            RateLastChecked = account.RateLastChecked,
             Purpose = account.Purpose,
             IsEmergencyFund = account.IsEmergencyFund,
             HasBeneficiaryDesignation = account.HasBeneficiaryDesignation,
@@ -105,8 +107,10 @@ public class CashAccountsController : ControllerBase
             AccountType = request.AccountType,
             Balance = request.Balance,
             InterestRateApr = request.InterestRateApr,
+            RateLastChecked = request.RateLastChecked,
             Purpose = request.Purpose,
             IsEmergencyFund = request.IsEmergencyFund,
+            HasBeneficiaryDesignation = request.HasBeneficiaryDesignation,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -125,6 +129,7 @@ public class CashAccountsController : ControllerBase
             AccountType = account.AccountType,
             Balance = account.Balance,
             InterestRateApr = account.InterestRateApr,
+            RateLastChecked = account.RateLastChecked,
             Purpose = account.Purpose,
             IsEmergencyFund = account.IsEmergencyFund,
             HasBeneficiaryDesignation = account.HasBeneficiaryDesignation,
@@ -160,6 +165,7 @@ public class CashAccountsController : ControllerBase
         if (request.RoutingNumber != null) account.RoutingNumber = request.RoutingNumber;
         if (request.Balance.HasValue) account.Balance = request.Balance.Value;
         if (request.InterestRateApr.HasValue) account.InterestRateApr = request.InterestRateApr;
+        if (request.RateLastChecked.HasValue) account.RateLastChecked = request.RateLastChecked;
         if (request.Purpose != null) account.Purpose = request.Purpose;
         if (request.IsEmergencyFund.HasValue) account.IsEmergencyFund = request.IsEmergencyFund.Value;
         if (request.HasBeneficiaryDesignation.HasValue) account.HasBeneficiaryDesignation = request.HasBeneficiaryDesignation.Value;
@@ -180,11 +186,13 @@ public class CashAccountsController : ControllerBase
             RoutingNumber = account.RoutingNumber,
             Balance = account.Balance,
             InterestRateApr = account.InterestRateApr,
+            RateLastChecked = account.RateLastChecked,
             Purpose = account.Purpose,
             IsEmergencyFund = account.IsEmergencyFund,
             HasBeneficiaryDesignation = account.HasBeneficiaryDesignation,
             CreatedAt = account.CreatedAt,
-            UpdatedAt = account.UpdatedAt
+            UpdatedAt = account.UpdatedAt,
+            Source = (int)account.Source
         });
     }
 
@@ -297,6 +305,7 @@ public class CashAccountResponse
     public string? RoutingNumber { get; set; }
     public decimal Balance { get; set; }
     public decimal? InterestRateApr { get; set; }
+    public DateTime? RateLastChecked { get; set; }
     public string? Purpose { get; set; }
     public bool IsEmergencyFund { get; set; }
     public bool HasBeneficiaryDesignation { get; set; }
@@ -326,12 +335,16 @@ public class CreateCashAccountRequest
     
     public decimal? InterestRateApr { get; set; }
 
+    public DateTime? RateLastChecked { get; set; }
+
     // Matches CashAccount.Purpose column cap (2000) so DTO model-validation doesn't
     // 400 a request before the controller action ever runs.
     [StringLength(2000)]
     public string? Purpose { get; set; }
 
     public bool IsEmergencyFund { get; set; }
+
+    public bool HasBeneficiaryDesignation { get; set; }
 }
 
 public class UpdateCashAccountRequest
@@ -354,6 +367,8 @@ public class UpdateCashAccountRequest
     public decimal? Balance { get; set; }
 
     public decimal? InterestRateApr { get; set; }
+
+    public DateTime? RateLastChecked { get; set; }
 
     // Matches CashAccount.Purpose column cap (2000) â€” see comment on CreateCashAccountRequest.Purpose.
     [StringLength(2000)]

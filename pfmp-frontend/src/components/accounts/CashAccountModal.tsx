@@ -32,12 +32,15 @@ interface Props {
   onDelete?: (accountId: string) => Promise<void>;
 }
 
+// Values match the onboarding cash section's stored vocabulary.
 const accountTypes = [
   { value: 'checking', label: 'Checking' },
   { value: 'savings', label: 'Savings' },
+  { value: 'high_yield_savings', label: 'High-Yield Savings' },
   { value: 'money_market', label: 'Money Market' },
   { value: 'cd', label: 'CD (Certificate of Deposit)' },
   { value: 'hsa', label: 'HSA (Health Savings Account)' },
+  { value: 'other', label: 'Other' },
 ];
 
 export function CashAccountModal({ open, userId, account, onClose, onSave, onDelete }: Props) {
@@ -52,6 +55,7 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
     routingNumber: account?.routingNumber || '',
     balance: account?.balance || 0,
     interestRateApr: account?.interestRateApr || 0,
+    rateLastChecked: account?.rateLastChecked ? account.rateLastChecked.slice(0, 10) : '',
     purpose: account?.purpose || '',
     isEmergencyFund: account?.isEmergencyFund || false,
     hasBeneficiaryDesignation: account?.hasBeneficiaryDesignation || false,
@@ -73,6 +77,7 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
         routingNumber: account.routingNumber || '',
         balance: account.balance,
         interestRateApr: account.interestRateApr || 0,
+        rateLastChecked: account.rateLastChecked ? account.rateLastChecked.slice(0, 10) : '',
         purpose: account.purpose || '',
         isEmergencyFund: account.isEmergencyFund,
         hasBeneficiaryDesignation: account.hasBeneficiaryDesignation,
@@ -129,11 +134,14 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
         const updateRequest: UpdateCashAccountRequest = {
           nickname: formData.nickname.trim() || undefined,
           institution: formData.institution.trim(),
+          accountType: isLinked ? undefined : formData.accountType,
           accountNumber: formData.accountNumber.trim() || undefined,
           routingNumber: formData.routingNumber.trim() || undefined,
           balance: formData.balance,
           interestRateApr: formData.interestRateApr || undefined,
+          rateLastChecked: formData.rateLastChecked || undefined,
           purpose: formData.purpose.trim() || undefined,
+          isEmergencyFund: formData.isEmergencyFund,
           hasBeneficiaryDesignation: formData.hasBeneficiaryDesignation,
         };
         await onSave(updateRequest, account!.cashAccountId);
@@ -146,8 +154,10 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
           accountType: formData.accountType,
           balance: formData.balance,
           interestRateApr: formData.interestRateApr || undefined,
+          rateLastChecked: formData.rateLastChecked || undefined,
           purpose: formData.purpose.trim() || undefined,
           isEmergencyFund: formData.isEmergencyFund,
+          hasBeneficiaryDesignation: formData.hasBeneficiaryDesignation,
         };
         await onSave(createRequest);
       }
@@ -174,6 +184,7 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
       routingNumber: '',
       balance: 0,
       interestRateApr: 0,
+      rateLastChecked: '',
       purpose: '',
       isEmergencyFund: false,
       hasBeneficiaryDesignation: false,
@@ -322,6 +333,17 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
           />
 
           <TextField
+            label="Rate Last Checked (Optional)"
+            type="date"
+            value={formData.rateLastChecked}
+            onChange={(e) => handleChange('rateLastChecked', e.target.value)}
+            helperText="When you last verified this rate with the bank"
+            fullWidth
+            disabled={saving}
+            InputLabelProps={{ shrink: true }}
+          />
+
+          <TextField
             label="Purpose (Optional)"
             value={formData.purpose}
             onChange={(e) => handleChange('purpose', e.target.value)}
@@ -332,18 +354,16 @@ export function CashAccountModal({ open, userId, account, onClose, onSave, onDel
             rows={2}
           />
 
-          {!isEditMode && (
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={formData.isEmergencyFund}
-                  onChange={(e) => handleChange('isEmergencyFund', e.target.checked)}
-                  disabled={saving}
-                />
-              }
-              label="This is my emergency fund"
-            />
-          )}
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={formData.isEmergencyFund}
+                onChange={(e) => handleChange('isEmergencyFund', e.target.checked)}
+                disabled={saving}
+              />
+            }
+            label="This is my emergency fund"
+          />
 
           <FormControlLabel
             control={

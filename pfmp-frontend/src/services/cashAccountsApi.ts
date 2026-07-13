@@ -7,6 +7,13 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5052';
 
+/**
+ * Canonical cash account-type values (matches the onboarding cash section's
+ * stored vocabulary). Account types in this list route to the CashAccounts
+ * table; everything else goes to the unified Accounts table.
+ */
+export const CASH_ACCOUNT_TYPE_VALUES = ['checking', 'savings', 'high_yield_savings', 'money_market', 'cd'] as const;
+
 export interface CashAccountResponse {
   cashAccountId: string;
   userId: number;
@@ -17,6 +24,7 @@ export interface CashAccountResponse {
   routingNumber?: string;
   balance: number;
   interestRateApr?: number;
+  rateLastChecked?: string; // ISO date
   purpose?: string;
   isEmergencyFund: boolean;
   hasBeneficiaryDesignation: boolean;
@@ -32,6 +40,7 @@ export interface CreateCashAccountRequest {
   accountType: string;
   balance: number;
   interestRateApr?: number;
+  rateLastChecked?: string; // ISO date
   purpose?: string;
   isEmergencyFund?: boolean;
   hasBeneficiaryDesignation?: boolean;
@@ -40,11 +49,15 @@ export interface CreateCashAccountRequest {
 export interface UpdateCashAccountRequest {
   nickname?: string;
   institution?: string;
+  accountType?: string;
   accountNumber?: string;
   routingNumber?: string;
   balance?: number;
   interestRateApr?: number;
+  rateLastChecked?: string; // ISO date
   purpose?: string;
+  isEmergencyFund?: boolean;
+  hasBeneficiaryDesignation?: boolean;
 }
 
 /**

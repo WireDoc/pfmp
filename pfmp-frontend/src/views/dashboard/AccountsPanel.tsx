@@ -11,6 +11,7 @@ import { EmptyState } from '../../components/empty-states/EmptyState';
 import { CashAccountModal } from '../../components/accounts/CashAccountModal';
 import { AccountModal } from '../../components/accounts/AccountModal';
 import { AddAccountModal, type NewAccountData } from '../../components/accounts/AddAccountModal';
+import { CASH_ACCOUNT_TYPE_VALUES } from '../../services/cashAccountsApi';
 import { CsvImportModal } from '../../components/accounts/CsvImportModal';
 import { createCashAccount, updateCashAccount, getCashAccount, deleteCashAccount, type CreateCashAccountRequest, type UpdateCashAccountRequest, type CashAccountResponse } from '../../services/cashAccountsApi';
 import { getAccount, updateAccount, deleteAccount, type AccountResponse, type UpdateAccountRequest } from '../../services/accountsApi';
@@ -42,19 +43,20 @@ export const AccountsPanel: React.FC<Props> = ({ data, loading, userId, onRefres
     setAddAccountModalOpen(true);
   };
 
-  const cashAccountTypes = ['Checking', 'Savings', 'Money Market', 'Certificate of Deposit'];
-
   const handleCreateAccount = async (accountData: NewAccountData) => {
     try {
-      if (cashAccountTypes.includes(accountData.type)) {
-        // Cash-type accounts go to CashAccounts table
+      if ((CASH_ACCOUNT_TYPE_VALUES as readonly string[]).includes(accountData.type)) {
+        // Cash-type accounts go to CashAccounts table (type value is already canonical)
         await createCashAccount({
           userId: accountData.userId,
           institution: accountData.institution,
           nickname: accountData.name,
-          accountType: accountData.type.toLowerCase().replace(/ /g, '_'),
+          accountType: accountData.type,
           balance: accountData.balance,
           purpose: accountData.purpose,
+          interestRateApr: accountData.interestRateApr,
+          rateLastChecked: accountData.rateLastChecked,
+          isEmergencyFund: accountData.isEmergencyFund,
         });
       } else {
         // Investment/other accounts go to Accounts table
