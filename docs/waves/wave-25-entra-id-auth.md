@@ -1,6 +1,6 @@
 # Wave 25 — Microsoft Entra ID Auth + First Real Login + Onboarding Audit
 
-**Status:** 🟡 Nearly complete — Phases A–F done (first real login 2026-07-09 provisioned user 21; Phase F onboarding audit closed 2026-07-13 with a clean DB-vs-template diff). Remaining: optional one-shot data copy from user 20 + closeout
+**Status:** 🟡 Nearly complete — Phases A–F done (first real login 2026-07-09 provisioned user 21; Phase F onboarding audit closed 2026-07-13 with a clean DB-vs-template diff; user 20's real data migrated to user 21 on 2026-07-14, dashboard parity verified). Remaining: owner verification of the migrated data + closeout summary
 **Owner:** Solo project; user is sole customer
 **Campaign:** First wave of Phase 5 (Production Readiness) — see `docs/history/roadmap.md` § "Phase 5: Production Readiness Campaign" for the full 4-wave plan (25: auth, 26: RBAC + admin, 27: Plaid prod, 28: hardening + deploy)
 **Predecessors:** Wave 22-24 (app feature-complete for single-user daily use)
@@ -160,7 +160,8 @@ commit; schema migration `Wave25b_ValuationProviderSelection`.
       `d0f53d93-a4c5-471b-8c75-b0f3f76cf40a`, exactly one row — the
       StrictMode dedupe + unique index held)
 - [x] Landed in onboarding wizard (Phase F starts)
-- [ ] Dev-mode escape hatch returns to simulated auth + dev users
+- [x] Dev-mode escape hatch — "Use simulated dev auth instead" confirmed
+      present on the login page (owner, 2026-07-14)
 
 Cosmetic note: the Entra token carried `given_name` but no surname claim, so
 user 21 provisioned as "Carl User" (fallback). Onboarding/profile fills the
@@ -217,9 +218,22 @@ cash $53,800 · investments (non-TSP) $166,850 · TSP ~$161,148 (units × cached
 prices) · property equity $147,000 · liabilities (non-mortgage) $33,950 ·
 net worth $494,848.
 
-Remaining: one-shot MCP data copy from user 20 for anything worth keeping
-(owner decision pending — note user 21 currently holds the fictitious fixture
-data, which needs replacing with real data either way).
+**Data migration (2026-07-14):** owner chose a full copy of user 20's real
+data. Executed via MCP: user 21's fixture rows backed up to in-DB schema
+`backup_u21_fixture_20260714` (74 rows; nightly dump `pfmp_dev_20260714_020001`
+as second restore point), fixture rows wiped, `clone_user_data` copied the 17
+parent tables, and the tool's misses were gap-filled manually — child tables
+(Holdings 8, Transactions 42, CashTransactions 8, PropertyValueHistory 11,
+CryptoHoldings/TaxLots/Transactions 2/1/1, AIConversations 3 + AIMessages 13)
+inserted with ID remapping, the salary allotment's cash-account GUID re-pointed,
+and the Users row's financial/profile columns copied (identity/auth columns —
+AzureObjectId, email, BypassAuthentication=false — preserved; PreferredName set
+to the owner's real given name). Verified: user 21's dashboard summary is
+byte-identical to user 20's (net worth $874,296.38, same per-type balances,
+7 accounts). Caveat: both users now hold the same crypto exchange credentials,
+so scheduled syncs hit Kraken/BinanceUS twice — deactivate user 20's
+`ExchangeConnections` if that becomes noisy (Wave 26 dev-toggle work decides
+user 20's fate anyway).
 
 ---
 
@@ -236,6 +250,7 @@ data, which needs replacing with real data either way).
 - [x] Onboarding walk-through complete; mismatches fixed (Phase F, closed
       2026-07-13 — persistence audit diffed every DB row against the fixture
       template, 15/16 exact + intentional opt-out)
-- [ ] Selective data copy from user 20 via MCP (one-shot; owner decision on
-      what to keep — user 21 currently holds fictitious fixture data)
+- [x] Data copy from user 20 via MCP (one-shot, 2026-07-14 — owner chose full
+      copy; fixture data backed up then replaced; dashboard parity verified.
+      Awaiting owner verification in the app)
 - [ ] Wave doc closeout summary
