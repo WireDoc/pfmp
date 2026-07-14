@@ -1,9 +1,14 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/auth/useAuth';
 import { LogoMark } from '../components/branding/LogoMark';
+import { AdminDevUserSwitch } from '../dev/AdminDevUserSwitch';
+import { useDevUserId } from '../dev/devUserState';
 
 export function HeaderBar() {
-  const { user, isAuthenticated, isDev, logout } = useAuth();
+  const { user, isAuthenticated, isDev, logout, isAdmin, realUserId } = useAuth();
+  const activeUserId = useDevUserId();
+  // Wave 26 — admin viewing the app as a dev user (real token, re-pointed user store).
+  const impersonating = !isDev && isAdmin && realUserId != null && activeUserId != null && activeUserId !== realUserId;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -14,6 +19,11 @@ export function HeaderBar() {
         </div>
         {isDev && (
           <span style={{ marginLeft: 8, padding: '2px 6px', background: '#fbbf24', color: '#111827', borderRadius: 4, fontSize: 12 }}>DEV</span>
+        )}
+        {impersonating && (
+          <span style={{ marginLeft: 8, padding: '2px 6px', background: '#f97316', color: '#111827', borderRadius: 4, fontSize: 12 }}>
+            VIEWING USER {activeUserId}
+          </span>
         )}
         <span style={{ marginLeft: 8, fontSize: 11, color: '#94a3b8' }}>v0.7.0-alpha</span>
       </div>
@@ -64,6 +74,8 @@ export function HeaderBar() {
       </nav>
 
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12, fontSize: 12, color: '#e2e8f0' }}>
+        {/* Wave 26 — admin-only dev-user switch (renders nothing for non-admins / simulated mode) */}
+        <AdminDevUserSwitch />
         <span>{isAuthenticated ? `User: ${user?.name || 'SimUser'}` : 'Guest'}</span>
         {/* Wave 25 Phase E: real-auth sessions need a way out (ends the MSAL
             session via logoutRedirect). Hidden in simulated mode — the dev

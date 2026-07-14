@@ -10,6 +10,7 @@ import { SIMULATED_USERS } from './simulatedUsers';
 import type { AuthContextType, AuthProviderProps } from './types';
 import { setAuthToken, clearAuthToken, getAuthToken, authFetch } from '../../services/authToken';
 import { getDevUserId, setDevUserId, subscribeDevUser } from '../../dev/devUserState';
+import { getImpersonatedUserId, setImpersonatedUserId } from '../../dev/adminImpersonation';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:5052/api';
 
@@ -86,7 +87,7 @@ async function acquireEntraApiToken(account: AccountInfo): Promise<boolean> {
     }
 }
 
-interface MeResponse { userId: number; email: string | null; firstName: string | null; lastName: string | null; isSetupComplete: boolean }
+interface MeResponse { userId: number; email: string | null; firstName: string | null; lastName: string | null; isSetupComplete: boolean; isAdmin: boolean }
 type MeResult = { ok: true; me: MeResponse } | { ok: false; status: number; message: string };
 
 /**
@@ -117,7 +118,7 @@ async function resolveCurrentUser(): Promise<MeResult> {
 
 type RealInitOutcome =
     | { status: 'signed-out' }
-    | { status: 'ok'; account: AccountInfo }
+    | { status: 'ok'; account: AccountInfo; me: MeResponse }
     | { status: 'rejected'; message: string };
 
 // Deduped real-mode initialization. React StrictMode double-mounts the provider,
@@ -157,12 +158,21 @@ function initializeRealAuth(): Promise<RealInitOutcome> {
                     return { status: 'rejected', message: me.message };
                 }
 
-                // Repoint the current-user store at the real PFMP user so every
-                // view that resolves userId from it targets the right rows.
-                if (getDevUserId() !== me.me.userId) {
-                    setDevUserId(me.me.userId);
+                // Repoint the current-user store. Wave 26: an admin with a
+                // persisted dev-user impersonation resumes viewing as that
+                // user (their own Entra token stays the bearer — the backend
+                // ownership filter exempts admins). Everyone else lands on
+                // their own userId; stale impersonation state for non-admins
+                // is cleared defensively.
+                if (!me.me.isAdmin) {
+                    setImpersonatedUserId(null);
                 }
-                return { status: 'ok', account };
+                const impersonated = me.me.isAdmin ? getImpersonatedUserId() : null;
+                const effectiveUserId = impersonated ?? me.me.userId;
+                if (getDevUserId() !== effectiveUserId) {
+                    setDevUserId(effectiveUserId);
+                }
+                return { status: 'ok', account, me: me.me };
             } finally {
                 // Allow future re-inits (e.g. simulated-auth flag flipped off later).
                 realInitInFlight = null;
@@ -187,6 +197,8 @@ export const AuthProvider: React.FC<InternalAuthProviderProps> = ({ children, __
     const [user, setUser] = useState<AccountInfo | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    // Wave 26 — the /auth/me identity behind a real session (null in simulated mode).
+    const [me, setMe] = useState<MeResponse | null>(null);
 
     // Wave 25 Phase E: "dev mode" now means SIMULATED AUTH IS ACTIVE, not
     // "running under the Vite dev server". Real MSAL login in a dev build is
@@ -228,6 +240,7 @@ export const AuthProvider: React.FC<InternalAuthProviderProps> = ({ children, __
                     return;
                 }
                 setUser(outcome.account);
+                setMe(outcome.me);
                 setIsAuthenticated(true);
                 setError(null);
             } catch (err) {
@@ -293,11 +306,15 @@ export const AuthProvider: React.FC<InternalAuthProviderProps> = ({ children, __
                 setError(null);
                 return;
             }
+            // Ending the session also ends any dev-user impersonation — the
+            // next sign-in starts on the admin's own data.
+            setImpersonatedUserId(null);
             await msalInstance.logoutRedirect({
                 postLogoutRedirectUri: msalConfig.auth.postLogoutRedirectUri,
             });
             setIsAuthenticated(false);
             setUser(null);
+            setMe(null);
             setError(null);
         } catch (err: unknown) {
             console.error('Logout error:', err);
@@ -356,6 +373,8 @@ export const AuthProvider: React.FC<InternalAuthProviderProps> = ({ children, __
         isDev: simulate,
         switchUser,
         availableUsers: SIMULATED_USERS,
+        isAdmin: !simulate && (me?.isAdmin ?? false),
+        realUserId: !simulate ? (me?.userId ?? null) : null,
     };
 
     return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;

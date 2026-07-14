@@ -24,6 +24,11 @@ export interface AuthContextType {
     isDev: boolean;
     switchUser: (userIndex: number) => void;
     availableUsers: SimulatedUser[];
+    // Wave 26 — real-auth mode extras (false/null in simulated mode)
+    /** Whether the authenticated PFMP user has the admin role. */
+    isAdmin: boolean;
+    /** The PFMP userId behind the real token — stays fixed while impersonating a dev user. */
+    realUserId: number | null;
 }
 
 export interface AuthProviderProps {

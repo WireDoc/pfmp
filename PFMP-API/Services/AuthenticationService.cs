@@ -556,5 +556,6 @@ namespace PFMP_API.Services
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public bool IsSetupComplete { get; set; }
+        public bool IsAdmin { get; set; } // Wave 26 — frontend gates the dev-user switch on this
     }
 }

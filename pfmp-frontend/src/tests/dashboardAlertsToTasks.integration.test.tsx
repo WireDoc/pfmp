@@ -36,6 +36,8 @@ function createAuthContext(): AuthContextType {
     isDev: false,
     switchUser: () => {},
     availableUsers: [],
+    isAdmin: false,
+    realUserId: null,
   } satisfies AuthContextType;
 }
 

@@ -226,6 +226,7 @@ namespace PFMP_API.Controllers
                     Email = user.Email,
                     FirstName = user.FirstName,
                     LastName = user.LastName,
+                    IsAdmin = user.IsAdmin,
                     IsSetupComplete = !string.IsNullOrEmpty(user.FirstName)
                                      && !string.IsNullOrEmpty(user.LastName)
                                      && user.DateOfBirth.HasValue
