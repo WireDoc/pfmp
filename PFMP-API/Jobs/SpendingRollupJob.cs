@@ -30,11 +30,13 @@ public class SpendingRollupJob
         var anomaly = scope.ServiceProvider.GetRequiredService<IAnomalyDetectionService>();
         var alerts = scope.ServiceProvider.GetRequiredService<ISpendingAlertService>();
 
-        // Only recompute for users with cash transactions (avoids churn on empty profiles)
+        // Only recompute for ACTIVE users with cash/liability data (avoids churn
+        // on empty profiles; Wave 26 — deactivated users go quiet).
         var userIds = await db.CashAccounts
             .Select(a => a.UserId)
             .Union(db.LiabilityAccounts.Select(l => l.UserId))
             .Distinct()
+            .Where(id => db.Users.Any(u => u.UserId == id && u.IsActive))
             .ToListAsync(cancellationToken);
 
         _logger.LogInformation("SpendingRollupJob starting for {Count} user(s)", userIds.Count);

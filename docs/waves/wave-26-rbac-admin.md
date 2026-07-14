@@ -74,6 +74,14 @@ Work order (commit + owner verification checkpoint after each chunk):
    includes it — ~$161k apart)
 4. VA disability unification on `IncomeStreams`; retire legacy `IncomeSources`
    table + `VADisabilityTracker` component
+5. Quiet recurring jobs for deactivated users (owner request 2026-07-14: "I
+   want to quiet the app for these as I stop testing, but be able to bring
+   them back online"). All reversible query-time filters on `Users.IsActive`:
+   FMP price refresh + symbol-metrics universe (symbols now derive from
+   active owners' holdings only), Plaid sync, crypto exchange sync, property
+   valuation refresh (RentCast/FHFA quota), spending rollups. Already
+   filtered before this wave: net-worth snapshots, news ingestion/digests.
+   Global market data (TSP fund prices, benchmarks) intentionally unfiltered.
 
 ## Acceptance criteria
 

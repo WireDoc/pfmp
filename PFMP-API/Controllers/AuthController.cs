@@ -24,7 +24,6 @@ namespace PFMP_API.Controllers
         private readonly ILogger<AuthController> _logger;
         private readonly IConfiguration _configuration;
         private readonly IWebHostEnvironment _env;
-        private readonly bool _bypassAuthentication;
 
         public AuthController(
             IAuthenticationService authService,
@@ -40,7 +39,6 @@ namespace PFMP_API.Controllers
             _logger = logger;
             _configuration = configuration;
             _env = env;
-            _bypassAuthentication = _configuration.GetValue<bool>("Development:BypassAuthentication", false);
         }
 
         /// <summary>
@@ -345,7 +343,6 @@ namespace PFMP_API.Controllers
         {
             return Ok(new AuthConfig
             {
-                BypassAuthentication = _bypassAuthentication,
                 AzureEnabled = !string.IsNullOrEmpty(_configuration["AzureAD:ClientId"]),
                 LocalAuthEnabled = true,
                 RegistrationEnabled = _configuration.GetValue<bool>("Authentication:RegistrationEnabled", true)
@@ -401,7 +398,6 @@ namespace PFMP_API.Controllers
     /// </summary>
     public class AuthConfig
     {
-        public bool BypassAuthentication { get; set; }
         public bool AzureEnabled { get; set; }
         public bool LocalAuthEnabled { get; set; }
         public bool RegistrationEnabled { get; set; }

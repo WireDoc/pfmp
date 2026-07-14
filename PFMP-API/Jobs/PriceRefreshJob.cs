@@ -69,6 +69,7 @@ public class PriceRefreshJob
                 .Where(a => a.IsBackgroundRefreshEnabled)
                 .Where(a => a.LifecycleState == "Active")
                 .Where(a => !a.User.IsTestAccount)
+                .Where(a => a.User.IsActive) // Wave 26 — deactivated users don't drive FMP calls
                 .Where(a => a.Holdings.Any())
                 .ToListAsync(cancellationToken);
 

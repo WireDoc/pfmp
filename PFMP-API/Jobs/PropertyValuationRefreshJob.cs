@@ -44,8 +44,10 @@ public class PropertyValuationRefreshJob
             return;
         }
 
+        // Wave 26 — deactivated owners don't spend RentCast/FHFA quota.
         var candidateCount = await _context.Properties
-            .CountAsync(p => p.AutoValuationEnabled, cancellationToken);
+            .CountAsync(p => p.AutoValuationEnabled
+                && _context.Users.Any(u => u.UserId == p.UserId && u.IsActive), cancellationToken);
 
         // Sanity cap — protects against runaway test data filling pfmp_dev.
         // Free-tier RentCast = 50 calls/month; threshold default 50, override via PropertyValuation:MaxMonthlyValuationCalls.
@@ -66,6 +68,7 @@ public class PropertyValuationRefreshJob
 
         var userIds = await _context.Properties
             .Where(p => p.AutoValuationEnabled)
+            .Where(p => _context.Users.Any(u => u.UserId == p.UserId && u.IsActive))
             .Select(p => p.UserId)
             .Distinct()
             .ToListAsync(cancellationToken);

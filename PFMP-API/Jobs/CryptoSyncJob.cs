@@ -29,6 +29,8 @@ namespace PFMP_API.Jobs
 
             var ids = await db.ExchangeConnections
                 .Where(c => c.Status == ExchangeConnectionStatus.Active || c.Status == ExchangeConnectionStatus.Error)
+                // Wave 26 — deactivated owners' exchange syncs go quiet too
+                .Where(c => c.User.IsActive)
                 .Select(c => c.ExchangeConnectionId)
                 .ToListAsync(cancellationToken);
 

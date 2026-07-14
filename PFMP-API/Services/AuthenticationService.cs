@@ -39,9 +39,6 @@ namespace PFMP_API.Services
         private readonly string? _azureTenantId;
         private readonly string? _azureClientId;
         private readonly string? _azureClientSecret;
-        
-        // Developer bypass mode
-        private readonly bool _bypassAuthentication;
 
         public AuthenticationService(
             PFMP_API.ApplicationDbContext context,
@@ -66,14 +63,6 @@ namespace PFMP_API.Services
             _azureTenantId = _configuration["AzureAD:TenantId"];
             _azureClientId = _configuration["AzureAD:ClientId"];
             _azureClientSecret = _configuration["AzureAD:ClientSecret"];
-            
-            // Developer bypass mode
-            _bypassAuthentication = _configuration.GetValue<bool>("Development:BypassAuthentication", false);
-
-            if (_bypassAuthentication)
-            {
-                _logger.LogWarning("Authentication bypass is ENABLED. This should only be used in development!");
-            }
         }
 
         public async Task<User> GetOrCreateUserFromClaimsAsync(ClaimsPrincipal claims)
@@ -143,12 +132,6 @@ namespace PFMP_API.Services
         {
             try
             {
-                if (_bypassAuthentication)
-                {
-                    _logger.LogInformation("Authentication bypassed for development - email: {Email}", email);
-                    return await CreateDevelopmentAuthResult(email);
-                }
-
                 if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
                 {
                     return AuthenticationResult.Failure("Email and password are required");
@@ -189,12 +172,6 @@ namespace PFMP_API.Services
         {
             try
             {
-                if (_bypassAuthentication)
-                {
-                    _logger.LogInformation("Registration bypassed for development - email: {Email}", request.Email);
-                    return await CreateDevelopmentAuthResult(request.Email);
-                }
-
                 // Validate request
                 if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
                 {
@@ -246,12 +223,6 @@ namespace PFMP_API.Services
         {
             try
             {
-                if (_bypassAuthentication)
-                {
-                    _logger.LogInformation("Azure authentication bypassed for development");
-                    return await CreateDevelopmentAuthResult("dev.user@pfmp.local");
-                }
-
                 // Validate Azure JWT token
                 var azureClaims = await ValidateAzureTokenAsync(azureToken);
                 if (azureClaims == null)
@@ -274,11 +245,6 @@ namespace PFMP_API.Services
         {
             try
             {
-                if (_bypassAuthentication)
-                {
-                    return await CreateDevelopmentAuthResult("dev.user@pfmp.local");
-                }
-
                 // In production, implement refresh token validation
                 // For now, return failure
                 return AuthenticationResult.Failure("Refresh token not implemented");
@@ -363,59 +329,6 @@ namespace PFMP_API.Services
                     IsSetupComplete = IsUserSetupComplete(user)
                 }
             };
-        }
-
-        private async Task<AuthenticationResult> CreateDevelopmentAuthResult(string email)
-        {
-            try
-            {
-                // In development mode, try to find existing user or use default test user
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
-                
-                if (user == null)
-                {
-                    var defaultUserId = _configuration.GetValue<int>("Development:DefaultTestUserId", 1);
-                    user = await _context.Users.FindAsync(defaultUserId);
-                    
-                    if (user == null)
-                    {
-                        // Create a development user
-                        user = new User
-                        {
-                            Email = email,
-                            FirstName = "Development",
-                            LastName = "User",
-                            IsActive = true,
-                            LastLoginAt = DateTime.UtcNow,
-                            CreatedAt = DateTime.UtcNow,
-                            UpdatedAt = DateTime.UtcNow
-                        };
-                        _context.Users.Add(user);
-                        await _context.SaveChangesAsync();
-                    }
-                }
-
-                return CreateSuccessfulAuthResult(user);
-            }
-            catch (Exception ex)
-            {
-                // If database is not available, create a mock user for development
-                _logger.LogWarning(ex, "Database not available in development mode, creating mock user");
-                
-                var mockUser = new User
-                {
-                    UserId = 1,
-                    Email = email,
-                    FirstName = "Development",
-                    LastName = "User",
-                    IsActive = true,
-                    LastLoginAt = DateTime.UtcNow,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-
-                return CreateSuccessfulAuthResult(mockUser);
-            }
         }
 
         private string GenerateJwtToken(User user)

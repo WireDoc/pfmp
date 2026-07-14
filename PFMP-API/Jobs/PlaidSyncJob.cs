@@ -38,9 +38,11 @@ namespace PFMP_API.Jobs
             var investmentsService = scope.ServiceProvider.GetRequiredService<IPlaidInvestmentsService>();
             var liabilitiesService = scope.ServiceProvider.GetRequiredService<IPlaidLiabilitiesService>();
 
-            // Get all active connections
+            // Get all active connections. Wave 26: a deactivated owner quiets
+            // their Plaid syncs too — reactivation picks them back up.
             var connections = await db.AccountConnections
                 .Where(c => c.Status == SyncStatus.Connected)
+                .Where(c => c.User.IsActive)
                 .ToListAsync();
 
             _logger.LogInformation("Found {Count} active Plaid connections to sync", connections.Count);

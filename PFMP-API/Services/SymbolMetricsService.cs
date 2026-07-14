@@ -109,6 +109,8 @@ public class SymbolMetricsService : ISymbolMetricsService
     {
         var symbols = await _context.Holdings
             .Where(h => h.Symbol != null && h.Symbol != "")
+            // Wave 26 — only active owners' holdings define the refresh universe
+            .Where(h => h.Account.User.IsActive)
             .Select(h => h.Symbol!)
             .Distinct()
             .ToListAsync(cancellationToken);
