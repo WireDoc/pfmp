@@ -18,28 +18,56 @@ public class UserAdminController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
     private readonly IWebHostEnvironment _env;
+    private readonly PFMP_API.Services.Auth.ICurrentUserContext _currentUser;
 
-    public UserAdminController(ApplicationDbContext db, IWebHostEnvironment env)
+    public UserAdminController(ApplicationDbContext db, IWebHostEnvironment env, PFMP_API.Services.Auth.ICurrentUserContext currentUser)
     {
         _db = db;
         _env = env;
+        _currentUser = currentUser;
     }
 
     private bool IsAllowedEnv() => _env.IsDevelopment() || _env.IsEnvironment("Testing");
 
     /// <summary>
-    /// List users (limited fields). Intended for quick dev/test discovery.
+    /// List users. Wave 26: no longer environment-gated — the AdminOnly policy
+    /// is the gate, and the admin users page needs this in every environment.
     /// </summary>
     [HttpGet]
     public async Task<ActionResult<IEnumerable<UserDto>>> ListUsers(CancellationToken ct = default)
     {
-        if (!IsAllowedEnv()) return NotFound();
         var users = await _db.Users
             .OrderBy(u => u.UserId)
-            .Select(u => new UserDto(u.UserId, u.FirstName, u.LastName, u.Email, u.CreatedAt, u.IsTestAccount, u.BypassAuthentication))
+            .Select(u => new UserDto(u.UserId, u.FirstName, u.LastName, u.Email, u.CreatedAt, u.IsTestAccount, u.BypassAuthentication, u.IsActive, u.IsAdmin, u.LastLoginAt))
             .ToListAsync(ct);
         return Ok(users);
     }
+
+    /// <summary>
+    /// Wave 26 — activate/deactivate a user. Deactivated users fail token
+    /// resolution (provisioning checks IsActive) so lockout is immediate.
+    /// Self-deactivation is refused to avoid locking out the last admin.
+    /// </summary>
+    [HttpPatch("{userId:int}/active")]
+    public async Task<ActionResult<UserDto>> SetActive(int userId, [FromBody] SetActiveRequest request, CancellationToken ct = default)
+    {
+        var current = await _currentUser.GetCurrentUserAsync(ct);
+        if (current != null && current.UserId == userId && !request.IsActive)
+        {
+            return BadRequest(new { message = "You cannot deactivate your own account." });
+        }
+
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId, ct);
+        if (user == null) return NotFound();
+
+        user.IsActive = request.IsActive;
+        user.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+
+        return Ok(new UserDto(user.UserId, user.FirstName, user.LastName, user.Email, user.CreatedAt, user.IsTestAccount, user.BypassAuthentication, user.IsActive, user.IsAdmin, user.LastLoginAt));
+    }
+
+    public record SetActiveRequest(bool IsActive);
 
     /// <summary>
     /// Delete a user and all cascaded related data. 204 if deleted, 404 if not found.
@@ -56,7 +84,7 @@ public class UserAdminController : ControllerBase
     }
 
     public record CreateUserRequest(string FirstName, string LastName, string Email, decimal EmergencyFundTarget = 0m, bool? BypassAuth = null);
-    public record UserDto(int UserId, string FirstName, string LastName, string Email, DateTime CreatedAt, bool IsTestAccount, bool BypassAuthentication);
+    public record UserDto(int UserId, string FirstName, string LastName, string Email, DateTime CreatedAt, bool IsTestAccount, bool BypassAuthentication, bool IsActive = true, bool IsAdmin = false, DateTime? LastLoginAt = null);
 
     /// <summary>
     /// Create a normal (non-test) user with minimal required fields.

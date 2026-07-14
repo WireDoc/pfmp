@@ -25,6 +25,7 @@ const breadcrumbConfigs: Record<string, BreadcrumbConfig> = {
   '/dashboard/debt-payoff': { path: '/dashboard/debt-payoff', label: 'Debt Payoff' },
   '/dashboard/admin': { path: '/dashboard/admin', label: 'Admin' },
   '/dashboard/admin/scheduler': { path: '/dashboard/admin/scheduler', label: 'Scheduler' },
+  '/dashboard/admin/users': { path: '/dashboard/admin/users', label: 'Users' },
 };
 
 // Map profile tab query params to display labels

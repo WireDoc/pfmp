@@ -71,6 +71,15 @@ export function HeaderBar() {
         >
           AI Models
         </NavLink>
+        {/* Wave 26 — admin-only (backend 403s non-admins anyway; don't tease the link) */}
+        {isAdmin && (
+          <NavLink
+            to="/dashboard/admin/users"
+            style={({ isActive }) => ({ textDecoration: 'none', fontSize: 13, color: isActive ? '#38bdf8' : '#e2e8f0' })}
+          >
+            Users
+          </NavLink>
+        )}
       </nav>
 
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12, fontSize: 12, color: '#e2e8f0' }}>
