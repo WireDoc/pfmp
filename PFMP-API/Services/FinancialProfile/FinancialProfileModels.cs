@@ -11,6 +11,12 @@ namespace PFMP_API.Services.FinancialProfile
 
     public class HouseholdProfileInput
     {
+        // Wave 26 — real-name capture. Provisioning falls back to "Carl User"
+        // when the Entra token lacks name claims; this is where it gets fixed.
+        [MaxLength(100)]
+        public string? FirstName { get; set; }
+        [MaxLength(100)]
+        public string? LastName { get; set; }
         [MaxLength(120)]
         public string? PreferredName { get; set; }
         [MaxLength(60)]

@@ -46,6 +46,8 @@ function createInitialState(currentStatus: FinancialProfileSectionStatusValue): 
   }
 
   return {
+    firstName: '',
+    lastName: '',
     preferredName: '',
     maritalStatus: '',
     dependentCount: undefined,
@@ -85,6 +87,8 @@ function sanitizePayload(draft: HouseholdProfilePayload): HouseholdProfilePayloa
   }
 
   return {
+    firstName: draft.firstName?.trim() || undefined,
+    lastName: draft.lastName?.trim() || undefined,
     preferredName: draft.preferredName?.trim() || undefined,
     maritalStatus: draft.maritalStatus?.trim() || undefined,
     dependentCount: draft.dependentCount ?? undefined,
@@ -159,12 +163,22 @@ export default function HouseholdSectionForm({ userId, onStatusChange, currentSt
       }
 
       const merged: HouseholdProfilePayload = {
+        firstName: previous.firstName ?? '',
+        lastName: previous.lastName ?? '',
         preferredName: previous.preferredName ?? '',
         maritalStatus: previous.maritalStatus ?? '',
         dependentCount: typeof previous.dependentCount === 'number' ? previous.dependentCount : undefined,
         serviceNotes: previous.serviceNotes ?? '',
         optOut: undefined,
       };
+
+      if (typeof nextState.firstName === 'string' && nextState.firstName.trim().length > 0) {
+        merged.firstName = nextState.firstName;
+      }
+
+      if (typeof nextState.lastName === 'string' && nextState.lastName.trim().length > 0) {
+        merged.lastName = nextState.lastName;
+      }
 
       if (typeof nextState.preferredName === 'string' && nextState.preferredName.trim().length > 0) {
         merged.preferredName = nextState.preferredName;
@@ -201,6 +215,8 @@ export default function HouseholdSectionForm({ userId, onStatusChange, currentSt
     }
 
     return {
+      firstName: payload.firstName ?? '',
+      lastName: payload.lastName ?? '',
       preferredName: payload.preferredName ?? '',
       maritalStatus: payload.maritalStatus ?? '',
       dependentCount: typeof payload.dependentCount === 'number' ? payload.dependentCount : undefined,
@@ -297,6 +313,21 @@ export default function HouseholdSectionForm({ userId, onStatusChange, currentSt
           />
         ) : (
           <Stack spacing={2.5}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <TextField
+                label="First name"
+                value={formState.firstName ?? ''}
+                onChange={(event) => handleChange('firstName', event.target.value)}
+                fullWidth
+              />
+              <TextField
+                label="Last name"
+                value={formState.lastName ?? ''}
+                onChange={(event) => handleChange('lastName', event.target.value)}
+                fullWidth
+              />
+            </Stack>
+
             <TextField
               label="Preferred name"
               placeholder="How should we address you?"

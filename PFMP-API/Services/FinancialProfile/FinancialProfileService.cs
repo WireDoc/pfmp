@@ -81,6 +81,16 @@ namespace PFMP_API.Services.FinancialProfile
             }
             else
             {
+                // Names are identity, not household data — never cleared by
+                // the opt-out branch above, only overwritten when provided.
+                if (!string.IsNullOrWhiteSpace(input.FirstName))
+                {
+                    user.FirstName = input.FirstName.Trim();
+                }
+                if (!string.IsNullOrWhiteSpace(input.LastName))
+                {
+                    user.LastName = input.LastName.Trim();
+                }
                 if (!string.IsNullOrWhiteSpace(input.PreferredName))
                 {
                     user.PreferredName = input.PreferredName.Trim();
@@ -869,6 +879,8 @@ namespace PFMP_API.Services.FinancialProfile
 
             return new HouseholdProfileInput
             {
+                FirstName = user.FirstName,
+                LastName = user.LastName,
                 PreferredName = user.PreferredName,
                 MaritalStatus = user.MaritalStatus,
                 DependentCount = user.DependentCount,

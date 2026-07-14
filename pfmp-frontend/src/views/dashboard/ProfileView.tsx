@@ -704,6 +704,15 @@ export function ProfileView() {
           <Box sx={{ p: 3 }}>
             <Stack spacing={3}>
               <Grid container spacing={2}>
+                {/* Wave 26 — real-name capture: provisioning falls back to "Carl User"
+                    when the Entra token lacks name claims; fix it here. Saved via the
+                    existing userCore update on Save Household. */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField fullWidth label="First Name" value={userCore.firstName ?? ''} onChange={e => setUserCore(p => ({ ...p, firstName: e.target.value }))} />
+                </Grid>
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <TextField fullWidth label="Last Name" value={userCore.lastName ?? ''} onChange={e => setUserCore(p => ({ ...p, lastName: e.target.value }))} />
+                </Grid>
                 <Grid size={{ xs: 12, md: 6 }}>
                   <TextField fullWidth label="Preferred Name" value={household.preferredName ?? ''} onChange={e => setHousehold(p => ({ ...p, preferredName: e.target.value }))} />
                 </Grid>

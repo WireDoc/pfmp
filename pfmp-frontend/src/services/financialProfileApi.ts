@@ -40,6 +40,9 @@ export interface SectionOptOutPayload {
 }
 
 export interface HouseholdProfilePayload {
+  // Wave 26 — real-name capture (identity; never cleared by opt-out)
+  firstName?: string | null;
+  lastName?: string | null;
   preferredName?: string | null;
   maritalStatus?: string | null;
   dependentCount?: number | null;
@@ -625,6 +628,8 @@ export async function upsertHouseholdProfile(userId: number, payload: HouseholdP
 export async function fetchHouseholdProfile(userId: number): Promise<HouseholdProfilePayload> {
   const { data } = await apiClient.get<HouseholdProfilePayload>(`/financial-profile/${userId}/household`);
   return {
+    firstName: data?.firstName ?? null,
+    lastName: data?.lastName ?? null,
     preferredName: data?.preferredName ?? null,
     maritalStatus: data?.maritalStatus ?? null,
     dependentCount: data?.dependentCount ?? null,
