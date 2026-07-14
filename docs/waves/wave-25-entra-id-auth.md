@@ -1,6 +1,6 @@
 # Wave 25 — Microsoft Entra ID Auth + First Real Login + Onboarding Audit
 
-**Status:** 🟡 In progress — Phases A–E complete (Phase E verified with the first real login 2026-07-09, user 21 provisioned); Phase F (onboarding audit) active
+**Status:** 🟡 Nearly complete — Phases A–F done (first real login 2026-07-09 provisioned user 21; Phase F onboarding audit closed 2026-07-13 with a clean DB-vs-template diff). Remaining: optional one-shot data copy from user 20 + closeout
 **Owner:** Solo project; user is sole customer
 **Campaign:** First wave of Phase 5 (Production Readiness) — see `docs/history/roadmap.md` § "Phase 5: Production Readiness Campaign" for the full 4-wave plan (25: auth, 26: RBAC + admin, 27: Plaid prod, 28: hardening + deploy)
 **Predecessors:** Wave 22-24 (app feature-complete for single-user daily use)
@@ -171,11 +171,55 @@ are set.
 `userId` query parameter — the token↔userId cross-check lands with RBAC in
 Wave 26. Single-machine dev risk only.
 
-### Phase F — Onboarding audit 📋 (concurrent with E)
+### Phase F — Onboarding audit ✅ (2026-07-10 → 2026-07-13)
 
-Owner walks all 15 sections with the fresh account; every field→column mapping
-verified; orphans (UI field with no backend save) and gaps (model field with no
-UI) fixed inline. One-shot MCP data copy from user 20 for anything worth keeping.
+Owner walked all 16 sections as user 21 using a fictitious-but-consistent
+fixture persona ("Alex Morgan", `docs/testing/onboarding-walkthrough-template.md`),
+reporting findings in batches; each batch was root-caused and fixed inline
+(locked decision 5:C). Fix batches, in commit order:
+
+1. **Investments persistence** (commit `2169b2e`): save→load→save degraded all
+   account categories to Brokerage (read emitted enum `ToString()` values the
+   form didn't know; write didn't match `roth-ira`/529/crypto/precious-metals).
+   Fixed with bidirectional canonical maps + `InvestmentSectionAccountTypes`
+   scope; 3 new Account columns (CostBasis, ContributionRatePercent,
+   LastContributionDate — migration `Wave25f_InvestmentAccountFields`); enum
+   gains Education529=15 / PreciousMetals=16 (appended, values stable).
+2. **Dashboard + Profile-tab batch** (same commit, 13 findings): risk 1–5 UI ↔
+   1–10 canonical scale (×2 mapping); greeting prefers PreferredName; expenses
+   `EffectiveFrom` = month start (mid-month entries were invisible in
+   outflows); onboarding cash section rewritten onto `CashAccounts`
+   (nickname-matched upsert); ProfileView Selects normalized onto canonical
+   vocabularies via `LEGACY_VALUE_ALIASES` (blank-dropdown root cause); missing
+   Profile fields added (obligation FundsAllocated/FundingStatus/Notes, benefit
+   EmployerContribution%/Notes); federal-benefits infinite fetch loop on fresh
+   accounts; no fabricated 30-day net-worth sparkline on day one; VA-disability
+   type accepted with hyphen variants (interim — full unification is Wave 26).
+3. **Cash-account creation dialogs** (commit `41dd920`): APR / Rate Last
+   Checked / Emergency Fund exposed in both dialogs (they're first-class
+   `CashAccounts` columns the dialogs never collected); `RateLastChecked`
+   plumbed through the backend CRUD; All Accounts page gained an Add Account
+   button; all creation paths share canonical `CASH_ACCOUNT_TYPE_VALUES`.
+4. **Persistence audit + closeout fixes** (2026-07-13): every DB row diffed
+   against the template — 15/16 sections matched exactly (16th = intentional
+   equity opt-out, reason text verified). Fixes out of the audit: dashboard
+   net-worth investment filter now covers crypto/529/precious-metals (Coinbase
+   was silently dropped once correctly typed); manual crypto rows display as
+   `investment` (the `crypto` display type is reserved for synthesized
+   exchange-connection entries); health score reads `IncomeStreams` instead of
+   the empty legacy `IncomeSources` (DTI + savings rate — 40% of the score —
+   were zeroed); diversification counts holdings-less manual accounts; deleted
+   3 stale pre-fix cash rows from unified `Accounts`; retyped Coinbase to
+   `CryptocurrencyExchange` via MCP.
+
+Audit-verified totals for user 21 (all match the template's sanity numbers):
+cash $53,800 · investments (non-TSP) $166,850 · TSP ~$161,148 (units × cached
+prices) · property equity $147,000 · liabilities (non-mortgage) $33,950 ·
+net worth $494,848.
+
+Remaining: one-shot MCP data copy from user 20 for anything worth keeping
+(owner decision pending — note user 21 currently holds the fictitious fixture
+data, which needs replacing with real data either way).
 
 ---
 
@@ -189,6 +233,9 @@ UI) fixed inline. One-shot MCP data copy from user 20 for anything worth keeping
       (2026-07-09)
 - [x] First real login provisioned a fresh admin user (user 21) and landed in
       onboarding
-- [ ] Onboarding walk-through complete; mismatches fixed (Phase F)
-- [ ] Selective data copy from user 20 via MCP (one-shot)
+- [x] Onboarding walk-through complete; mismatches fixed (Phase F, closed
+      2026-07-13 — persistence audit diffed every DB row against the fixture
+      template, 15/16 exact + intentional opt-out)
+- [ ] Selective data copy from user 20 via MCP (one-shot; owner decision on
+      what to keep — user 21 currently holds fictitious fixture data)
 - [ ] Wave doc closeout summary

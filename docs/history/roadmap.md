@@ -357,11 +357,13 @@ The campaign is 4 waves running roughly in series:
 
 ### Wave 25: Microsoft Entra ID auth + first real login + onboarding audit (concurrent) 🟡
 
-> Status 2026-07-08: Phases A–E implemented (dual-scheme JWT backend,
-> `[Authorize]` audit across 38 controllers, five-path frontend token plumbing,
-> real MSAL login page, `use_simulated_auth` default flipped to false).
-> Awaiting the owner's first real login to verify end-to-end and kick off the
-> Phase F onboarding audit. Details: `docs/waves/wave-25-entra-id-auth.md`.
+> Status 2026-07-13: Phases A–F complete. First real login verified 2026-07-09
+> (user 21 provisioned via allowlist). Phase F onboarding audit closed
+> 2026-07-13: owner walked all 16 sections with a fixture persona, ~20 findings
+> fixed inline across three commits, and the final DB-vs-template persistence
+> diff came back clean (15/16 sections exact, 16th an intentional opt-out).
+> Remaining: optional one-shot data copy from user 20 + wave closeout.
+> Details: `docs/waves/wave-25-entra-id-auth.md`.
 
 **What ships**
 - Activate MSAL on the frontend (toggle `use_simulated_auth` to false by default; keep available via env override for dev work)
@@ -396,6 +398,15 @@ The campaign is 4 waves running roughly in series:
     (third VA store; only reachable from the pre-router dashboard).
   - Delete the legacy `Development:BypassAuthentication` code paths in
     `AuthenticationService` (flag already flipped off; endpoints unused).
+  - Reconcile the two net-worth calculations: the profile snapshot's
+    `NetWorthEstimate` (FinancialProfileService) excludes TSP while the
+    dashboard summary includes it (~$161k apart for user 21). Pick one shared
+    calculator.
+  - Real-name capture: Entra provisioning falls back to "Carl User"
+    (token has `given_name` but no surname claim) and onboarding never
+    updates `Users.FirstName`/`LastName` — greeting works via PreferredName,
+    but reports/exports would show the fallback. Add name fields to the
+    household section or the profile page.
 
 **Key files touched**
 - New EF migration: `Wave26_UserAdminFlag`
