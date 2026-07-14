@@ -286,6 +286,13 @@ namespace PFMP_API
             builder.Services.AddScoped<PFMP_API.Services.Auth.IUserProvisioningService,
                                        PFMP_API.Services.Auth.UserProvisioningService>();
 
+            // Wave 26 — per-request user resolution + admin policy handler.
+            builder.Services.AddHttpContextAccessor();
+            builder.Services.AddScoped<PFMP_API.Services.Auth.ICurrentUserContext,
+                                       PFMP_API.Services.Auth.CurrentUserContext>();
+            builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler,
+                                       PFMP_API.Services.Auth.AdminRequirementHandler>();
+
             // Authentication: two JWT bearer schemes behind a forwarding policy scheme.
             //   - "DevJwt"   : symmetric-key tokens minted by /api/auth/dev-login. Used when
             //                  the frontend is in simulated-auth mode and during integration tests.
@@ -367,7 +374,13 @@ namespace PFMP_API
                     };
                 });
 
-            builder.Services.AddAuthorization();
+            builder.Services.AddAuthorization(options =>
+            {
+                // Wave 26 — DB-backed admin gate (Users.IsAdmin via ICurrentUserContext).
+                options.AddPolicy("AdminOnly", policy => policy
+                    .RequireAuthenticatedUser()
+                    .AddRequirements(new PFMP_API.Services.Auth.AdminRequirement()));
+            });
 
             // Add CORS
             builder.Services.AddCors(options =>
@@ -380,7 +393,11 @@ namespace PFMP_API
                 });
             });
 
-            builder.Services.AddControllers()
+            builder.Services.AddControllers(options =>
+                {
+                    // Wave 26 — global token↔userId cross-check (see Filters/UserOwnershipFilter.cs).
+                    options.Filters.Add<PFMP_API.Filters.UserOwnershipFilter>();
+                })
                 .AddJsonOptions(options =>
                 {
                     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;

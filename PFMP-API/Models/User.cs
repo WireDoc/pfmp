@@ -102,6 +102,7 @@ namespace PFMP_API.Models
         public string? PasswordHash { get; set; } // BCrypt hashed password for local authentication
         public string? AzureObjectId { get; set; } // Azure EntraID Object ID for SSO
         public bool IsActive { get; set; } = true; // Account status
+        public bool IsAdmin { get; set; } = false; // Wave 26 RBAC — gates AdminOnly policy + cross-user access
         public DateTime? LastLoginAt { get; set; }
         public int FailedLoginAttempts { get; set; } = 0;
         public DateTime? AccountLockedUntil { get; set; }

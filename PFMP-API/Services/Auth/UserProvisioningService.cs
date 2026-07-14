@@ -85,6 +85,7 @@ public class UserProvisioningService : IUserProvisioningService
             LastName = surname ?? ExtractLastName(name) ?? "User",
             AzureObjectId = oid,
             IsActive = true,
+            IsAdmin = true, // allowlist gate above means every provisioned Entra user is an admin
             IsTestAccount = false,
             LastLoginAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow,

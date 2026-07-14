@@ -32,8 +32,8 @@ _Last updated: 2026-06-23_
 | Wave 23: News Aggregator (RSS digest → AI market context + dashboard widget) | ✅ Complete | June 2026 |
 | Wave 24: AI Chatbot with Memory (streaming chat, daily context snapshot, deep-think toggle) | ✅ Complete | June 2026 |
 | **Phase 5: Production Readiness Campaign** | 📋 Active campaign | Q3 2026 |
-| Wave 25: Microsoft Entra ID auth + first real login + onboarding audit | 📋 Planned | Q3 2026 |
-| Wave 26: RBAC + admin user management + dev-mode toggle | 📋 Planned | Q3 2026 |
+| Wave 25: Microsoft Entra ID auth + first real login + onboarding audit | 🟡 Nearly complete (closeout pending) | Q3 2026 |
+| Wave 26: RBAC + admin user management + dev-mode toggle | 🟡 In progress | Q3 2026 |
 | Wave 27: Plaid sandbox → production (prep + readiness + filing) | 📋 Planned | Q3 2026 |
 | Wave 28: Production hardening + self-hosted deploy (Cloudflare Tunnel) | 📋 Planned | Q3-Q4 2026 |
 
@@ -380,7 +380,11 @@ The campaign is 4 waves running roughly in series:
 - `PFMP-API/Models/User.cs` — wire `AzureObjectId` lookup on token validation
 - `pfmp-frontend/src/onboarding/sections/*` — fix what the audit surfaces
 
-### Wave 26: RBAC + admin user management + dev-mode toggle 📋
+### Wave 26: RBAC + admin user management + dev-mode toggle 🟡
+
+> Status 2026-07-14: preflight locked (see `docs/waves/wave-26-rbac-admin.md`
+> for the six decisions). Security core in progress; admin page descoped to a
+> minimal v1 (list + activate/deactivate).
 
 **What ships**
 - Add `IsAdmin` bool to `User` model (migration)

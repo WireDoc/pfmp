@@ -8,10 +8,12 @@ namespace PFMP_API.Controllers;
 /// <summary>
 /// Administrative / development user management endpoints to create and delete users (and related cascaded data).
 /// Restricted to Development or Testing environments (simple gate for now).
+/// Wave 26: gated behind the AdminOnly policy — any authenticated user could
+/// previously create/delete users through this controller.
 /// </summary>
 [ApiController]
 [Route("api/admin/users")] // explicit admin tooling route
-[Authorize]
+[Authorize(Policy = "AdminOnly")]
 public class UserAdminController : ControllerBase
 {
     private readonly ApplicationDbContext _db;
