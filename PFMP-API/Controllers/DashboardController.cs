@@ -97,19 +97,19 @@ public class DashboardController : ControllerBase
                     .Where(h => cryptoConnectionIds.Contains(h.ExchangeConnectionId))
                     .ToListAsync();
 
-            // Calculate net worth from new unified Accounts table
-            var oldCashAccountsToDelete = accounts.Where(a => 
-                a.AccountType == AccountType.Checking || 
-                a.AccountType == AccountType.Savings || 
-                a.AccountType == AccountType.MoneyMarket ||
-                a.AccountType == AccountType.CertificateOfDeposit).ToList();
-                
-            var investmentAccounts = accounts.Where(a => 
-                a.AccountType == AccountType.Brokerage || 
-                a.AccountType == AccountType.RetirementAccountIRA || 
-                a.AccountType == AccountType.RetirementAccount401k || 
+            // Calculate net worth from new unified Accounts table. Must cover every
+            // type the onboarding investments section can create (mirrors
+            // FinancialProfileService.InvestmentSectionAccountTypes) or those
+            // accounts silently drop out of dashboard net worth.
+            var investmentAccounts = accounts.Where(a =>
+                a.AccountType == AccountType.Brokerage ||
+                a.AccountType == AccountType.RetirementAccountIRA ||
+                a.AccountType == AccountType.RetirementAccount401k ||
                 a.AccountType == AccountType.RetirementAccountRoth ||
-                a.AccountType == AccountType.HSA).ToList();
+                a.AccountType == AccountType.HSA ||
+                a.AccountType == AccountType.CryptocurrencyExchange ||
+                a.AccountType == AccountType.Education529 ||
+                a.AccountType == AccountType.PreciousMetals).ToList();
             
             var totalCash = cashAccounts.Sum(a => a.Balance);
             var totalInvestments = investmentAccounts.Sum(a => 
@@ -162,7 +162,12 @@ public class DashboardController : ControllerBase
                     AccountType.Brokerage => "brokerage",
                     AccountType.RetirementAccountIRA or AccountType.RetirementAccount401k or AccountType.RetirementAccountRoth or AccountType.HSA => "investment",
                     AccountType.TSP => "retirement",
-                    AccountType.CryptocurrencyExchange or AccountType.CryptocurrencyWallet => "crypto",
+                    // "crypto" is reserved for synthesized exchange-connection entries
+                    // (crypto_ ids) — the frontend routes that type to crypto settings
+                    // and hides edit. Manual crypto/529/metals rows from the onboarding
+                    // investments section behave like any other investment account.
+                    AccountType.CryptocurrencyExchange or AccountType.CryptocurrencyWallet => "investment",
+                    AccountType.Education529 or AccountType.PreciousMetals => "investment",
                     _ => acct.AccountType.ToString().ToLower()
                 };
 
@@ -521,7 +526,10 @@ public class DashboardController : ControllerBase
             // --- data queries ---
             var expenses = await _context.ExpenseBudgets
                 .Where(e => e.UserId == effectiveUserId).ToListAsync();
-            var income = await _context.IncomeSources
+            // IncomeStreams is the canonical income store (onboarding writes it);
+            // the legacy IncomeSources table is empty for real users and zeroed
+            // the DTI + savings-rate components (40% of the score).
+            var income = await _context.IncomeStreams
                 .Where(i => i.UserId == effectiveUserId && i.IsActive).ToListAsync();
             var cashAccounts = await _context.CashAccounts
                 .Where(c => c.UserId == effectiveUserId).ToListAsync();
@@ -604,7 +612,8 @@ public class DashboardController : ControllerBase
             // Categories: cash, investment, TSP/retirement, property, crypto
             var assetClasses = new HashSet<string>();
             if (totalCash > 0) assetClasses.Add("cash");
-            if (investmentAccounts.Any(a => a.Holdings?.Any(h => h.Quantity > 0) == true)) assetClasses.Add("investment");
+            // Manual accounts from onboarding carry a balance but no holdings rows.
+            if (investmentAccounts.Any(a => a.CurrentBalance > 0 || a.Holdings?.Any(h => h.Quantity > 0) == true)) assetClasses.Add("investment");
             var tspPositions = await _context.TspLifecyclePositions
                 .Where(t => t.UserId == effectiveUserId && t.Units > 0).AnyAsync();
             if (tspPositions) assetClasses.Add("retirement");
