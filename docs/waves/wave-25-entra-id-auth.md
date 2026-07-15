@@ -1,6 +1,6 @@
 # Wave 25 — Microsoft Entra ID Auth + First Real Login + Onboarding Audit
 
-**Status:** 🟡 Nearly complete — Phases A–F done (first real login 2026-07-09 provisioned user 21; Phase F onboarding audit closed 2026-07-13 with a clean DB-vs-template diff; user 20's real data migrated to user 21 on 2026-07-14, dashboard parity verified). Remaining: owner verification of the migrated data + closeout summary
+**Status:** ✅ Complete (2026-07-14) — Phases A–F done; first real login 2026-07-09 provisioned user 21; Phase F onboarding audit closed 2026-07-13 with a clean DB-vs-template diff; user 20's real data migrated 2026-07-14 and owner-verified ("It looks great")
 **Owner:** Solo project; user is sole customer
 **Campaign:** First wave of Phase 5 (Production Readiness) — see `docs/history/roadmap.md` § "Phase 5: Production Readiness Campaign" for the full 4-wave plan (25: auth, 26: RBAC + admin, 27: Plaid prod, 28: hardening + deploy)
 **Predecessors:** Wave 22-24 (app feature-complete for single-user daily use)
@@ -251,6 +251,20 @@ user 20's fate anyway).
       2026-07-13 — persistence audit diffed every DB row against the fixture
       template, 15/16 exact + intentional opt-out)
 - [x] Data copy from user 20 via MCP (one-shot, 2026-07-14 — owner chose full
-      copy; fixture data backed up then replaced; dashboard parity verified.
-      Awaiting owner verification in the app)
-- [ ] Wave doc closeout summary
+      copy; fixture data backed up then replaced; dashboard parity verified;
+      owner-verified in the app)
+- [x] Wave doc closeout summary (below)
+
+## Closeout summary (2026-07-14)
+
+Production readiness now starts from real identity: MSAL login → dual-scheme
+JWT validation → allowlist-gated provisioning → `[Authorize]` everywhere, with
+simulated auth demoted to an explicit dev escape hatch. The concurrent Phase F
+audit was the wave's sleeper hit — walking all 16 onboarding sections with a
+fixture persona surfaced ~20 field/persistence/consistency bugs (investments
+category degradation, cash-store split, blank Profile dropdowns, zeroed health
+score, net-worth drift) that were each root-caused and fixed inline, ending in
+a clean DB-vs-template diff. The owner's real data was then migrated onto the
+real account (user 21) with in-DB backups and dashboard parity verified to the
+penny. Follow-on debt (RBAC, userId trust, VA/net-worth unification, legacy
+deletions) was queued into Wave 26 and has since shipped there.

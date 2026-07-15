@@ -1,6 +1,6 @@
 # Wave 26 — RBAC + Admin User Management + Dev-Mode Toggle
 
-**Status:** 🟡 Phases A–D implemented (A `89dbec8`, B `9c2cf6b`, C `e7ee2f0`, D `84f4686` + `fa0f3b2` + `3d1dd2e` + VA unification) — owner verification of Phase D, then closeout
+**Status:** ✅ Complete (2026-07-15) — Phases A–D shipped and owner-verified (A `89dbec8`, B `9c2cf6b`, C `e7ee2f0`, D `84f4686` / `fa0f3b2` / `3d1dd2e` / `715aa0e`)
 **Owner:** Solo project; user is sole customer (user 21 = the real admin account)
 **Campaign:** Second wave of Phase 5 (Production Readiness) — see
 `docs/history/roadmap.md`. Predecessor: Wave 25 (Entra ID auth, closed with the
@@ -110,4 +110,31 @@ Work order (commit + owner verification checkpoint after each chunk):
 - [x] Admin users page lists users; activate/deactivate round-trips with
       immediate lockout; self-deactivation refused
 - [x] Cleanup queue items 1–5 landed (see Phase D)
-- [ ] Owner verification of Phase D + wave doc closeout summary
+- [x] Owner verification of Phase D (2026-07-15: name entry works and displays,
+      VA monthly shows synced/disabled, net worth correct) + closeout below
+
+## Closeout summary (2026-07-15)
+
+The wave took the app from "any valid token can do anything" to real
+authorization in four phases over two days:
+
+- **Authorization**: ~190 caller-supplied userId inputs are now cross-checked
+  against the token's user by one global filter; `Users.IsAdmin` +
+  DB-backed `AdminOnly` policy gate the admin surface; the admin exemption
+  doubles as the impersonation mechanism.
+- **Admin tooling**: header "View as" dev-user switch (real session intact,
+  writes allowed) and a minimal `/dashboard/admin/users` page with
+  activate/deactivate + immediate lockout.
+- **Deactivation = quiet**: every per-user recurring job (FMP prices, symbol
+  metrics, Plaid, crypto, valuations, rollups) skips inactive users via
+  reversible query-time filters — deactivate to silence a test user,
+  reactivate to bring them back.
+- **Debt paid down**: auth bypass deleted, real-name capture shipped, ONE
+  net-worth calculator (three drifted copies reconciled to the penny), ONE
+  VA-disability store (IncomeStreams, with a synced Users mirror), legacy
+  IncomeSources table + VADisabilityTracker + dead PfmpDevContext/Temp
+  scaffolds all removed.
+
+Deferred intentionally: promote/demote + chat-cost columns on the admin page
+(decision 5B); per-endpoint claims refactor stays opportunistic (decision 2C
+known limits: entity-id-keyed endpoints, `userId ?? 1` fallbacks).

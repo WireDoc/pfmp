@@ -32,8 +32,8 @@ _Last updated: 2026-06-23_
 | Wave 23: News Aggregator (RSS digest → AI market context + dashboard widget) | ✅ Complete | June 2026 |
 | Wave 24: AI Chatbot with Memory (streaming chat, daily context snapshot, deep-think toggle) | ✅ Complete | June 2026 |
 | **Phase 5: Production Readiness Campaign** | 📋 Active campaign | Q3 2026 |
-| Wave 25: Microsoft Entra ID auth + first real login + onboarding audit | 🟡 Nearly complete (closeout pending) | Q3 2026 |
-| Wave 26: RBAC + admin user management + dev-mode toggle | 🟡 In progress | Q3 2026 |
+| Wave 25: Microsoft Entra ID auth + first real login + onboarding audit | ✅ Complete 2026-07-14 | Q3 2026 |
+| Wave 26: RBAC + admin user management + dev-mode toggle | ✅ Complete 2026-07-15 | Q3 2026 |
 | Wave 27: Plaid sandbox → production (prep + readiness + filing) | 📋 Planned | Q3 2026 |
 | Wave 28: Production hardening + self-hosted deploy (Cloudflare Tunnel) | 📋 Planned | Q3-Q4 2026 |
 
@@ -355,15 +355,13 @@ RSS-driven daily news digest per user. What landed:
 
 The campaign is 4 waves running roughly in series:
 
-### Wave 25: Microsoft Entra ID auth + first real login + onboarding audit (concurrent) 🟡
+### Wave 25: Microsoft Entra ID auth + first real login + onboarding audit (concurrent) ✅
 
-> Status 2026-07-13: Phases A–F complete. First real login verified 2026-07-09
-> (user 21 provisioned via allowlist). Phase F onboarding audit closed
-> 2026-07-13: owner walked all 16 sections with a fixture persona, ~20 findings
-> fixed inline across three commits, and the final DB-vs-template persistence
-> diff came back clean (15/16 sections exact, 16th an intentional opt-out).
-> Remaining: optional one-shot data copy from user 20 + wave closeout.
-> Details: `docs/waves/wave-25-entra-id-auth.md`.
+> Closed 2026-07-14. Real MSAL login end-to-end (user 21 provisioned via
+> allowlist 2026-07-09); Phase F onboarding audit fixed ~20 findings inline
+> and ended in a clean DB-vs-template diff; user 20's real data migrated to
+> user 21 with dashboard parity verified and owner sign-off.
+> Details + closeout: `docs/waves/wave-25-entra-id-auth.md`.
 
 **What ships**
 - Activate MSAL on the frontend (toggle `use_simulated_auth` to false by default; keep available via env override for dev work)
@@ -380,11 +378,16 @@ The campaign is 4 waves running roughly in series:
 - `PFMP-API/Models/User.cs` — wire `AzureObjectId` lookup on token validation
 - `pfmp-frontend/src/onboarding/sections/*` — fix what the audit surfaces
 
-### Wave 26: RBAC + admin user management + dev-mode toggle 🟡
+### Wave 26: RBAC + admin user management + dev-mode toggle ✅
 
-> Status 2026-07-14: preflight locked (see `docs/waves/wave-26-rbac-admin.md`
-> for the six decisions). Security core in progress; admin page descoped to a
-> minimal v1 (list + activate/deactivate).
+> Closed 2026-07-15, owner-verified. Global token↔userId cross-check (~190
+> inputs), Users.IsAdmin + AdminOnly policy, admin "View as" dev-user switch,
+> minimal admin users page (activate/deactivate with immediate lockout +
+> job quieting for inactive users), and the full Phase F cleanup queue:
+> auth-bypass deletion, real-name capture, ONE net-worth calculator, ONE
+> VA-disability store (legacy IncomeSources table + VADisabilityTracker +
+> dead scaffolds removed). Deferred: promote/demote + chat-cost columns;
+> opportunistic claims refactor. Details: `docs/waves/wave-26-rbac-admin.md`.
 
 **What ships**
 - Add `IsAdmin` bool to `User` model (migration)
