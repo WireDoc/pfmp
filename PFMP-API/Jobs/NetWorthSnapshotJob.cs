@@ -12,13 +12,16 @@ public class NetWorthSnapshotJob
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<NetWorthSnapshotJob> _logger;
+    private readonly PFMP_API.Services.NetWorth.INetWorthCalculationService _netWorth;
 
     public NetWorthSnapshotJob(
         ApplicationDbContext context,
-        ILogger<NetWorthSnapshotJob> logger)
+        ILogger<NetWorthSnapshotJob> logger,
+        PFMP_API.Services.NetWorth.INetWorthCalculationService netWorth)
     {
         _context = context;
         _logger = logger;
+        _netWorth = netWorth;
     }
 
     /// <summary>
@@ -109,121 +112,29 @@ public class NetWorthSnapshotJob
     }
 
     /// <summary>
-    /// Capture a single user's net worth snapshot.
-    /// Matches the calculation logic in DashboardController.GetDashboardSummary()
+    /// Capture a single user's net worth snapshot. Wave 26: totals come from
+    /// the shared NetWorthCalculationService — the same numbers the dashboard
+    /// summary and the financial-profile snapshot report.
     /// </summary>
     public async Task<NetWorthSnapshot?> CaptureUserSnapshotAsync(
-        int userId, 
+        int userId,
         DateOnly? snapshotDate = null,
         CancellationToken cancellationToken = default)
     {
         var date = snapshotDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
-
-        // Get investment/retirement accounts from Accounts table (exclude cash types - they use CashAccounts table)
-        var accounts = await _context.Accounts
-            .Include(a => a.Holdings)
-            .Where(a => a.UserId == userId)
-            .Where(a => a.IsActive)
-            .Where(a => a.AccountType != AccountType.Checking &&
-                       a.AccountType != AccountType.Savings &&
-                       a.AccountType != AccountType.MoneyMarket &&
-                       a.AccountType != AccountType.CertificateOfDeposit)
-            .ToListAsync(cancellationToken);
-
-        // Get cash accounts from separate CashAccounts table
-        var cashAccounts = await _context.CashAccounts
-            .Where(ca => ca.UserId == userId)
-            .ToListAsync(cancellationToken);
-
-        // Get TSP positions
-        var tspPositions = await _context.TspLifecyclePositions
-            .Where(p => p.UserId == userId)
-            .ToListAsync(cancellationToken);
-
-        // Get real estate properties from Properties table (PropertyProfile)
-        var properties = await _context.Properties
-            .Where(p => p.UserId == userId)
-            .ToListAsync(cancellationToken);
-
-        // Get liabilities
-        var liabilities = await _context.LiabilityAccounts
-            .Where(l => l.UserId == userId)
-            .ToListAsync(cancellationToken);
-
-        // Wave 13: include crypto exchange holdings
-        var cryptoConnectionIds = await _context.ExchangeConnections
-            .Where(c => c.UserId == userId)
-            .Select(c => c.ExchangeConnectionId)
-            .ToListAsync(cancellationToken);
-        decimal cryptoTotal = cryptoConnectionIds.Count == 0
-            ? 0m
-            : await _context.CryptoHoldings
-                .Where(h => cryptoConnectionIds.Contains(h.ExchangeConnectionId))
-                .SumAsync(h => (decimal?)h.MarketValueUsd, cancellationToken) ?? 0m;
-
-        // Calculate totals matching Dashboard logic exactly
-        decimal cashTotal = cashAccounts.Sum(a => a.Balance);
-        
-        // Dashboard filters for specific investment account types
-        var investmentAccounts = accounts.Where(a => 
-            a.AccountType == AccountType.Brokerage || 
-            a.AccountType == AccountType.RetirementAccountIRA || 
-            a.AccountType == AccountType.RetirementAccount401k || 
-            a.AccountType == AccountType.RetirementAccountRoth ||
-            a.AccountType == AccountType.HSA).ToList();
-        
-        // Matches DashboardController: CurrentBalance (cash in account) + Holdings value (Quantity × CurrentPrice)
-        decimal investmentsTotal = investmentAccounts.Sum(a =>
-            a.CurrentBalance + (a.Holdings?.Sum(h => h.Quantity * h.CurrentPrice) ?? 0));
-
-        // Calculate TSP with cached prices (matching Dashboard)
-        decimal tspTotal = 0;
-        if (tspPositions.Any(p => p.Units > 0))
-        {
-            var cachedPrices = await _context.TSPFundPrices
-                .OrderByDescending(p => p.PriceDate)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (cachedPrices != null)
-            {
-                foreach (var position in tspPositions.Where(p => p.Units > 0))
-                {
-                    var price = GetCachedTspFundPrice(cachedPrices, position.FundCode);
-                    if (price.HasValue)
-                    {
-                        tspTotal += position.Units * price.Value;
-                    }
-                }
-            }
-        }
-
-        // Real estate value (full value, not equity - matches Dashboard)
-        decimal realEstateValue = properties.Sum(p => p.EstimatedValue);
-
-        // Calculate liabilities (standalone + mortgage balances from properties)
-        // Matches Dashboard: liabilities.Sum(l.CurrentBalance) + properties.Sum(p.MortgageBalance ?? 0)
-        decimal liabilitiesTotal = liabilities.Sum(l => l.CurrentBalance);
-        decimal mortgageTotal = properties.Sum(p => p.MortgageBalance ?? 0);
-        liabilitiesTotal += mortgageTotal;
-
-        // Calculate total assets exactly like Dashboard:
-        // totalAssets = totalCash + totalInvestments + totalTsp + totalProperties + totalCrypto
-        decimal totalAssets = cashTotal + investmentsTotal + tspTotal + realEstateValue + cryptoTotal;
-        
-        // Net worth = assets - liabilities (Dashboard formula)
-        var totalNetWorth = totalAssets - liabilitiesTotal;
+        var breakdown = await _netWorth.ComputeAsync(userId, cancellationToken);
 
         return new NetWorthSnapshot
         {
             UserId = userId,
             SnapshotDate = date,
-            TotalNetWorth = totalNetWorth,
+            TotalNetWorth = breakdown.NetWorth,
             // Crypto rolled into InvestmentsTotal until a dedicated CryptoTotal column is added.
-            InvestmentsTotal = investmentsTotal + cryptoTotal,
-            CashTotal = cashTotal,
-            RealEstateEquity = realEstateValue - mortgageTotal, // Store net equity for display
-            RetirementTotal = tspTotal, // TSP (calculated with live prices)
-            LiabilitiesTotal = liabilitiesTotal,
+            InvestmentsTotal = breakdown.Investments + breakdown.Crypto,
+            CashTotal = breakdown.Cash,
+            RealEstateEquity = breakdown.PropertyEquity, // net of ALL mortgage debt for display
+            RetirementTotal = breakdown.Tsp,
+            LiabilitiesTotal = breakdown.TotalLiabilities,
             CreatedAt = DateTime.UtcNow
         };
     }

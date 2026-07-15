@@ -24,13 +24,17 @@ public class DashboardController : ControllerBase
     /// </summary>
     private static readonly TimeSpan PriceStalenessThreshold = TimeSpan.FromHours(4);
 
+    private readonly PFMP_API.Services.NetWorth.INetWorthCalculationService _netWorth;
+
     public DashboardController(
         ApplicationDbContext context,
         ILogger<DashboardController> logger,
+        PFMP_API.Services.NetWorth.INetWorthCalculationService netWorth,
         IMarketDataService? marketDataService = null)
     {
         _context = context;
         _logger = logger;
+        _netWorth = netWorth;
         _marketDataService = marketDataService;
     }
 
@@ -97,58 +101,11 @@ public class DashboardController : ControllerBase
                     .Where(h => cryptoConnectionIds.Contains(h.ExchangeConnectionId))
                     .ToListAsync();
 
-            // Calculate net worth from new unified Accounts table. Must cover every
-            // type the onboarding investments section can create (mirrors
-            // FinancialProfileService.InvestmentSectionAccountTypes) or those
-            // accounts silently drop out of dashboard net worth.
-            var investmentAccounts = accounts.Where(a =>
-                a.AccountType == AccountType.Brokerage ||
-                a.AccountType == AccountType.RetirementAccountIRA ||
-                a.AccountType == AccountType.RetirementAccount401k ||
-                a.AccountType == AccountType.RetirementAccountRoth ||
-                a.AccountType == AccountType.HSA ||
-                a.AccountType == AccountType.CryptocurrencyExchange ||
-                a.AccountType == AccountType.Education529 ||
-                a.AccountType == AccountType.PreciousMetals).ToList();
-            
-            var totalCash = cashAccounts.Sum(a => a.Balance);
-            var totalInvestments = investmentAccounts.Sum(a => 
-                a.CurrentBalance + (a.Holdings?.Sum(h => h.Quantity * h.CurrentPrice) ?? 0));
-            
-            // Calculate TSP with cached prices from TSPFundPrices table (updated by Hangfire job)
-            decimal totalTsp = 0;
-            if (tspPositions.Any(p => p.Units > 0))
-            {
-                var cachedPrices = await _context.TSPFundPrices
-                    .OrderByDescending(p => p.PriceDate)
-                    .FirstOrDefaultAsync();
-                    
-                if (cachedPrices != null)
-                {
-                    foreach (var position in tspPositions.Where(p => p.Units > 0))
-                    {
-                        var price = GetCachedTspFundPrice(cachedPrices, position.FundCode);
-                        if (price.HasValue)
-                        {
-                            totalTsp += position.Units * price.Value;
-                        }
-                    }
-                }
-            }
-            
-            var totalProperties = properties.Sum(p => p.EstimatedValue);
-            var totalCrypto = cryptoHoldings.Sum(h => h.MarketValueUsd);
-
-            var totalAssets = totalCash + totalInvestments + totalTsp + totalProperties + totalCrypto;
-
-            // Avoid double-counting: only add property mortgage balances when the property
-            // is NOT already linked to a LiabilityAccount record.
-            var unlinkedPropertyMortgages = properties
-                .Where(p => p.MortgageBalance.HasValue && p.MortgageBalance > 0 && !p.LinkedMortgageLiabilityId.HasValue)
-                .Sum(p => p.MortgageBalance!.Value);
-            var totalLiabilities = liabilities.Sum(l => l.CurrentBalance) + unlinkedPropertyMortgages;
-            
-            var netWorth = totalAssets - totalLiabilities;
+            // Wave 26 — totals come from the ONE shared calculator (same numbers as
+            // the snapshot job and the financial-profile snapshot). Must run AFTER
+            // RefreshStalePricesAsync, which saves fresher holding prices first.
+            var breakdown = await _netWorth.ComputeAsync(effectiveUserId);
+            var totalTsp = breakdown.Tsp; // mutable: TSP-profile fallback below may fill it for display
 
             // Build accounts list
             var accountsList = new List<object>();
@@ -266,8 +223,8 @@ public class DashboardController : ControllerBase
                 });
             }
             
-            var cashPercentage = totalAssets > 0 ? (totalCash / totalAssets * 100) : 0;
-            if (cashPercentage < 5 && totalAssets > 10000)
+            var cashPercentage = breakdown.TotalAssets > 0 ? (breakdown.Cash / breakdown.TotalAssets * 100) : 0;
+            if (cashPercentage < 5 && breakdown.TotalAssets > 10000)
             {
                 insights.Add(new
                 {
@@ -361,9 +318,9 @@ public class DashboardController : ControllerBase
                     : $"{user.FirstName} {user.LastName}".Trim(),
                 netWorth = new
                 {
-                    totalAssets = new { amount = totalAssets, currency = "USD" },
-                    totalLiabilities = new { amount = totalLiabilities, currency = "USD" },
-                    netWorth = new { amount = netWorth, currency = "USD" },
+                    totalAssets = new { amount = breakdown.TotalAssets, currency = "USD" },
+                    totalLiabilities = new { amount = breakdown.TotalLiabilities, currency = "USD" },
+                    netWorth = new { amount = breakdown.NetWorth, currency = "USD" },
                     change1dPct = 0.0m,  // Placeholder - need historical data
                     change30dPct = 0.0m,  // Placeholder - need historical data
                     lastUpdated = DateTime.UtcNow
@@ -388,32 +345,6 @@ public class DashboardController : ControllerBase
             _logger.LogError(ex, "Error generating dashboard summary for user {UserId}", userId);
             return StatusCode(500, new { message = "Internal server error while building dashboard summary" });
         }
-    }
-
-    private static decimal? GetCachedTspFundPrice(TSPFundPrice cachedPrices, string fundCode)
-    {
-        var code = fundCode.Trim().ToUpperInvariant();
-        
-        return code switch
-        {
-            "G" => cachedPrices.GFundPrice,
-            "F" => cachedPrices.FFundPrice,
-            "C" => cachedPrices.CFundPrice,
-            "S" => cachedPrices.SFundPrice,
-            "I" => cachedPrices.IFundPrice,
-            "L-INCOME" or "LINCOME" => cachedPrices.LIncomeFundPrice,
-            "L2030" => cachedPrices.L2030FundPrice,
-            "L2035" => cachedPrices.L2035FundPrice,
-            "L2040" => cachedPrices.L2040FundPrice,
-            "L2045" => cachedPrices.L2045FundPrice,
-            "L2050" => cachedPrices.L2050FundPrice,
-            "L2055" => cachedPrices.L2055FundPrice,
-            "L2060" => cachedPrices.L2060FundPrice,
-            "L2065" => cachedPrices.L2065FundPrice,
-            "L2070" => cachedPrices.L2070FundPrice,
-            "L2075" => cachedPrices.L2075FundPrice,
-            _ => null
-        };
     }
 
     /// <summary>

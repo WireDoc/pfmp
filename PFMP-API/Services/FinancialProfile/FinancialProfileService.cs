@@ -28,12 +28,14 @@ namespace PFMP_API.Services.FinancialProfile
         private readonly ApplicationDbContext _db;
         private readonly ILogger<FinancialProfileService> _logger;
         private readonly TSPService _tspService;
+        private readonly PFMP_API.Services.NetWorth.INetWorthCalculationService _netWorth;
 
-        public FinancialProfileService(ApplicationDbContext db, ILogger<FinancialProfileService> logger, TSPService tspService)
+        public FinancialProfileService(ApplicationDbContext db, ILogger<FinancialProfileService> logger, TSPService tspService, PFMP_API.Services.NetWorth.INetWorthCalculationService netWorth)
         {
             _db = db;
             _logger = logger;
             _tspService = tspService;
+            _netWorth = netWorth;
         }
 
         // Normalize UI/DB fund codes to TSPService dictionary keys (G, F, C, S, I, LIncome, L2030, etc.)
@@ -1489,27 +1491,16 @@ namespace PFMP_API.Services.FinancialProfile
 
             var completionPercent = SectionKeys.Length == 0 ? 0 : Math.Round(((decimal)(completed.Count + optedOut.Count) / SectionKeys.Length) * 100, 2);
 
-            // Wave 25 Phase F: cash lives in CashAccounts (all sources — Plaid
-            // balances count toward net worth too), investments in the unified
-            // Accounts table using the shared section type list.
-            var cashTotal = await _db.CashAccounts
-                .Where(c => c.UserId == userId)
-                .SumAsync(c => (decimal?)c.Balance, ct) ?? 0m;
+            // Wave 26 — net worth comes from the ONE shared calculator (same
+            // numbers as the dashboard summary and the daily snapshot job;
+            // previously this excluded TSP + crypto and drifted ~$161k).
+            var breakdown = await _netWorth.ComputeAsync(userId, ct);
 
-            var investmentTotal = await _db.Accounts
-                .Where(c => c.UserId == userId && InvestmentSectionAccountTypes.Contains(c.AccountType))
-                .SumAsync(c => (decimal?)c.CurrentBalance, ct) ?? 0m;
-                
-            var propertyValue = await _db.Properties.Where(c => c.UserId == userId).SumAsync(c => (decimal?)c.EstimatedValue, ct) ?? 0m;
-            var propertyDebt = await _db.Properties.Where(c => c.UserId == userId).SumAsync(c => (decimal?)(c.MortgageBalance ?? 0m), ct) ?? 0m;
-            var liabilityTotal = await _db.LiabilityAccounts.Where(c => c.UserId == userId).SumAsync(c => (decimal?)c.CurrentBalance, ct) ?? 0m;
             var monthlyDebtService = await _db.LiabilityAccounts.Where(c => c.UserId == userId).SumAsync(c => (decimal?)(c.MinimumPayment ?? 0m), ct) ?? 0m;
             var monthlyMortgagePayments = await _db.Properties.Where(c => c.UserId == userId).SumAsync(c => (decimal?)(c.MonthlyMortgagePayment ?? 0m), ct) ?? 0m;
             var monthlyExpenses = await _db.ExpenseBudgets.Where(c => c.UserId == userId).SumAsync(c => (decimal?)c.MonthlyAmount, ct) ?? 0m;
             var taxProfile = await _db.TaxProfiles.FirstOrDefaultAsync(t => t.UserId == userId, ct);
             var obligations = await _db.LongTermObligations.Where(o => o.UserId == userId).ToListAsync(ct);
-
-            var netWorth = cashTotal + investmentTotal + propertyValue - propertyDebt - liabilityTotal;
 
             var monthlyIncome = await _db.IncomeStreams.Where(c => c.UserId == userId && c.IsActive).SumAsync(c => (decimal?)c.MonthlyAmount, ct) ?? 0m;
             var monthlyCashFlow = monthlyIncome - monthlyExpenses - monthlyDebtService - monthlyMortgagePayments;
@@ -1534,9 +1525,9 @@ namespace PFMP_API.Services.FinancialProfile
             snapshot.CompletedSectionsJson = JsonSerializer.Serialize(completed);
             snapshot.OptedOutSectionsJson = JsonSerializer.Serialize(optedOut);
             snapshot.OutstandingSectionsJson = JsonSerializer.Serialize(outstanding);
-            snapshot.NetWorthEstimate = netWorth;
+            snapshot.NetWorthEstimate = breakdown.NetWorth;
             snapshot.MonthlyCashFlowEstimate = monthlyCashFlow;
-            snapshot.TotalLiabilityBalance = liabilityTotal + propertyDebt;
+            snapshot.TotalLiabilityBalance = breakdown.StandaloneLiabilities + breakdown.PropertyMortgageDebt;
             snapshot.MonthlyDebtServiceEstimate = monthlyDebtService + monthlyMortgagePayments;
             snapshot.MonthlyExpenseEstimate = monthlyExpenses;
             snapshot.MarginalTaxRatePercent = taxProfile?.MarginalRatePercent;

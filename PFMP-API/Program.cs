@@ -293,6 +293,11 @@ namespace PFMP_API
             builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler,
                                        PFMP_API.Services.Auth.AdminRequirementHandler>();
 
+            // Wave 26 — the one shared net-worth calculator (dashboard, snapshot job,
+            // financial-profile snapshot all consume it).
+            builder.Services.AddScoped<PFMP_API.Services.NetWorth.INetWorthCalculationService,
+                                       PFMP_API.Services.NetWorth.NetWorthCalculationService>();
+
             // Authentication: two JWT bearer schemes behind a forwarding policy scheme.
             //   - "DevJwt"   : symmetric-key tokens minted by /api/auth/dev-login. Used when
             //                  the frontend is in simulated-auth mode and during integration tests.

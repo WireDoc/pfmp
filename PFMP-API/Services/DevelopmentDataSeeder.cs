@@ -117,7 +117,8 @@ public static class DevelopmentDataSeeder
         var config = new ConfigurationBuilder().Build();
         var httpClientFactory = new SimpleHttpClientFactory();
         var tspService = new TSPService(httpClientFactory, NullLogger<TSPService>.Instance, config);
-        var profileService = new FinancialProfileService(db, NullLogger<FinancialProfileService>.Instance, tspService);
+        var netWorthService = new PFMP_API.Services.NetWorth.NetWorthCalculationService(db);
+        var profileService = new FinancialProfileService(db, NullLogger<FinancialProfileService>.Instance, tspService, netWorthService);
 
         await profileService.UpsertHouseholdAsync(userId, new HouseholdProfileInput
         {
