@@ -23,7 +23,6 @@ namespace PFMP_API
         public DbSet<GoalMilestone> GoalMilestones { get; set; }
 
         // Income and Insurance
-        public DbSet<IncomeSource> IncomeSources { get; set; }
         public DbSet<Insurance> InsurancePolicies { get; set; }
         public DbSet<RealEstate> RealEstateProperties { get; set; }
 
@@ -237,15 +236,6 @@ namespace PFMP_API
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // Income Source Configuration
-            modelBuilder.Entity<IncomeSource>(entity =>
-            {
-                entity.HasKey(e => e.IncomeSourceId);
-                entity.HasOne(e => e.User)
-                    .WithMany(e => e.IncomeSources)
-                    .HasForeignKey(e => e.UserId)
-                    .OnDelete(DeleteBehavior.Cascade);
-            });
 
             // Insurance Configuration
             modelBuilder.Entity<Insurance>(entity =>

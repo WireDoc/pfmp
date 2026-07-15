@@ -520,8 +520,10 @@ export function ProfileView() {
     // Also update user core fields (DOB, agency, etc.)
     const u = userCore as User;
     if (u.userId && u.firstName && u.lastName) {
-      // Strip navigation properties that cause validation errors on the backend
-      const { accounts, ...userPayload } = u as User & { accounts?: unknown };
+      // Strip navigation properties that cause validation errors on the backend,
+      // and the VA monthly amount — it's a synced mirror of the income stream
+      // (Wave 26); pushing the stale display copy would clobber the sync.
+      const { accounts, vaDisabilityMonthlyAmount, ...userPayload } = u as User & { accounts?: unknown };
       await userService.update(u.userId, userPayload as User);
     }
   });
@@ -577,7 +579,8 @@ export function ProfileView() {
     // Also persist user core fields shown on this tab (agency, pay grade, SCD, retirement system)
     const u = userCore as User;
     if (u.userId && u.firstName && u.lastName) {
-      const { accounts, ...userPayload } = u as User & { accounts?: unknown };
+      // vaDisabilityMonthlyAmount stripped — synced from the income stream (Wave 26)
+      const { accounts, vaDisabilityMonthlyAmount, ...userPayload } = u as User & { accounts?: unknown };
       await userService.update(u.userId, userPayload as User);
     }
     // Refresh projection after saving
@@ -742,7 +745,9 @@ export function ProfileView() {
                   <TextField fullWidth type="number" label="VA Disability %" value={userCore.vaDisabilityPercentage ?? ''} onChange={e => setUserCore(p => ({ ...p, vaDisabilityPercentage: Number(e.target.value) || undefined }))} inputProps={{ min: 0, max: 100 }} />
                 </Grid>
                 <Grid size={{ xs: 12, md: 4 }}>
-                  <TextField fullWidth type="number" label="VA Monthly Amount" value={userCore.vaDisabilityMonthlyAmount ?? ''} onChange={e => setUserCore(p => ({ ...p, vaDisabilityMonthlyAmount: Number(e.target.value) || undefined }))} inputProps={{ min: 0 }} />
+                  {/* Wave 26 — synced mirror of the va-disability income stream (the one
+                      VA store). Edit the amount on the Income tab; it lands here on save. */}
+                  <TextField fullWidth type="number" label="VA Monthly Amount" value={userCore.vaDisabilityMonthlyAmount ?? ''} disabled helperText="Synced from your VA disability income stream (Income tab)" />
                 </Grid>
                 <Grid size={{ xs: 12, md: 4 }}>
                   <FormControlLabel control={<Switch checked={userCore.includeVaDisabilityInProjections ?? false} onChange={(_, v) => setUserCore(p => ({ ...p, includeVaDisabilityInProjections: v }))} size="small" />} label="Include VA disability in retirement projections" />

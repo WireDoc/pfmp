@@ -863,6 +863,22 @@ namespace PFMP_API.Services.FinancialProfile
                 }
             }
 
+            // Wave 26 — IncomeStreams is the ONE VA-disability store. The Users
+            // column becomes a synced mirror so its consumers (FERS projections,
+            // Profile tab display) can't drift from the canonical stream.
+            var vaMonthly = input.OptOut?.IsOptedOut == true
+                ? (decimal?)null
+                : input.Streams
+                    .Where(s => s.IsActive
+                        && string.Equals(s.IncomeType?.Replace('_', '-'), "va-disability", StringComparison.OrdinalIgnoreCase))
+                    .Sum(s => (decimal?)(s.MonthlyAmount ?? (s.AnnualAmount.HasValue ? s.AnnualAmount.Value / 12 : 0)));
+            var owner = await _db.Users.FirstOrDefaultAsync(u => u.UserId == userId, ct);
+            if (owner != null)
+            {
+                owner.VADisabilityMonthlyAmount = vaMonthly is > 0 ? vaMonthly : null;
+                owner.UpdatedAt = DateTime.UtcNow;
+            }
+
             await UpdateSectionStatusAsync(userId, "income", input.OptOut, input.OptOut?.IsOptedOut != true && input.Streams.Count > 0, ct);
             await _db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);

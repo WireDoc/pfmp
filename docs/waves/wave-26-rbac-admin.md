@@ -1,6 +1,6 @@
 # Wave 26 — RBAC + Admin User Management + Dev-Mode Toggle
 
-**Status:** 🟡 In progress — preflight locked 2026-07-14; security core first
+**Status:** 🟡 Phases A–D implemented (A `89dbec8`, B `9c2cf6b`, C `e7ee2f0`, D `84f4686` + `fa0f3b2` + `3d1dd2e` + VA unification) — owner verification of Phase D, then closeout
 **Owner:** Solo project; user is sole customer (user 21 = the real admin account)
 **Campaign:** Second wave of Phase 5 (Production Readiness) — see
 `docs/history/roadmap.md`. Predecessor: Wave 25 (Entra ID auth, closed with the
@@ -44,7 +44,7 @@ Work order (commit + owner verification checkpoint after each chunk):
 
 ## Phases
 
-### Phase A — Security core 🟡
+### Phase A — Security core ✅ (`89dbec8`, verified live)
 
 - `IsAdmin` on `User` + `Wave26_UserAdminFlag` migration; backfill user 21;
   provisioning sets `IsAdmin = true` for allowlisted first logins
@@ -54,43 +54,60 @@ Work order (commit + owner verification checkpoint after each chunk):
 - `api/admin/users` gated with `AdminOnly` (was: any authenticated user);
   `DevUsersController` already 404s outside Development — unchanged
 
-### Phase B — Dev-user switch (admin-only) 📋
+### Phase B — Dev-user switch (admin-only) ✅ (`9c2cf6b`, owner-verified)
 
 - Toggle in the dashboard nav, hidden unless the current user `IsAdmin`
 - Writes the picked dev user id into `devUserState` (persisted); DEV badge
   shows while impersonating; real Entra session untouched
 
-### Phase C — Admin users page (minimal) 📋
+### Phase C — Admin users page (minimal) ✅ (`e7ee2f0`, verified live incl. immediate lockout)
 
 - `/dashboard/admin/users`: list users (id, name, email, active, admin,
   created, last login), activate/deactivate. Backend = existing
   `UserAdminController` + an activate/deactivate endpoint
 
-### Phase D — Phase F cleanup queue 📋
+### Phase D — Phase F cleanup queue ✅ (2026-07-14 → 2026-07-15)
 
-1. Delete legacy `Development:BypassAuthentication` code paths
-2. Real-name capture (FirstName/LastName editable; kills "Carl User")
-3. One shared net-worth calculator (snapshot currently excludes TSP, dashboard
-   includes it — ~$161k apart)
-4. VA disability unification on `IncomeStreams`; retire legacy `IncomeSources`
-   table + `VADisabilityTracker` component
-5. Quiet recurring jobs for deactivated users (owner request 2026-07-14: "I
-   want to quiet the app for these as I stop testing, but be able to bring
-   them back online"). All reversible query-time filters on `Users.IsActive`:
-   FMP price refresh + symbol-metrics universe (symbols now derive from
-   active owners' holdings only), Plaid sync, crypto exchange sync, property
-   valuation refresh (RentCast/FHFA quota), spending rollups. Already
-   filtered before this wave: net-worth snapshots, news ingestion/digests.
+1. ✅ `Development:BypassAuthentication` config flag + all code paths deleted
+   (`84f4686`) — four bypass branches + `CreateDevelopmentAuthResult`, the
+   AuthController field, the AuthConfig response property. The
+   `Users.BypassAuthentication` COLUMN stays (dev-account marker, unrelated).
+2. ✅ Real-name capture (`fa0f3b2`) — FirstName/LastName on the household
+   section (onboarding + Profile tab, saved via existing paths; never cleared
+   by opt-out). Kills "Carl User" once the owner types their name.
+3. ✅ One shared net-worth calculator (`3d1dd2e`) —
+   `Services/NetWorth/NetWorthCalculationService` consumed by the dashboard
+   summary, the daily `NetWorthSnapshotJob` (fixes its linked-mortgage
+   double-count + stale type list), and the financial-profile snapshot (now
+   includes TSP + crypto; verified identical to the dashboard: $874,578.48).
+4. ✅ VA disability unification — `IncomeStreams` is the ONE VA store; the
+   income upsert syncs `Users.VADisabilityMonthlyAmount` (verified live);
+   VA % + projections toggle stay as User metadata; Profile tab's VA amount
+   is a read-only synced view (and stripped from the userCore save payloads
+   so a stale copy can't clobber the sync). Retired: `IncomeSources` table
+   (migration `Wave26_DropLegacyIncomeSources`; 0 rows), model, controller,
+   frontend `incomeSourceService`, `VADisabilityTracker` component. Bonus
+   dead-scaffold cleanup: `PfmpDevContext` + `Models/Temp/*` (37 files, only
+   referenced by each other; also kills the connection-string build warning).
+   Settings CSV export now reads IncomeStreams. `UsersController` summary
+   income moved to IncomeStreams.
+5. ✅ Quiet recurring jobs for deactivated users (`84f4686`; owner request
+   2026-07-14: "quiet the app for these as I stop testing, but be able to
+   bring them back online"). All reversible query-time filters on
+   `Users.IsActive`: FMP price refresh + symbol-metrics universe (symbols now
+   derive from active owners' holdings only), Plaid sync, crypto exchange
+   sync, property valuation refresh (RentCast/FHFA quota), spending rollups.
+   Already filtered before this wave: net-worth snapshots, news ingestion.
    Global market data (TSP fund prices, benchmarks) intentionally unfiltered.
 
 ## Acceptance criteria
 
-- [ ] Non-admin requests carrying another user's id are rejected (403) on
-      query, route, and body paths
-- [ ] Admin (user 21) can act on any userId — powers the dev switch
-- [ ] `api/admin/users` unreachable for non-admins
-- [ ] Dev-user toggle: impersonate user 20, browse + write, flip back, real
-      session intact
-- [ ] Admin users page lists users; activate/deactivate round-trips
-- [ ] Cleanup queue items 1–4 landed
-- [ ] Wave doc closeout
+- [x] Non-admin requests carrying another user's id are rejected (403) on
+      query and body paths (route values bind identically) — verified live
+- [x] Admin (user 21) can act on any userId — powers the dev switch
+- [x] `api/admin/users` unreachable for non-admins (403 verified)
+- [x] Dev-user toggle: impersonation verified by owner 2026-07-14
+- [x] Admin users page lists users; activate/deactivate round-trips with
+      immediate lockout; self-deactivation refused
+- [x] Cleanup queue items 1–5 landed (see Phase D)
+- [ ] Owner verification of Phase D + wave doc closeout summary

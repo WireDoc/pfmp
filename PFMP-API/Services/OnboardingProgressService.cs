@@ -89,9 +89,6 @@ namespace PFMP_API.Services
             var expenses = await _db.ExpenseBudgets.Where(e => e.UserId == userId).ToListAsync(ct);
             _db.ExpenseBudgets.RemoveRange(expenses);
 
-            var incomeSources = await _db.IncomeSources.Where(i => i.UserId == userId).ToListAsync(ct);
-            _db.IncomeSources.RemoveRange(incomeSources);
-
             var insurancePolicies = await _db.InsurancePolicies.Where(i => i.UserId == userId).ToListAsync(ct);
             _db.InsurancePolicies.RemoveRange(insurancePolicies);
 

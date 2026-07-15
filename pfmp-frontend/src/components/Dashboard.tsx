@@ -27,7 +27,6 @@ import {
 import { TSPAllocationForm } from './forms/TSPAllocationForm';
 import { EmergencyFundTracker } from './forms/EmergencyFundTracker';
 import { CashAccountManager } from './forms/CashAccountManager';
-import { VADisabilityTracker } from './forms/VADisabilityTracker';
 import { TaskDashboard } from './TaskDashboard';
 import { AlertsDashboard } from './AlertsDashboard';
 import AdvicePanel from './AdvicePanel';
@@ -106,11 +105,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ userId = 1 }) => {
       label: 'Cash Accounts',
       icon: <AccountBalance />,
       component: <CashAccountManager userId={userId} key={`cash-${refreshKey}`} onUpdate={handleRefreshData} />
-    },
-    {
-      label: 'VA Disability',
-      icon: <LocalHospital />,
-      component: <VADisabilityTracker userId={userId} key={`va-${refreshKey}`} onUpdate={handleRefreshData} />
     },
     {
       label: 'Tasks',

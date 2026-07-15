@@ -28,8 +28,9 @@ import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import DownloadIcon from '@mui/icons-material/Download';
 import { useDevUserId } from '../../dev/devUserState';
-import { userService, accountService, goalService, incomeSourceService } from '../../services/api';
+import { userService, accountService, goalService } from '../../services/api';
 import type { User } from '../../services/api';
+import { fetchIncomeStreamsProfile } from '../../services/financialProfileApi';
 
 /**
  * SettingsView - User settings and configuration
@@ -84,7 +85,8 @@ export function SettingsView() {
       const [accountsRes, goalsRes, incomeRes] = await Promise.all([
         accountService.getByUser(userId).catch(() => ({ data: [] })),
         goalService.getByUser(userId).catch(() => ({ data: [] })),
-        incomeSourceService.getByUser(userId).catch(() => ({ data: [] })),
+        // Wave 26 — IncomeStreams replaced the legacy IncomeSources table
+        fetchIncomeStreamsProfile(userId).catch(() => ({ streams: [] })),
       ]);
 
       const lines: string[] = [];
@@ -108,11 +110,10 @@ export function SettingsView() {
 
       // Income section
       lines.push('');
-      lines.push('=== Income Sources ===');
-      lines.push('Description,Type,Amount,Frequency');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      for (const i of incomeRes.data as any[]) {
-        lines.push(`"${i.description ?? i.sourceType ?? ''}","${i.sourceType ?? ''}",${i.amount ?? 0},"${i.frequency ?? ''}"`);
+      lines.push('=== Income Streams ===');
+      lines.push('Name,Type,Monthly Amount,Annual Amount,Guaranteed');
+      for (const s of incomeRes.streams ?? []) {
+        lines.push(`"${s.name ?? ''}","${s.incomeType ?? ''}",${s.monthlyAmount ?? 0},${s.annualAmount ?? 0},"${s.isGuaranteed ? 'yes' : 'no'}"`);
       }
 
       const csv = lines.join('\n');

@@ -121,7 +121,6 @@ namespace PFMP_API.Models
         // Navigation Properties
         public virtual ICollection<Account> Accounts { get; set; } = new List<Account>();
         public virtual ICollection<Goal> Goals { get; set; } = new List<Goal>();
-        public virtual ICollection<IncomeSource> IncomeSources { get; set; } = new List<IncomeSource>();
         public virtual ICollection<Insurance> InsurancePolicies { get; set; } = new List<Insurance>();
         public virtual ICollection<RealEstate> RealEstateProperties { get; set; } = new List<RealEstate>();
         public virtual ICollection<Alert> Alerts { get; set; } = new List<Alert>();

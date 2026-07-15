@@ -210,33 +210,8 @@ export const goalService = {
   delete: (id: number) => apiClient.delete(`/Goals/${id}`),
 };
 
-export const incomeSourceService = {
-  getByUser: (userId: number) => apiClient.get(`/IncomeSources/user/${userId}`),
-  getVADisabilityInfo: (userId: number) => apiClient.get(`/IncomeSources/va-disability/user/${userId}`),
-  getSummary: (userId: number) => apiClient.get(`/IncomeSources/summary/user/${userId}`),
-  getById: (id: number) => apiClient.get(`/IncomeSources/${id}`),
-  // Minimal IncomeSource shape; extend as fields are actually consumed in UI
-  create: (incomeSource: {
-    userId: number;
-    sourceType: string;
-    amount: number;
-    description?: string;
-    frequency?: string;
-    // index signature to remain flexible during transition
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [key: string]: any;
-  }) => apiClient.post('/IncomeSources', incomeSource),
-  update: (id: number, incomeSource: Partial<{
-    userId: number;
-    sourceType: string;
-    amount: number;
-    description?: string;
-    frequency?: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [key: string]: any;
-  }>) => apiClient.put(`/IncomeSources/${id}`, incomeSource),
-  delete: (id: number) => apiClient.delete(`/IncomeSources/${id}`),
-};
+// Wave 26 — incomeSourceService removed with the legacy IncomeSources table.
+// IncomeStreams (financialProfileApi) is the one income store.
 
 export const taskService = {
   getByUser: (userId: number, status?: TaskStatus) => {

@@ -28,9 +28,12 @@ vi.mock('../../services/api', () => ({
   goalService: {
     getByUser: (...args: unknown[]) => mockGetGoals(...args),
   },
-  incomeSourceService: {
-    getByUser: (...args: unknown[]) => mockGetIncome(...args),
-  },
+}));
+
+// Wave 26 — the export reads IncomeStreams (financialProfileApi), not the
+// retired IncomeSources service.
+vi.mock('../../services/financialProfileApi', () => ({
+  fetchIncomeStreamsProfile: (...args: unknown[]) => mockGetIncome(...args),
 }));
 
 import { SettingsView } from '../../views/dashboard/SettingsView';
@@ -185,7 +188,7 @@ describe('SettingsView', () => {
     const user = userEvent.setup();
     mockGetAccounts.mockResolvedValue({ data: [{ accountName: 'Savings', institution: 'Bank', accountType: 'Checking', currentBalance: 5000, category: 'Cash' }] });
     mockGetGoals.mockResolvedValue({ data: [{ name: 'Retirement', type: 'Retirement', targetAmount: 100000, currentAmount: 25000, status: 'Active' }] });
-    mockGetIncome.mockResolvedValue({ data: [{ description: 'Salary', sourceType: 'Employment', amount: 5000, frequency: 'Monthly' }] });
+    mockGetIncome.mockResolvedValue({ streams: [{ name: 'Salary', incomeType: 'salary', monthlyAmount: 5000, annualAmount: 60000, isGuaranteed: true }] });
 
     const createObjectURL = vi.fn(() => 'blob:test');
     const revokeObjectURL = vi.fn();

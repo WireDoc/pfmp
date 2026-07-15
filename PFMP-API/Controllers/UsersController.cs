@@ -28,7 +28,6 @@ namespace PFMP_API.Controllers
                 return await _context.Users
                     .Include(u => u.Accounts)
                     .Include(u => u.Goals)
-                    .Include(u => u.IncomeSources)
                     .ToListAsync();
             }
             catch (Exception ex)
@@ -49,7 +48,6 @@ namespace PFMP_API.Controllers
                         .ThenInclude(a => a.Holdings)
                     .Include(u => u.Goals)
                         .ThenInclude(g => g.Milestones)
-                    .Include(u => u.IncomeSources)
                     .Include(u => u.InsurancePolicies)
                     .Include(u => u.RealEstateProperties)
                     .Include(u => u.Alerts)
@@ -183,7 +181,6 @@ namespace PFMP_API.Controllers
                 var user = await _context.Users
                     .Include(u => u.Accounts)
                     .Include(u => u.Goals)
-                    .Include(u => u.IncomeSources)
                     .FirstOrDefaultAsync(u => u.UserId == id);
 
                 if (user == null)
@@ -192,15 +189,14 @@ namespace PFMP_API.Controllers
                 }
 
                 var totalBalance = user.Accounts.Sum(a => a.CurrentBalance);
-                var emergencyFundProgress = totalBalance > 0 ? 
+                var emergencyFundProgress = totalBalance > 0 ?
                     (user.EmergencyFundTarget > 0 ? (totalBalance / user.EmergencyFundTarget) * 100 : 0) : 0;
-                
-                var monthlyIncome = user.IncomeSources
-                    .Where(i => i.IsActive)
-                    .Sum(i => i.Frequency == IncomeFrequency.Monthly ? i.Amount :
-                           i.Frequency == IncomeFrequency.BiWeekly ? i.Amount * 2.167m :
-                           i.Frequency == IncomeFrequency.Weekly ? i.Amount * 4.333m :
-                           i.Amount / 12);
+
+                // Wave 26 — IncomeStreams is the canonical income store (the legacy
+                // IncomeSources table is gone).
+                var monthlyIncome = await _context.IncomeStreams
+                    .Where(s => s.UserId == id && s.IsActive)
+                    .SumAsync(s => (decimal?)s.MonthlyAmount) ?? 0m;
 
                 var summary = new
                 {
