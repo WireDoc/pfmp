@@ -422,7 +422,13 @@ The campaign is 4 waves running roughly in series:
 - `pfmp-frontend/src/dev/devUserState.ts` — admin-toggle integration
 - `pfmp-frontend/src/layout/DashboardNav.tsx` — toggle UI
 
-### Wave 27: Plaid sandbox → production 📋
+### Wave 27: Plaid sandbox → production 📋 (runs AFTER Wave 28 — order swapped)
+
+**Preflight locked 2026-07-16**: (1B) **Wave 28 deploys first** so this wave
+files the Plaid application against a live public URL; (2A) privacy policy +
+ToS as unauthenticated SPA routes; (3A) Plaid error-handling audit with fixes
+applied inline (ITEM_LOGIN_REQUIRED re-link flow etc.); (4A) webhooks
+deferred — polling stays until production proves a need.
 
 **Owner clarification (2026-06-23)**: Plaid prod application is NOT filed yet. App must meet Plaid's criteria before applying; this wave builds to that bar then files.
 
