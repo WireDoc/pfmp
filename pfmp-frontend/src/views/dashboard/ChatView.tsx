@@ -45,6 +45,9 @@ import {
 } from '../../services/chatApi';
 import { formatRelative, formatAbsolute } from '../../utils/relativeTime';
 
+/** Sticky deep-think preference (defaults ON when unset). */
+const DEEP_THINK_KEY = 'pfmp_chat_deep_think';
+
 /**
  * Wave 24 — AI Chatbot with Memory. /dashboard/chat[/:id]
  * Left rail: conversation list + new chat. Main pane: streaming thread + composer.
@@ -65,7 +68,17 @@ export function ChatView() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingDraft, setStreamingDraft] = useState<string>('');
   const [streamError, setStreamError] = useState<string | null>(null);
-  const [deepThink, setDeepThink] = useState(false);
+  // Deep think is sticky and defaults ON: the owner uses it for essentially every
+  // message, so a per-message reset was pure friction. Persisted so it survives
+  // reloads and carries across conversations.
+  const [deepThink, setDeepThink] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem(DEEP_THINK_KEY);
+      return stored === null ? true : stored === 'true';
+    } catch {
+      return true; // private window / restricted storage
+    }
+  });
   const [snapshotInfo, setSnapshotInfo] = useState<ContextSnapshotInfo | null>(null);
   const [monthlyCost, setMonthlyCost] = useState<ChatCostSummary | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
@@ -202,9 +215,16 @@ export function ChatView() {
     setStreamingDraft('');
     await refreshConversations();
     await refreshSnapshotAndCost();
+  };
 
-    // Mark deep-think as one-shot — reset after each message so cost doesn't surprise.
-    if (deepThink) setDeepThink(false);
+  // Deep think is a sticky preference, not a one-shot: persist every flip.
+  const handleDeepThinkChange = (value: boolean) => {
+    setDeepThink(value);
+    try {
+      localStorage.setItem(DEEP_THINK_KEY, String(value));
+    } catch {
+      /* private window / restricted storage — in-memory state still applies */
+    }
   };
 
   const handleComposerKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -294,8 +314,8 @@ export function ChatView() {
                 />
                 <Tooltip title={
                   deepThink
-                    ? 'Deep think on — uses High reasoning effort for the next message (~2-3× the cost of a normal message). Auto-resets after each turn.'
-                    : 'Deep think — enable High reasoning effort for the next message. Reserve for genuinely complex strategy questions.'
+                    ? 'Deep think ON — High reasoning effort, with web search available (~2-3× the cost of a normal message). Stays on until you turn it off.'
+                    : 'Deep think OFF — standard reasoning effort. Turn on for complex strategy questions; the setting sticks across messages.'
                 }>
                   <FormControlLabel
                     sx={{ ml: 0, mr: 0 }}
@@ -303,7 +323,7 @@ export function ChatView() {
                       <Switch
                         size="small"
                         checked={deepThink}
-                        onChange={(_e, v) => setDeepThink(v)}
+                        onChange={(_e, v) => handleDeepThinkChange(v)}
                         disabled={isStreaming}
                       />
                     }

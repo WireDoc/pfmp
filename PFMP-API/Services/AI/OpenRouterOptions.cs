@@ -53,6 +53,35 @@ public class ChatOptions
     /// cycles during an active chat session.
     /// </summary>
     public int SnapshotMaxAgeMinutes { get; set; } = 120;
+
+    /// <summary>
+    /// Chat gets its own (much longer) HTTP timeout, separate from the shared
+    /// OpenRouter timeout used by short advisory calls. Deep-think + web-search
+    /// turns legitimately run for minutes; a slow answer beats a truncated one.
+    /// 0 = infinite.
+    /// </summary>
+    public int TimeoutSeconds { get; set; } = 600;
+
+    /// <summary>
+    /// Retries when the upstream provider fails the stream TRANSIENTLY - a
+    /// 5xx/timeout error event, or a stream that ends with zero content.
+    /// Observed 2026-07-16: Google returned 504 "operation was aborted" twice
+    /// in a row through OpenRouter while the identical request succeeded
+    /// moments later. Retrying makes that invisible to the user.
+    /// </summary>
+    public int TransientRetries { get; set; } = 2;
+
+    /// <summary>Seconds before the first retry; doubles each attempt.</summary>
+    public int RetryBackoffSeconds { get; set; } = 2;
+
+    /// <summary>
+    /// OpenRouter "web" plugin result count. Chat is occasional and thorough
+    /// research is preferred over speed, so this runs deeper than the default.
+    /// </summary>
+    public int WebSearchMaxResults { get; set; } = 10;
+
+    /// <summary>Enable the OpenRouter web-search plugin for chat turns.</summary>
+    public bool WebSearchEnabled { get; set; } = true;
 }
 
 /// <summary>
