@@ -40,6 +40,20 @@ public interface IChatService
         int userId,
         CancellationToken ct = default);
 
+    /// <summary>Permanently deletes one conversation and its messages.</summary>
+    Task DeleteConversationAsync(
+        int conversationId,
+        int userId,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Permanently deletes every archived conversation for the user.
+    /// Returns the number of conversations removed.
+    /// </summary>
+    Task<int> DeleteArchivedConversationsAsync(
+        int userId,
+        CancellationToken ct = default);
+
     /// <summary>
     /// Streams the assistant's response token-by-token as SSE-friendly events.
     /// Persists the user turn before yielding any deltas, then persists the

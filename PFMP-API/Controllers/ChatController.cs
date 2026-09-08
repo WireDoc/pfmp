@@ -119,6 +119,31 @@ public class ChatController : ControllerBase
         catch (KeyNotFoundException) { return NotFound(); }
     }
 
+    /// <summary>Permanently deletes one conversation and its messages.</summary>
+    [HttpDelete("conversations/{conversationId:int}")]
+    public async Task<IActionResult> Delete(
+        int conversationId,
+        [FromQuery] int userId,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            await _chat.DeleteConversationAsync(conversationId, userId, ct);
+            return NoContent();
+        }
+        catch (KeyNotFoundException) { return NotFound(); }
+    }
+
+    /// <summary>Permanently deletes every archived conversation for the user.</summary>
+    [HttpDelete("conversations/archived")]
+    public async Task<ActionResult<object>> DeleteArchived(
+        [FromQuery] int userId,
+        CancellationToken ct = default)
+    {
+        var deleted = await _chat.DeleteArchivedConversationsAsync(userId, ct);
+        return Ok(new { deleted });
+    }
+
     // ===== Streaming chat turn =====
 
     public record StreamMessageRequest(int UserId, string Message, bool DeepThink);

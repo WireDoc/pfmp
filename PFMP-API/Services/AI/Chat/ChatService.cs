@@ -152,6 +152,35 @@ public class ChatService : IChatService
         await _db.SaveChangesAsync(ct);
     }
 
+    public async Task DeleteConversationAsync(
+        int conversationId, int userId, CancellationToken ct = default)
+    {
+        var conv = await _db.AIConversations
+            .FirstOrDefaultAsync(c => c.ConversationId == conversationId && c.UserId == userId, ct)
+            ?? throw new KeyNotFoundException($"Conversation {conversationId} not found");
+
+        // Messages have no cascade configured, so clear them explicitly rather
+        // than orphaning rows.
+        await _db.AIMessages.Where(m => m.ConversationId == conversationId).ExecuteDeleteAsync(ct);
+        _db.AIConversations.Remove(conv);
+        await _db.SaveChangesAsync(ct);
+        _logger.LogInformation("Deleted conversation {ConversationId} for user {UserId}", conversationId, userId);
+    }
+
+    public async Task<int> DeleteArchivedConversationsAsync(int userId, CancellationToken ct = default)
+    {
+        var ids = await _db.AIConversations
+            .Where(c => c.UserId == userId && c.ConversationType == "Chat" && c.ArchivedAt != null)
+            .Select(c => c.ConversationId)
+            .ToListAsync(ct);
+        if (ids.Count == 0) return 0;
+
+        await _db.AIMessages.Where(m => ids.Contains(m.ConversationId)).ExecuteDeleteAsync(ct);
+        await _db.AIConversations.Where(c => ids.Contains(c.ConversationId)).ExecuteDeleteAsync(ct);
+        _logger.LogInformation("Deleted {Count} archived conversation(s) for user {UserId}", ids.Count, userId);
+        return ids.Count;
+    }
+
     public async Task<ChatCostSummary> GetMonthlyCostAsync(int userId, CancellationToken ct = default)
     {
         var monthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -237,9 +266,6 @@ public class ChatService : IChatService
             .ToListAsync(ct);
         historyMessages.Reverse();
 
-        var payload = BuildPayload(slot.Model, snapshot.Content, historyMessages, userMessage, slot, reasoningEffort, deepThink, _options.Chat);
-        var json = JsonSerializer.Serialize(payload);
-
         var startedAt = DateTime.UtcNow;
         var responseBuilder = new StringBuilder();
         int inputTokens = 0;
@@ -259,9 +285,26 @@ public class ChatService : IChatService
         var maxAttempts = Math.Max(1, _options.Chat.TransientRetries + 1);
         string? fatalError = null;
         string? lastFailureDetail = null;
+        var webSearchDropped = false;
 
         for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
+            // Web-search fallback (measured 2026-07-16): when OpenRouter's `web`
+            // plugin is active, this provider aborts the whole request at ~11s.
+            // Short questions finish inside that budget; long analytical ones need
+            // 45-60s of reasoning and therefore fail 100% of the time WITH search
+            // and succeed 100% of the time WITHOUT it — result count makes no
+            // difference (tested 1/3/5/10). So the final attempt always drops the
+            // plugin: search-able questions still get live data on the earlier
+            // attempts, and heavy questions still get answered.
+            var useWebSearch = _options.Chat.WebSearchEnabled
+                               && (maxAttempts == 1 || attempt < maxAttempts);
+            if (_options.Chat.WebSearchEnabled && !useWebSearch) webSearchDropped = true;
+
+            var payload = BuildPayload(slot.Model, snapshot.Content, historyMessages, userMessage,
+                slot, reasoningEffort, deepThink, _options.Chat, useWebSearch);
+            var json = JsonSerializer.Serialize(payload);
+
             // Reset per-attempt accumulators (nothing has been emitted yet).
             responseBuilder.Clear();
             citations.Clear();
@@ -437,8 +480,8 @@ public class ChatService : IChatService
             // request, or an unknown plugin/parameter combo.
             _logger.LogWarning(
                 "Chat stream returned zero deltas (conv={ConvId}, model={Model}, attempt={Attempt}/{Max}, " +
-                "elapsed={Elapsed}ms). SSE tail (up to 2KB):\n{Tail}",
-                conversationId, actualModel, attempt, maxAttempts,
+                "webSearch={WebSearch}, elapsed={Elapsed}ms). SSE tail (up to 2KB):\n{Tail}",
+                conversationId, actualModel, attempt, maxAttempts, useWebSearch,
                 (int)(DateTime.UtcNow - startedAt).TotalMilliseconds,
                 diagnosticTail.Length > 0 ? diagnosticTail.ToString() : "(no SSE data received)");
 
@@ -463,6 +506,16 @@ public class ChatService : IChatService
             // so they can retry without re-typing.
             yield return new ChatStreamEvent("error", fatalError, null);
             yield break;
+        }
+
+        // If live search had to be dropped to get an answer at all, say so rather
+        // than quietly returning a context-only answer to a research question.
+        if (webSearchDropped && citations.Count == 0)
+        {
+            const string note = "\n\n_(Live web search timed out for this question, so this answer " +
+                                "comes from your profile data and the model's own knowledge.)_";
+            responseBuilder.Append(note);
+            yield return new ChatStreamEvent("delta", note, null);
         }
 
         // Append a Sources list for anything the web plugin actually cited, unless
@@ -574,7 +627,8 @@ public class ChatService : IChatService
         ResolvedModelConfig slot,
         AIReasoningEffort reasoningEffort,
         bool deepThink,
-        ChatOptions chatOptions)
+        ChatOptions chatOptions,
+        bool useWebSearch)
     {
         var messages = new List<Dictionary<string, object>>
         {
@@ -615,7 +669,7 @@ public class ChatService : IChatService
         // updates when the question demands it. Result depth is configurable
         // (AI:OpenRouter:Chat:WebSearchMaxResults) because chat is occasional and
         // thorough research is preferred over speed.
-        if (chatOptions.WebSearchEnabled)
+        if (useWebSearch)
         {
             payload["plugins"] = new object[]
             {

@@ -26,6 +26,7 @@ import AddCommentIcon from '@mui/icons-material/AddComment';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import { useDevUserId } from '../../dev/devUserState';
 import {
   listConversations,
@@ -33,6 +34,8 @@ import {
   createConversation,
   renameConversation,
   archiveConversation,
+  deleteConversation,
+  deleteArchivedConversations,
   rebuildSnapshot,
   getSnapshotInfo,
   getMonthlyCost,
@@ -147,6 +150,25 @@ export function ChatView() {
     if (selectedId === id) navigate('/dashboard/chat');
   };
 
+  const handleDelete = async (id: number, title: string | null) => {
+    const label = title?.trim() ? `"${title.trim()}"` : 'this conversation';
+    if (!window.confirm(`Permanently delete ${label} and all of its messages? This cannot be undone.`)) return;
+    await deleteConversation(id, userId);
+    await refreshConversations();
+    if (selectedId === id) navigate('/dashboard/chat');
+  };
+
+  const handleDeleteArchived = async () => {
+    if (!window.confirm('Permanently delete ALL archived conversations? This cannot be undone.')) return;
+    const deleted = await deleteArchivedConversations(userId);
+    await refreshConversations();
+    if (deleted > 0 && selectedId != null) {
+      // The open thread may have been one of them.
+      await refreshConversations();
+    }
+    window.alert(deleted === 0 ? 'No archived conversations to delete.' : `Deleted ${deleted} archived conversation(s).`);
+  };
+
   const handleRename = async (id: number, current: string | null) => {
     const next = window.prompt('Rename conversation', current ?? '');
     if (next == null) return;
@@ -247,6 +269,8 @@ export function ChatView() {
         onNew={handleNewConversation}
         onSelect={(id) => navigate(`/dashboard/chat/${id}`)}
         onArchive={handleArchive}
+        onDelete={handleDelete}
+        onDeleteArchived={handleDeleteArchived}
         onRename={handleRename}
         onRebuildSnapshot={handleRebuildSnapshot}
       />
@@ -270,6 +294,7 @@ export function ChatView() {
               onCloseMenu={() => setMenuAnchor(null)}
               onRename={() => { setMenuAnchor(null); void handleRename(active.conversationId, active.title); }}
               onArchive={() => { setMenuAnchor(null); void handleArchive(active.conversationId); }}
+              onDelete={() => { setMenuAnchor(null); void handleDelete(active.conversationId, active.title); }}
             />
             <Divider />
 
@@ -356,12 +381,14 @@ interface SidebarProps {
   onNew: () => void;
   onSelect: (id: number) => void;
   onArchive: (id: number) => void;
+  onDelete: (id: number, current: string | null) => void;
+  onDeleteArchived: () => void;
   onRename: (id: number, current: string | null) => void;
   onRebuildSnapshot: () => void;
 }
 
 function ConversationSidebar(props: SidebarProps) {
-  const { conversations, selectedId, loading, snapshotInfo, monthlyCost, onNew, onSelect, onArchive, onRename, onRebuildSnapshot } = props;
+  const { conversations, selectedId, loading, snapshotInfo, monthlyCost, onNew, onSelect, onArchive, onDelete, onDeleteArchived, onRename, onRebuildSnapshot } = props;
   return (
     <Paper
       square
@@ -389,11 +416,26 @@ function ConversationSidebar(props: SidebarProps) {
                 selected={selectedId === c.conversationId}
                 onSelect={() => onSelect(c.conversationId)}
                 onArchive={() => onArchive(c.conversationId)}
+                onDelete={() => onDelete(c.conversationId, c.title)}
                 onRename={() => onRename(c.conversationId, c.title)}
               />
             ))}
           </List>
         )}
+      </Box>
+      <Divider />
+      <Box sx={{ px: 1.25, py: 0.75 }}>
+        <Tooltip title="Permanently delete every archived conversation and its messages.">
+          <Button
+            size="small"
+            color="error"
+            startIcon={<DeleteSweepIcon fontSize="small" />}
+            onClick={onDeleteArchived}
+            sx={{ textTransform: 'none', fontSize: '0.75rem' }}
+          >
+            Delete archived chats
+          </Button>
+        </Tooltip>
       </Box>
       <Divider />
       <Box sx={{ p: 1.25 }}>
@@ -429,10 +471,11 @@ interface ConvRowProps {
   selected: boolean;
   onSelect: () => void;
   onArchive: () => void;
+  onDelete: () => void;
   onRename: () => void;
 }
 
-function ConversationRow({ conv, selected, onSelect, onArchive, onRename }: ConvRowProps) {
+function ConversationRow({ conv, selected, onSelect, onArchive, onDelete, onRename }: ConvRowProps) {
   const [anchor, setAnchor] = useState<null | HTMLElement>(null);
   return (
     <ListItemButton selected={selected} onClick={onSelect} sx={{ pr: 0.5 }}>
@@ -461,6 +504,7 @@ function ConversationRow({ conv, selected, onSelect, onArchive, onRename }: Conv
       <Menu open={Boolean(anchor)} anchorEl={anchor} onClose={() => setAnchor(null)}>
         <MenuItem onClick={() => { setAnchor(null); onRename(); }}>Rename</MenuItem>
         <MenuItem onClick={() => { setAnchor(null); onArchive(); }}>Archive</MenuItem>
+        <MenuItem onClick={() => { setAnchor(null); onDelete(); }} sx={{ color: 'error.main' }}>Delete</MenuItem>
       </Menu>
     </ListItemButton>
   );
@@ -495,9 +539,10 @@ interface ThreadHeaderProps {
   onCloseMenu: () => void;
   onRename: () => void;
   onArchive: () => void;
+  onDelete: () => void;
 }
 
-function ThreadHeader({ detail, anchor, onMenu, onCloseMenu, onRename, onArchive }: ThreadHeaderProps) {
+function ThreadHeader({ detail, anchor, onMenu, onCloseMenu, onRename, onArchive, onDelete }: ThreadHeaderProps) {
   return (
     <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}>
       <Box>
@@ -526,6 +571,7 @@ function ThreadHeader({ detail, anchor, onMenu, onCloseMenu, onRename, onArchive
       <Menu open={Boolean(anchor)} anchorEl={anchor} onClose={onCloseMenu}>
         <MenuItem onClick={onRename}>Rename conversation</MenuItem>
         <MenuItem onClick={onArchive}>Archive conversation</MenuItem>
+        <MenuItem onClick={onDelete} sx={{ color: 'error.main' }}>Delete conversation</MenuItem>
       </Menu>
     </Box>
   );

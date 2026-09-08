@@ -113,6 +113,19 @@ export async function unarchiveConversation(conversationId: number, userId: numb
   await apiClient.post(`/chat/conversations/${conversationId}/unarchive`, null, { params: { userId } });
 }
 
+/** Permanently deletes one conversation and its messages. */
+export async function deleteConversation(conversationId: number, userId: number): Promise<void> {
+  await apiClient.delete(`/chat/conversations/${conversationId}`, { params: { userId } });
+}
+
+/** Permanently deletes every archived conversation. Returns how many were removed. */
+export async function deleteArchivedConversations(userId: number): Promise<number> {
+  const { data } = await apiClient.delete<{ deleted: number }>('/chat/conversations/archived', {
+    params: { userId },
+  });
+  return data?.deleted ?? 0;
+}
+
 // ----- Snapshot + cost -----
 
 export async function getSnapshotInfo(userId: number): Promise<ContextSnapshotInfo> {
