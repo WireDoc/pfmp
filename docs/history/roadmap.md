@@ -34,8 +34,8 @@ _Last updated: 2026-06-23_
 | **Phase 5: Production Readiness Campaign** | 📋 Active campaign | Q3 2026 |
 | Wave 25: Microsoft Entra ID auth + first real login + onboarding audit | ✅ Complete 2026-07-14 | Q3 2026 |
 | Wave 26: RBAC + admin user management + dev-mode toggle | ✅ Complete 2026-07-15 | Q3 2026 |
-| Wave 27: Plaid sandbox → production (prep + readiness + filing) | 📋 Planned | Q3 2026 |
-| Wave 28: Production hardening + self-hosted deploy (Cloudflare Tunnel) | 📋 Planned | Q3-Q4 2026 |
+| Wave 28: Production hardening + self-hosted deploy (Cloudflare Tunnel) | 🟡 **NEXT** — preflight locked 2026-07-16 | Q3 2026 |
+| Wave 27: Plaid sandbox → production (prep + readiness + filing) | 📋 Planned — runs after 28 | Q3-Q4 2026 |
 
 **Current Version**: v0.24.0-alpha (Wave 14 closeout shipped: spending rollups, cash-flow forecast, recurring detection, anomaly alerts)
 
@@ -424,6 +424,8 @@ The campaign is 4 waves running roughly in series:
 
 ### Wave 27: Plaid sandbox → production 📋 (runs AFTER Wave 28 — order swapped)
 
+> Full detail: `docs/waves/wave-27-plaid-production.md`.
+
 **Preflight locked 2026-07-16**: (1B) **Wave 28 deploys first** so this wave
 files the Plaid application against a live public URL; (2A) privacy policy +
 ToS as unauthenticated SPA routes; (3A) Plaid error-handling audit with fixes
@@ -458,7 +460,16 @@ deferred — polling stays until production proves a need.
 - Production-only error scenarios appear (real banks have outages sandbox doesn't simulate) — keep eyes on logs first weeks
 - Webhook endpoint becomes valuable if not implemented (currently we poll via `PlaidSyncJob`)
 
-### Wave 28: Production hardening + self-hosted deploy (Cloudflare Tunnel) 📋
+### Wave 28: Production hardening + self-hosted deploy (Cloudflare Tunnel) 🟡 NEXT
+
+> Status 2026-07-16: preflight locked — full detail in
+> `docs/waves/wave-28-production-deploy.md`. Decisions: single hostname
+> (nginx serves the SPA + proxies /api, so no prod CORS), surgical frontend
+> polling fixes, Serilog + Seq observability; phases A(secrets/security) →
+> B(containers) → C(tunnel) → D(observability) → E(frontend cleanup).
+> **Open: the public domain** — owner is creating a Cloudflare account and
+> registering a domain; only Phase C is blocked on it. Docker host confirmed:
+> the existing Ubuntu server (already runs many containers).
 
 **Target**: Self-hosted on Ubuntu server (same network as the existing Postgres NAS), public reachability via Cloudflare Tunnel.
 
