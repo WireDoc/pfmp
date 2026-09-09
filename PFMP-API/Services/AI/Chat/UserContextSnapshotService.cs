@@ -40,15 +40,10 @@ public class UserContextSnapshotService : IUserContextSnapshotService
 
         // Hard max-age safety net (catches global tables not in the per-user watermark).
         var maxAge = TimeSpan.FromMinutes(_options.Chat.SnapshotMaxAgeMinutes);
-        // NOTE (2026-09-09): this mixes frames — Npgsql hands `timestamptz` back
-        // as a LOCAL DateTime while DateTime.UtcNow is UTC, so `age` is off by the
-        // host's UTC offset and the max-age net fires late. Normalizing here alone
-        // is NOT the fix: stored timestamps are themselves offset relative to the
-        // DB clock, so a naive correction makes every message rebuild the snapshot.
-        // Needs a single-frame audit of the Npgsql timestamp mapping — tracked as
-        // its own item rather than half-fixed here. The source-watermark check
-        // below is unaffected (both sides come from the DB, same frame), which is
-        // what actually drives profile-change detection.
+        // Both sides are UTC: app connections pin the PostgreSQL session time zone
+        // to UTC (see Program.WithUtcTimezone), so a stored timestamptz round-trips
+        // as the same instant it was written. Before that fix this comparison was
+        // silently off by the host's UTC offset and the max-age net fired hours late.
         var age = DateTime.UtcNow - existing.UpdatedAt;
         if (age > maxAge)
         {

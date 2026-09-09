@@ -17,8 +17,18 @@ namespace PFMP_API
     {
         public static async Task Main(string[] args)
         {
-            // Npgsql 6+ rejects DateTime with Kind=Unspecified for timestamptz columns.
-            // Enable legacy behavior so Unspecified is treated as UTC.
+            // Npgsql 6+ rejects DateTime with Kind=Unspecified for timestamptz columns,
+            // and the codebase writes plenty of them (dates parsed from request JSON,
+            // etc.), so legacy timestamp behavior stays on.
+            //
+            // The catch, and the bug this pairs with (measured 2026-09-09): in legacy
+            // mode Npgsql sends the naive date/time and PostgreSQL interprets it in the
+            // SESSION time zone. The server default here is America/Chicago, so writing
+            // DateTime.UtcNow = 13:17:07Z actually stored 18:17:09Z — every timestamp
+            // landed 5 hours in the future, and anything comparing a stored value
+            // against DateTime.UtcNow (e.g. snapshot staleness) was off by the offset.
+            // WithUtcTimezone below pins every app connection to UTC so the naive value
+            // is interpreted as the UTC it already is.
             AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
             var builder = WebApplication.CreateBuilder(args);
@@ -37,7 +47,7 @@ namespace PFMP_API
             
             // Add Entity Framework
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+                options.UseNpgsql(WithUtcTimezone(builder.Configuration.GetConnectionString("DefaultConnection"))));
 
             // All AI services route through OpenRouter
             builder.Services.AddScoped<IAIService, AIService>();
@@ -187,7 +197,7 @@ namespace PFMP_API
             var isTestingEnvironment = builder.Environment.EnvironmentName == "Testing";
             if (!isTestingEnvironment)
             {
-                var hangfireConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+                var hangfireConnectionString = WithUtcTimezone(builder.Configuration.GetConnectionString("DefaultConnection"));
                 builder.Services.AddHangfire(config => config
                     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
                     .UseSimpleAssemblyNameTypeSerializer()
@@ -673,6 +683,32 @@ namespace PFMP_API
             // Prefer explicit runtime creation via /api/admin/users endpoints now.
 
             app.Run();
+        }
+
+        /// <summary>
+        /// Pins the connection's PostgreSQL session time zone to UTC.
+        ///
+        /// With Npgsql's legacy timestamp behavior enabled, a DateTime written to a
+        /// `timestamptz` column is sent as a naive date/time and interpreted by the
+        /// server in the session time zone. Left at the server default
+        /// (America/Chicago here) that silently shifted every UTC timestamp the app
+        /// wrote by the local offset. Forcing UTC makes the round-trip identity-safe:
+        /// DateTime.UtcNow in, the same instant out, and stored values that line up
+        /// with the database's own now() for reporting and raw SQL.
+        ///
+        /// An explicit Timezone in the connection string is respected, so this can
+        /// still be overridden per environment.
+        /// </summary>
+        internal static string WithUtcTimezone(string? connectionString)
+        {
+            if (string.IsNullOrWhiteSpace(connectionString)) return connectionString ?? string.Empty;
+
+            var builder = new Npgsql.NpgsqlConnectionStringBuilder(connectionString);
+            if (string.IsNullOrWhiteSpace(builder.Timezone))
+            {
+                builder.Timezone = "UTC";
+            }
+            return builder.ConnectionString;
         }
     }
 }
