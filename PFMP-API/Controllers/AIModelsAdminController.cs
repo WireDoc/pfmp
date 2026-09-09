@@ -125,6 +125,7 @@ public class AIModelsAdminController : ControllerBase
         existing.ReasoningEffort = body.ReasoningEffort;
         existing.ReasoningExclude = body.ReasoningExclude;
         existing.ReasoningMaxTokens = body.ReasoningMaxTokens;
+        existing.CacheTtlMinutes = body.CacheTtlMinutes;
         existing.FusionPreset = NormalizeString(body.FusionPreset);
         existing.FusionJudgeModel = NormalizeString(body.FusionJudgeModel);
         existing.FusionMaxToolCalls = body.FusionMaxToolCalls;
@@ -302,6 +303,7 @@ public class AIModelsAdminController : ControllerBase
         reasoningEffort = row.ReasoningEffort?.ToString(),
         reasoningExclude = row.ReasoningExclude,
         reasoningMaxTokens = row.ReasoningMaxTokens,
+        cacheTtlMinutes = row.CacheTtlMinutes,
         fusionPreset = row.FusionPreset,
         fusionJudgeModel = row.FusionJudgeModel,
         fusionMaxToolCalls = row.FusionMaxToolCalls,
@@ -319,6 +321,7 @@ public class AIModelsAdminController : ControllerBase
         reasoningEffort = c.ReasoningEffort?.ToString(),
         reasoningExclude = c.ReasoningExclude,
         reasoningMaxTokens = c.ReasoningMaxTokens,
+        cacheTtlMinutes = c.CacheTtlMinutes,
         fusionPreset = c.FusionPreset,
         fusionJudgeModel = c.FusionJudgeModel,
         fusionMaxToolCalls = c.FusionMaxToolCalls,
@@ -334,6 +337,7 @@ public class AIModelsAdminController : ControllerBase
         public AIReasoningEffort? ReasoningEffort { get; set; }
         public bool? ReasoningExclude { get; set; }
         public int? ReasoningMaxTokens { get; set; }
+        public int? CacheTtlMinutes { get; set; }
         public string? FusionPreset { get; set; }
         public string? FusionJudgeModel { get; set; }
         public int? FusionMaxToolCalls { get; set; }

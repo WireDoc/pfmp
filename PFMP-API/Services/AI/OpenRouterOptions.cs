@@ -82,6 +82,25 @@ public class ChatOptions
 
     /// <summary>Enable the OpenRouter web-search plugin for chat turns.</summary>
     public bool WebSearchEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Marks the context snapshot with an explicit OpenRouter `cache_control`
+    /// breakpoint so the ~5k-token prefix is billed at the cached rate.
+    /// Measured 2026-09-09 on Gemini 3.1 Pro: implicit caching returned 0 cached
+    /// tokens at $0.0598/request, while an explicit breakpoint cached 29,575 of
+    /// 29,580 prompt tokens at $0.0066 — about 89% cheaper.
+    /// </summary>
+    public bool PromptCacheEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Desired cache lifetime in minutes, sent as the `cache_control.ttl` hint.
+    ///
+    /// IMPORTANT: providers differ. Google Gemini IGNORES this and manages its own
+    /// ~5-minute window (verified: sending a ttl is accepted, not rejected, but
+    /// changes nothing). Anthropic honours only the discrete values 5m and 1h, so
+    /// this is mapped to the nearest supported one. Set 0 to omit the hint.
+    /// </summary>
+    public int CacheTtlMinutes { get; set; } = 30;
 }
 
 /// <summary>

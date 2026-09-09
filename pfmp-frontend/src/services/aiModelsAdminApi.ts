@@ -20,6 +20,7 @@ export interface AISettingsRow {
   reasoningEffort: AIReasoningEffort | null;
   reasoningExclude: boolean | null;
   reasoningMaxTokens: number | null;
+  cacheTtlMinutes: number | null;
   fusionPreset: string | null;
   fusionJudgeModel: string | null;
   fusionMaxToolCalls: number | null;
@@ -36,6 +37,7 @@ export interface ResolvedSlotConfig {
   reasoningEffort: AIReasoningEffort | null;
   reasoningExclude: boolean | null;
   reasoningMaxTokens: number | null;
+  cacheTtlMinutes: number | null;
   fusionPreset: string | null;
   fusionJudgeModel: string | null;
   fusionMaxToolCalls: number | null;
@@ -75,6 +77,7 @@ export interface AISettingsUpsertPayload {
   reasoningEffort?: AIReasoningEffort | null;
   reasoningExclude?: boolean | null;
   reasoningMaxTokens?: number | null;
+  cacheTtlMinutes?: number | null;
   fusionPreset?: string | null;
   fusionJudgeModel?: string | null;
   fusionMaxToolCalls?: number | null;

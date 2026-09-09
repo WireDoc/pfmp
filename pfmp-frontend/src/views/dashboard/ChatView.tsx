@@ -360,7 +360,7 @@ export function ChatView() {
                 </IconButton>
               </Stack>
               <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: 'block' }}>
-                Press Enter to send · Shift+Enter for newline · Your full profile + holdings + news digest are sent as the prompt prefix (cached for ~90% off after the first request of the day).
+                Press Enter to send · Shift+Enter for newline · Your full profile + holdings + news digest are sent as the prompt prefix. Follow-up messages reuse it at a ~90% discount while the provider's cache is warm (a few minutes on Gemini), and it refreshes automatically whenever your profile data changes.
               </Typography>
             </Box>
           </>

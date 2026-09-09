@@ -61,6 +61,13 @@ public class AISettings
     /// </summary>
     public int? ReasoningMaxTokens { get; set; }
 
+    /// <summary>
+    /// Prompt-cache lifetime hint, in minutes, for this slot. Null falls back to
+    /// AI:OpenRouter:Chat:CacheTtlMinutes. Note that Google Gemini ignores the hint
+    /// and runs a fixed ~5-minute window; Anthropic honours only 5m or 1h.
+    /// </summary>
+    public int? CacheTtlMinutes { get; set; }
+
     // ----- Fusion-only (only meaningful when Slot = Fusion; null on other slots) -----
 
     /// <summary>Fusion preset name ("general-high" or "general-budget").</summary>

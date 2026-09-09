@@ -44,6 +44,9 @@ public class ResolvedModelConfig
     public bool? ReasoningExclude { get; init; }
     public int? ReasoningMaxTokens { get; init; }
 
+    /// <summary>Prompt-cache lifetime hint in minutes. Null = fall back to AI:OpenRouter:Chat:CacheTtlMinutes.</summary>
+    public int? CacheTtlMinutes { get; init; }
+
     // Fusion-only — only populated for AIModelSlot.Fusion
     public string? FusionPreset { get; init; }
     public string? FusionJudgeModel { get; init; }

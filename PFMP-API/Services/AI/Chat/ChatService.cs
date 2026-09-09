@@ -583,6 +583,29 @@ public class ChatService : IChatService
     // ===== Payload assembly =====
 
     /// <summary>
+    /// Builds an OpenRouter text content block carrying a `cache_control`
+    /// breakpoint. The ttl hint is only meaningful for providers that honour it
+    /// (Anthropic: 5m or 1h — nothing in between, hence the mapping below).
+    /// Gemini ignores ttl entirely and runs its own ~5-minute window; sending
+    /// one is harmless there (verified against the live API).
+    /// </summary>
+    private static Dictionary<string, object> BuildCacheableTextBlock(string text, int ttlMinutes)
+    {
+        var cacheControl = new Dictionary<string, object> { ["type"] = "ephemeral" };
+        if (ttlMinutes > 0)
+        {
+            cacheControl["ttl"] = ttlMinutes <= 5 ? "5m" : "1h";
+        }
+
+        return new Dictionary<string, object>
+        {
+            ["type"] = "text",
+            ["text"] = text,
+            ["cache_control"] = cacheControl
+        };
+    }
+
+    /// <summary>
     /// Pull url/title pairs out of an OpenRouter `annotations` array. The
     /// documented shape is <c>{ type: "url_citation", url_citation: { url, title } }</c>,
     /// but this tolerates url/title sitting directly on the annotation object so a
@@ -630,10 +653,20 @@ public class ChatService : IChatService
         ChatOptions chatOptions,
         bool useWebSearch)
     {
+        // The snapshot is the big stable block (~5k tokens, identical across every
+        // conversation), so it carries the cache breakpoint: everything up to and
+        // including it is billed at the cached rate on subsequent requests.
+        // Without this, Gemini's implicit caching frequently never engages at all.
+        // Per-slot override from the AI settings page wins over the appsettings default.
+        var cacheTtlMinutes = slot.CacheTtlMinutes ?? chatOptions.CacheTtlMinutes;
+        object snapshotBody = chatOptions.PromptCacheEnabled
+            ? new object[] { BuildCacheableTextBlock(snapshotContent, cacheTtlMinutes) }
+            : snapshotContent;
+
         var messages = new List<Dictionary<string, object>>
         {
             new() { ["role"] = "system", ["content"] = ChatSystemPrompt },
-            new() { ["role"] = "user", ["content"] = snapshotContent },
+            new() { ["role"] = "user", ["content"] = snapshotBody },
             new() { ["role"] = "assistant",
                 ["content"] = "Got it — I have your full financial context loaded. What would you like to talk about?" }
         };

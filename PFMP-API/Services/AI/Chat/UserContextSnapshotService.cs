@@ -40,6 +40,15 @@ public class UserContextSnapshotService : IUserContextSnapshotService
 
         // Hard max-age safety net (catches global tables not in the per-user watermark).
         var maxAge = TimeSpan.FromMinutes(_options.Chat.SnapshotMaxAgeMinutes);
+        // NOTE (2026-09-09): this mixes frames — Npgsql hands `timestamptz` back
+        // as a LOCAL DateTime while DateTime.UtcNow is UTC, so `age` is off by the
+        // host's UTC offset and the max-age net fires late. Normalizing here alone
+        // is NOT the fix: stored timestamps are themselves offset relative to the
+        // DB clock, so a naive correction makes every message rebuild the snapshot.
+        // Needs a single-frame audit of the Npgsql timestamp mapping — tracked as
+        // its own item rather than half-fixed here. The source-watermark check
+        // below is unaffected (both sides come from the DB, same frame), which is
+        // what actually drives profile-change detection.
         var age = DateTime.UtcNow - existing.UpdatedAt;
         if (age > maxAge)
         {
@@ -179,8 +188,14 @@ SELECT GREATEST(
 
         if (existing != null && existing.ContentHash == hash)
         {
+            // Content is byte-identical, so the cached prompt prefix stays valid.
+            // Still bump UpdatedAt: it doubles as the source-change watermark, and
+            // leaving it stale made every later message re-run this whole rebuild
+            // (the watermark would keep reading "newer than the snapshot" forever).
+            existing.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync(ct);
             _logger.LogInformation(
-                "Snapshot rebuild for user {UserId}: content unchanged (hash {Hash}), keeping existing row",
+                "Snapshot rebuild for user {UserId}: content unchanged (hash {Hash}), refreshed watermark",
                 userId, hash[..12]);
             return existing;
         }

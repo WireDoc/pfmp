@@ -91,6 +91,7 @@ public class AIModelResolver : IAIModelResolver
         var reasoningEffort = SourceTrackNullable<AIReasoningEffort>("ReasoningEffort", row?.ReasoningEffort, null);
         var reasoningExclude = SourceTrackNullable<bool>("ReasoningExclude", row?.ReasoningExclude, null);
         var reasoningMaxTokens = SourceTrackNullable<int>("ReasoningMaxTokens", row?.ReasoningMaxTokens, null);
+        var cacheTtlMinutes = SourceTrackNullable<int>("CacheTtlMinutes", row?.CacheTtlMinutes, _options.Chat.CacheTtlMinutes);
 
         // Fusion-only fields fall back to the FusionOptions section
         string? fusionPreset = null;
@@ -114,6 +115,7 @@ public class AIModelResolver : IAIModelResolver
             ReasoningEffort = reasoningEffort,
             ReasoningExclude = reasoningExclude,
             ReasoningMaxTokens = reasoningMaxTokens,
+            CacheTtlMinutes = cacheTtlMinutes,
             FusionPreset = fusionPreset,
             FusionJudgeModel = fusionJudgeModel,
             FusionMaxToolCalls = fusionMaxToolCalls,

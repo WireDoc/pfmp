@@ -37,6 +37,7 @@ interface SlotFormState {
   reasoningEffort: '' | AIReasoningEffort;
   reasoningExclude: '' | 'true' | 'false';
   reasoningMaxTokens: string;
+  cacheTtlMinutes: string;
   fusionPreset: string;
   fusionJudgeModel: string;
   fusionMaxToolCalls: string;
@@ -44,7 +45,7 @@ interface SlotFormState {
 
 const emptyForm: SlotFormState = {
   model: '', maxTokens: '', temperature: '', topP: '',
-  reasoningEffort: '', reasoningExclude: '', reasoningMaxTokens: '',
+  reasoningEffort: '', reasoningExclude: '', reasoningMaxTokens: '', cacheTtlMinutes: '',
   fusionPreset: '', fusionJudgeModel: '', fusionMaxToolCalls: '',
 };
 
@@ -59,6 +60,7 @@ function entryToForm(entry: SlotConfigEntry): SlotFormState {
     reasoningEffort: r.reasoningEffort ?? '',
     reasoningExclude: r.reasoningExclude == null ? '' : (r.reasoningExclude ? 'true' : 'false'),
     reasoningMaxTokens: r.reasoningMaxTokens?.toString() ?? '',
+    cacheTtlMinutes: r.cacheTtlMinutes?.toString() ?? '',
     fusionPreset: r.fusionPreset ?? '',
     fusionJudgeModel: r.fusionJudgeModel ?? '',
     fusionMaxToolCalls: r.fusionMaxToolCalls?.toString() ?? '',
@@ -76,6 +78,7 @@ function formToPayload(form: SlotFormState): AISettingsUpsertPayload {
     reasoningEffort: form.reasoningEffort === '' ? null : form.reasoningEffort,
     reasoningExclude: form.reasoningExclude === '' ? null : form.reasoningExclude === 'true',
     reasoningMaxTokens: numOrNull(form.reasoningMaxTokens),
+    cacheTtlMinutes: numOrNull(form.cacheTtlMinutes),
     fusionPreset: strOrNull(form.fusionPreset),
     fusionJudgeModel: strOrNull(form.fusionJudgeModel),
     fusionMaxToolCalls: numOrNull(form.fusionMaxToolCalls),
@@ -363,6 +366,14 @@ export default function AIModelsAdminView() {
                   value={form.reasoningMaxTokens}
                   onChange={e => handleFormChange(slot, { reasoningMaxTokens: e.target.value })}
                   helperText="Default: (not sent)"
+                />
+                <TextField
+                  size="small"
+                  label="Prompt cache TTL (min)"
+                  type="number"
+                  value={form.cacheTtlMinutes}
+                  onChange={e => handleFormChange(slot, { cacheTtlMinutes: e.target.value })}
+                  helperText="Default 30. Gemini ignores this (fixed ~5 min); Anthropic honours 5m or 1h."
                 />
               </Box>
 
