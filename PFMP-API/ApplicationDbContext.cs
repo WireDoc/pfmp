@@ -827,6 +827,66 @@ namespace PFMP_API
                     }
                 }
             }
+
+            ApplyUtcDateTimeConversions(modelBuilder);
+        }
+
+        /// <summary>
+        /// Forces every <c>timestamptz</c> column to round-trip as UTC.
+        ///
+        /// Npgsql's legacy timestamp behavior (enabled in Program.Main because the
+        /// codebase writes Kind=Unspecified DateTimes) hands reads back as
+        /// <see cref="DateTimeKind.Local"/>. C# subtraction ignores Kind, so every
+        /// "how old is this row" check against DateTime.UtcNow was wrong by the
+        /// host's UTC offset — the chat context snapshot, for instance, measured
+        /// its own age as 300 minutes old the moment it was written and rebuilt
+        /// itself on every single request.
+        ///
+        /// Reads are normalized to UTC and writes send the UTC wall-clock, which is
+        /// what the UTC-pinned session (Program.WithUtcTimezone) expects. Columns
+        /// mapped to bare <c>date</c> are skipped: they carry no time-of-day, and
+        /// shifting them could roll the calendar day.
+        /// </summary>
+        private static void ApplyUtcDateTimeConversions(ModelBuilder modelBuilder)
+        {
+            var converter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(
+                // to provider: emit the UTC wall-clock regardless of how it arrived.
+                v => v.Kind == DateTimeKind.Utc
+                        ? v
+                        : v.Kind == DateTimeKind.Local
+                            ? v.ToUniversalTime()
+                            : DateTime.SpecifyKind(v, DateTimeKind.Utc),
+                // from provider: Npgsql gives Local for timestamptz — convert, don't relabel.
+                v => v.Kind == DateTimeKind.Utc ? v : v.ToUniversalTime());
+
+            var nullableConverter = new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime?, DateTime?>(
+                v => !v.HasValue
+                        ? v
+                        : v.Value.Kind == DateTimeKind.Utc
+                            ? v
+                            : v.Value.Kind == DateTimeKind.Local
+                                ? v.Value.ToUniversalTime()
+                                : DateTime.SpecifyKind(v.Value, DateTimeKind.Utc),
+                v => !v.HasValue ? v : v.Value.Kind == DateTimeKind.Utc ? v : v.Value.ToUniversalTime());
+
+            foreach (var entityType in modelBuilder.Model.GetEntityTypes())
+            {
+                foreach (var property in entityType.GetProperties())
+                {
+                    // Skip date-only columns — no time component to normalize.
+                    var columnType = property.GetColumnType();
+                    if (string.Equals(columnType, "date", StringComparison.OrdinalIgnoreCase)) continue;
+
+                    if (property.ClrType == typeof(DateTime))
+                    {
+                        property.SetValueConverter(converter);
+                    }
+                    else if (property.ClrType == typeof(DateTime?))
+                    {
+                        property.SetValueConverter(nullableConverter);
+                    }
+                }
+            }
         }
     }
 }
